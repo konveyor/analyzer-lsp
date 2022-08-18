@@ -4623,6 +4623,4 @@ type WorkspaceSymbol struct {
 	Kind SymbolKind `json:"kind"`
 
 	Location Location `json:"location"`
-
-
 }
