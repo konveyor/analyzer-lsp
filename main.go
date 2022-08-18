@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"path/filepath"
+	"strings"
 
 	"github.com/shawn-hurley/jsonrpc-golang/jsonrpc2"
 	"github.com/shawn-hurley/jsonrpc-golang/lsp/protocol"
@@ -27,6 +28,7 @@ func main() {
 	}()
 
 	d, err := filepath.Abs("../test-analyziers-gopls")
+	fmt.Printf("repo: %v", d)
 	if err != nil {
 		return
 	}
@@ -49,7 +51,7 @@ func main() {
 	if err := rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
 		fmt.Printf("initialized failed: %v", err)
 	}
-	fmt.Printf("connection initialized: %#v", result)
+	fmt.Printf("connection initialized: %#v", result.Capabilities.WorkspaceSymbolProvider)
 	wsp := &protocol.WorkspaceSymbolParams{
 		Query: "pkg/apis/apiextensions/v1beta1.CustomResourceDefinition",
 	}
@@ -60,7 +62,32 @@ func main() {
 		fmt.Printf("error: %v", err)
 	}
 
+	refs := []protocol.WorkspaceSymbol{}
 	for _, s := range res {
-		fmt.Printf("\n%v - %v/%v\n", s.Location.URI, s.Kind, s.Name)
+		if s.Kind == protocol.Struct {
+			refs = append(refs, s)
+		}
+	}
+
+	for _, r := range refs {
+		params := &protocol.ReferenceParams{
+			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+				TextDocument: protocol.TextDocumentIdentifier{
+					URI: r.Location.URI,
+				},
+				Position: r.Location.Range.Start,
+			},
+		}
+
+		res := []protocol.Location{}
+		err := rpc.Call(ctx, "textDocument/references", params, &res)
+		if err != nil {
+			fmt.Printf("Error rpc: %v", err)
+		}
+		for _, result := range res {
+			if strings.Contains(result.URI, d) {
+				fmt.Printf("\nFound references to type - %v:%v\n", result.URI, result.Range.Start.Line)
+			}
+		}
 	}
 }
