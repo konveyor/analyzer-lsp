@@ -27,8 +27,8 @@ func main() {
 		}
 	}()
 
-	d, err := filepath.Abs("../test-analyziers-gopls")
-	fmt.Printf("repo: %v", d)
+	d, err := filepath.Abs("./examples/golang")
+	fmt.Printf("repo: %v\n", d)
 	if err != nil {
 		return
 	}
@@ -52,21 +52,19 @@ func main() {
 		fmt.Printf("initialized failed: %v", err)
 	}
 	fmt.Printf("connection initialized: %#v", result.Capabilities.WorkspaceSymbolProvider)
+
+	findReferences(ctx, rpc, d, "pkg/apis/apiextensions/v1beta1.CustomResourceDefinition")
+}
+
+func findReferences(ctx context.Context, rpc *jsonrpc2.Conn, rootDir, query string) {
 	wsp := &protocol.WorkspaceSymbolParams{
-		Query: "pkg/apis/apiextensions/v1beta1.CustomResourceDefinition",
+		Query: query,
 	}
 
-	var res []protocol.WorkspaceSymbol
-	err = rpc.Call(ctx, "workspace/symbol", wsp, &res)
+	var refs []protocol.WorkspaceSymbol
+	err := rpc.Call(ctx, "workspace/symbol", wsp, &refs)
 	if err != nil {
 		fmt.Printf("error: %v", err)
-	}
-
-	refs := []protocol.WorkspaceSymbol{}
-	for _, s := range res {
-		if s.Kind == protocol.Struct {
-			refs = append(refs, s)
-		}
 	}
 
 	for _, r := range refs {
@@ -85,7 +83,7 @@ func main() {
 			fmt.Printf("Error rpc: %v", err)
 		}
 		for _, result := range res {
-			if strings.Contains(result.URI, d) {
+			if strings.Contains(result.URI, rootDir) {
 				fmt.Printf("\nFound references to type - %v:%v\n", result.URI, result.Range.Start.Line)
 			}
 		}
