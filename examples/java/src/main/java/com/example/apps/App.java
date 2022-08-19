@@ -1,0 +1,13 @@
+package com.example.apps;
+
+import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;
+
+public class App 
+{
+
+    public static void main( String[] args )
+    {
+        CustomResourceDefinition crd = new CustomResourceDefinition();
+        System.out.println( crd );
+    }
+}
