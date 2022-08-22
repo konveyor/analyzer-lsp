@@ -10,7 +10,26 @@ import (
 
 	"github.com/shawn-hurley/jsonrpc-golang/jsonrpc2"
 	"github.com/shawn-hurley/jsonrpc-golang/lsp/protocol"
+	"github.com/shawn-hurley/jsonrpc-golang/rules"
 )
+
+//TODO(shawn-hurley) - this needs to be passed in as args. Will need to refactor to use cobra
+var config = rules.Configuration{
+	ProjectLocation: "./examples/golang",
+}
+
+//TODO(shawn-hurley) - this package/type name stutters.
+var workspaceRules = []rules.Rule{
+	{
+		ImportRule: &rules.ImportRule{
+			GoImportRule: &rules.GoImportRule{
+				Import: "pkg/apis/apiextensions/v1beta1.CustomResourceDefinition",
+				// TODO(shawn-hurley) - copy the windup ability to intersparse known text here.
+				Message: "Use of deprecated and removed API",
+			},
+		},
+	},
+}
 
 func main() {
 	ctx := context.Background()
@@ -27,14 +46,14 @@ func main() {
 		}
 	}()
 
-	d, err := filepath.Abs("./examples/golang")
-	fmt.Printf("repo: %v\n", d)
+	absolutePath, err := filepath.Abs(config.ProjectLocation)
 	if err != nil {
 		return
 	}
 
 	params := &protocol.InitializeParams{
-		RootURI: fmt.Sprintf("file://%v", d),
+		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
+		RootURI: fmt.Sprintf("file://%v", absolutePath),
 		Capabilities: protocol.ClientCapabilities{
 			TextDocument: protocol.TextDocumentClientCapabilities{
 				DocumentSymbol: &protocol.DocumentSymbolClientCapabilities{
@@ -53,10 +72,17 @@ func main() {
 	}
 	fmt.Printf("connection initialized: %#v", result.Capabilities.WorkspaceSymbolProvider)
 
-	findReferences(ctx, rpc, d, "pkg/apis/apiextensions/v1beta1.CustomResourceDefinition")
+	for _, r := range workspaceRules {
+		if r.GoImportRule != nil {
+			if loc, found := findReferences(ctx, rpc, absolutePath, r.GoImportRule.Import); found {
+				fmt.Printf("\n%v\nlocation: %v:%v", r.GoImportRule.Message, loc.URI, loc.Range.Start.Line)
+			}
+		}
+
+	}
 }
 
-func findReferences(ctx context.Context, rpc *jsonrpc2.Conn, rootDir, query string) {
+func findReferences(ctx context.Context, rpc *jsonrpc2.Conn, rootDir, query string) (protocol.Location, bool) {
 	wsp := &protocol.WorkspaceSymbolParams{
 		Query: query,
 	}
@@ -84,8 +110,9 @@ func findReferences(ctx context.Context, rpc *jsonrpc2.Conn, rootDir, query stri
 		}
 		for _, result := range res {
 			if strings.Contains(result.URI, rootDir) {
-				fmt.Printf("\nFound references to type - %v:%v\n", result.URI, result.Range.Start.Line)
+				return result, true
 			}
 		}
 	}
+	return protocol.Location{}, false
 }
