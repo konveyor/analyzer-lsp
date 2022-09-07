@@ -1250,6 +1250,8 @@ type InitializeParams struct {
 	 * The actual configured workspace folders.
 	 */
 	WorkspaceFolders []WorkspaceFolder `json:"workspaceFolders"`
+
+	ExtendedClientCapilities map[string]interface{} `json:"extendedClientCapabilities"`
 }
 
 /*InitializeResult defined:

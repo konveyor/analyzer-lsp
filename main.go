@@ -3,20 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"net"
-	"path/filepath"
 	"strings"
 
-	"github.com/shawn-hurley/jsonrpc-golang/jsonrpc2"
 	"github.com/shawn-hurley/jsonrpc-golang/lsp/protocol"
+	openshiftrp "github.com/shawn-hurley/jsonrpc-golang/openshift-rp"
 	"github.com/shawn-hurley/jsonrpc-golang/rules"
 )
-
-//TODO(shawn-hurley) - this needs to be passed in as args. Will need to refactor to use cobra
-var config = rules.Configuration{
-	ProjectLocation: "./examples/golang",
-}
 
 //TODO(shawn-hurley) - this package/type name stutters.
 var workspaceRules = []rules.Rule{
@@ -29,90 +21,80 @@ var workspaceRules = []rules.Rule{
 			},
 		},
 	},
+	{
+		ImportRule: &rules.ImportRule{
+			JavaImportRule: &rules.JavaImportRule{
+				Import:  "io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition",
+				Message: "Use of deprecated and removed API",
+			},
+		},
+	},
 }
 
 func main() {
 	ctx := context.Background()
-	conn, err := net.Dial("tcp", "localhost:37374")
-	if err != nil {
-		fmt.Printf("error: %v", err)
-	}
-	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(conn, conn))
 
-	go func() {
-		err := rpc.Run(ctx)
-		if err != nil {
-			log.Printf("connection terminated: %v", err)
-		}
-	}()
+	// Create a Golang Provider and a Java Provider
 
-	absolutePath, err := filepath.Abs(config.ProjectLocation)
-	if err != nil {
-		return
-	}
+	golangProvider := openshiftrp.NewGolangProvider(
+		openshiftrp.LSPConfig{
+			Location: "/home/shurley/repos/jsonrpc-golang/examples/golang",
+		},
+		openshiftrp.ProviderConfig{},
+	)
 
-	params := &protocol.InitializeParams{
-		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
-		RootURI: fmt.Sprintf("file://%v", absolutePath),
-		Capabilities: protocol.ClientCapabilities{
-			TextDocument: protocol.TextDocumentClientCapabilities{
-				DocumentSymbol: &protocol.DocumentSymbolClientCapabilities{
-					HierarchicalDocumentSymbolSupport: true,
-				},
+	javaProvider := openshiftrp.NewJavaProvider(
+		openshiftrp.LSPConfig{
+			Location: "/home/shurley/repos/jsonrpc-golang/examples/java",
+			InitializationOptions: map[string]interface{}{
+				"bundles": []string{"/home/shurley/repos/java-rule-addon/java-rule-addon.core/target/java-rule-addon.core-1.0.0-SNAPSHOT.jar"},
 			},
 		},
-	}
+		openshiftrp.ProviderConfig{},
+		"/home/shurley/repos/jdt-lang-server/workspace",
+	)
 
-	var result protocol.InitializeResult
-	if err := rpc.Call(ctx, "initialize", params, &result); err != nil {
-		fmt.Printf("initialize failed: %v", err)
-	}
-	if err := rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
-		fmt.Printf("initialized failed: %v", err)
-	}
-	fmt.Printf("connection initialized: %#v", result.Capabilities.WorkspaceSymbolProvider)
+	golangProvider.Connect(ctx)
+	javaProvider.Connect(ctx)
 
 	for _, r := range workspaceRules {
 		if r.GoImportRule != nil {
-			if loc, found := findReferences(ctx, rpc, absolutePath, r.GoImportRule.Import); found {
-				fmt.Printf("\n%v\nlocation: %v:%v", r.GoImportRule.Message, loc.URI, loc.Range.Start.Line)
+			symbols := golangProvider.GetAllSymbols(r.GoImportRule.Import)
+			foundRefs := map[string]interface{}{}
+			for _, s := range symbols {
+				if s.Kind == protocol.Struct {
+					references := golangProvider.GetAllReferences(s)
+					for _, ref := range references {
+						if strings.Contains(ref.URI, "/home/shurley/repos/jsonrpc-golang/examples/golang") {
+							foundRefs[fmt.Sprintf("location %v: %v", ref.URI, ref.Range.Start.Line)] = nil
+						}
+					}
+				}
+			}
+			fmt.Printf("\nGolang rule violations:")
+			for k := range foundRefs {
+				fmt.Printf("\n%v\n%v\n", r.GoImportRule.Message, k)
 			}
 		}
-
-	}
-}
-
-func findReferences(ctx context.Context, rpc *jsonrpc2.Conn, rootDir, query string) (protocol.Location, bool) {
-	wsp := &protocol.WorkspaceSymbolParams{
-		Query: query,
-	}
-
-	var refs []protocol.WorkspaceSymbol
-	err := rpc.Call(ctx, "workspace/symbol", wsp, &refs)
-	if err != nil {
-		fmt.Printf("error: %v", err)
-	}
-
-	for _, r := range refs {
-		params := &protocol.ReferenceParams{
-			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-				TextDocument: protocol.TextDocumentIdentifier{
-					URI: r.Location.URI,
-				},
-				Position: r.Location.Range.Start,
-			},
-		}
-
-		res := []protocol.Location{}
-		err := rpc.Call(ctx, "textDocument/references", params, &res)
-		if err != nil {
-			fmt.Printf("Error rpc: %v", err)
-		}
-		for _, result := range res {
-			if strings.Contains(result.URI, rootDir) {
-				return result, true
+		if r.JavaImportRule != nil {
+			symbols := javaProvider.GetAllSymbols(r.JavaImportRule.Import)
+			foundRefs := map[string]interface{}{}
+			for _, s := range symbols {
+				// For Java, we have to look at the names for now
+				if strings.Contains(s.Name, r.JavaImportRule.Import) {
+					// Java references only searchs in the project
+					references := javaProvider.GetAllReferences(s)
+					for _, ref := range references {
+						if strings.Contains(ref.URI, "/home/shurley/repos/jsonrpc-golang/examples/java") {
+							foundRefs[fmt.Sprintf("location %v: %v", ref.URI, ref.Range.Start.Line)] = nil
+						}
+					}
+				}
+			}
+			fmt.Printf("\nJava rule violations:")
+			for k := range foundRefs {
+				fmt.Printf("\n%v\n%v\n", r.JavaImportRule.Message, k)
 			}
 		}
 	}
-	return protocol.Location{}, false
 }

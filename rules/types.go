@@ -11,6 +11,7 @@ type Rule struct {
 type ImportRule struct {
 	GoImportRule     *GoImportRule     `json:"go,omitempty"`
 	PythonImportRule *PythonImportRule `json:"python,omitempty"`
+	JavaImportRule   *JavaImportRule   `json:"java,omitempty"`
 }
 
 type GoImportRule struct {
@@ -19,6 +20,11 @@ type GoImportRule struct {
 }
 
 type PythonImportRule struct {
+	Import  string `json:"import,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+type JavaImportRule struct {
 	Import  string `json:"import,omitempty"`
 	Message string `json:"message,omitempty"`
 }
