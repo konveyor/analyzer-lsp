@@ -7,7 +7,7 @@ import (
 
 	"github.com/shawn-hurley/jsonrpc-golang/lsp/protocol"
 	openshiftrp "github.com/shawn-hurley/jsonrpc-golang/openshift-rp"
-	"github.com/shawn-hurley/jsonrpc-golang/rules"
+	rules "github.com/shawn-hurley/jsonrpc-golang/rules_bak"
 )
 
 //TODO(shawn-hurley) - this package/type name stutters.

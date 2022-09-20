@@ -1,4 +1,4 @@
-package rules
+package rules_bak
 
 type Configuration struct {
 	ProjectLocation string
