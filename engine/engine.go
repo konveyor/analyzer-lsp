@@ -12,15 +12,14 @@ type RuleEngine interface {
 }
 
 type ruleMessage struct {
-	Rule       Rule
-	ret        chan response
-	cancelFunc context.CancelFunc
+	rule       Rule
+	returnChan chan response
 }
 
 type response struct {
-	bo   bool
-	err  error
-	rule Rule
+	conditionResponse InnerConndtionResponse
+	err               error
+	rule              Rule
 }
 
 type ruleEngine struct {
@@ -53,11 +52,11 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage) {
 	for {
 		select {
 		case m := <-ruleMessages:
-			bo, err := processRule(m.Rule)
-			m.ret <- response{
-				bo:   bo,
-				err:  err,
-				rule: m.Rule,
+			bo, err := processRule(m.rule)
+			m.returnChan <- response{
+				conditionResponse: bo,
+				err:               err,
+				rule:              m.rule,
 			}
 		case <-ctx.Done():
 			return
@@ -79,8 +78,8 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 		fmt.Printf("\nhere")
 		wg.Add(1)
 		r.ruleProcessing <- ruleMessage{
-			Rule: rule,
-			ret:  ret,
+			rule:       rule,
+			returnChan: ret,
 		}
 	}
 
@@ -90,7 +89,13 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 		for {
 			select {
 			case response := <-ret:
-				fmt.Printf("\nhere: %#v", response)
+				if response.conditionResponse.Passed {
+					responses = append(responses, response)
+
+				} else {
+					// Log that rule did not pass
+					fmt.Printf("Rule did not pass")
+				}
 				responses = append(responses, response)
 				wg.Done()
 			case <-ctx.Done():
@@ -100,15 +105,25 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 		}
 	}()
 
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		wg.Wait()
+	}()
+
 	// Wait for all the rules to process
-	wg.Wait()
-	fmt.Printf("\nhere after done")
+	select {
+	case <-done:
+		fmt.Printf("done waiting for rules to be processed")
+	case <-ctx.Done():
+		fmt.Printf("Context canceled running of rules")
+	}
 	// Cannel running go-routine
 	cancelFunc()
-	fmt.Printf("\nresponses: %#v", responses)
+
 }
 
-func processRule(rule Rule) (bool, error) {
+func processRule(rule Rule) (InnerConndtionResponse, error) {
 
 	// Here is what a worker should run when getting a rule.
 	// For now, lets not fan out the running of conditions.
@@ -125,79 +140,79 @@ func processRule(rule Rule) (bool, error) {
 		} else if len(rule.When.Or) > 0 {
 			return evaluateOrConditions(rule.When.Or)
 		} else {
-			return false, fmt.Errorf("invalid when condition")
+			return InnerConndtionResponse{}, fmt.Errorf("invalid when condition")
 		}
 	}
 }
 
-func evaluateAndCondtions(conditions []Condition) (bool, error) {
+func evaluateAndCondtions(conditions []Condition) (InnerConndtionResponse, error) {
 	// Make sure we allow for short circt.
 
 	if len(conditions) == 0 {
-		return false, fmt.Errorf("condtions must not be empty while evaluationg")
+		return InnerConndtionResponse{}, fmt.Errorf("condtions must not be empty while evaluationg")
 	}
 
+	fullResponse := InnerConndtionResponse{Passed: true}
 	for _, c := range conditions {
 		if c.When != nil {
-			var triggerRule bool
+			var response InnerConndtionResponse
 			var err error
 			if len(c.When.And) > 0 {
-				triggerRule, err = evaluateAndCondtions(c.When.And)
+				response, err = evaluateAndCondtions(c.When.And)
 			} else if len(c.When.Or) > 0 {
-				triggerRule, err = evaluateOrConditions(c.When.Or)
+				response, err = evaluateOrConditions(c.When.Or)
 			} else {
-				return false, fmt.Errorf("invalid when clause")
+				return response, fmt.Errorf("invalid when clause")
 			}
 			if err != nil {
-				return false, err
+				return response, err
 			}
 
 			// Short cirtcut loop if one and condition fails
-			if !triggerRule {
-				return false, err
-
+			if !response.Passed {
+				fmt.Printf("\nhere in !response.Passed: %v\n", response)
+				return response, err
 			}
-
 		} else {
-			triggerRule, err := c.InnerCondition.Evaluate()
-			if !triggerRule || err != nil {
-				return false, err
+			response, err := c.InnerCondition.Evaluate()
+			if !response.Passed || err != nil {
+				return response, err
 			}
+			fullResponse.ConditionHitContext = append(fullResponse.ConditionHitContext, response.ConditionHitContext...)
 		}
 	}
 
-	return true, nil
-
+	return fullResponse, nil
 }
 
-func evaluateOrConditions(conditions []Condition) (bool, error) {
+func evaluateOrConditions(conditions []Condition) (InnerConndtionResponse, error) {
 	for _, c := range conditions {
 		if c.When != nil {
-			var triggerRule bool
+			var response InnerConndtionResponse
 			var err error
 			if len(c.When.And) > 0 {
-				triggerRule, err = evaluateAndCondtions(c.When.And)
+				response, err = evaluateAndCondtions(c.When.And)
 			} else if len(c.When.Or) > 0 {
-				triggerRule, err = evaluateOrConditions(c.When.Or)
+				response, err = evaluateOrConditions(c.When.Or)
 			} else {
-				return false, fmt.Errorf("invalid when clause")
+				return response, fmt.Errorf("invalid when clause")
 			}
 
 			// Short cirtcut loop if one and condition passes we can move on
-			if triggerRule {
-				return true, err
-
+			// We may not want to do this,
+			if response.Passed {
+				return response, err
 			}
 		} else {
-			triggerRule, err := c.InnerCondition.Evaluate()
-			if triggerRule {
-				return true, err
+			response, err := c.InnerCondition.Evaluate()
+			if response.Passed {
+				return response, err
 			}
 			if err != nil {
-				return false, err
+				return InnerConndtionResponse{}, err
 			}
 		}
 	}
 
-	return false, nil
+	return InnerConndtionResponse{}, nil
 }

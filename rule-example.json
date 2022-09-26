@@ -1,18 +1,55 @@
 [
     {
-        "importRule": {
-            "goImportRule": {
-                "import": "pkg/apis/apiextensions/v1beta1.CustomResourceDefinition",
-                "message": "Use of deprecated and removed API"
+        "message":  "apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead",
+        "when": {
+            "or": [
+                {
+                    "java": {
+                        "referenced": "*CustomerResourceDefinition*"
+                    }
+                },
+                {
+                    "go": {
+                        "referenced": "*CustomerResourceDefinition*"
+                    }
+                }
+
+            ]
+        }
+    },
+    {
+        "message": "testing one condition",
+        "when": {
+            "go": {
+                "referenced":"*CustomerResourceDefinition*"
             }
         }
     },
     {
-        "importRule": {
-            "javaImportRule": {
-                "import": "io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition",
-                "message": "Use of deprecated and removed API"
-            }
+        "message": "testing nested conditions",
+        "when": {
+            "or": [
+                {
+                    "and": [
+                        {
+                            "go": {
+                                "referenced": "*CustomerResourceDefinition*"
+                            }
+                        },
+                        {
+                            "java": {
+                                "referenced": "*CustomerResourceDefinition*"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "go": {
+                        "referenced": "*CustomerResourceDefinition*"
+                    }
+                }
+            ]
         }
     }
+
 ]

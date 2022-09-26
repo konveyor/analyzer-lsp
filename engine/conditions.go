@@ -1,23 +1,31 @@
 package engine
 
-type InnerCondition interface {
-	Evaluate() (bool, error)
+type InnerConndtionResponse struct {
+	Passed bool
+	// For each time the condition is hit, add all of the context.
+	// keys here, will be used in the message.
+	ConditionHitContext []map[string]string
 }
+
+type InnerCondition interface {
+	Evaluate() (InnerConndtionResponse, error)
+}
+
 type Condition struct {
 	// Optional When clause
-	When *Conditional
+	When *Conditional `json:"when,omitempty"`
 
-	InnerCondition
+	InnerCondition `json:"innerCondition,omitempty"`
 }
 
 type Conditional struct {
-	Or  []Condition
-	And []Condition
+	Or  []Condition `json:"or,omitempty"`
+	And []Condition `json:"and,omitempty"`
 
-	InnerCondition
+	InnerCondition `json:"innerCondition,omitempty"`
 }
 
 type Rule struct {
-	Perform string
-	When    Conditional
+	Perform string      `json:"perform,omitempty"`
+	When    Conditional `json:"when,omitempty"`
 }
