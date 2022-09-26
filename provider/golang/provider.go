@@ -32,8 +32,10 @@ func (p *golangProvider) Capabilities() ([]string, error) {
 
 func (p *golangProvider) Evaluate(cap string, conditionInfo interface{}) (lib.ProviderEvaluateResponse, error) {
 
-	// query := conditionInfo["referenced"].(string)
-	query := "query"
+	query, ok := conditionInfo.(string)
+	if !ok {
+		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
+	}
 
 	symbols := p.GetAllSymbols(query)
 
@@ -69,14 +71,14 @@ func (p *golangProvider) Init(ctx context.Context) error {
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Printf("HERE!!!!!! - %v", err)
 		return err
 	}
 
 	go func() {
 		err := cmd.Run()
 		if err != nil {
-			fmt.Printf("here cmd failed- %v", err)
+			fmt.Printf("cmd failed - %v", err)
+			// TODO: Probably should cancel the ctx here, to shut everything down
 		}
 	}()
 	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin))
@@ -126,8 +128,6 @@ func (p *golangProvider) GetAllSymbols(query string) []protocol.WorkspaceSymbol 
 	wsp := &protocol.WorkspaceSymbolParams{
 		Query: query,
 	}
-
-	fmt.Printf("\nQuery: %v", wsp)
 
 	var refs []protocol.WorkspaceSymbol
 	err := p.rpc.Call(p.ctx, "workspace/symbol", wsp, &refs)

@@ -6,21 +6,21 @@ import (
 	"time"
 )
 
-type testInerCondition struct {
+type testConditional struct {
 	err   error
 	ret   bool
 	sleep bool
 }
 
-func (t testInerCondition) Evaluate() (InnerConndtionResponse, error) {
+func (t testConditional) Evaluate() (CondtionResponse, error) {
 	if t.sleep {
 		time.Sleep(5 * time.Second)
 	}
-	return InnerConndtionResponse{Passed: t.ret}, t.err
+	return CondtionResponse{Passed: t.ret}, t.err
 }
 
-func createTestInnerCondition(b bool, e error, sleep bool) InnerCondition {
-	return &testInerCondition{
+func createTestConditional(b bool, e error, sleep bool) Conditional {
+	return &testConditional{
 		err:   e,
 		ret:   b,
 		sleep: sleep,
@@ -31,88 +31,64 @@ func TestEvaluateAndCondtions(t *testing.T) {
 
 	testCases := []struct {
 		Name       string
-		Conditions []Condition
+		Conditions []Conditional
 		IsError    bool
 		IsPassed   bool
 	}{
-		// {
-		// 	Name: "Base Case",
-		// 	Conditions: []Condition{
-		// 		{
-		// 			InnerCondition: createTestInnerCondition(true, nil, false),
-		// 		},
-		// 	},
-		// 	IsPassed: true,
-		// },
-		// {
-		// 	Name: "And two inner conditions",
-		// 	Conditions: []Condition{
-		// 		{
-		// 			InnerCondition: createTestInnerCondition(true, nil, false),
-		// 		},
-		// 		{
-		// 			InnerCondition: createTestInnerCondition(true, nil, false),
-		// 		},
-		// 	},
-		// 	IsPassed: true,
-		// },
+		{
+			Name: "Base Case",
+			Conditions: []Conditional{
+				createTestConditional(true, nil, false),
+			},
+			IsPassed: true,
+		},
+		{
+			Name: "And two inner conditions",
+			Conditions: []Conditional{
+				createTestConditional(true, nil, false),
+				createTestConditional(true, nil, false),
+			},
+			IsPassed: true,
+		},
 		{
 			Name: "And two inner conditions failure",
-			Conditions: []Condition{
-				{
-					InnerCondition: createTestInnerCondition(true, nil, false),
-				},
-				{
-					InnerCondition: createTestInnerCondition(false, nil, false),
-				},
+			Conditions: []Conditional{
+				createTestConditional(true, nil, false),
+				createTestConditional(false, nil, false),
 			},
 		},
-		// {
-		// 	Name: "And two conditions with nested conditions",
-		// 	Conditions: []Condition{
-		// 		{
-		// 			When: &Conditional{
-		// 				And: []Condition{
-		// 					{
-		// 						InnerCondition: createTestInnerCondition(true, nil, false),
-		// 					},
-		// 					{
-		// 						InnerCondition: createTestInnerCondition(true, nil, false),
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 		{
-		// 			InnerCondition: createTestInnerCondition(true, nil, false),
-		// 		},
-		// 	},
-		// 	IsPassed: true,
-		// },
-		// {
-		// 	Name: "And two conditions with nested conditions failure",
-		// 	Conditions: []Condition{
-		// 		{
-		// 			When: &Conditional{
-		// 				And: []Condition{
-		// 					{
-		// 						InnerCondition: createTestInnerCondition(false, nil, false),
-		// 					},
-		// 					{
-		// 						InnerCondition: createTestInnerCondition(true, nil, false),
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 		{
-		// 			InnerCondition: createTestInnerCondition(true, nil, false),
-		// 		},
-		// 	},
-		// },
+		{
+			Name: "And two conditions with nested conditions",
+			Conditions: []Conditional{
+				AndCondition{Conditions: []Conditional{
+					createTestConditional(true, nil, false),
+					createTestConditional(true, nil, false),
+				}},
+				createTestConditional(true, nil, false),
+			},
+			IsPassed: true,
+		},
+		{
+			Name: "And two conditions with nested conditions failure",
+			Conditions: []Conditional{
+				AndCondition{
+					Conditions: []Conditional{
+						createTestConditional(false, nil, false),
+						createTestConditional(true, nil, false),
+					},
+				},
+				createTestConditional(true, nil, false),
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			ret, err := evaluateAndCondtions(tc.Conditions)
+			rule := Rule{
+				Perform: "testing",
+				When:    AndCondition{Conditions: tc.Conditions},
+			}
+			ret, err := processRule(rule)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
@@ -128,100 +104,72 @@ func TestEvaluateOrCondtions(t *testing.T) {
 
 	testCases := []struct {
 		Name       string
-		Conditions []Condition
+		Conditions []Conditional
 		IsError    bool
 		IsPassed   bool
 	}{
 		{
 			Name: "Base Case",
-			Conditions: []Condition{
-				{
-					InnerCondition: createTestInnerCondition(true, nil, false),
-				},
+			Conditions: []Conditional{
+				createTestConditional(true, nil, false),
 			},
 			IsPassed: true,
 		},
 		{
 			Name: "or two inner conditions",
-			Conditions: []Condition{
-				{
-					InnerCondition: createTestInnerCondition(false, nil, false),
-				},
-				{
-					InnerCondition: createTestInnerCondition(true, nil, false),
-				},
+			Conditions: []Conditional{
+				createTestConditional(false, nil, false),
+				createTestConditional(true, nil, false),
 			},
 			IsPassed: true,
 		},
 		{
 			Name: "or two inner conditions true first",
-			Conditions: []Condition{
-				{
-					InnerCondition: createTestInnerCondition(true, nil, false),
-				},
-				{
-					InnerCondition: createTestInnerCondition(false, nil, false),
-				},
+			Conditions: []Conditional{
+				createTestConditional(true, nil, false),
+				createTestConditional(false, nil, false),
 			},
 			IsPassed: true,
 		},
 		{
 			Name: "or two inner conditions failure",
-			Conditions: []Condition{
-				{
-					InnerCondition: createTestInnerCondition(false, nil, false),
-				},
-				{
-					InnerCondition: createTestInnerCondition(false, nil, false),
-				},
+			Conditions: []Conditional{
+				createTestConditional(false, nil, false),
+				createTestConditional(false, nil, false),
 			},
 		},
 		{
 			Name: "And two conditions with nested conditions",
-			Conditions: []Condition{
-				{
-					When: &Conditional{
-						Or: []Condition{
-							{
-								InnerCondition: createTestInnerCondition(true, nil, false),
-							},
-							{
-								InnerCondition: createTestInnerCondition(false, nil, false),
-							},
-						},
-					},
-				},
-				{
-					InnerCondition: createTestInnerCondition(false, nil, false),
-				},
+			Conditions: []Conditional{
+				OrCondition{Conditions: []Conditional{
+					createTestConditional(true, nil, false),
+					createTestConditional(false, nil, false),
+				}},
+				createTestConditional(false, nil, false),
 			},
 			IsPassed: true,
 		},
 		{
 			Name: "or two conditions with nested conditions failure",
-			Conditions: []Condition{
-				{
-					When: &Conditional{
-						And: []Condition{
-							{
-								InnerCondition: createTestInnerCondition(false, nil, false),
-							},
-							{
-								InnerCondition: createTestInnerCondition(false, nil, false),
-							},
-						},
+			Conditions: []Conditional{
+				OrCondition{
+					Conditions: []Conditional{
+						createTestConditional(false, nil, false),
+						createTestConditional(false, nil, false),
 					},
 				},
-				{
-					InnerCondition: createTestInnerCondition(false, nil, false),
-				},
+				createTestConditional(false, nil, false),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			ret, err := evaluateOrConditions(tc.Conditions)
+			rule := Rule{
+				Perform: "testing",
+				When:    OrCondition{tc.Conditions},
+			}
+			ret, err := processRule(rule)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
@@ -243,33 +191,23 @@ func TestRuleEngine(t *testing.T) {
 			Rules: []Rule{
 				{
 					Perform: "WOO",
-					When: Conditional{
-						InnerCondition: createTestInnerCondition(true, nil, true),
-					},
+					When:    createTestConditional(true, nil, true),
 				},
 				{
 					Perform: "WOO - False",
-					When: Conditional{
-						And: []Condition{
-							{
-								InnerCondition: createTestInnerCondition(true, nil, true),
-							},
-							{
-								InnerCondition: createTestInnerCondition(false, nil, true),
-							},
+					When: AndCondition{
+						Conditions: []Conditional{
+							createTestConditional(true, nil, true),
+							createTestConditional(false, nil, true),
 						},
 					},
 				},
 				{
 					Perform: "WOO - False",
-					When: Conditional{
-						And: []Condition{
-							{
-								InnerCondition: createTestInnerCondition(true, nil, true),
-							},
-							{
-								InnerCondition: createTestInnerCondition(false, nil, true),
-							},
+					When: AndCondition{
+						Conditions: []Conditional{
+							createTestConditional(true, nil, true),
+							createTestConditional(false, nil, true),
 						},
 					},
 				},

@@ -29,8 +29,7 @@ func NewJavaProvider(config lib.Config) *javaProvider {
 	// Get the provider config out for this config.
 
 	// Getting values out of provider config
-
-	// Get
+	// TODO: Eventually we will want to make this a helper so that external providers can easily ask and get config.
 	bundlesString := config.ProviderSpecificConfig[BUNDLES_INIT_OPTION]
 	bundles := strings.Split(bundlesString, ",")
 
@@ -54,20 +53,18 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo interface{}) (lib.Prov
 }
 func (p *javaProvider) Init(ctx context.Context) error {
 
-	cmd := exec.CommandContext(ctx, "/home/shurley/repos/eclipse.jdt.ls/org.eclipse.jdt.ls.product/target/repository/bin/jdtls",
+	cmd := exec.CommandContext(ctx, p.config.BinaryLocation,
 		"-configuration",
-		"/home/shurley/config",
+		"./",
 		"-data",
 		p.workspace,
 	)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		fmt.Printf("HERE!!!!!! - %v", err)
 		return err
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Printf("HERE!!!!!! - %v", err)
 		return err
 	}
 
@@ -92,7 +89,6 @@ func (p *javaProvider) Init(ctx context.Context) error {
 	return nil
 }
 
-// This can probably be shared between the two
 func (p *javaProvider) initialization(ctx context.Context) {
 
 	params := &protocol.InitializeParams{
@@ -122,7 +118,9 @@ func (p *javaProvider) initialization(ctx context.Context) {
 }
 
 func (p *javaProvider) GetAllSymbols(query string) []protocol.WorkspaceSymbol {
-	//workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
+	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
+	// in this case the project is hardcoded in the init of the Langauge Server above
+	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
 	arguments := map[string]string{
 		"query":   query,
 		"project": "java",

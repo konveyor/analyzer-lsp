@@ -1,0 +1,8 @@
+*.metadata*
+jdt.ls-java-project
+examples/java/*.project
+examples/java/target
+examples/java/.settings
+examples/java/.classpath
+examples/java/.project
+org.*

@@ -17,19 +17,20 @@ type ruleMessage struct {
 }
 
 type response struct {
-	conditionResponse InnerConndtionResponse
+	conditionResponse CondtionResponse
 	err               error
 	rule              Rule
 }
 
 type ruleEngine struct {
-	// Buffereed channel where Rule Processors are watching
+	// Buffered channel where Rule Processors are watching
 	ruleProcessing chan ruleMessage
 	cancelFunc     context.CancelFunc
 }
 
 func CreateRuleEngine(ctx context.Context, workers int) RuleEngine {
-	// Only allow for 10 rules to be processed at once.
+	// Only allow for 10 rules to be waiting in the buffer at once.
+	// Adding more workers will increase the number of rules running at once.
 	ruleProcessor := make(chan ruleMessage, 10)
 
 	ctx, cancelFunc := context.WithCancel(ctx)
@@ -121,98 +122,14 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 	// Cannel running go-routine
 	cancelFunc()
 
+	// TODO: Here we need to process the rule reponses.
+
 }
 
-func processRule(rule Rule) (InnerConndtionResponse, error) {
+func processRule(rule Rule) (CondtionResponse, error) {
 
 	// Here is what a worker should run when getting a rule.
 	// For now, lets not fan out the running of conditions.
+	return rule.When.Evaluate()
 
-	if rule.When.InnerCondition != nil {
-		//IF there is an inner conndtion here, that means there is only a single condition to run.
-
-		//Use output
-		return rule.When.InnerCondition.Evaluate()
-
-	} else {
-		if len(rule.When.And) > 0 {
-			return evaluateAndCondtions(rule.When.And)
-		} else if len(rule.When.Or) > 0 {
-			return evaluateOrConditions(rule.When.Or)
-		} else {
-			return InnerConndtionResponse{}, fmt.Errorf("invalid when condition")
-		}
-	}
-}
-
-func evaluateAndCondtions(conditions []Condition) (InnerConndtionResponse, error) {
-	// Make sure we allow for short circt.
-
-	if len(conditions) == 0 {
-		return InnerConndtionResponse{}, fmt.Errorf("condtions must not be empty while evaluationg")
-	}
-
-	fullResponse := InnerConndtionResponse{Passed: true}
-	for _, c := range conditions {
-		if c.When != nil {
-			var response InnerConndtionResponse
-			var err error
-			if len(c.When.And) > 0 {
-				response, err = evaluateAndCondtions(c.When.And)
-			} else if len(c.When.Or) > 0 {
-				response, err = evaluateOrConditions(c.When.Or)
-			} else {
-				return response, fmt.Errorf("invalid when clause")
-			}
-			if err != nil {
-				return response, err
-			}
-
-			// Short cirtcut loop if one and condition fails
-			if !response.Passed {
-				fmt.Printf("\nhere in !response.Passed: %v\n", response)
-				return response, err
-			}
-		} else {
-			response, err := c.InnerCondition.Evaluate()
-			if !response.Passed || err != nil {
-				return response, err
-			}
-			fullResponse.ConditionHitContext = append(fullResponse.ConditionHitContext, response.ConditionHitContext...)
-		}
-	}
-
-	return fullResponse, nil
-}
-
-func evaluateOrConditions(conditions []Condition) (InnerConndtionResponse, error) {
-	for _, c := range conditions {
-		if c.When != nil {
-			var response InnerConndtionResponse
-			var err error
-			if len(c.When.And) > 0 {
-				response, err = evaluateAndCondtions(c.When.And)
-			} else if len(c.When.Or) > 0 {
-				response, err = evaluateOrConditions(c.When.Or)
-			} else {
-				return response, fmt.Errorf("invalid when clause")
-			}
-
-			// Short cirtcut loop if one and condition passes we can move on
-			// We may not want to do this,
-			if response.Passed {
-				return response, err
-			}
-		} else {
-			response, err := c.InnerCondition.Evaluate()
-			if response.Passed {
-				return response, err
-			}
-			if err != nil {
-				return InnerConndtionResponse{}, err
-			}
-		}
-	}
-
-	return InnerConndtionResponse{}, nil
 }
