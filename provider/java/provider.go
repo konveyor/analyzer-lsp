@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/shawn-hurley/jsonrpc-golang/jsonrpc2"
 	"github.com/shawn-hurley/jsonrpc-golang/lsp/protocol"
@@ -17,8 +18,9 @@ type javaProvider struct {
 	bundles   []string
 	workspace string
 
-	rpc *jsonrpc2.Conn
-	ctx context.Context
+	rpc  *jsonrpc2.Conn
+	ctx  context.Context
+	once sync.Once
 }
 
 const BUNDLES_INIT_OPTION = "bundles"
@@ -39,6 +41,7 @@ func NewJavaProvider(config lib.Config) *javaProvider {
 		config:    config,
 		bundles:   bundles,
 		workspace: workspace,
+		once:      sync.Once{},
 	}
 }
 
@@ -53,40 +56,46 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo interface{}) (lib.Prov
 }
 func (p *javaProvider) Init(ctx context.Context) error {
 
-	cmd := exec.CommandContext(ctx, p.config.BinaryLocation,
-		"-configuration",
-		"./",
-		"-data",
-		p.workspace,
-	)
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return err
-	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
+	var returnErr error
+	p.once.Do(func() {
 
-	go func() {
-		err := cmd.Run()
+		cmd := exec.CommandContext(ctx, p.config.BinaryLocation,
+			"-configuration",
+			"./",
+			"-data",
+			p.workspace,
+		)
+		stdin, err := cmd.StdinPipe()
 		if err != nil {
-			fmt.Printf("here cmd failed- %v", err)
+			returnErr = err
+			return
 		}
-	}()
-	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin))
-
-	go func() {
-		err := rpc.Run(ctx)
+		stdout, err := cmd.StdoutPipe()
 		if err != nil {
-			fmt.Printf("connection terminated: %v", err)
+			returnErr = err
+			return
 		}
-	}()
 
-	p.rpc = rpc
-	p.ctx = ctx
-	p.initialization(ctx)
-	return nil
+		go func() {
+			err := cmd.Run()
+			if err != nil {
+				fmt.Printf("here cmd failed- %v", err)
+			}
+		}()
+		rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin))
+
+		go func() {
+			err := rpc.Run(ctx)
+			if err != nil {
+				fmt.Printf("connection terminated: %v", err)
+			}
+		}()
+
+		p.rpc = rpc
+		p.ctx = ctx
+		p.initialization(ctx)
+	})
+	return returnErr
 }
 
 func (p *javaProvider) initialization(ctx context.Context) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/shawn-hurley/jsonrpc-golang/jsonrpc2"
 	"github.com/shawn-hurley/jsonrpc-golang/lsp/protocol"
@@ -16,11 +17,13 @@ type golangProvider struct {
 	ctx context.Context
 
 	config lib.Config
+	once   sync.Once
 }
 
 func NewGolangProvider(config lib.Config) *golangProvider {
 	return &golangProvider{
 		config: config,
+		once:   sync.Once{},
 	}
 }
 
@@ -64,39 +67,44 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo interface{}) (lib.Pr
 }
 
 func (p *golangProvider) Init(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, "/usr/bin/gopls")
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return err
-	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
+	var returnErr error
+	p.once.Do(func() {
 
-	go func() {
-		err := cmd.Run()
+		cmd := exec.CommandContext(ctx, "/usr/bin/gopls")
+		stdin, err := cmd.StdinPipe()
 		if err != nil {
-			fmt.Printf("cmd failed - %v", err)
-			// TODO: Probably should cancel the ctx here, to shut everything down
+			returnErr = err
+			return
 		}
-	}()
-	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin))
-
-	go func() {
-		err := rpc.Run(ctx)
+		stdout, err := cmd.StdoutPipe()
 		if err != nil {
-			fmt.Printf("connection terminated: %v", err)
+			returnErr = err
+			return
 		}
-	}()
 
-	p.rpc = rpc
-	p.ctx = ctx
+		go func() {
+			err := cmd.Run()
+			if err != nil {
+				fmt.Printf("cmd failed - %v", err)
+				// TODO: Probably should cancel the ctx here, to shut everything down
+			}
+		}()
+		rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin))
 
-	// Lets Initiallize before returning
-	p.initialization(ctx)
+		go func() {
+			err := rpc.Run(ctx)
+			if err != nil {
+				fmt.Printf("connection terminated: %v", err)
+			}
+		}()
 
-	return nil
+		p.rpc = rpc
+		p.ctx = ctx
+
+		// Lets Initiallize before returning
+		p.initialization(ctx)
+	})
+	return returnErr
 }
 
 func (p *golangProvider) initialization(ctx context.Context) {

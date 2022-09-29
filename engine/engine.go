@@ -76,7 +76,6 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 
 	wg := &sync.WaitGroup{}
 	for _, rule := range rules {
-		fmt.Printf("\nhere")
 		wg.Add(1)
 		r.ruleProcessing <- ruleMessage{
 			rule:       rule,
@@ -90,12 +89,12 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 		for {
 			select {
 			case response := <-ret:
-				if response.conditionResponse.Passed {
+				if !response.conditionResponse.Passed {
 					responses = append(responses, response)
 
 				} else {
 					// Log that rule did not pass
-					fmt.Printf("Rule did not pass")
+					fmt.Printf("Rule did not error")
 				}
 				responses = append(responses, response)
 				wg.Done()
@@ -115,7 +114,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 	// Wait for all the rules to process
 	select {
 	case <-done:
-		fmt.Printf("done waiting for rules to be processed")
+		fmt.Printf("\ndone waiting for rules to be processed\n")
 	case <-ctx.Done():
 		fmt.Printf("Context canceled running of rules")
 	}
@@ -123,6 +122,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 	cancelFunc()
 
 	// TODO: Here we need to process the rule reponses.
+	fmt.Printf("\nresponses: %#v", responses)
 
 }
 

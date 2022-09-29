@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/shawn-hurley/jsonrpc-golang/engine"
 	"github.com/shawn-hurley/jsonrpc-golang/parser"
 	"github.com/shawn-hurley/jsonrpc-golang/provider"
 	"github.com/shawn-hurley/jsonrpc-golang/provider/lib"
@@ -25,6 +26,9 @@ func main() {
 		fmt.Printf("\n%v\n", err)
 		os.Exit(1)
 	}
+
+	//start up the rule engine
+	engine := engine.CreateRuleEngine(ctx, 10)
 
 	providers := map[string]provider.Client{}
 
@@ -56,6 +60,6 @@ func main() {
 		}
 	}
 
-	fmt.Printf("rules - %#v", rules)
+	engine.RunRules(ctx, rules)
 
 }
