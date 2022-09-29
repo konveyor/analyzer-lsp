@@ -4,14 +4,10 @@
         "when": {
             "or": [
                 {
-                    "java": {
-                        "referenced": "*CustomerResourceDefinition*"
-                    }
+                    "java.referenced": "*CustomerResourceDefinition*"
                 },
                 {
-                    "go": {
-                        "referenced": "*CustomerResourceDefinition*"
-                    }
+                    "go.referenced": "*CustomerResourceDefinition*"
                 }
 
             ]
@@ -20,9 +16,7 @@
     {
         "message": "testing one condition",
         "when": {
-            "go": {
-                "referenced":"*CustomerResourceDefinition*"
-            }
+              "go.referenced": "*CustomerResourceDefinition*"
         }
     },
     {
@@ -32,21 +26,15 @@
                 {
                     "and": [
                         {
-                            "go": {
-                                "referenced": "*CustomerResourceDefinition*"
-                            }
+                            "go.referenced": "*CustomerResourceDefinition*"
                         },
                         {
-                            "java": {
-                                "referenced": "*CustomerResourceDefinition*"
-                            }
+                            "java.referenced": "*CustomerResourceDefinition*"
                         }
                     ]
                 },
                 {
-                    "go": {
-                        "referenced": "*CustomerResourceDefinition*"
-                    }
+                    "go.referenced": "*CustomerResourceDefinition*"
                 }
             ]
         }
