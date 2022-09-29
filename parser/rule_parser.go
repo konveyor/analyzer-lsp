@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/shawn-hurley/jsonrpc-golang/engine"
 	"github.com/shawn-hurley/jsonrpc-golang/provider"
@@ -73,16 +74,17 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Clien
 				}
 				rule.When = engine.AndCondition{Conditions: conditions}
 				providers = append(providers, provs...)
+			case "":
+				return nil, nil, fmt.Errorf("must have at least one condition")
 			default:
 				// Handle provider
-				if key == "" {
-					return nil, nil, fmt.Errorf("must have at least one condition")
+				s := strings.Split(key, ".")
+				if len(s) != 2 {
+					return nil, nil, fmt.Errorf("condition must be of the form {provider}.{capability}")
 				}
-				m, ok := value.(map[string]interface{})
-				if !ok {
-					return nil, nil, fmt.Errorf("single condition must be a object")
-				}
-				condition, provider, err := r.getConditionForProvider(key, m)
+				providerKey, capability := s[0], s[1]
+
+				condition, provider, err := r.getConditionForProvider(providerKey, capability, value)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -136,22 +138,23 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 					Conditions: conds,
 				})
 				providers = append(providers, provs...)
+			case "":
+				return nil, nil, fmt.Errorf("must have at least one condition")
 			default:
 				// Need to get condition from provider
 				// Handle provider
-				if key == "" {
-					return nil, nil, fmt.Errorf("must have at least one condition")
+				s := strings.Split(key, ".")
+				if len(s) != 2 {
+					return nil, nil, fmt.Errorf("condition must be of the form {provider}.{capability}")
 				}
-				m, ok := v.(map[string]interface{})
-				if !ok {
-					return nil, nil, fmt.Errorf("single condition must be a object")
-				}
-				condition, prov, err := r.getConditionForProvider(key, m)
+				providerKey, capability := s[0], s[1]
+
+				condition, provider, err := r.getConditionForProvider(providerKey, capability, v)
 				if err != nil {
 					return nil, nil, err
 				}
 				conditions = append(conditions, condition)
-				providers = append(providers, prov)
+				providers = append(providers, provider)
 			}
 		}
 	}
@@ -160,7 +163,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 
 }
 
-func (r *RuleParser) getConditionForProvider(langProvider string, capMap map[string]interface{}) (engine.Conditional, provider.Client, error) {
+func (r *RuleParser) getConditionForProvider(langProvider, capability string, value interface{}) (engine.Conditional, provider.Client, error) {
 	// Here there can only be a single provider.
 	client, ok := r.ProviderNameToClient[langProvider]
 	if !ok {
@@ -171,27 +174,19 @@ func (r *RuleParser) getConditionForProvider(langProvider string, capMap map[str
 	if err != nil {
 		return nil, nil, err
 	}
-
-	if len(capMap) != 1 {
-		return nil, nil, fmt.Errorf("must have a single capability for a condition")
-	}
-
-	for capKey, value := range capMap {
-		found := false
-		for _, c := range providerCaps {
-			if c == capKey {
-				found = true
-				break
-			}
+	found := false
+	for _, c := range providerCaps {
+		if c == capability {
+			found = true
+			break
 		}
-		if !found {
-			return nil, nil, fmt.Errorf("unable to find cap: %v from provider: %v", capKey, langProvider)
-		}
-		return &provider.ProviderCondition{
-			Client:        client,
-			Capability:    capKey,
-			ConditionInfo: value,
-		}, client, nil
 	}
-	return nil, nil, fmt.Errorf("unable to get condition")
+	if !found {
+		return nil, nil, fmt.Errorf("unable to find cap: %v from provider: %v", capability, langProvider)
+	}
+	return &provider.ProviderCondition{
+		Client:        client,
+		Capability:    capability,
+		ConditionInfo: value,
+	}, client, nil
 }
