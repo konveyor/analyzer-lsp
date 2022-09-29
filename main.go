@@ -3,116 +3,63 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"net"
-	"path/filepath"
-	"strings"
+	"os"
 
-	"github.com/shawn-hurley/jsonrpc-golang/jsonrpc2"
-	"github.com/shawn-hurley/jsonrpc-golang/lsp/protocol"
-	"github.com/shawn-hurley/jsonrpc-golang/rules"
+	"github.com/shawn-hurley/jsonrpc-golang/engine"
+	"github.com/shawn-hurley/jsonrpc-golang/parser"
+	"github.com/shawn-hurley/jsonrpc-golang/provider"
+	"github.com/shawn-hurley/jsonrpc-golang/provider/lib"
 )
 
-//TODO(shawn-hurley) - this needs to be passed in as args. Will need to refactor to use cobra
-var config = rules.Configuration{
-	ProjectLocation: "./examples/golang",
-}
-
-//TODO(shawn-hurley) - this package/type name stutters.
-var workspaceRules = []rules.Rule{
-	{
-		ImportRule: &rules.ImportRule{
-			GoImportRule: &rules.GoImportRule{
-				Import: "pkg/apis/apiextensions/v1beta1.CustomResourceDefinition",
-				// TODO(shawn-hurley) - copy the windup ability to intersparse known text here.
-				Message: "Use of deprecated and removed API",
-			},
-		},
-	},
-}
+const (
+	// This must eventually be a default that makes sense, and overrideable by env var or flag.
+	SETTING_FILE_PATH = "./provider_settings.json"
+	RULES_FILE_PATH   = "./rule-example.json"
+)
 
 func main() {
 	ctx := context.Background()
-	conn, err := net.Dial("tcp", "localhost:37374")
-	if err != nil {
-		fmt.Printf("error: %v", err)
-	}
-	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(conn, conn))
 
-	go func() {
-		err := rpc.Run(ctx)
+	// Get the configs
+	configs, err := lib.GetConfig(SETTING_FILE_PATH)
+	if err != nil {
+		fmt.Printf("\n%v\n", err)
+		os.Exit(1)
+	}
+
+	//start up the rule engine
+	engine := engine.CreateRuleEngine(ctx, 10)
+
+	providers := map[string]provider.Client{}
+
+	for _, config := range configs {
+		provider, err := provider.GetProviderClient(config)
 		if err != nil {
-			log.Printf("connection terminated: %v", err)
+			fmt.Printf("\n%v\n", err)
+			os.Exit(1)
 		}
-	}()
+		providers[config.Name] = provider
+	}
 
-	absolutePath, err := filepath.Abs(config.ProjectLocation)
+	parser := parser.RuleParser{
+		ProviderNameToClient: providers,
+	}
+
+	rules, needProviders, err := parser.LoadRules(RULES_FILE_PATH)
 	if err != nil {
-		return
+		fmt.Printf("\n%v\n", err)
+		os.Exit(1)
 	}
 
-	params := &protocol.InitializeParams{
-		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
-		RootURI: fmt.Sprintf("file://%v", absolutePath),
-		Capabilities: protocol.ClientCapabilities{
-			TextDocument: protocol.TextDocumentClientCapabilities{
-				DocumentSymbol: &protocol.DocumentSymbolClientCapabilities{
-					HierarchicalDocumentSymbolSupport: true,
-				},
-			},
-		},
-	}
-
-	var result protocol.InitializeResult
-	if err := rpc.Call(ctx, "initialize", params, &result); err != nil {
-		fmt.Printf("initialize failed: %v", err)
-	}
-	if err := rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
-		fmt.Printf("initialized failed: %v", err)
-	}
-	fmt.Printf("connection initialized: %#v", result.Capabilities.WorkspaceSymbolProvider)
-
-	for _, r := range workspaceRules {
-		if r.GoImportRule != nil {
-			if loc, found := findReferences(ctx, rpc, absolutePath, r.GoImportRule.Import); found {
-				fmt.Printf("\n%v\nlocation: %v:%v", r.GoImportRule.Message, loc.URI, loc.Range.Start.Line)
-			}
-		}
-
-	}
-}
-
-func findReferences(ctx context.Context, rpc *jsonrpc2.Conn, rootDir, query string) (protocol.Location, bool) {
-	wsp := &protocol.WorkspaceSymbolParams{
-		Query: query,
-	}
-
-	var refs []protocol.WorkspaceSymbol
-	err := rpc.Call(ctx, "workspace/symbol", wsp, &refs)
-	if err != nil {
-		fmt.Printf("error: %v", err)
-	}
-
-	for _, r := range refs {
-		params := &protocol.ReferenceParams{
-			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-				TextDocument: protocol.TextDocumentIdentifier{
-					URI: r.Location.URI,
-				},
-				Position: r.Location.Range.Start,
-			},
-		}
-
-		res := []protocol.Location{}
-		err := rpc.Call(ctx, "textDocument/references", params, &res)
+	// Now that we have all the providers, we need to start them.
+	for _, provider := range needProviders {
+		err := provider.Init(ctx)
 		if err != nil {
-			fmt.Printf("Error rpc: %v", err)
-		}
-		for _, result := range res {
-			if strings.Contains(result.URI, rootDir) {
-				return result, true
-			}
+			fmt.Printf("\n%v\n", err)
+			os.Exit(1)
 		}
 	}
-	return protocol.Location{}, false
+
+	engine.RunRules(ctx, rules)
+
 }
