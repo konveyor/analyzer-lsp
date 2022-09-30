@@ -1,3 +1,3 @@
-module github.com/shawn-hurley/jsonrpc-golang
+module github.com/konveyor/analyzer-lsp
 
 go 1.18

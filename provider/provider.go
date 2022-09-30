@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/shawn-hurley/jsonrpc-golang/engine"
-	"github.com/shawn-hurley/jsonrpc-golang/provider/golang"
-	"github.com/shawn-hurley/jsonrpc-golang/provider/java"
-	"github.com/shawn-hurley/jsonrpc-golang/provider/lib"
+	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/provider/golang"
+	"github.com/konveyor/analyzer-lsp/provider/java"
+	"github.com/konveyor/analyzer-lsp/provider/lib"
 )
 
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries

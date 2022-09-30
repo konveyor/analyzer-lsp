@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/shawn-hurley/jsonrpc-golang/engine"
-	"github.com/shawn-hurley/jsonrpc-golang/parser"
-	"github.com/shawn-hurley/jsonrpc-golang/provider"
-	"github.com/shawn-hurley/jsonrpc-golang/provider/lib"
+	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/parser"
+	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/konveyor/analyzer-lsp/provider/lib"
 )
 
 const (
