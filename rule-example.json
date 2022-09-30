@@ -1,5 +1,12 @@
 [
     {
+        "message":  "all go files",
+        "when": {
+            "builtin.file": "*.go"
+
+        }
+    },
+    {
         "message":  "apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead",
         "when": {
             "or": [

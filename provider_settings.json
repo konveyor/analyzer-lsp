@@ -1,5 +1,9 @@
 [
     {
+      "name": "builtin",
+      "location": "./"
+    },
+    {
         "name": "go",
         "location": "/home/shurley/repos/jsonrpc-golang/examples/golang",
         "binaryLocation": "/usr/bin/gopls"
