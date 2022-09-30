@@ -1,4 +1,4 @@
-module github.com/shawn-hurley/jsonrpc-golang/examples/golang
+module github.com/konveyor/analyzer-lsp/examples/golang
 
 go 1.18
 

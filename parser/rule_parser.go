@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/shawn-hurley/jsonrpc-golang/engine"
-	"github.com/shawn-hurley/jsonrpc-golang/provider"
+	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/provider"
 )
 
 type RuleParser struct {

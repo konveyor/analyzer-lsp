@@ -7,9 +7,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/shawn-hurley/jsonrpc-golang/jsonrpc2"
-	"github.com/shawn-hurley/jsonrpc-golang/lsp/protocol"
-	"github.com/shawn-hurley/jsonrpc-golang/provider/lib"
+	"github.com/konveyor/analyzer-lsp/jsonrpc2"
+	"github.com/konveyor/analyzer-lsp/lsp/protocol"
+	"github.com/konveyor/analyzer-lsp/provider/lib"
 )
 
 type golangProvider struct {
