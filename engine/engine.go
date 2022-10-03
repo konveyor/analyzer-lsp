@@ -17,7 +17,7 @@ type ruleMessage struct {
 }
 
 type response struct {
-	conditionResponse CondtionResponse
+	conditionResponse ConditionResponse
 	err               error
 	rule              Rule
 }
@@ -91,12 +91,10 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 			case response := <-ret:
 				if !response.conditionResponse.Passed {
 					responses = append(responses, response)
-
 				} else {
 					// Log that rule did not pass
 					fmt.Printf("Rule did not error")
 				}
-				responses = append(responses, response)
 				wg.Done()
 			case <-ctx.Done():
 				// at this point we should just return the function, we may want to close the wait group too.
@@ -126,7 +124,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 
 }
 
-func processRule(rule Rule) (CondtionResponse, error) {
+func processRule(rule Rule) (ConditionResponse, error) {
 
 	// Here is what a worker should run when getting a rule.
 	// For now, lets not fan out the running of conditions.

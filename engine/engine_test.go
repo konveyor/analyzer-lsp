@@ -12,11 +12,11 @@ type testConditional struct {
 	sleep bool
 }
 
-func (t testConditional) Evaluate() (CondtionResponse, error) {
+func (t testConditional) Evaluate() (ConditionResponse, error) {
 	if t.sleep {
 		time.Sleep(5 * time.Second)
 	}
-	return CondtionResponse{Passed: t.ret}, t.err
+	return ConditionResponse{Passed: t.ret}, t.err
 }
 
 func createTestConditional(b bool, e error, sleep bool) Conditional {
@@ -27,7 +27,7 @@ func createTestConditional(b bool, e error, sleep bool) Conditional {
 	}
 }
 
-func TestEvaluateAndCondtions(t *testing.T) {
+func TestEvaluateAndConditions(t *testing.T) {
 
 	testCases := []struct {
 		Name       string
@@ -100,7 +100,7 @@ func TestEvaluateAndCondtions(t *testing.T) {
 
 }
 
-func TestEvaluateOrCondtions(t *testing.T) {
+func TestEvaluateOrConditions(t *testing.T) {
 
 	testCases := []struct {
 		Name       string

@@ -26,14 +26,14 @@ type ProviderCondition struct {
 	ConditionInfo interface{}
 }
 
-func (p *ProviderCondition) Evaluate() (engine.CondtionResponse, error) {
+func (p *ProviderCondition) Evaluate() (engine.ConditionResponse, error) {
 	resp, err := p.Client.Evaluate(p.Capability, p.ConditionInfo)
 	if err != nil {
 		// If an error always just return the empty
-		return engine.CondtionResponse{}, err
+		return engine.ConditionResponse{}, err
 	}
 
-	return engine.CondtionResponse{
+	return engine.ConditionResponse{
 		Passed:              resp.Passed,
 		ConditionHitContext: resp.ConditionHitContext,
 	}, nil
