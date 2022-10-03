@@ -80,7 +80,7 @@ func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 			return err
 		}
 		if matched {
-			matches = append(matches, d.Name())
+			matches = append(matches, path)
 		}
 		return nil
 	})

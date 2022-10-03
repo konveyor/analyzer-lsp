@@ -7,6 +7,11 @@ import (
 	"os"
 )
 
+var builtinConfig = Config{
+	Name:     "builtin",
+	Location: ".",
+}
+
 type Config struct {
 	Name string `json:"name,omitempty"`
 
@@ -33,6 +38,7 @@ func GetConfig(filepath string) ([]Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	configs = append(configs, builtinConfig)
 
 	return configs, nil
 
