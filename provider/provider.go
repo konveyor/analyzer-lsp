@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider/golang"
 	"github.com/konveyor/analyzer-lsp/provider/java"
@@ -15,7 +16,7 @@ type Client interface {
 	Capabilities() ([]string, error)
 
 	// Block until initialized
-	Init(context.Context) error
+	Init(context.Context, logr.Logger) error
 
 	Evaluate(cap string, conditionInfo interface{}) (lib.ProviderEvaluateResponse, error)
 }
@@ -26,7 +27,7 @@ type ProviderCondition struct {
 	ConditionInfo interface{}
 }
 
-func (p *ProviderCondition) Evaluate() (engine.ConditionResponse, error) {
+func (p *ProviderCondition) Evaluate(log logr.Logger) (engine.ConditionResponse, error) {
 	resp, err := p.Client.Evaluate(p.Capability, p.ConditionInfo)
 	if err != nil {
 		// If an error always just return the empty

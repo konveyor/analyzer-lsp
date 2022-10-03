@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
+	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -20,22 +21,30 @@ const (
 func main() {
 	ctx := context.Background()
 
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(os.Stdout)
+	logrusLog.SetFormatter(&logrus.TextFormatter{})
+	// need to do research on mapping in logrusr to level here TODO
+	logrusLog.SetLevel(9)
+
+	log := logrusr.New(logrusLog)
+
 	// Get the configs
 	configs, err := lib.GetConfig(SETTING_FILE_PATH)
 	if err != nil {
-		fmt.Printf("\n%v\n", err)
+		log.Error(err, "unable to get configuration")
 		os.Exit(1)
 	}
 
 	//start up the rule engine
-	engine := engine.CreateRuleEngine(ctx, 10)
+	engine := engine.CreateRuleEngine(ctx, 10, log)
 
 	providers := map[string]provider.Client{}
 
 	for _, config := range configs {
 		provider, err := provider.GetProviderClient(config)
 		if err != nil {
-			fmt.Printf("\n%v\n", err)
+			log.Error(err, "unable to create provider client")
 			os.Exit(1)
 		}
 		providers[config.Name] = provider
@@ -47,15 +56,15 @@ func main() {
 
 	rules, needProviders, err := parser.LoadRules(RULES_FILE_PATH)
 	if err != nil {
-		fmt.Printf("\n%v\n", err)
+		log.Error(err, "unable to parse all the rules")
 		os.Exit(1)
 	}
 
 	// Now that we have all the providers, we need to start them.
 	for _, provider := range needProviders {
-		err := provider.Init(ctx)
+		err := provider.Init(ctx, log)
 		if err != nil {
-			fmt.Printf("\n%v\n", err)
+			log.Error(err, "unable to init the providers")
 			os.Exit(1)
 		}
 	}

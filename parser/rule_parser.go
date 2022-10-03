@@ -6,12 +6,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
 type RuleParser struct {
 	ProviderNameToClient map[string]provider.Client
+	log                  logr.Logger
 }
 
 // This will load the rules from the filestytem, using the provided provider clients

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sync"
+
+	"github.com/go-logr/logr"
 )
 
 type RuleEngine interface {
@@ -26,9 +28,10 @@ type ruleEngine struct {
 	// Buffered channel where Rule Processors are watching
 	ruleProcessing chan ruleMessage
 	cancelFunc     context.CancelFunc
+	logger         logr.Logger
 }
 
-func CreateRuleEngine(ctx context.Context, workers int) RuleEngine {
+func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger) RuleEngine {
 	// Only allow for 10 rules to be waiting in the buffer at once.
 	// Adding more workers will increase the number of rules running at once.
 	ruleProcessor := make(chan ruleMessage, 10)
@@ -36,12 +39,14 @@ func CreateRuleEngine(ctx context.Context, workers int) RuleEngine {
 	ctx, cancelFunc := context.WithCancel(ctx)
 
 	for i := 0; i < workers; i++ {
-		go processRuleWorker(ctx, ruleProcessor)
+		logger := log.WithValues("workder", i)
+		go processRuleWorker(ctx, ruleProcessor, logger)
 	}
 
 	return &ruleEngine{
 		ruleProcessing: ruleProcessor,
 		cancelFunc:     cancelFunc,
+		logger:         log,
 	}
 }
 
@@ -49,11 +54,12 @@ func (r *ruleEngine) Stop() {
 	r.cancelFunc()
 }
 
-func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage) {
+func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logger logr.Logger) {
 	for {
 		select {
 		case m := <-ruleMessages:
-			bo, err := processRule(m.rule)
+			logger.V(5).Info("taking rule")
+			bo, err := processRule(m.rule, logger)
 			m.returnChan <- response{
 				conditionResponse: bo,
 				err:               err,
@@ -82,6 +88,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 			returnChan: ret,
 		}
 	}
+	r.logger.V(5).Info("All rules added buffer, waiting for engine to complete")
 
 	responses := []response{}
 	// Handle returns
@@ -93,11 +100,12 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 					responses = append(responses, response)
 				} else {
 					// Log that rule did not pass
-					fmt.Printf("Rule did not error")
+					r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "response", response)
+
 				}
 				wg.Done()
 			case <-ctx.Done():
-				// at this point we should just return the function, we may want to close the wait group too.
+				// At this point we should just return the function, we may want to close the wait group too.
 				return
 			}
 		}
@@ -112,22 +120,21 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 	// Wait for all the rules to process
 	select {
 	case <-done:
-		fmt.Printf("\ndone waiting for rules to be processed\n")
+		r.logger.V(2).Info("done processing all the rules")
 	case <-ctx.Done():
-		fmt.Printf("Context canceled running of rules")
+		r.logger.V(1).Info("processing of rules was canceled")
 	}
 	// Cannel running go-routine
 	cancelFunc()
 
 	// TODO: Here we need to process the rule reponses.
-	fmt.Printf("\nresponses: %#v", responses)
+	fmt.Printf("\nresponses: %+v", responses)
 
 }
 
-func processRule(rule Rule) (ConditionResponse, error) {
-
+func processRule(rule Rule, log logr.Logger) (ConditionResponse, error) {
 	// Here is what a worker should run when getting a rule.
 	// For now, lets not fan out the running of conditions.
-	return rule.When.Evaluate()
+	return rule.When.Evaluate(log)
 
 }
