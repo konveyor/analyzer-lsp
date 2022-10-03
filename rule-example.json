@@ -7,6 +7,12 @@
         }
     },
     {
+        "message":  "all files with a go type declaration",
+        "when": {
+            "builtin.filecontent": "type .* struct {"
+        }
+    }
+    {
         "message":  "apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead",
         "when": {
             "or": [

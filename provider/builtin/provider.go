@@ -60,7 +60,20 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 		return response, nil
 
 	case "filecontent":
-		return lib.ProviderEvaluateResponse{}, fmt.Errorf("%s not yet implemented", cap)
+		pattern, ok := conditionInfo.(string)
+		if !ok {
+			return response, fmt.Errorf("Could not parse provided regex pattern as string: %v", conditionInfo)
+		}
+		var outputBytes []byte
+		grep := exec.Command("grep", "-l", "-E", pattern, "-R", p.config.Location)
+		outputBytes, err := grep.Output()
+		if err != nil {
+			return response, fmt.Errorf("Could not run grep with provided pattern %+v", err)
+		}
+		output := string(outputBytes)
+		response.Filepaths = strings.Split(output, "\n")
+		response.Passed = (len(response.Filepaths) == 0)
+		return response, nil
 	case "xml":
 		return lib.ProviderEvaluateResponse{}, fmt.Errorf("%s not yet implemented", cap)
 	default:
