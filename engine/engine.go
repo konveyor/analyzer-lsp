@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -19,9 +20,9 @@ type ruleMessage struct {
 }
 
 type response struct {
-	conditionResponse ConditionResponse
-	err               error
-	rule              Rule
+	ConditionResponse ConditionResponse `json:"conditionResponse"`
+	Err               error             `json:"err"`
+	Rule              Rule              `json:"rule"`
 }
 
 type ruleEngine struct {
@@ -61,9 +62,9 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 			logger.V(5).Info("taking rule")
 			bo, err := processRule(m.rule, logger)
 			m.returnChan <- response{
-				conditionResponse: bo,
-				err:               err,
-				rule:              m.rule,
+				ConditionResponse: bo,
+				Err:               err,
+				Rule:              m.rule,
 			}
 		case <-ctx.Done():
 			return
@@ -96,7 +97,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 		for {
 			select {
 			case response := <-ret:
-				if !response.conditionResponse.Passed {
+				if !response.ConditionResponse.Passed {
 					responses = append(responses, response)
 				} else {
 					// Log that rule did not pass
@@ -126,10 +127,12 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 	}
 	// Cannel running go-routine
 	cancelFunc()
-
+	b, err := json.MarshalIndent(responses, "", "  ")
+	if err != nil {
+		fmt.Println("error:", err)
+	}
 	// TODO: Here we need to process the rule reponses.
-	fmt.Printf("\nresponses: %+v", responses)
-
+	fmt.Print(string(b))
 }
 
 func processRule(rule Rule, log logr.Logger) (ConditionResponse, error) {

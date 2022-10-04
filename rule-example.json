@@ -7,11 +7,11 @@
         }
     },
     {
-        "message":  "all files with a go type declaration",
+        "message": "Constants and environment variables",
         "when": {
-            "builtin.filecontent": "type .* struct {"
+            "builtin.filecontent": "[A-Z][A-Z_][A-Z_]*"
         }
-    }
+    },
     {
         "message":  "apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead",
         "when": {

@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
@@ -46,33 +48,41 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 		}
 
-		if len(matchingFiles) == 0 {
-			response.Passed = true
-		} else {
-			response.Passed = false
-			hitContext := map[string]string{}
-			for _, match := range matchingFiles {
-				// TODO(fabianvf) how should this be stored?
-				hitContext[match] = ""
-			}
-			response.ConditionHitContext = append(response.ConditionHitContext, hitContext)
+		response.Passed = len(matchingFiles) == 0
+
+		for _, match := range matchingFiles {
+			response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
+				"filepath": match,
+			})
 		}
 		return response, nil
-
 	case "filecontent":
 		pattern, ok := conditionInfo.(string)
 		if !ok {
 			return response, fmt.Errorf("Could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 		var outputBytes []byte
-		grep := exec.Command("grep", "-l", "-E", pattern, "-R", p.config.Location)
+		grep := exec.Command("grep", "-o", "-n", "-R", "-E", pattern, p.config.Location)
 		outputBytes, err := grep.Output()
 		if err != nil {
 			return response, fmt.Errorf("Could not run grep with provided pattern %+v", err)
 		}
-		output := string(outputBytes)
-		response.Filepaths = strings.Split(output, "\n")
-		response.Passed = (len(response.Filepaths) == 0)
+		matches := strings.Split(strings.TrimSpace(string(outputBytes)), "\n")
+		response.Passed = (len(matches) == 0)
+
+		for _, match := range matches {
+			//TODO(fabianvf): This will not work if there is a `:` in the filename, do we care?
+			pieces := strings.SplitN(match, ":", 3)
+			if len(pieces) != 3 {
+				//TODO(fabianvf): Just log or return?
+				return response, fmt.Errorf("Malformed response from grep, cannot parse %s with pattern {filepath}:{lineNumber}:{matchingText}", match)
+			}
+			response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
+				"filepath":     pieces[0],
+				"lineNumber":   pieces[1],
+				"matchingText": pieces[2],
+			})
+		}
 		return response, nil
 	case "xml":
 		return lib.ProviderEvaluateResponse{}, fmt.Errorf("%s not yet implemented", cap)
