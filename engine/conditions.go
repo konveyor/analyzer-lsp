@@ -2,7 +2,7 @@ package engine
 
 import "fmt"
 
-type CondtionResponse struct {
+type ConditionResponse struct {
 	Passed bool
 	// For each time the condition is hit, add all of the context.
 	// keys here, will be used in the message.
@@ -10,7 +10,7 @@ type CondtionResponse struct {
 }
 
 type Conditional interface {
-	Evaluate() (CondtionResponse, error)
+	Evaluate() (ConditionResponse, error)
 }
 
 type Rule struct {
@@ -22,13 +22,13 @@ type AndCondition struct {
 	Conditions []Conditional
 }
 
-func (a AndCondition) Evaluate() (CondtionResponse, error) {
+func (a AndCondition) Evaluate() (ConditionResponse, error) {
 
 	if len(a.Conditions) == 0 {
-		return CondtionResponse{}, fmt.Errorf("condtions must not be empty while evaluationg")
+		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluationg")
 	}
 
-	fullResponse := CondtionResponse{Passed: true}
+	fullResponse := ConditionResponse{Passed: true}
 	for _, c := range a.Conditions {
 		response, err := c.Evaluate()
 
@@ -45,9 +45,9 @@ type OrCondition struct {
 	Conditions []Conditional
 }
 
-func (o OrCondition) Evaluate() (CondtionResponse, error) {
+func (o OrCondition) Evaluate() (ConditionResponse, error) {
 	if len(o.Conditions) == 0 {
-		return CondtionResponse{}, fmt.Errorf("conditions must not be empty while evaluationg")
+		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluationg")
 	}
 
 	for _, c := range o.Conditions {
@@ -60,7 +60,7 @@ func (o OrCondition) Evaluate() (CondtionResponse, error) {
 	}
 
 	// if no coditions are true, then nothing returns early, and it means or is not true
-	return CondtionResponse{}, nil
+	return ConditionResponse{}, nil
 }
 
 var _ Conditional = AndCondition{}
