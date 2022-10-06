@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/antchfx/xmlquery"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 )
@@ -85,9 +87,37 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 		}
 		return response, nil
 	case "xml":
-		return lib.ProviderEvaluateResponse{}, fmt.Errorf("%s not yet implemented", cap)
+		query, ok := conditionInfo.(string)
+		if !ok {
+			return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
+		}
+		//TODO(fabianvf): how should we scope the files searched here?
+		pattern := "*.xml"
+		xmlFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
+		if err != nil {
+			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
+		}
+		for _, file := range xmlFiles {
+			f, err := os.Open(file)
+			doc, err := xmlquery.Parse(f)
+			list, err := xmlquery.QueryAll(doc, query)
+			if err != nil {
+				return response, err
+			}
+			if len(list) != 0 {
+				for _, node := range list {
+					response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
+						"filepath":    file,
+						"matchingXML": node.OutputXML(false),
+						"innerText":   node.InnerText(),
+						"data":        node.Data,
+					})
+				}
+			}
+		}
+		return response, nil
 	default:
-		return lib.ProviderEvaluateResponse{}, fmt.Errorf("Capability must be one of %v, not %s", capabilities, cap)
+		return response, fmt.Errorf("Capability must be one of %v, not %s", capabilities, cap)
 	}
 }
 
