@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
@@ -66,7 +67,7 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo interface{}) (lib.Pr
 	}, nil
 }
 
-func (p *golangProvider) Init(ctx context.Context) error {
+func (p *golangProvider) Init(ctx context.Context, log logr.Logger) error {
 	var returnErr error
 	p.once.Do(func() {
 
@@ -89,7 +90,7 @@ func (p *golangProvider) Init(ctx context.Context) error {
 				// TODO: Probably should cancel the ctx here, to shut everything down
 			}
 		}()
-		rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin))
+		rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
 
 		go func() {
 			err := rpc.Run(ctx)
@@ -102,12 +103,12 @@ func (p *golangProvider) Init(ctx context.Context) error {
 		p.ctx = ctx
 
 		// Lets Initiallize before returning
-		p.initialization(ctx)
+		p.initialization(ctx, log)
 	})
 	return returnErr
 }
 
-func (p *golangProvider) initialization(ctx context.Context) {
+func (p *golangProvider) initialization(ctx context.Context, log logr.Logger) {
 	params := &protocol.InitializeParams{
 		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
 		RootURI:      fmt.Sprintf("file://%v", p.config.Location),
@@ -128,7 +129,7 @@ func (p *golangProvider) initialization(ctx context.Context) {
 	if err := p.rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
 		fmt.Printf("initialized failed: %v", err)
 	}
-	fmt.Printf("\ngolang connection initialized: %#v", result.Capabilities.WorkspaceSymbolProvider)
+	log.V(2).Info("golang connection initialized")
 }
 
 func (p *golangProvider) GetAllSymbols(query string) []protocol.WorkspaceSymbol {

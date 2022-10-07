@@ -1,6 +1,10 @@
 package engine
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/go-logr/logr"
+)
 
 type ConditionResponse struct {
 	Passed bool
@@ -10,7 +14,7 @@ type ConditionResponse struct {
 }
 
 type Conditional interface {
-	Evaluate() (ConditionResponse, error)
+	Evaluate(log logr.Logger) (ConditionResponse, error)
 }
 
 type Rule struct {
@@ -22,7 +26,7 @@ type AndCondition struct {
 	Conditions []Conditional
 }
 
-func (a AndCondition) Evaluate() (ConditionResponse, error) {
+func (a AndCondition) Evaluate(log logr.Logger) (ConditionResponse, error) {
 
 	if len(a.Conditions) == 0 {
 		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluationg")
@@ -30,7 +34,7 @@ func (a AndCondition) Evaluate() (ConditionResponse, error) {
 
 	fullResponse := ConditionResponse{Passed: true}
 	for _, c := range a.Conditions {
-		response, err := c.Evaluate()
+		response, err := c.Evaluate(log)
 
 		// Short cirtcut loop if one and condition fails
 		if !response.Passed {
@@ -45,13 +49,13 @@ type OrCondition struct {
 	Conditions []Conditional
 }
 
-func (o OrCondition) Evaluate() (ConditionResponse, error) {
+func (o OrCondition) Evaluate(log logr.Logger) (ConditionResponse, error) {
 	if len(o.Conditions) == 0 {
 		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluationg")
 	}
 
 	for _, c := range o.Conditions {
-		response, err := c.Evaluate()
+		response, err := c.Evaluate(log)
 		// Short cirtcut loop if one or condition passes we can move on
 		// We may not want to do this in the future.
 		if response.Passed {

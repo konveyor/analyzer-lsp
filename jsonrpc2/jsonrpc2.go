@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+
+	"github.com/go-logr/logr"
 )
 
 // Conn is a JSON RPC 2 client server connection.
@@ -21,9 +23,9 @@ type Conn struct {
 	seq       int64 // must only be accessed using atomic operations
 	handlers  []Handler
 	stream    Stream
-	err       error
 	pendingMu sync.Mutex // protects the pending map
 	pending   map[ID]chan *WireResponse
+	logger    logr.Logger
 }
 
 // NewErrorf builds a Error struct for the supplied message and code.
@@ -37,11 +39,12 @@ func NewErrorf(code int64, format string, args ...interface{}) *Error {
 
 // NewConn creates a new connection object around the supplied stream.
 // You must call Run for the connection to be active.
-func NewConn(s Stream) *Conn {
+func NewConn(s Stream, log logr.Logger) *Conn {
 	conn := &Conn{
 		handlers: []Handler{defaultHandler{}},
 		stream:   s,
 		pending:  make(map[ID]chan *WireResponse),
+		logger:   log,
 	}
 	return conn
 }
@@ -181,6 +184,7 @@ func (c *Conn) Run(runCtx context.Context) error {
 	// we need to make the next request "lock" in an unlocked state to allow
 	// the first incoming request to proceed. All later requests are unlocked
 	// by the preceding request going to parallel mode.
+	c.logger.V(5).Info("starting to run rpc connection")
 	nextRequest := make(chan struct{})
 	close(nextRequest)
 	for {

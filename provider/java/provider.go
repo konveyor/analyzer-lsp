@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
@@ -54,7 +55,7 @@ func (p *javaProvider) Capabilities() ([]string, error) {
 func (p *javaProvider) Evaluate(cap string, conditionInfo interface{}) (lib.ProviderEvaluateResponse, error) {
 	return lib.ProviderEvaluateResponse{}, nil
 }
-func (p *javaProvider) Init(ctx context.Context) error {
+func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
 
 	var returnErr error
 	p.once.Do(func() {
@@ -82,7 +83,7 @@ func (p *javaProvider) Init(ctx context.Context) error {
 				fmt.Printf("here cmd failed- %v", err)
 			}
 		}()
-		rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin))
+		rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
 
 		go func() {
 			err := rpc.Run(ctx)
@@ -93,12 +94,12 @@ func (p *javaProvider) Init(ctx context.Context) error {
 
 		p.rpc = rpc
 		p.ctx = ctx
-		p.initialization(ctx)
+		p.initialization(ctx, log)
 	})
 	return returnErr
 }
 
-func (p *javaProvider) initialization(ctx context.Context) {
+func (p *javaProvider) initialization(ctx context.Context, log logr.Logger) {
 
 	params := &protocol.InitializeParams{
 		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
@@ -115,15 +116,16 @@ func (p *javaProvider) initialization(ctx context.Context) {
 	var result protocol.InitializeResult
 	for {
 		if err := p.rpc.Call(ctx, "initialize", params, &result); err != nil {
-			fmt.Printf("initialize failed: %v", err)
+			log.Error(err, "initialize failed")
 			continue
 		}
 		break
 	}
 	if err := p.rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
 		fmt.Printf("initialized failed: %v", err)
+		log.Error(err, "initialize failed")
 	}
-	fmt.Printf("\njava connection initialized: %#v", result.Capabilities.WorkspaceSymbolProvider)
+	log.V(2).Info("java connection initialized")
 }
 
 func (p *javaProvider) GetAllSymbols(query string) []protocol.WorkspaceSymbol {

@@ -4,6 +4,10 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/bombsimon/logrusr/v3"
+	"github.com/go-logr/logr"
+	"github.com/sirupsen/logrus"
 )
 
 type testConditional struct {
@@ -12,7 +16,7 @@ type testConditional struct {
 	sleep bool
 }
 
-func (t testConditional) Evaluate() (ConditionResponse, error) {
+func (t testConditional) Evaluate(log logr.Logger) (ConditionResponse, error) {
 	if t.sleep {
 		time.Sleep(5 * time.Second)
 	}
@@ -82,13 +86,15 @@ func TestEvaluateAndConditions(t *testing.T) {
 		},
 	}
 
+	logrusLog := logrus.New()
+	log := logrusr.New(logrusLog)
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			rule := Rule{
 				Perform: "testing",
 				When:    AndCondition{Conditions: tc.Conditions},
 			}
-			ret, err := processRule(rule)
+			ret, err := processRule(rule, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
@@ -163,13 +169,15 @@ func TestEvaluateOrConditions(t *testing.T) {
 		},
 	}
 
+	logrusLog := logrus.New()
+	log := logrusr.New(logrusLog)
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			rule := Rule{
 				Perform: "testing",
 				When:    OrCondition{tc.Conditions},
 			}
-			ret, err := processRule(rule)
+			ret, err := processRule(rule, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
@@ -215,7 +223,9 @@ func TestRuleEngine(t *testing.T) {
 		},
 	}
 
-	ruleEngine := CreateRuleEngine(context.Background(), 10)
+	logrusLog := logrus.New()
+	log := logrusr.New(logrusLog)
+	ruleEngine := CreateRuleEngine(context.Background(), 10, log)
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
