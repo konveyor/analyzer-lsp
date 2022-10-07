@@ -19,6 +19,14 @@
         }
     },
     {
+        "message": "find all providerSpecificConfig",
+        "when": {
+            "builtin.json": {
+              "xpath": "//providerSpecificConfig/*"
+            }
+        }
+    },
+    {
         "message":  "apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead",
         "when": {
             "or": [

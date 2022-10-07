@@ -9,7 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/antchfx/jsonquery"
 	"github.com/antchfx/xmlquery"
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 )
@@ -18,6 +20,7 @@ var capabilities = []string{
 	"filecontent",
 	"file",
 	"xml",
+	"json",
 }
 
 type builtinProvider struct {
@@ -38,7 +41,7 @@ func (p *builtinProvider) Capabilities() ([]string, error) {
 }
 
 func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.ProviderEvaluateResponse, error) {
-	response := lib.ProviderEvaluateResponse{}
+	response := lib.ProviderEvaluateResponse{Passed: true}
 	switch cap {
 	case "file":
 		pattern, ok := conditionInfo.(string)
@@ -50,7 +53,9 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 		}
 
-		response.Passed = len(matchingFiles) == 0
+		if len(matchingFiles) != 0 {
+			response.Passed = false
+		}
 
 		for _, match := range matchingFiles {
 			response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
@@ -70,7 +75,9 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 			return response, fmt.Errorf("Could not run grep with provided pattern %+v", err)
 		}
 		matches := strings.Split(strings.TrimSpace(string(outputBytes)), "\n")
-		response.Passed = (len(matches) == 0)
+		if len(matches) != 0 {
+			response.Passed = false
+		}
 
 		for _, match := range matches {
 			//TODO(fabianvf): This will not work if there is a `:` in the filename, do we care?
@@ -105,6 +112,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 				return response, err
 			}
 			if len(list) != 0 {
+				response.Passed = false
 				for _, node := range list {
 					response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
 						"filepath":    file,
@@ -116,9 +124,54 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 			}
 		}
 		return response, nil
+	case "json":
+		config, ok := conditionInfo.(map[string]interface{})
+		if !ok {
+			return response, fmt.Errorf("Could not parse json block as map: %v", conditionInfo)
+		}
+		if len(config) > 1 {
+			return response, fmt.Errorf("Can only provide one key to `builtin.json` provider %v", config)
+		}
+		for key, value := range config {
+			query, ok := value.(string)
+			if !ok {
+				return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
+			}
+			switch key {
+			case "xpath":
+				pattern := "*.json"
+				jsonFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
+				if err != nil {
+					return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
+				}
+				for _, file := range jsonFiles {
+					f, err := os.Open(file)
+					doc, err := jsonquery.Parse(f)
+					list, err := jsonquery.QueryAll(doc, query)
+					if err != nil {
+						return response, err
+					}
+					if len(list) != 0 {
+						response.Passed = false
+						for _, node := range list {
+							response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
+								"filepath":     file,
+								"matchingJSON": node.InnerText(),
+								"data":         node.Data,
+							})
+						}
+					}
+				}
+				return response, nil
+			default:
+				return response, fmt.Errorf("%s is not a supported keyword for the `builtin.json` provider", key)
+			}
+		}
+
 	default:
 		return response, fmt.Errorf("Capability must be one of %v, not %s", capabilities, cap)
 	}
+	return response, nil
 }
 
 func findFilesMatchingPattern(root, pattern string) ([]string, error) {
@@ -141,6 +194,6 @@ func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 }
 
 // We don't need to init anything
-func (p *builtinProvider) Init(_ context.Context) error {
+func (p *builtinProvider) Init(_ context.Context, _ logr.Logger) error {
 	return nil
 }
