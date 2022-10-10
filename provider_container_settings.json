@@ -1,0 +1,15 @@
+[
+    {
+        "name": "go",
+        "location": "examples/golang",
+        "binaryLocation": "/root/go/bin/gopls"
+    },
+    {
+        "name": "java",
+        "location": "examples/java",
+        "binaryLocation": "/jdtls/bin/jdtls",
+        "providerSpecificConfig": {
+            "bundles": "/jdtls/java-rule-addon/java-rule-addon.core/target/java-rule-addon.core-1.0.0-SNAPSHOT.jar"
+        }
+    }
+]
