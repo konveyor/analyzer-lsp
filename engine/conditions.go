@@ -7,10 +7,10 @@ import (
 )
 
 type ConditionResponse struct {
-	Passed bool
+	Passed bool `json:"passed"`
 	// For each time the condition is hit, add all of the context.
 	// keys here, will be used in the message.
-	ConditionHitContext []map[string]string
+	ConditionHitContext []map[string]string `json:"conditionHitContext"`
 }
 
 type Conditional interface {

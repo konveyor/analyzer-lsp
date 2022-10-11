@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/provider/builtin"
 	"github.com/konveyor/analyzer-lsp/provider/golang"
 	"github.com/konveyor/analyzer-lsp/provider/java"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
@@ -48,6 +49,8 @@ func GetProviderClient(config lib.Config) (Client, error) {
 		return golang.NewGolangProvider(config), nil
 	case "java":
 		return java.NewJavaProvider(config), nil
+	case "builtin":
+		return builtin.NewBuiltinProvider(config), nil
 	default:
 		return nil, fmt.Errorf("unknown and invalid provider client")
 	}
