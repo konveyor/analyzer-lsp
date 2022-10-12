@@ -7,10 +7,10 @@ import (
 )
 
 type ConditionResponse struct {
-	Passed bool `json:"passed"`
+	Passed bool `yaml:"passed"`
 	// For each time the condition is hit, add all of the context.
 	// keys here, will be used in the message.
-	ConditionHitContext []map[string]string `json:"conditionHitContext"`
+	ConditionHitContext []map[string]string `yaml:"conditionHitContext"`
 }
 
 type Conditional interface {
@@ -18,8 +18,8 @@ type Conditional interface {
 }
 
 type Rule struct {
-	Perform string      `json:"perform,omitempty"`
-	When    Conditional `json:"when,omitempty"`
+	Perform string      `yaml:"perform,omitempty"`
+	When    Conditional `yaml:"when,omitempty"`
 }
 
 type AndCondition struct {

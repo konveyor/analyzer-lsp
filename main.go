@@ -15,7 +15,7 @@ import (
 const (
 	// This must eventually be a default that makes sense, and overrideable by env var or flag.
 	SETTING_FILE_PATH = "./provider_settings.json"
-	RULES_FILE_PATH   = "./rule-example.json"
+	RULES_FILE_PATH   = "./rule-example.yaml"
 )
 
 func main() {

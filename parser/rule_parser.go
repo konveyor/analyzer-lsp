@@ -1,10 +1,11 @@
 package parser
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
@@ -26,7 +27,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Clien
 
 	ruleMap := []map[string]interface{}{}
 
-	err = json.Unmarshal(content, &ruleMap)
+	err = yaml.Unmarshal(content, &ruleMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -45,12 +46,16 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Clien
 			Perform: message,
 		}
 
-		whenMap, ok := ruleMap["when"].(map[string]interface{})
+		whenMap, ok := ruleMap["when"].(map[interface{}]interface{})
 		if !ok {
 			return nil, nil, fmt.Errorf("a Rule must have a single condition")
 		}
 
-		for key, value := range whenMap {
+		for k, value := range whenMap {
+			key, ok := k.(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("condition key must be a string")
+			}
 			switch key {
 			case "or":
 				//Handle when clause
@@ -108,11 +113,15 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 	providers := []provider.Client{}
 	for _, conditionInterface := range conditionsInterface {
 		// get map from interface
-		conditionMap, ok := conditionInterface.(map[string]interface{})
+		conditionMap, ok := conditionInterface.(map[interface{}]interface{})
 		if !ok {
 			return nil, nil, fmt.Errorf("conditions must be an object")
 		}
-		for key, v := range conditionMap {
+		for k, v := range conditionMap {
+			key, ok := k.(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("condition key must be string")
+			}
 			switch key {
 			case "and":
 				iConditions, ok := v.([]interface{})

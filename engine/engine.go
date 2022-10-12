@@ -2,9 +2,10 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/go-logr/logr"
 )
@@ -20,9 +21,9 @@ type ruleMessage struct {
 }
 
 type response struct {
-	ConditionResponse ConditionResponse `json:"conditionResponse"`
-	Err               error             `json:"err"`
-	Rule              Rule              `json:"rule"`
+	ConditionResponse ConditionResponse `yaml:"conditionResponse"`
+	Err               error             `yaml:"err"`
+	Rule              Rule              `yaml:"rule"`
 }
 
 type ruleEngine struct {
@@ -127,7 +128,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 	}
 	// Cannel running go-routine
 	cancelFunc()
-	b, err := json.MarshalIndent(responses, "", "  ")
+	b, err := yaml.Marshal(responses)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
