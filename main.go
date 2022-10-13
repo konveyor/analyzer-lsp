@@ -70,5 +70,10 @@ func main() {
 	}
 
 	engine.RunRules(ctx, rules)
+	engine.Stop()
+
+	for _, provider := range needProviders {
+		provider.Stop()
+	}
 
 }

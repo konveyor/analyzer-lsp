@@ -14,11 +14,19 @@ import (
 )
 
 type golangProvider struct {
-	rpc *jsonrpc2.Conn
-	ctx context.Context
+	rpc        *jsonrpc2.Conn
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+	cmd        *exec.Cmd
 
 	config lib.Config
 	once   sync.Once
+}
+
+func (p *golangProvider) Stop() {
+	p.cancelFunc()
+	// Ignore the error here, it stopped and we wanted it to.
+	p.cmd.Wait()
 }
 
 func NewGolangProvider(config lib.Config) *golangProvider {
@@ -68,6 +76,7 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo interface{}) (lib.Pr
 }
 
 func (p *golangProvider) Init(ctx context.Context, log logr.Logger) error {
+	ctx, cancelFunc := context.WithCancel(ctx)
 	var returnErr error
 	p.once.Do(func() {
 
@@ -82,9 +91,11 @@ func (p *golangProvider) Init(ctx context.Context, log logr.Logger) error {
 			returnErr = err
 			return
 		}
+		p.cancelFunc = cancelFunc
+		p.cmd = cmd
 
 		go func() {
-			err := cmd.Run()
+			err := cmd.Start()
 			if err != nil {
 				fmt.Printf("cmd failed - %v", err)
 				// TODO: Probably should cancel the ctx here, to shut everything down
@@ -95,7 +106,10 @@ func (p *golangProvider) Init(ctx context.Context, log logr.Logger) error {
 		go func() {
 			err := rpc.Run(ctx)
 			if err != nil {
-				fmt.Printf("connection terminated: %v", err)
+				//TODO: we need to pipe the ctx further into the stream header and run.
+				// basically it is checking if done, then reading. When it gets EOF it errors.
+				// We need the read to be at the same level of selection to fully implment graceful shutdown
+				return
 			}
 		}()
 
