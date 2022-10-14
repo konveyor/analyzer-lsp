@@ -3,8 +3,9 @@
 package lib
 
 import (
-	"encoding/json"
 	"os"
+
+	"gopkg.in/yaml.v2"
 )
 
 var builtinConfig = Config{
@@ -13,16 +14,16 @@ var builtinConfig = Config{
 }
 
 type Config struct {
-	Name string `json:"name,omitempty"`
+	Name string `yaml:"name,omitempty"`
 
 	// This is the location of the code base that the
 	// Provider will be responisble for parsing
-	Location string `json:"location,omitempty"`
+	Location string `yaml:"location,omitempty"`
 
-	BinaryLocation string `json:"binaryLocation,omitempty"`
+	BinaryLocation string `yaml:"binaryLocation,omitempty"`
 
 	// This will have to be defined for each provider
-	ProviderSpecificConfig map[string]string `json:"providerSpecificConfig,omitempty"`
+	ProviderSpecificConfig map[string]string `yaml:"providerSpecificConfig,omitempty"`
 }
 
 func GetConfig(filepath string) ([]Config, error) {
@@ -34,7 +35,7 @@ func GetConfig(filepath string) ([]Config, error) {
 
 	configs := []Config{}
 
-	err = json.Unmarshal(content, &configs)
+	err = yaml.Unmarshal(content, &configs)
 	if err != nil {
 		return nil, err
 	}
