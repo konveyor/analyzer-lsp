@@ -36,6 +36,10 @@ func NewBuiltinProvider(config lib.Config) *builtinProvider {
 	}
 }
 
+func (p *builtinProvider) Stop() {
+	return
+}
+
 func (p *builtinProvider) Capabilities() ([]string, error) {
 	return capabilities, nil
 }

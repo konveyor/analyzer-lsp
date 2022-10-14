@@ -20,6 +20,8 @@ type Client interface {
 	Init(context.Context, logr.Logger) error
 
 	Evaluate(cap string, conditionInfo interface{}) (lib.ProviderEvaluateResponse, error)
+
+	Stop()
 }
 
 type ProviderCondition struct {

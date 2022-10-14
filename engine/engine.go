@@ -31,6 +31,8 @@ type ruleEngine struct {
 	ruleProcessing chan ruleMessage
 	cancelFunc     context.CancelFunc
 	logger         logr.Logger
+
+	wg *sync.WaitGroup
 }
 
 func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger) RuleEngine {
@@ -39,24 +41,29 @@ func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger) RuleEng
 	ruleProcessor := make(chan ruleMessage, 10)
 
 	ctx, cancelFunc := context.WithCancel(ctx)
+	wg := &sync.WaitGroup{}
 
 	for i := 0; i < workers; i++ {
 		logger := log.WithValues("workder", i)
-		go processRuleWorker(ctx, ruleProcessor, logger)
+		wg.Add(1)
+		go processRuleWorker(ctx, ruleProcessor, logger, wg)
 	}
 
 	return &ruleEngine{
 		ruleProcessing: ruleProcessor,
 		cancelFunc:     cancelFunc,
 		logger:         log,
+		wg:             wg,
 	}
 }
 
 func (r *ruleEngine) Stop() {
 	r.cancelFunc()
+	r.logger.V(5).Info("rule engine stopping")
+	r.wg.Wait()
 }
 
-func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logger logr.Logger) {
+func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logger logr.Logger, wg *sync.WaitGroup) {
 	for {
 		select {
 		case m := <-ruleMessages:
@@ -68,6 +75,8 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 				Rule:              m.rule,
 			}
 		case <-ctx.Done():
+			logger.V(5).Info("stopping rule worker")
+			wg.Done()
 			return
 		}
 	}

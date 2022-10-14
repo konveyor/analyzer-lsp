@@ -33,7 +33,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Clien
 	}
 
 	rules := []engine.Rule{}
-	providers := []provider.Client{}
+	providers := map[string]provider.Client{}
 	for _, ruleMap := range ruleMap {
 		// Rules right now only contain two top level things, message and when.
 		// When is where we need to handle conditions
@@ -68,7 +68,9 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Clien
 					return nil, nil, err
 				}
 				rule.When = engine.OrCondition{Conditions: conditions}
-				providers = append(providers, provs...)
+				for k, prov := range provs {
+					providers[k] = prov
+				}
 			case "and":
 				//Handle when clause
 				m, ok := value.([]interface{})
@@ -80,7 +82,9 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Clien
 					return nil, nil, err
 				}
 				rule.When = engine.AndCondition{Conditions: conditions}
-				providers = append(providers, provs...)
+				for k, prov := range provs {
+					providers[k] = prov
+				}
 			case "":
 				return nil, nil, fmt.Errorf("must have at least one condition")
 			default:
@@ -96,21 +100,27 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Clien
 					return nil, nil, err
 				}
 				rule.When = condition
-				providers = append(providers, provider)
+				providers[providerKey] = provider
+
 			}
 		}
 
 		rules = append(rules, rule)
 	}
 
-	return rules, providers, nil
+	providerList := []provider.Client{}
+	for _, p := range providers {
+		providerList = append(providerList, p)
+	}
+
+	return rules, providerList, nil
 
 }
 
-func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.Conditional, []provider.Client, error) {
+func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.Conditional, map[string]provider.Client, error) {
 
 	conditions := []engine.Conditional{}
-	providers := []provider.Client{}
+	providers := map[string]provider.Client{}
 	for _, conditionInterface := range conditionsInterface {
 		// get map from interface
 		conditionMap, ok := conditionInterface.(map[interface{}]interface{})
@@ -135,7 +145,9 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				conditions = append(conditions, engine.AndCondition{
 					Conditions: conds,
 				})
-				providers = append(providers, provs...)
+				for k, prov := range provs {
+					providers[k] = prov
+				}
 			case "or":
 				iConditions, ok := v.([]interface{})
 				if !ok {
@@ -148,7 +160,9 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				conditions = append(conditions, engine.OrCondition{
 					Conditions: conds,
 				})
-				providers = append(providers, provs...)
+				for k, prov := range provs {
+					providers[k] = prov
+				}
 			case "":
 				return nil, nil, fmt.Errorf("must have at least one condition")
 			default:
@@ -165,7 +179,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 					return nil, nil, err
 				}
 				conditions = append(conditions, condition)
-				providers = append(providers, provider)
+				providers[providerKey] = provider
 			}
 		}
 	}

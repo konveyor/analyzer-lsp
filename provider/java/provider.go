@@ -19,9 +19,11 @@ type javaProvider struct {
 	bundles   []string
 	workspace string
 
-	rpc  *jsonrpc2.Conn
-	ctx  context.Context
-	once sync.Once
+	rpc        *jsonrpc2.Conn
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+	cmd        *exec.Cmd
+	once       sync.Once
 }
 
 const BUNDLES_INIT_OPTION = "bundles"
@@ -46,6 +48,12 @@ func NewJavaProvider(config lib.Config) *javaProvider {
 	}
 }
 
+func (p *javaProvider) Stop() {
+	p.cancelFunc()
+	// Ignore the error here, it stopped and we wanted it to.
+	p.cmd.Wait()
+}
+
 func (p *javaProvider) Capabilities() ([]string, error) {
 	return []string{
 		"referenced",
@@ -58,6 +66,7 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo interface{}) (lib.Prov
 func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
 
 	var returnErr error
+	ctx, cancelFunc := context.WithCancel(ctx)
 	p.once.Do(func() {
 
 		cmd := exec.CommandContext(ctx, p.config.BinaryLocation,
@@ -77,8 +86,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
 			return
 		}
 
+		p.cancelFunc = cancelFunc
+		p.cmd = cmd
 		go func() {
-			err := cmd.Run()
+			err := cmd.Start()
 			if err != nil {
 				fmt.Printf("here cmd failed- %v", err)
 			}
@@ -88,7 +99,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
 		go func() {
 			err := rpc.Run(ctx)
 			if err != nil {
-				fmt.Printf("connection terminated: %v", err)
+				//TODO: we need to pipe the ctx further into the stream header and run.
+				// basically it is checking if done, then reading. When it gets EOF it errors.
+				// We need the read to be at the same level of selection to fully implment graceful shutdown
+				return
 			}
 		}()
 
