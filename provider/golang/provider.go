@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -77,10 +78,11 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo interface{}) (lib.Pr
 
 func (p *golangProvider) Init(ctx context.Context, log logr.Logger) error {
 	ctx, cancelFunc := context.WithCancel(ctx)
+	log = log.WithValues("provider", "golang")
 	var returnErr error
 	p.once.Do(func() {
 
-		cmd := exec.CommandContext(ctx, "/usr/bin/gopls")
+		cmd := exec.CommandContext(ctx, p.config.BinaryLocation)
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
 			returnErr = err
@@ -123,9 +125,16 @@ func (p *golangProvider) Init(ctx context.Context, log logr.Logger) error {
 }
 
 func (p *golangProvider) initialization(ctx context.Context, log logr.Logger) {
+	// Get abosulte path of location.
+	abs, err := filepath.Abs(p.config.Location)
+	if err != nil {
+		log.Error(err, "unable to get path to analyize")
+		panic(1)
+	}
+
 	params := &protocol.InitializeParams{
 		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
-		RootURI:      fmt.Sprintf("file://%v", p.config.Location),
+		RootURI:      fmt.Sprintf("file://%v", abs),
 		Capabilities: protocol.ClientCapabilities{},
 		ExtendedClientCapilities: map[string]interface{}{
 			"classFileContentsSupport": true,

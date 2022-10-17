@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -96,6 +97,8 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo interface{}) (lib.Prov
 	}, nil
 }
 func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
+	log = log.WithValues("provider", "java")
+
 	var returnErr error
 	ctx, cancelFunc := context.WithCancel(ctx)
 	p.once.Do(func() {
@@ -146,15 +149,32 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
 
 func (p *javaProvider) initialization(ctx context.Context, log logr.Logger) {
 
+	absLocation, err := filepath.Abs(p.config.Location)
+	if err != nil {
+		log.Error(err, "unable to get path to analyize")
+		panic(1)
+	}
+
+	var absBundles []string
+	for _, bundle := range p.bundles {
+		abs, err := filepath.Abs(bundle)
+		if err != nil {
+			log.Error(err, "unable to get path to bundles")
+			panic(1)
+		}
+		absBundles = append(absBundles, abs)
+
+	}
+
 	params := &protocol.InitializeParams{
 		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
-		RootURI:      fmt.Sprintf("file://%v", p.config.Location),
+		RootURI:      fmt.Sprintf("file://%v", absLocation),
 		Capabilities: protocol.ClientCapabilities{},
 		ExtendedClientCapilities: map[string]interface{}{
 			"classFileContentsSupport": true,
 		},
 		InitializationOptions: map[string]interface{}{
-			"bundles": p.bundles,
+			"bundles": absBundles,
 		},
 	}
 
