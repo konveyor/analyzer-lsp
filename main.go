@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"time"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/engine"
@@ -19,7 +20,7 @@ const (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
@@ -75,5 +76,10 @@ func main() {
 	for _, provider := range needProviders {
 		provider.Stop()
 	}
+
+	//Before we exit we need to clean up
+	cancelFunc()
+
+	time.Sleep(5 * time.Second)
 
 }

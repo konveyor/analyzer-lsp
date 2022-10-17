@@ -61,10 +61,41 @@ func (p *javaProvider) Capabilities() ([]string, error) {
 }
 
 func (p *javaProvider) Evaluate(cap string, conditionInfo interface{}) (lib.ProviderEvaluateResponse, error) {
-	return lib.ProviderEvaluateResponse{}, nil
+
+	query, ok := conditionInfo.(string)
+	if !ok {
+		fmt.Printf("not ok did not get query info")
+		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
+	}
+
+	symbols := p.GetAllSymbols(query)
+
+	foundRefs := []map[string]string{}
+	for _, s := range symbols {
+
+		if s.Kind == protocol.Module {
+			references := p.GetAllReferences(s)
+			for _, ref := range references {
+				// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
+				if strings.Contains(ref.URI, p.config.Location) {
+					foundRefs = append(foundRefs, map[string]string{
+						fmt.Sprintf("location %v: %v", ref.URI, ref.Range.Start.Line): "",
+					})
+				}
+			}
+		}
+	}
+
+	if len(foundRefs) == 0 {
+		return lib.ProviderEvaluateResponse{
+			Passed: true,
+		}, nil
+	}
+	return lib.ProviderEvaluateResponse{
+		ConditionHitContext: foundRefs,
+	}, nil
 }
 func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
-
 	var returnErr error
 	ctx, cancelFunc := context.WithCancel(ctx)
 	p.once.Do(func() {

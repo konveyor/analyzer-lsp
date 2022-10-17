@@ -28,3 +28,6 @@
       - go.referenced: "*CustomResourceDefinition*"
       - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
+- message: testing java condition
+  when:
+    java.referenced: "*apiextensions.v1beta1.CustomResourceDefinition*"
