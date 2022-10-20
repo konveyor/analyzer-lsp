@@ -148,6 +148,6 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 func processRule(rule Rule, log logr.Logger) (ConditionResponse, error) {
 	// Here is what a worker should run when getting a rule.
 	// For now, lets not fan out the running of conditions.
-	return rule.When.Evaluate(log)
+	return rule.When.Evaluate(log, map[string]interface{}{})
 
 }

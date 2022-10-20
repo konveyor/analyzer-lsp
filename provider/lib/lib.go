@@ -48,4 +48,5 @@ func GetConfig(filepath string) ([]Config, error) {
 type ProviderEvaluateResponse struct {
 	Passed              bool
 	ConditionHitContext []map[string]string
+	TemplateContext     map[string]interface{}
 }
