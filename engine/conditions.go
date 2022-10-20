@@ -24,47 +24,6 @@ type ConditionEntry struct {
 	ProviderSpecificConfig Conditional
 }
 
-// TODO maybe do this
-// func validateConditionVariables(conds []ConditionEntry) bool {
-// 	// Flatten all entries (ands/ors/nested chains etc if we want to support that
-// // Alternatively we could just leave it to the user to enforce ordering
-// 	// Run through condition entries to make sure we've got indices for all names
-// 	for i, c := range conds {
-// 	}
-// 	g := graph{
-// 		nodes: []*node{},
-// 		edges: map[node][]*node{},
-// 	}
-// 	for i, c := range conds {
-// 		if c.As != "" {
-// 			g.AddNode(node{index: i, name: c.As})
-// 		}
-// 		if c.From != "" {
-// 			// g.AddEdge()
-// 		}
-// 	}
-// 	return false
-// }
-
-// type graph struct {
-// 	nodes []*node
-// 	edges map[node][]*node
-// }
-
-// type node struct {
-// 	index int
-// 	name  string
-// }
-
-// func (g *graph) AddNode(n node) {
-// 	g.nodes = append(g.nodes, &n)
-// }
-
-// func (g *graph) AddEdge(node1, node2 node) {
-// 	g.edges[node1] = append(g.edges[node1], &node2)
-// 	g.edges[node2] = append(g.edges[node2], &node1)
-// }
-
 type Conditional interface {
 	Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error)
 }
