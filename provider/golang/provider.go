@@ -12,6 +12,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"gopkg.in/yaml.v2"
 )
 
 type golangProvider struct {
@@ -43,10 +44,19 @@ func (p *golangProvider) Capabilities() ([]string, error) {
 	}, nil
 }
 
-func (p *golangProvider) Evaluate(cap string, conditionInfo interface{}) (lib.ProviderEvaluateResponse, error) {
+type golangCondition struct {
+	Referenced string `yaml:'referenced'`
+}
 
-	query, ok := conditionInfo.(string)
-	if !ok {
+func (p *golangProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
+	var cond golangCondition
+	err := yaml.Unmarshal(conditionInfo, &cond)
+	if err != nil {
+		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
+	}
+
+	query := cond.Referenced
+	if query == "" {
 		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
 	}
 

@@ -5,6 +5,15 @@
 - message: POM XML dependencies
   when:
     builtin.xml: "//dependencies/dependency"
+- message: POM XML dependencies
+  when:
+    chain:
+    - builtin.file: pom.xml
+      as: poms
+    - builtin.xml:
+        xpath: "//dependencies/dependency"
+        filepaths: '{{ index .poms "filepaths" }}'
+      from: poms
 - message: Find all TODOs
   when:
     builtin.filecontent: TODO(\(.*\))?:?(.*)?

@@ -14,6 +14,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"gopkg.in/yaml.v2"
 )
 
 var capabilities = []string{
@@ -21,6 +22,22 @@ var capabilities = []string{
 	"file",
 	"xml",
 	"json",
+}
+
+type builtinCondition struct {
+	Filecontent string        `yaml:'filecontent'`
+	File        string        `yaml:'file'`
+	XML         xmlCondition  `yaml:'xml'`
+	JSON        jsonCondition `yaml:'json'`
+}
+
+type xmlCondition struct {
+	XPath     string   `yaml:'xpath'`
+	Filepaths []string `yaml:'filepaths'`
+}
+
+type jsonCondition struct {
+	XPath string `yaml:'xpath'`
 }
 
 type builtinProvider struct {
@@ -44,12 +61,17 @@ func (p *builtinProvider) Capabilities() ([]string, error) {
 	return capabilities, nil
 }
 
-func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.ProviderEvaluateResponse, error) {
+func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
+	var cond builtinCondition
+	err := yaml.Unmarshal(conditionInfo, &cond)
+	if err != nil {
+		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
+	}
 	response := lib.ProviderEvaluateResponse{Passed: true}
 	switch cap {
 	case "file":
-		pattern, ok := conditionInfo.(string)
-		if !ok {
+		pattern := cond.File
+		if pattern == "" {
 			return response, fmt.Errorf("Could not parse provided file pattern as string: %v", conditionInfo)
 		}
 		matchingFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
@@ -61,6 +83,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 			response.Passed = false
 		}
 
+		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
 		for _, match := range matchingFiles {
 			response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
 				"filepath": match,
@@ -68,8 +91,9 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 		}
 		return response, nil
 	case "filecontent":
-		pattern, ok := conditionInfo.(string)
-		if !ok {
+
+		pattern := cond.Filecontent
+		if pattern == "" {
 			return response, fmt.Errorf("Could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 		var outputBytes []byte
@@ -98,15 +122,20 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 		}
 		return response, nil
 	case "xml":
-		query, ok := conditionInfo.(string)
-		if !ok {
+		query := cond.XML.XPath
+		if query == "" {
 			return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
 		}
 		//TODO(fabianvf): how should we scope the files searched here?
-		pattern := "*.xml"
-		xmlFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
-		if err != nil {
-			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
+		var xmlFiles []string
+		if len(cond.XML.Filepaths) == 0 {
+			pattern := "*.xml"
+			xmlFiles, err = findFilesMatchingPattern(p.config.Location, pattern)
+			if err != nil {
+				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
+			}
+		} else {
+			xmlFiles = cond.XML.Filepaths
 		}
 		for _, file := range xmlFiles {
 			f, err := os.Open(file)
@@ -129,48 +158,34 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo interface{}) (lib.P
 		}
 		return response, nil
 	case "json":
-		config, ok := conditionInfo.(map[string]interface{})
-		if !ok {
-			return response, fmt.Errorf("Could not parse json block as map: %v", conditionInfo)
+		query := cond.JSON.XPath
+		if query == "" {
+			return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
 		}
-		if len(config) > 1 {
-			return response, fmt.Errorf("Can only provide one key to `builtin.json` provider %v", config)
+		pattern := "*.json"
+		jsonFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
+		if err != nil {
+			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 		}
-		for key, value := range config {
-			query, ok := value.(string)
-			if !ok {
-				return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
+		for _, file := range jsonFiles {
+			f, err := os.Open(file)
+			doc, err := jsonquery.Parse(f)
+			list, err := jsonquery.QueryAll(doc, query)
+			if err != nil {
+				return response, err
 			}
-			switch key {
-			case "xpath":
-				pattern := "*.json"
-				jsonFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
-				if err != nil {
-					return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
+			if len(list) != 0 {
+				response.Passed = false
+				for _, node := range list {
+					response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
+						"filepath":     file,
+						"matchingJSON": node.InnerText(),
+						"data":         node.Data,
+					})
 				}
-				for _, file := range jsonFiles {
-					f, err := os.Open(file)
-					doc, err := jsonquery.Parse(f)
-					list, err := jsonquery.QueryAll(doc, query)
-					if err != nil {
-						return response, err
-					}
-					if len(list) != 0 {
-						response.Passed = false
-						for _, node := range list {
-							response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
-								"filepath":     file,
-								"matchingJSON": node.InnerText(),
-								"data":         node.Data,
-							})
-						}
-					}
-				}
-				return response, nil
-			default:
-				return response, fmt.Errorf("%s is not a supported keyword for the `builtin.json` provider", key)
 			}
 		}
+		return response, nil
 
 	default:
 		return response, fmt.Errorf("Capability must be one of %v, not %s", capabilities, cap)
