@@ -25,10 +25,10 @@ var capabilities = []string{
 }
 
 type builtinCondition struct {
-	Filecontent string        `yaml:'filecontent'`
-	File        string        `yaml:'file'`
-	XML         xmlCondition  `yaml:'xml'`
-	JSON        jsonCondition `yaml:'json'`
+	Filecontent string        `yaml:"filecontent"`
+	File        string        `yaml:"file"`
+	XML         xmlCondition  `yaml:"xml"`
+	JSON        jsonCondition `yaml:"json"`
 }
 
 type xmlCondition struct {
@@ -188,9 +188,8 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		return response, nil
 
 	default:
-		return response, fmt.Errorf("Capability must be one of %v, not %s", capabilities, cap)
+		return response, fmt.Errorf("capability must be one of %v, not %s", capabilities, cap)
 	}
-	return response, nil
 }
 
 func findFilesMatchingPattern(root, pattern string) ([]string, error) {
