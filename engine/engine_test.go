@@ -35,7 +35,6 @@ func createTestConditional(b bool, e error, sleep bool) Conditional {
 
 type testChainableConditionalAs struct {
 	err           error
-	ret           bool
 	documentedKey string
 	AsValue       interface{}
 }
@@ -348,7 +347,7 @@ func TestChainConditions(t *testing.T) {
 			},
 		},
 		{
-			Name: "Test and chain As provided by one element in and block",
+			Name: "Test and chain As provided and block",
 			Conditions: []ConditionEntry{
 				{
 					As: "testing",
@@ -358,6 +357,42 @@ func TestChainConditions(t *testing.T) {
 								ProviderSpecificConfig: testChainableConditionalAs{
 									documentedKey: "filepaths",
 									AsValue:       []string{"test.yaml"},
+								},
+							},
+							{
+								ProviderSpecificConfig: createTestConditional(false, nil, false),
+							},
+						},
+					},
+				},
+				{
+					From: "testing",
+					ProviderSpecificConfig: testChainableConditionalFrom{
+						FromName:      "testing",
+						DocumentedKey: "filepaths",
+						FromValue:     []string{"test.yaml"},
+					},
+				},
+			},
+		},
+		{
+			Name: "Test and chain As provided by one element in as block",
+			Conditions: []ConditionEntry{
+				{
+					ProviderSpecificConfig: AndCondition{
+						Conditions: []ConditionEntry{
+							{
+								As: "testing",
+								ProviderSpecificConfig: ChainCondition{
+									Conditions: []ConditionEntry{
+										{
+											As: "testing",
+											ProviderSpecificConfig: testChainableConditionalAs{
+												documentedKey: "filepaths",
+												AsValue:       []string{"test.yaml"},
+											},
+										},
+									},
 								},
 							},
 							{
