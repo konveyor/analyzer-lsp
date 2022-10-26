@@ -14,14 +14,27 @@ type ConditionResponse struct {
 	Passed bool `yaml:"passed"`
 	// For each time the condition is hit, add all of the context.
 	// keys here, will be used in the message.
-	ConditionHitContext []map[string]string    `yaml:"conditionHitContext"`
-	TemplateContext     map[string]interface{} `yaml:",inline"`
+	Incidents       []IncidentContext      `yaml:"incidents"`
+	TemplateContext map[string]interface{} `yaml:",inline"`
 }
 
 type ConditionEntry struct {
 	From                   string
 	As                     string
+	Ignorable              bool
 	ProviderSpecificConfig Conditional
+}
+
+type IncidentContext struct {
+	FileURI string                 `yaml:"fileURI"`
+	Effort  int                    `yaml:"effort"`
+	Extras  map[string]interface{} `yaml:"extras"`
+	Links   []ExternalLinks        `yaml:"externalLink"`
+}
+
+type ExternalLinks struct {
+	URL   string `yaml:"url"`
+	Title string `yaml:"title"`
 }
 
 type Conditional interface {
@@ -29,8 +42,11 @@ type Conditional interface {
 }
 
 type Rule struct {
-	Perform string      `yaml:"perform,omitempty"`
-	When    Conditional `yaml:"when,omitempty"`
+	RuleID      string      `yaml:"ruleID,omitempty"`
+	Description string      `yaml:"description,omitempty"`
+	Category    string      `yaml:"category,omitempty"`
+	Perform     string      `yaml:"perform,omitempty"`
+	When        Conditional `yaml:"when,omitempty"`
 }
 
 type AndCondition struct {
@@ -44,9 +60,9 @@ func (a AndCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Con
 	}
 
 	fullResponse := ConditionResponse{
-		Passed:              true,
-		ConditionHitContext: []map[string]string{},
-		TemplateContext:     map[string]interface{}{},
+		Passed:          true,
+		Incidents:       []IncidentContext{},
+		TemplateContext: map[string]interface{}{},
 	}
 	for _, c := range a.Conditions {
 		response, err := c.ProviderSpecificConfig.Evaluate(log, ctx)
@@ -58,7 +74,9 @@ func (a AndCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Con
 			fullResponse.Passed = false
 		}
 
-		copy(fullResponse.ConditionHitContext, response.ConditionHitContext)
+		if !c.Ignorable {
+			fullResponse.Incidents = append(fullResponse.Incidents, response.Incidents...)
+		}
 
 		for k, v := range response.TemplateContext {
 			fullResponse.TemplateContext[k] = v
@@ -79,9 +97,9 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Cond
 
 	// We need to append template context, and not short circut.
 	fullResponse := ConditionResponse{
-		Passed:              false,
-		ConditionHitContext: []map[string]string{},
-		TemplateContext:     map[string]interface{}{},
+		Passed:          false,
+		Incidents:       []IncidentContext{},
+		TemplateContext: map[string]interface{}{},
 	}
 	for _, c := range o.Conditions {
 		response, err := c.ProviderSpecificConfig.Evaluate(log, ctx)
@@ -92,14 +110,15 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Cond
 			fullResponse.Passed = true
 		}
 
-		copy(fullResponse.ConditionHitContext, response.ConditionHitContext)
+		if !c.Ignorable {
+			fullResponse.Incidents = append(fullResponse.Incidents, response.Incidents...)
+		}
 
 		for k, v := range response.TemplateContext {
 			fullResponse.TemplateContext[k] = v
 		}
 
 	}
-
 	return fullResponse, nil
 }
 
@@ -114,7 +133,7 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 	}
 
 	fullResponse := ConditionResponse{Passed: true}
-	var hitContext []map[string]string
+	incidents := []IncidentContext{}
 	var passed bool
 	for _, c := range ch.Conditions {
 		var response ConditionResponse
@@ -136,11 +155,13 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 		}
 		passed = response.Passed
 		// TODO, we need to make this like appendable I think?
-		hitContext = response.ConditionHitContext
+		if !c.Ignorable {
+			incidents = append(incidents, response.Incidents...)
+		}
 	}
 	fullResponse.Passed = passed
 	fullResponse.TemplateContext = ctx
-	fullResponse.ConditionHitContext = hitContext
+	fullResponse.Incidents = incidents
 
 	return fullResponse, nil
 }

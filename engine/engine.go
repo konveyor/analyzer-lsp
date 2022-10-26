@@ -1,17 +1,19 @@
 package engine
 
 import (
+	"bytes"
 	"context"
-	"fmt"
 	"sync"
+	"text/template"
 
 	"gopkg.in/yaml.v2"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/hubapi"
 )
 
 type RuleEngine interface {
-	RunRules(context context.Context, rules []Rule)
+	RunRules(context context.Context, rules []Rule) []hubapi.Violation
 	Stop()
 }
 
@@ -83,7 +85,7 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 }
 
 // This will run the rules async, fanning them out, fanning them in, and then generating the results. will block until completed.
-func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
+func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violation {
 	// determine if we should run
 
 	ctx, cancelFunc := context.WithCancel(ctx)
@@ -101,14 +103,18 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 	}
 	r.logger.V(5).Info("All rules added buffer, waiting for engine to complete")
 
-	responses := []response{}
+	responses := []hubapi.Violation{}
 	// Handle returns
 	go func() {
 		for {
 			select {
 			case response := <-ret:
 				if !response.ConditionResponse.Passed {
-					responses = append(responses, response)
+					violation, err := r.createViolation(response.ConditionResponse, response.Rule)
+					if err != nil {
+						r.logger.Error(err, "unable to create violation from response")
+					}
+					responses = append(responses, violation)
 				} else {
 					// Log that rule did not pass
 					r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "response", response)
@@ -139,10 +145,11 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) {
 	cancelFunc()
 	b, err := yaml.Marshal(responses)
 	if err != nil {
-		fmt.Println("error:", err)
+		r.logger.Error(err, "unable to marshal responses")
 	}
 	// TODO: Here we need to process the rule reponses.
-	fmt.Print(string(b))
+	r.logger.V(5).Info(string(b))
+	return responses
 }
 
 func processRule(rule Rule, log logr.Logger) (ConditionResponse, error) {
@@ -150,4 +157,58 @@ func processRule(rule Rule, log logr.Logger) (ConditionResponse, error) {
 	// For now, lets not fan out the running of conditions.
 	return rule.When.Evaluate(log, map[string]interface{}{})
 
+}
+
+func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule Rule) (hubapi.Violation, error) {
+	incidents := []hubapi.Incident{}
+	for _, m := range conditionResponse.Incidents {
+		links := []hubapi.Link{}
+		if len(m.Links) > 0 {
+			for _, l := range m.Links {
+				links = append(links, hubapi.Link{
+					URL:   l.URL,
+					Title: l.Title,
+				})
+			}
+
+		}
+		// extras, err := json.Marshal(m.Extras)
+		// if err != nil {
+		// 	return hubapi.Violation{}, err
+		// }
+
+		templateString, err := r.createPerformString(rule.Perform, m.Extras)
+		if err != nil {
+			r.logger.Error(err, "unable to create template string")
+		}
+
+		incidents = append(incidents, hubapi.Incident{
+			URI:           m.FileURI,
+			Effort:        m.Effort,
+			Message:       templateString,
+			Extras:        m.Extras,
+			ExternalLinks: links,
+		})
+	}
+
+	return hubapi.Violation{
+		RuleID:      rule.RuleID,
+		Description: rule.Description,
+		Category:    rule.Category,
+		Incidents:   incidents,
+		Extras:      []byte{},
+	}, nil
+}
+
+func (r *ruleEngine) createPerformString(messageTemplate string, ctx map[string]interface{}) (string, error) {
+	t, err := template.New("message").Parse(messageTemplate)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	err = t.Execute(buf, ctx)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }

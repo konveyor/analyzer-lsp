@@ -1,0 +1,157 @@
+- ruleID: chain-pom-001
+  description: ""
+  category: ""
+  incidents:
+  - uri: file://examples/java/pom.xml
+    effort: -1
+    message: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
+      matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+  - uri: file://examples/java/pom.xml
+    effort: -1
+    message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
+      matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
+  - uri: file://examples/java/pom.xml
+    effort: -1
+    message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n    "
+      matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
+  extras: []
+- ruleID: chain-pom-002
+  description: ""
+  category: ""
+  incidents: []
+  extras: []
+- ruleID: file-001
+  description: ""
+  category: ""
+  incidents:
+  - uri: engine/conditions.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: engine/engine.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: engine/engine_test.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: examples/golang/main.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: hubapi/violations.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: jsonrpc2/handler.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: jsonrpc2/jsonrpc2.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: jsonrpc2/stream.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: jsonrpc2/wire.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: lsp/protocol/doc.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: lsp/protocol/enums.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: lsp/protocol/tsprotocol.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: main.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: parser/rule_parser.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: provider/builtin/provider.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: provider/golang/provider.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: provider/java/provider.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: provider/lib/lib.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: provider/provider.go
+    effort: -1
+    message: all go files
+    externallinks: []
+    extras: {}
+  extras: []
+- ruleID: lang-ref-003
+  description: ""
+  category: ""
+  incidents:
+  - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+    effort: -1
+    message: testing java condition
+    externallinks: []
+    extras:
+      lineNumber: 2
+  - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+    effort: -1
+    message: testing java condition
+    externallinks: []
+    extras:
+      lineNumber: 9
+  - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+    effort: -1
+    message: testing java condition
+    externallinks: []
+    extras:
+      lineNumber: 9
+  extras: []

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"os"
-	"time"
+	"sort"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/engine"
@@ -11,12 +11,14 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 const (
 	// This must eventually be a default that makes sense, and overrideable by env var or flag.
 	SETTING_FILE_PATH = "./provider_settings.json"
 	RULES_FILE_PATH   = "./rule-example.yaml"
+	OUTPUT_VIOLATIONS = "./output.yaml"
 )
 
 func main() {
@@ -70,16 +72,22 @@ func main() {
 		}
 	}
 
-	engine.RunRules(ctx, rules)
+	violations := engine.RunRules(ctx, rules)
 	engine.Stop()
 
 	for _, provider := range needProviders {
 		provider.Stop()
 	}
 
+	sort.SliceStable(violations, func(i, j int) bool {
+		return violations[i].RuleID < violations[j].RuleID
+	})
+
 	//Before we exit we need to clean up
 	cancelFunc()
 
-	time.Sleep(5 * time.Second)
+	// Write results out to CLI
+	b, _ := yaml.Marshal(violations)
 
+	os.WriteFile("violation_output.yaml", b, 0644)
 }

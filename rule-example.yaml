@@ -1,48 +1,36 @@
 ---
 - message: all go files
+  ruleID: file-001
   when:
     builtin.file: "*.go"
 - message: POM XML dependencies
+  ruleID: chain-pom-002
   when:
     builtin.xml: "//dependencies/dependency"
-- message: POM XML dependencies
+- message: '{{ index . "matchingXML" }}'
+  ruleID: chain-pom-001
   when:
     chain:
     - builtin.file: pom.xml
       as: poms
+      ignore: true
     - builtin.xml:
         xpath: "//dependencies/dependency"
         filepaths: '{{ index .poms "filepaths" }}'
       from: poms
-- message: POM XML dependencies testing
-  when:
-    chain:
-    - or:
-      - chain:
-        - builtin.file: pom.xml
-          as: poms
-        - builtin.filecontent: TODO(\(.*\))?:?(.*)?
-      - builtin.xml:
-          xpath: "//dependencies/dependency"
-          filepaths: '{{ index .poms "filepaths" }}'
-        from: poms
-- message: Find all TODOs
-  when:
-    builtin.filecontent: TODO(\(.*\))?:?(.*)?
-- message: find all providerSpecificConfig
-  when:
-    builtin.json:
-      xpath: "//providerSpecificConfig/*"
 - message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
     should be used instead
+  ruleID: lang-ref-001
   when:
     or:
     - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
 - message: testing one condition
+  ruleID: go-lang-ref-001
   when:
     go.referenced: "*CustomResourceDefinition*"
 - message: testing nested conditions
+  ruleID: lang-ref-002
   when:
     or:
     - and:
@@ -50,5 +38,6 @@
       - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
 - message: testing java condition
+  ruleID: lang-ref-003
   when:
     java.referenced: "*apiextensions.v1beta1.CustomResourceDefinition*"

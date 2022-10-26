@@ -31,6 +31,12 @@ type ProviderCondition struct {
 	Client
 	Capability    string
 	ConditionInfo interface{}
+	Rule          engine.Rule
+	Ignore        bool
+}
+
+func (p *ProviderCondition) Ignorable() bool {
+	return p.Ignore
 }
 
 func (p *ProviderCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (engine.ConditionResponse, error) {
@@ -50,10 +56,34 @@ func (p *ProviderCondition) Evaluate(log logr.Logger, ctx map[string]interface{}
 		return engine.ConditionResponse{}, err
 	}
 
+	incidents := []engine.IncidentContext{}
+	for _, inc := range resp.Incidents {
+		links := []engine.ExternalLinks{}
+		for _, link := range inc.Links {
+			links = append(links, engine.ExternalLinks{
+				URL:   link.URL,
+				Title: link.Title,
+			})
+		}
+		// Default to -1 if no effort is assinged.
+		// TODO(shawn-hurley evaluate if this is the correct default or if we want the end facing doc to have nil as an option.)
+		effort := int(-1)
+		if inc.Effort != nil {
+			effort = *inc.Effort
+		}
+
+		incidents = append(incidents, engine.IncidentContext{
+			FileURI: inc.FileURI,
+			Effort:  effort,
+			Extras:  inc.Extras,
+			Links:   links,
+		})
+	}
+
 	return engine.ConditionResponse{
-		Passed:              resp.Passed,
-		ConditionHitContext: resp.ConditionHitContext,
-		TemplateContext:     resp.TemplateContext,
+		Passed:          resp.Passed,
+		TemplateContext: resp.TemplateContext,
+		Incidents:       incidents,
 	}, nil
 
 }
