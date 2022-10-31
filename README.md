@@ -29,4 +29,6 @@ $ podman run test-analyzer-engine
  Using JSONRPC2 from google.org/x/tools/internal. Copied and removed anything to do with serving. 
 
 
+## Code of Conduct
 
+Refer to Konveyor's [Code of Conduct page](https://github.com/konveyor/community/blob/main/CODE_OF_CONDUCT.md)
