@@ -12,6 +12,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"gopkg.in/yaml.v2"
 )
 
 type javaProvider struct {
@@ -25,6 +26,10 @@ type javaProvider struct {
 	cancelFunc context.CancelFunc
 	cmd        *exec.Cmd
 	once       sync.Once
+}
+
+type javaCondition struct {
+	Referenced string `yaml:'referenced'`
 }
 
 const BUNDLES_INIT_OPTION = "bundles"
@@ -61,10 +66,15 @@ func (p *javaProvider) Capabilities() ([]string, error) {
 	}, nil
 }
 
-func (p *javaProvider) Evaluate(cap string, conditionInfo interface{}) (lib.ProviderEvaluateResponse, error) {
+func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
+	var cond javaCondition
+	err := yaml.Unmarshal(conditionInfo, &cond)
+	if err != nil {
+		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
+	}
 
-	query, ok := conditionInfo.(string)
-	if !ok {
+	query := cond.Referenced
+	if query == "" {
 		fmt.Printf("not ok did not get query info")
 		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
 	}
