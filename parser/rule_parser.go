@@ -41,9 +41,14 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Clien
 		if !ok {
 			return nil, nil, fmt.Errorf("unable to find message in rule")
 		}
+		ruleID, ok := ruleMap["ruleID"].(string)
+		if !ok {
+			return nil, nil, fmt.Errorf("unable to find ruleID in rule")
+		}
 
 		rule := engine.Rule{
 			Perform: message,
+			RuleID:  ruleID,
 		}
 
 		whenMap, ok := ruleMap["when"].(map[interface{}]interface{})
@@ -142,6 +147,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 		}
 		var from string
 		var as string
+		var ignorable bool
 		fromRaw, ok := conditionMap["from"]
 		if ok {
 			delete(conditionMap, "from")
@@ -154,6 +160,14 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 		if ok {
 			delete(conditionMap, "as")
 			as, ok = asRaw.(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("as must be a string literal, not %v", asRaw)
+			}
+		}
+		ignorableRaw, ok := conditionMap["ignore"]
+		if ok {
+			delete(conditionMap, "ignore")
+			ignorable, ok = ignorableRaw.(bool)
 			if !ok {
 				return nil, nil, fmt.Errorf("as must be a string literal, not %v", asRaw)
 			}
@@ -175,9 +189,14 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				}
 				fmt.Println(from)
 				fmt.Println(as)
-				conditions = append(conditions, engine.ConditionEntry{From: from, As: as, ProviderSpecificConfig: engine.AndCondition{
-					Conditions: conds,
-				}})
+				conditions = append(conditions, engine.ConditionEntry{
+					From:      from,
+					As:        as,
+					Ignorable: ignorable,
+					ProviderSpecificConfig: engine.AndCondition{
+						Conditions: conds,
+					},
+				})
 				for k, prov := range provs {
 					providers[k] = prov
 				}
@@ -190,9 +209,14 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				conditions = append(conditions, engine.ConditionEntry{From: from, As: as, ProviderSpecificConfig: engine.OrCondition{
-					Conditions: conds,
-				}})
+				conditions = append(conditions, engine.ConditionEntry{
+					From:      from,
+					As:        as,
+					Ignorable: ignorable,
+					ProviderSpecificConfig: engine.OrCondition{
+						Conditions: conds,
+					},
+				})
 				for k, prov := range provs {
 					providers[k] = prov
 				}
@@ -205,9 +229,14 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				conditions = append(conditions, engine.ConditionEntry{From: from, As: as, ProviderSpecificConfig: engine.ChainCondition{
-					Conditions: conds,
-				}})
+				conditions = append(conditions, engine.ConditionEntry{
+					From:      from,
+					As:        as,
+					Ignorable: ignorable,
+					ProviderSpecificConfig: engine.ChainCondition{
+						Conditions: conds,
+					},
+				})
 				for k, prov := range provs {
 					providers[k] = prov
 				}
@@ -226,7 +255,12 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				conditions = append(conditions, engine.ConditionEntry{From: from, As: as, ProviderSpecificConfig: condition})
+				conditions = append(conditions, engine.ConditionEntry{
+					From:                   from,
+					As:                     as,
+					ProviderSpecificConfig: condition,
+					Ignorable:              ignorable,
+				})
 				providers[providerKey] = provider
 			}
 		}
@@ -257,9 +291,21 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 	if !found {
 		return nil, nil, fmt.Errorf("unable to find cap: %v from provider: %v", capability, langProvider)
 	}
+
+	ignorable := false
+	if m, ok := value.(map[string]interface{}); ok {
+		if v, ok := m["ignore"]; ok {
+			if i, ok := v.(bool); ok {
+				ignorable = i
+			}
+		}
+
+	}
+
 	return &provider.ProviderCondition{
 		Client:        client,
 		Capability:    capability,
 		ConditionInfo: value,
+		Ignore:        ignorable,
 	}, client, nil
 }

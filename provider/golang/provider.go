@@ -62,27 +62,31 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provide
 
 	symbols := p.GetAllSymbols(query)
 
-	foundRefs := []map[string]string{}
+	incidents := []lib.IncidentContext{}
 	for _, s := range symbols {
 		if s.Kind == protocol.Struct {
 			references := p.GetAllReferences(s)
 			for _, ref := range references {
 				// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
 				if strings.Contains(ref.URI, p.config.Location) {
-					foundRefs = append(foundRefs, map[string]string{
-						fmt.Sprintf("location %v: %v", ref.URI, ref.Range.Start.Line): "",
+					incidents = append(incidents, lib.IncidentContext{
+						FileURI: ref.URI,
+						Extras: map[string]interface{}{
+							"lineNumber": ref.Range.Start.Line,
+						},
 					})
 				}
 			}
 		}
 	}
 
-	if len(foundRefs) == 0 {
-		return lib.ProviderEvaluateResponse{}, nil
+	if len(incidents) == 0 {
+		// No results were found.
+		return lib.ProviderEvaluateResponse{Passed: true}, nil
 	}
 	return lib.ProviderEvaluateResponse{
-		Passed:              true,
-		ConditionHitContext: foundRefs,
+		Passed:    false,
+		Incidents: incidents,
 	}, nil
 }
 

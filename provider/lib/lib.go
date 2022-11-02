@@ -46,7 +46,18 @@ func GetConfig(filepath string) ([]Config, error) {
 }
 
 type ProviderEvaluateResponse struct {
-	Passed              bool
-	ConditionHitContext []map[string]string
-	TemplateContext     map[string]interface{}
+	Passed          bool
+	Incidents       []IncidentContext
+	TemplateContext map[string]interface{}
+}
+type IncidentContext struct {
+	FileURI string                 `yaml:"fileURI"`
+	Effort  *int                   `yaml:"effort,omitempty"`
+	Extras  map[string]interface{} `yaml:"extras,omitempty"`
+	Links   []ExternalLinks        `yaml:"externalLink,omitempty"`
+}
+
+type ExternalLinks struct {
+	URL   string `yaml:"url"`
+	Title string `yaml:"title"`
 }

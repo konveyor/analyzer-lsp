@@ -1,0 +1,13 @@
+name: Demo Testing
+
+on: ["push", "pull_request"]
+
+jobs: 
+  test: 
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: build image
+        run: podman build -f testing.Dockerfile -t localhost/testing:latest
+      - name: run image
+        run: podman run localhost/testing:latest

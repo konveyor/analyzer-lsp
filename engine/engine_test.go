@@ -25,6 +25,10 @@ func (t testConditional) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 	return ConditionResponse{Passed: t.ret}, t.err
 }
 
+func (t testConditional) Ignorable() bool {
+	return true
+}
+
 func createTestConditional(b bool, e error, sleep bool) Conditional {
 	return &testConditional{
 		err:   e,
@@ -41,12 +45,15 @@ type testChainableConditionalAs struct {
 
 func (t testChainableConditionalAs) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
 	return ConditionResponse{
-		Passed:              false,
-		ConditionHitContext: []map[string]string{},
+		Passed: false,
 		TemplateContext: map[string]interface{}{
 			t.documentedKey: t.AsValue,
 		},
 	}, t.err
+}
+
+func (t testChainableConditionalAs) Ignorable() bool {
+	return true
 }
 
 type testChainableConditionalFrom struct {
@@ -55,15 +62,18 @@ type testChainableConditionalFrom struct {
 	FromValue     interface{}
 }
 
+func (t testChainableConditionalFrom) Ignorable() bool {
+	return true
+}
+
 func (t testChainableConditionalFrom) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
 
 	if v, ok := ctx[t.FromName]; ok {
 		if m, ok := v.(map[string]interface{}); ok {
 			if reflect.DeepEqual(m[t.DocumentedKey], t.FromValue) {
 				return ConditionResponse{
-					Passed:              false,
-					ConditionHitContext: []map[string]string{},
-					TemplateContext:     map[string]interface{}{},
+					Passed:          false,
+					TemplateContext: map[string]interface{}{},
 				}, nil
 			}
 		}

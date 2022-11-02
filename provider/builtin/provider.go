@@ -72,11 +72,11 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 	case "file":
 		pattern := cond.File
 		if pattern == "" {
-			return response, fmt.Errorf("Could not parse provided file pattern as string: %v", conditionInfo)
+			return response, fmt.Errorf("could not parse provided file pattern as string: %v", conditionInfo)
 		}
 		matchingFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
 		if err != nil {
-			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
+			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
 
 		if len(matchingFiles) != 0 {
@@ -85,8 +85,8 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 
 		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
 		for _, match := range matchingFiles {
-			response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
-				"filepath": match,
+			response.Incidents = append(response.Incidents, lib.IncidentContext{
+				FileURI: match,
 			})
 		}
 		return response, nil
@@ -94,13 +94,13 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 
 		pattern := cond.Filecontent
 		if pattern == "" {
-			return response, fmt.Errorf("Could not parse provided regex pattern as string: %v", conditionInfo)
+			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 		var outputBytes []byte
 		grep := exec.Command("grep", "-o", "-n", "-R", "-E", pattern, p.config.Location)
 		outputBytes, err := grep.Output()
 		if err != nil {
-			return response, fmt.Errorf("Could not run grep with provided pattern %+v", err)
+			return response, fmt.Errorf("could not run grep with provided pattern %+v", err)
 		}
 		matches := strings.Split(strings.TrimSpace(string(outputBytes)), "\n")
 		if len(matches) != 0 {
@@ -114,10 +114,12 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 				//TODO(fabianvf): Just log or return?
 				return response, fmt.Errorf("Malformed response from grep, cannot parse %s with pattern {filepath}:{lineNumber}:{matchingText}", match)
 			}
-			response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
-				"filepath":     pieces[0],
-				"lineNumber":   pieces[1],
-				"matchingText": pieces[2],
+			response.Incidents = append(response.Incidents, lib.IncidentContext{
+				FileURI: fmt.Sprintf("file://%s", pieces[0]),
+				Extras: map[string]interface{}{
+					"lineNumber":   pieces[1],
+					"matchingText": pieces[2],
+				},
 			})
 		}
 		return response, nil
@@ -147,11 +149,13 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			if len(list) != 0 {
 				response.Passed = false
 				for _, node := range list {
-					response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
-						"filepath":    file,
-						"matchingXML": node.OutputXML(false),
-						"innerText":   node.InnerText(),
-						"data":        node.Data,
+					response.Incidents = append(response.Incidents, lib.IncidentContext{
+						FileURI: fmt.Sprintf("file://%s", file),
+						Extras: map[string]interface{}{
+							"matchingXML": node.OutputXML(false),
+							"innerText":   node.InnerText(),
+							"data":        node.Data,
+						},
 					})
 				}
 			}
@@ -177,10 +181,12 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			if len(list) != 0 {
 				response.Passed = false
 				for _, node := range list {
-					response.ConditionHitContext = append(response.ConditionHitContext, map[string]string{
-						"filepath":     file,
-						"matchingJSON": node.InnerText(),
-						"data":         node.Data,
+					response.Incidents = append(response.Incidents, lib.IncidentContext{
+						FileURI: fmt.Sprintf("file://%s", file),
+						Extras: map[string]interface{}{
+							"matchingJSON": node.InnerText(),
+							"data":         node.Data,
+						},
 					})
 				}
 			}

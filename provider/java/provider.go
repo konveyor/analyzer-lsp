@@ -81,7 +81,7 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 
 	symbols := p.GetAllSymbols(query)
 
-	foundRefs := []map[string]string{}
+	incidents := []lib.IncidentContext{}
 	for _, s := range symbols {
 
 		if s.Kind == protocol.Module {
@@ -89,23 +89,28 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 			for _, ref := range references {
 				// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
 				if strings.Contains(ref.URI, p.config.Location) {
-					foundRefs = append(foundRefs, map[string]string{
-						fmt.Sprintf("location %v: %v", ref.URI, ref.Range.Start.Line): "",
+					incidents = append(incidents, lib.IncidentContext{
+						FileURI: ref.URI,
+						Extras: map[string]interface{}{
+							"lineNumber": ref.Range.Start.Line,
+						},
 					})
 				}
 			}
 		}
 	}
 
-	if len(foundRefs) == 0 {
+	if len(incidents) == 0 {
 		return lib.ProviderEvaluateResponse{
 			Passed: true,
 		}, nil
 	}
 	return lib.ProviderEvaluateResponse{
-		ConditionHitContext: foundRefs,
+		Passed:    false,
+		Incidents: incidents,
 	}, nil
 }
+
 func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
 	log = log.WithValues("provider", "java")
 
