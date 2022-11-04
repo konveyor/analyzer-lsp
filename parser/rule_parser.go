@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"os"
+	path "path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -18,8 +19,43 @@ type RuleParser struct {
 }
 
 // This will load the rules from the filestytem, using the provided provider clients
-func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Client, error) {
+func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, map[string]provider.Client, error) {
 	// Load Rules from file containing rules.
+	info, err := os.Stat(filepath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if info.Mode().IsRegular() {
+		return r.LoadRule(filepath)
+	}
+
+	var rules []engine.Rule
+	clientMap := map[string]provider.Client{}
+	// If this takes too long, we should consider moving this to async.
+	files, err := os.ReadDir(filepath)
+	if err != nil {
+		return rules, nil, err
+	}
+	for _, f := range files {
+		r, m, err := r.LoadRules(path.Join(filepath, f.Name()))
+		if err != nil {
+			return nil, nil, err
+		}
+		for k, v := range m {
+			clientMap[k] = v
+		}
+		rules = append(rules, r...)
+	}
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return rules, clientMap, err
+}
+
+func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provider.Client, error) {
 	content, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, nil, err
@@ -126,12 +162,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, []provider.Clien
 		rules = append(rules, rule)
 	}
 
-	providerList := []provider.Client{}
-	for _, p := range providers {
-		providerList = append(providerList, p)
-	}
-
-	return rules, providerList, nil
+	return rules, providers, nil
 
 }
 
