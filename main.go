@@ -70,6 +70,7 @@ func main() {
 
 	parser := parser.RuleParser{
 		ProviderNameToClient: providers,
+		Log:                  log.WithName("parser"),
 	}
 
 	rules, needProviders, err := parser.LoadRules(*rulesFile)

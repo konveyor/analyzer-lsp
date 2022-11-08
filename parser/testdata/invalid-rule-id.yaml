@@ -1,0 +1,5 @@
+---
+- message: all go files
+  ruleID: True
+  when:
+    builtin.file: "*.go"

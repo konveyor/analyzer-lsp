@@ -1,0 +1,5 @@
+---
+- message: all go files
+  ruleID: "file-001"
+  when:
+    - 1

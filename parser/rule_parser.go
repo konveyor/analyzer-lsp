@@ -15,7 +15,7 @@ import (
 
 type RuleParser struct {
 	ProviderNameToClient map[string]provider.Client
-	log                  logr.Logger
+	Log                  logr.Logger
 }
 
 // This will load the rules from the filestytem, using the provided provider clients
@@ -92,6 +92,19 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			return nil, nil, fmt.Errorf("a Rule must have a single condition")
 		}
 
+		// IF there is a not, then we assume a single condition at this level and store it to be used in the default case.
+		// There may be a better way of doing this.
+		notKeywordRaw, ok := whenMap["not"]
+		not := false
+		if ok {
+			// Delete from map after getting the value, so that when we range over the when map it does not have to be handeled again.
+			delete(whenMap, "not")
+			not, ok = notKeywordRaw.(bool)
+			if !ok {
+				return nil, nil, fmt.Errorf("not must a boolean, not %v", notKeywordRaw)
+			}
+		}
+
 		for k, value := range whenMap {
 			key, ok := k.(string)
 			if !ok {
@@ -153,7 +166,12 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				if err != nil {
 					return nil, nil, err
 				}
-				rule.When = condition
+
+				c := engine.ConditionEntry{
+					Not:                    not,
+					ProviderSpecificConfig: condition,
+				}
+				rule.When = c
 				providers[providerKey] = provider
 
 			}
@@ -179,6 +197,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 		var from string
 		var as string
 		var ignorable bool
+		var not bool
 		fromRaw, ok := conditionMap["from"]
 		if ok {
 			delete(conditionMap, "from")
@@ -200,7 +219,15 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			delete(conditionMap, "ignore")
 			ignorable, ok = ignorableRaw.(bool)
 			if !ok {
-				return nil, nil, fmt.Errorf("as must be a string literal, not %v", asRaw)
+				return nil, nil, fmt.Errorf("as must be a boolean, not %v", ignorableRaw)
+			}
+		}
+		notKeywordRaw, ok := conditionMap["not"]
+		if ok {
+			delete(conditionMap, "not")
+			not, ok = notKeywordRaw.(bool)
+			if !ok {
+				return nil, nil, fmt.Errorf("not must a boolean, not %v", notKeywordRaw)
 			}
 		}
 		for k, v := range conditionMap {
@@ -218,12 +245,11 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				fmt.Println(from)
-				fmt.Println(as)
 				conditions = append(conditions, engine.ConditionEntry{
 					From:      from,
 					As:        as,
 					Ignorable: ignorable,
+					Not:       not,
 					ProviderSpecificConfig: engine.AndCondition{
 						Conditions: conds,
 					},
@@ -244,6 +270,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 					From:      from,
 					As:        as,
 					Ignorable: ignorable,
+					Not:       not,
 					ProviderSpecificConfig: engine.OrCondition{
 						Conditions: conds,
 					},
@@ -264,6 +291,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 					From:      from,
 					As:        as,
 					Ignorable: ignorable,
+					Not:       not,
 					ProviderSpecificConfig: engine.ChainCondition{
 						Conditions: conds,
 					},
@@ -291,6 +319,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 					As:                     as,
 					ProviderSpecificConfig: condition,
 					Ignorable:              ignorable,
+					Not:                    not,
 				})
 				providers[providerKey] = provider
 			}
