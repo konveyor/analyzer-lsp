@@ -23,7 +23,7 @@ const (
 var (
 	settingsFile      = flag.String("provider-settings", "provider_settings.json", "path to the provider settings")
 	rulesFile         = flag.String("rules", "rule-example.yaml", "filename or directory containing rule files")
-	outputViolations  = flag.String("output-file", "output.yaml", "place to put all the output files")
+	outputViolations  = flag.String("output-file", "output.yaml", "filepath to to store rule violations")
 	errorOnViolations = flag.Bool("error-on-violation", false, "exit with 3 if any violation are found will also print violations to console")
 	logLevel          = flag.Int("verbose", 9, "level for logging output")
 )
