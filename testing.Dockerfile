@@ -7,6 +7,6 @@ WORKDIR /analyzer-lsp
 
 RUN mv demo-output.yaml ../demo-output.yaml
 RUN go install golang.org/x/tools/gopls@latest
-RUN go run main.go
+RUN go run main.go --output-file violation_output.yaml
 
 CMD [ "diff", "../demo-output.yaml", "violation_output.yaml" ]

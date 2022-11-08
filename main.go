@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"os"
 	"sort"
 
@@ -15,25 +17,38 @@ import (
 )
 
 const (
-	// This must eventually be a default that makes sense, and overrideable by env var or flag.
-	SETTING_FILE_PATH = "./provider_settings.json"
-	RULES_FILE_PATH   = "./rule-example.yaml"
-	OUTPUT_VIOLATIONS = "./output.yaml"
+	EXIT_ON_ERROR_CODE = 3
+)
+
+var (
+	settingsFile      = flag.String("provider-settings", "provider_settings.json", "path to the provider settings")
+	rulesFile         = flag.String("rules", "rule-example.yaml", "filename or directory containing rule files")
+	outputViolations  = flag.String("output-file", "output.yaml", "filepath to to store rule violations")
+	errorOnViolations = flag.Bool("error-on-violation", false, "exit with 3 if any violation are found will also print violations to console")
+	logLevel          = flag.Int("verbose", 9, "level for logging output")
 )
 
 func main() {
+	flag.Parse()
+
+	err := validateFlags()
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
 	// need to do research on mapping in logrusr to level here TODO
-	logrusLog.SetLevel(9)
+	logrusLog.SetLevel(logrus.Level(*logLevel))
 
 	log := logrusr.New(logrusLog)
 
 	// Get the configs
-	configs, err := lib.GetConfig(SETTING_FILE_PATH)
+	configs, err := lib.GetConfig(*settingsFile)
 	if err != nil {
 		log.Error(err, "unable to get configuration")
 		os.Exit(1)
@@ -57,7 +72,7 @@ func main() {
 		ProviderNameToClient: providers,
 	}
 
-	rules, needProviders, err := parser.LoadRules(RULES_FILE_PATH)
+	rules, needProviders, err := parser.LoadRules(*rulesFile)
 	if err != nil {
 		log.Error(err, "unable to parse all the rules")
 		os.Exit(1)
@@ -88,6 +103,24 @@ func main() {
 
 	// Write results out to CLI
 	b, _ := yaml.Marshal(violations)
+	if *errorOnViolations && len(violations) != 0 {
+		fmt.Printf("%s", string(b))
+		os.Exit(EXIT_ON_ERROR_CODE)
+	}
 
-	os.WriteFile("violation_output.yaml", b, 0644)
+	os.WriteFile(*outputViolations, b, 0644)
+}
+
+func validateFlags() error {
+	_, err := os.Stat(*settingsFile)
+	if err != nil {
+		return fmt.Errorf("unable to find provider settings file")
+	}
+
+	_, err = os.Stat(*rulesFile)
+	if err != nil {
+		return fmt.Errorf("unable to find rule path or file")
+	}
+
+	return nil
 }
