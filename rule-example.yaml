@@ -3,13 +3,18 @@
   ruleID: file-001
   when:
     builtin.file: "*.go"
+- message: not any go files
+  ruleID: file-002
+  when:
+    builtin.file: "*.go"
+    not: true
 - message: POM XML dependencies
   ruleID: chain-pom-002
   when:
     builtin.xml: "//dependencies/dependency"
 - message: '{{ index . "matchingXML" }}'
   ruleID: chain-pom-001
-  when:
+  when: 
     chain:
     - builtin.file: pom.xml
       as: poms

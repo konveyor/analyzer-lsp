@@ -22,6 +22,7 @@ type ConditionEntry struct {
 	From                   string
 	As                     string
 	Ignorable              bool
+	Not                    bool
 	ProviderSpecificConfig Conditional
 }
 
@@ -70,7 +71,12 @@ func (a AndCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Con
 			return ConditionResponse{}, err
 		}
 
-		if !response.Passed {
+		passed := response.Passed
+		if c.Not {
+			passed = !passed
+
+		}
+		if !passed {
 			fullResponse.Passed = false
 		}
 
@@ -106,7 +112,11 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Cond
 		if err != nil {
 			return ConditionResponse{}, err
 		}
-		if !fullResponse.Passed && response.Passed {
+		passed := response.Passed
+		if c.Not {
+			passed = !passed
+		}
+		if !fullResponse.Passed && passed {
 			fullResponse.Passed = true
 		}
 
@@ -154,7 +164,9 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 			ctx[c.As] = response.TemplateContext
 		}
 		passed = response.Passed
-		// TODO, we need to make this like appendable I think?
+		if c.Not {
+			passed = !passed
+		}
 		if !c.Ignorable {
 			incidents = append(incidents, response.Incidents...)
 		}
@@ -164,4 +176,19 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 	fullResponse.Incidents = incidents
 
 	return fullResponse, nil
+}
+
+func (ce ConditionEntry) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
+	response, err := ce.ProviderSpecificConfig.Evaluate(log, ctx)
+	if err != nil {
+		return ConditionResponse{}, err
+	}
+
+	passed := response.Passed
+	if ce.Not {
+		passed = !passed
+	}
+
+	response.Passed = passed
+	return response, nil
 }
