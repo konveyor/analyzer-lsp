@@ -15,7 +15,7 @@
       xpath: "//dependencies/dependency"
 - message: '{{{matchingXML}}}'
   ruleID: chain-pom-001
-  when: 
+  when:
     chain:
     - builtin.file: pom.xml
       as: poms
@@ -28,7 +28,8 @@
   ruleID: lang-ref-001
   when:
     or:
-    - java.referenced: "*CustomResourceDefinition*"
+    - java.referenced:
+        pattern: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
 - message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
@@ -40,12 +41,14 @@
     or:
     - and:
       - go.referenced: "*CustomResourceDefinition*"
-      - java.referenced: "*CustomResourceDefinition*"
+      - java.referenced:
+          pattern: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
 - message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: lang-ref-003
   when:
-    java.referenced: "*apiextensions.v1beta1.CustomResourceDefinition*"
+    java.referenced: 
+      pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
 - tag:
     - Golang
   ruleID: tag-go-000

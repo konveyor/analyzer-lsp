@@ -16,6 +16,27 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Rule Location to location that the bundle understands
+var locationToCode = map[string]int{
+	//Type is the default.
+	"type": 0,
+	// Not Implemented
+	"inheritance":      1,
+	"method_call":      2,
+	"constructor_call": 3,
+	"annotation":       4,
+	// Not Implemented
+	"implements_type": 5,
+	// Not Implemented
+	"enum_constant": 6,
+	// Not Implemented
+	"return_type": 7,
+	// Not Implemented
+	"import": 8,
+	// Not Implemented
+	"method": 9,
+}
+
 type javaProvider struct {
 	config lib.Config
 
@@ -30,7 +51,12 @@ type javaProvider struct {
 }
 
 type javaCondition struct {
-	Referenced string `yaml:'referenced'`
+	Referenced referenceCondition `yaml:'referenced'`
+}
+
+type referenceCondition struct {
+	Pattern  string `yaml:"pattern"`
+	Location string `yaml:"location"`
 }
 
 const BUNDLES_INIT_OPTION = "bundles"
@@ -71,38 +97,34 @@ func (p *javaProvider) Capabilities() ([]lib.Capability, error) {
 }
 
 func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
-	var cond javaCondition
+	cond := &javaCondition{}
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
-		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
+		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
 
-	query := cond.Referenced
-	if query == "" {
-		fmt.Printf("not ok did not get query info")
-		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
+	if cond.Referenced.Pattern == "" {
+		return lib.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
 	}
 
-	symbols := p.GetAllSymbols(query)
+	symbols := p.GetAllSymbols(cond.Referenced.Pattern, cond.Referenced.Location)
 
 	incidents := []lib.IncidentContext{}
-	for _, s := range symbols {
+	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
+	case 0:
+		// Filter handle for type, find all the referneces to this type.
+		incidents, err = p.filterTypeReferences(symbols)
+	case 2:
+		incidents, err = p.filterMethodSymbols(symbols)
+	case 3:
+		incidents, err = p.filterConstructorSymbols(symbols)
+	default:
 
-		if s.Kind == protocol.Module {
-			references := p.GetAllReferences(s)
-			for _, ref := range references {
-				// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
-				if strings.Contains(ref.URI, p.config.Location) {
-					incidents = append(incidents, lib.IncidentContext{
-						FileURI: ref.URI,
-						Extras: map[string]interface{}{
-							"lineNumber": ref.Range.Start.Line,
-							"file":       ref.URI,
-						},
-					})
-				}
-			}
-		}
+	}
+
+	// push error up for easier printing.
+	if err != nil {
+		return lib.ProviderEvaluateResponse{}, err
 	}
 
 	if len(incidents) == 0 {
@@ -114,6 +136,64 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 		Matched:   true,
 		Incidents: incidents,
 	}, nil
+}
+
+func symbolKindToString(symbolKind protocol.SymbolKind) string {
+	switch symbolKind {
+	case 1:
+		return "File"
+	case 2:
+		return "Module"
+	case 3:
+		return "Namespace"
+	case 4:
+		return "Package"
+	case 5:
+		return "Class"
+	case 6:
+		return "Method"
+	case 7:
+		return "Property"
+	case 8:
+		return "Field"
+	case 9:
+		return "Constructor"
+	case 10:
+		return "Enum"
+	case 11:
+		return "Interface"
+	case 12:
+		return "Function"
+	case 13:
+		return "Variable"
+	case 14:
+		return "Constant"
+	case 15:
+		return "String"
+	case 16:
+		return "Number"
+	case 17:
+		return "Boolean"
+	case 18:
+		return "Array"
+	case 19:
+		return "Object"
+	case 20:
+		return "Key"
+	case 21:
+		return "Null"
+	case 22:
+		return "EnumMember"
+	case 23:
+		return "Struct"
+	case 24:
+		return "Event"
+	case 25:
+		return "Operator"
+	case 26:
+		return "TypeParameter"
+	}
+	return ""
 }
 
 func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
@@ -194,7 +274,15 @@ func (p *javaProvider) initialization(ctx context.Context, log logr.Logger) {
 			"classFileContentsSupport": true,
 		},
 		InitializationOptions: map[string]interface{}{
-			"bundles": absBundles,
+			"bundles":          absBundles,
+			"workspaceFolders": []string{fmt.Sprintf("file://%v", absLocation)},
+			"settings": map[string]interface{}{
+				"java": map[string]interface{}{
+					"maven": map[string]interface{}{
+						"downloadSources": true,
+					},
+				},
+			},
 		},
 	}
 
@@ -213,13 +301,14 @@ func (p *javaProvider) initialization(ctx context.Context, log logr.Logger) {
 	log.V(2).Info("java connection initialized")
 }
 
-func (p *javaProvider) GetAllSymbols(query string) []protocol.WorkspaceSymbol {
+func (p *javaProvider) GetAllSymbols(query, location string) []protocol.WorkspaceSymbol {
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
 	arguments := map[string]string{
-		"query":   query,
-		"project": "java",
+		"query":    query,
+		"project":  "java",
+		"location": fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
 	}
 
 	wsp := &protocol.ExecuteCommandParams{
