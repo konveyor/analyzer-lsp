@@ -11,17 +11,43 @@ import (
 
 	"github.com/antchfx/jsonquery"
 	"github.com/antchfx/xmlquery"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"gopkg.in/yaml.v2"
 )
 
-var capabilities = []string{
-	"filecontent",
-	"file",
-	"xml",
-	"json",
+var capabilities = []lib.Capability{
+	{
+		Capability:      "filecontent",
+		TemplateContext: openapi3.Schema{},
+	},
+	{
+		Capability: "file",
+		TemplateContext: openapi3.Schema{
+			Properties: openapi3.Schemas{
+				"filepaths": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "List of filepaths matching pattern",
+						Items: &openapi3.SchemaRef{
+							Value: &openapi3.Schema{
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		Capability:      "xml",
+		TemplateContext: openapi3.Schema{},
+	},
+	{
+		Capability:      "json",
+		TemplateContext: openapi3.Schema{},
+	},
 }
 
 type builtinCondition struct {
@@ -57,7 +83,7 @@ func (p *builtinProvider) Stop() {
 	return
 }
 
-func (p *builtinProvider) Capabilities() ([]string, error) {
+func (p *builtinProvider) Capabilities() ([]lib.Capability, error) {
 	return capabilities, nil
 }
 

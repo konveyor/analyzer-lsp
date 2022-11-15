@@ -349,7 +349,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 	}
 	found := false
 	for _, c := range providerCaps {
-		if c == capability {
+		if c.Capability == capability {
 			found = true
 			break
 		}
