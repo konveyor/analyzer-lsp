@@ -142,9 +142,14 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		for _, file := range xmlFiles {
 			f, err := os.Open(file)
 			doc, err := xmlquery.Parse(f)
+			if err != nil {
+				// TODO(fabianvf) - do we want to error, log or continue here?
+				continue
+			}
 			list, err := xmlquery.QueryAll(doc, query)
 			if err != nil {
-				return response, err
+				// TODO(fabianvf) - do we want to error, log or continue here?
+				continue
 			}
 			if len(list) != 0 {
 				response.Passed = false
