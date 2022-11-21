@@ -69,6 +69,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	}
 
 	rules := []engine.Rule{}
+	ruleIDMap := map[string]*struct{}{}
 	providers := map[string]provider.Client{}
 	for _, ruleMap := range ruleMap {
 		// Rules right now only contain two top level things, message and when.
@@ -80,6 +81,10 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 		ruleID, ok := ruleMap["ruleID"].(string)
 		if !ok {
 			return nil, nil, fmt.Errorf("unable to find ruleID in rule")
+		}
+
+		if _, ok := ruleIDMap[ruleID]; ok {
+			return nil, nil, fmt.Errorf("duplicated rule id: %v", ruleID)
 		}
 
 		rule := engine.Rule{
@@ -177,6 +182,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			}
 		}
 
+		ruleIDMap[rule.RuleID] = nil
 		rules = append(rules, rule)
 	}
 

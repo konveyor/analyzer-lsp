@@ -1,0 +1,9 @@
+---
+- message: all go and json files
+  ruleID: file-001
+  when:
+    builtin.file: "*.go"
+- message: all go and json files
+  ruleID: file-001
+  when:
+    builtin.file: "*.go"
