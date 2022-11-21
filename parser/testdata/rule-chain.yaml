@@ -5,5 +5,8 @@
     chain:
     - builtin.file: "*.go"
       as: go-files
+      from: test-files
+      ignore: true
+      not: true
     - builtin.file: "*.json"
       as: go-files

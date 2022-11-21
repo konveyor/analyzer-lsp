@@ -253,6 +253,45 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:         "rule duplicate id",
+			testFileName: "invalid-dup-rule-id.yaml",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []string{"file"},
+				},
+				"notadded": testProvider{
+					caps: []string{"fake"},
+				},
+			},
+			ShouldErr:    true,
+			ErrorMessage: "duplicated rule id: file-001",
+		},
+		{
+			Name:         "rule or/and/chain layer",
+			testFileName: "or-and-chain-layer.yaml",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []string{"file"},
+				},
+				"notadded": testProvider{
+					caps: []string{"fake"},
+				},
+			},
+			ExpectedRules: map[string]engine.Rule{
+				"file-001": {
+					RuleID:      "file-001",
+					Description: "",
+					Category:    "",
+					Perform:     "all go or json files",
+				},
+			},
+			ExpectedProvider: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []string{"file"},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
