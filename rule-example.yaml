@@ -30,10 +30,10 @@
     or:
     - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
-- message: testing one condition
+- message: 'golang apiextensions/v1/customresourcedefinitions found {{index . "file"}}:{{index . "lineNumber"}}'
   ruleID: go-lang-ref-001
   when:
-    go.referenced: "*CustomResourceDefinition*"
+    go.referenced: "v1beta1.CustomResourceDefinition"
 - message: testing nested conditions
   ruleID: lang-ref-002
   when:
@@ -42,7 +42,7 @@
       - go.referenced: "*CustomResourceDefinition*"
       - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
-- message: testing java condition
+- message: 'java found apiextensions/v1/customresourcedefinitions found {{index . "file"}}:{{index . "lineNumber"}}'
   ruleID: lang-ref-003
   when:
     java.referenced: "*apiextensions.v1beta1.CustomResourceDefinition*"

@@ -72,6 +72,7 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provide
 					incidents = append(incidents, lib.IncidentContext{
 						FileURI: ref.URI,
 						Extras: map[string]interface{}{
+							"file":       ref.URI,
 							"lineNumber": ref.Range.Start.Line,
 						},
 					})

@@ -93,6 +93,7 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 						FileURI: ref.URI,
 						Extras: map[string]interface{}{
 							"lineNumber": ref.Range.Start.Line,
+							"file":       ref.URI,
 						},
 					})
 				}
