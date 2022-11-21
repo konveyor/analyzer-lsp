@@ -137,26 +137,41 @@
     externallinks: []
     extras: {}
   extras: []
+- ruleID: go-lang-ref-001
+  description: ""
+  category: ""
+  incidents:
+  - uri: file:///analyzer-lsp/examples/golang/main.go
+    effort: -1
+    message: golang apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/golang/main.go:9
+    externallinks: []
+    extras:
+      file: file:///analyzer-lsp/examples/golang/main.go
+      lineNumber: 9
+  extras: []
 - ruleID: lang-ref-003
   description: ""
   category: ""
   incidents:
   - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
     effort: -1
-    message: testing java condition
+    message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:2
     externallinks: []
     extras:
+      file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
       lineNumber: 2
   - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
     effort: -1
-    message: testing java condition
+    message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
     externallinks: []
     extras:
+      file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
       lineNumber: 9
   - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
     effort: -1
-    message: testing java condition
+    message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
     externallinks: []
     extras:
+      file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
       lineNumber: 9
   extras: []
