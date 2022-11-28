@@ -27,11 +27,6 @@
       innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n    "
       matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
   extras: []
-- ruleID: chain-pom-002
-  description: ""
-  category: ""
-  incidents: []
-  extras: []
 - ruleID: file-001
   description: ""
   category: ""
@@ -147,6 +142,35 @@
     externallinks: []
     extras:
       file: file:///analyzer-lsp/examples/golang/main.go
+      lineNumber: 9
+  extras: []
+- ruleID: lang-ref-001
+  description: ""
+  category: ""
+  incidents:
+  - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+    effort: -1
+    message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
+      should be used instead
+    externallinks: []
+    extras:
+      file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+      lineNumber: 2
+  - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+    effort: -1
+    message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
+      should be used instead
+    externallinks: []
+    extras:
+      file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+      lineNumber: 9
+  - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+    effort: -1
+    message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
+      should be used instead
+    externallinks: []
+    extras:
+      file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
       lineNumber: 9
   extras: []
 - ruleID: lang-ref-003
