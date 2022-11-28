@@ -81,7 +81,7 @@ func (p *ProviderCondition) Evaluate(log logr.Logger, ctx map[string]interface{}
 	}
 
 	return engine.ConditionResponse{
-		Passed:          resp.Passed,
+		Matched:         resp.Matched,
 		TemplateContext: resp.TemplateContext,
 		Incidents:       incidents,
 	}, nil

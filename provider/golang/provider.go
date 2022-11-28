@@ -87,10 +87,10 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provide
 
 	if len(incidents) == 0 {
 		// No results were found.
-		return lib.ProviderEvaluateResponse{Passed: true}, nil
+		return lib.ProviderEvaluateResponse{Matched: false}, nil
 	}
 	return lib.ProviderEvaluateResponse{
-		Passed:    false,
+		Matched:   true,
 		Incidents: incidents,
 	}, nil
 }

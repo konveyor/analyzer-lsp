@@ -22,7 +22,7 @@ func (t testConditional) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 	if t.sleep {
 		time.Sleep(5 * time.Second)
 	}
-	return ConditionResponse{Passed: t.ret}, t.err
+	return ConditionResponse{Matched: t.ret}, t.err
 }
 
 func (t testConditional) Ignorable() bool {
@@ -45,7 +45,7 @@ type testChainableConditionalAs struct {
 
 func (t testChainableConditionalAs) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
 	return ConditionResponse{
-		Passed: false,
+		Matched: true,
 		TemplateContext: map[string]interface{}{
 			t.documentedKey: t.AsValue,
 		},
@@ -72,7 +72,7 @@ func (t testChainableConditionalFrom) Evaluate(log logr.Logger, ctx map[string]i
 		if m, ok := v.(map[string]interface{}); ok {
 			if reflect.DeepEqual(m[t.DocumentedKey], t.FromValue) {
 				return ConditionResponse{
-					Passed:          false,
+					Matched:         true,
 					TemplateContext: map[string]interface{}{},
 				}, nil
 			}
@@ -87,37 +87,37 @@ func TestEvaluateAndConditions(t *testing.T) {
 		Name       string
 		Conditions []ConditionEntry
 		IsError    bool
-		IsPassed   bool
+		IsMatched  bool
 	}{
 		{
 			Name: "Base Case",
 			Conditions: []ConditionEntry{
 				{
-					ProviderSpecificConfig: createTestConditional(true, nil, false),
+					ProviderSpecificConfig: createTestConditional(false, nil, false),
 				},
 			},
-			IsPassed: true,
+			IsMatched: false,
 		},
 		{
 			Name: "And two inner conditions",
 			Conditions: []ConditionEntry{
 				{
-					ProviderSpecificConfig: createTestConditional(true, nil, false),
+					ProviderSpecificConfig: createTestConditional(false, nil, false),
 				},
 				{
-					ProviderSpecificConfig: createTestConditional(true, nil, false),
+					ProviderSpecificConfig: createTestConditional(false, nil, false),
 				},
 			},
-			IsPassed: true,
+			IsMatched: false,
 		},
 		{
 			Name: "And two inner conditions failure",
 			Conditions: []ConditionEntry{
 				{
-					ProviderSpecificConfig: createTestConditional(true, nil, false),
+					ProviderSpecificConfig: createTestConditional(false, nil, false),
 				},
 				{
-					ProviderSpecificConfig: createTestConditional(false, nil, false),
+					ProviderSpecificConfig: createTestConditional(true, nil, false),
 				},
 			},
 		},
@@ -129,20 +129,20 @@ func TestEvaluateAndConditions(t *testing.T) {
 						{
 							From:                   "",
 							As:                     "",
-							ProviderSpecificConfig: createTestConditional(true, nil, false),
+							ProviderSpecificConfig: createTestConditional(false, nil, false),
 						},
 						{
 							From:                   "",
 							As:                     "",
-							ProviderSpecificConfig: createTestConditional(true, nil, false),
+							ProviderSpecificConfig: createTestConditional(false, nil, false),
 						},
 					}},
 				},
 				{
-					ProviderSpecificConfig: createTestConditional(true, nil, false),
+					ProviderSpecificConfig: createTestConditional(false, nil, false),
 				},
 			},
-			IsPassed: true,
+			IsMatched: false,
 		},
 		{
 			Name: "And two conditions with nested conditions failure",
@@ -151,16 +151,16 @@ func TestEvaluateAndConditions(t *testing.T) {
 					ProviderSpecificConfig: AndCondition{
 						Conditions: []ConditionEntry{
 							{
-								ProviderSpecificConfig: createTestConditional(false, nil, false),
+								ProviderSpecificConfig: createTestConditional(true, nil, false),
 							},
 							{
-								ProviderSpecificConfig: createTestConditional(true, nil, false),
+								ProviderSpecificConfig: createTestConditional(false, nil, false),
 							},
 						},
 					},
 				},
 				{
-					ProviderSpecificConfig: createTestConditional(true, nil, false),
+					ProviderSpecificConfig: createTestConditional(false, nil, false),
 				},
 			},
 		},
@@ -178,8 +178,8 @@ func TestEvaluateAndConditions(t *testing.T) {
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
-			if ret.Passed != tc.IsPassed {
-				t.Errorf("Expected to be: %v, but got: %v", tc.IsPassed, ret)
+			if ret.Matched != tc.IsMatched {
+				t.Errorf("Expected to be: %v, but got: %v", tc.IsMatched, ret)
 			}
 		})
 	}
@@ -192,51 +192,52 @@ func TestEvaluateOrConditions(t *testing.T) {
 		Name       string
 		Conditions []ConditionEntry
 		IsError    bool
-		IsPassed   bool
+		IsMatched  bool
 	}{
 		{
 			Name: "Base Case",
 			Conditions: []ConditionEntry{
 				{
-					ProviderSpecificConfig: createTestConditional(true, nil, false),
+					ProviderSpecificConfig: createTestConditional(false, nil, false),
 				},
 			},
-			IsPassed: true,
+			IsMatched: false,
 		},
 		{
 			Name: "or two inner conditions",
 			Conditions: []ConditionEntry{
 				{
-					ProviderSpecificConfig: createTestConditional(false, nil, false),
-				},
-				{
 					ProviderSpecificConfig: createTestConditional(true, nil, false),
 				},
+				{
+					ProviderSpecificConfig: createTestConditional(false, nil, false),
+				},
 			},
-			IsPassed: true,
+			IsMatched: true,
 		},
 		{
-			Name: "or two inner conditions true first",
+			Name: "or two inner conditions false first",
 			Conditions: []ConditionEntry{
-				{
-					ProviderSpecificConfig: createTestConditional(true, nil, false),
-				},
 				{
 					ProviderSpecificConfig: createTestConditional(false, nil, false),
 				},
+				{
+					ProviderSpecificConfig: createTestConditional(true, nil, false),
+				},
 			},
-			IsPassed: true,
+			IsMatched: true,
 		},
 		{
 			Name: "or two inner conditions failure",
 			Conditions: []ConditionEntry{
 				{
-					ProviderSpecificConfig: createTestConditional(false, nil, false),
+					ProviderSpecificConfig: createTestConditional(true, nil, false),
 				},
 				{
-					ProviderSpecificConfig: createTestConditional(false, nil, false),
+					ProviderSpecificConfig: createTestConditional(true, nil, false),
 				},
 			},
+			IsMatched: true,
 		},
 		{
 			Name: "And two conditions with nested conditions",
@@ -244,18 +245,18 @@ func TestEvaluateOrConditions(t *testing.T) {
 				{
 					ProviderSpecificConfig: OrCondition{Conditions: []ConditionEntry{
 						{
-							ProviderSpecificConfig: createTestConditional(true, nil, false),
+							ProviderSpecificConfig: createTestConditional(false, nil, false),
 						},
 						{
-							ProviderSpecificConfig: createTestConditional(false, nil, false),
+							ProviderSpecificConfig: createTestConditional(true, nil, false),
 						},
 					}},
 				},
 				{
-					ProviderSpecificConfig: createTestConditional(false, nil, false),
+					ProviderSpecificConfig: createTestConditional(true, nil, false),
 				},
 			},
-			IsPassed: true,
+			IsMatched: true,
 		},
 		{
 			Name: "or two conditions with nested conditions failure",
@@ -292,8 +293,8 @@ func TestEvaluateOrConditions(t *testing.T) {
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
-			if ret.Passed != tc.IsPassed {
-				t.Errorf("Expected to be: %v, but got: %v", tc.IsPassed, ret)
+			if ret.Matched != tc.IsMatched {
+				t.Errorf("Expected to be: %v, but got: %v", tc.IsMatched, ret)
 			}
 		})
 	}
@@ -305,7 +306,7 @@ func TestChainConditions(t *testing.T) {
 		Name       string
 		Conditions []ConditionEntry
 		IsError    bool
-		IsPassed   bool
+		IsMatched  bool
 	}{
 		{
 			Name: "Test Basic single chain",
@@ -326,6 +327,7 @@ func TestChainConditions(t *testing.T) {
 					},
 				},
 			},
+			IsMatched: true,
 		},
 		{
 			Name: "Test or chain As provided by one element in or block",
@@ -341,7 +343,7 @@ func TestChainConditions(t *testing.T) {
 								},
 							},
 							{
-								ProviderSpecificConfig: createTestConditional(false, nil, false),
+								ProviderSpecificConfig: createTestConditional(true, nil, false),
 							},
 						},
 					},
@@ -355,6 +357,7 @@ func TestChainConditions(t *testing.T) {
 					},
 				},
 			},
+			IsMatched: true,
 		},
 		{
 			Name: "Test and chain As provided and block",
@@ -370,7 +373,7 @@ func TestChainConditions(t *testing.T) {
 								},
 							},
 							{
-								ProviderSpecificConfig: createTestConditional(false, nil, false),
+								ProviderSpecificConfig: createTestConditional(true, nil, false),
 							},
 						},
 					},
@@ -384,6 +387,7 @@ func TestChainConditions(t *testing.T) {
 					},
 				},
 			},
+			IsMatched: true,
 		},
 		{
 			Name: "Test and chain As provided by one element in as block",
@@ -406,7 +410,7 @@ func TestChainConditions(t *testing.T) {
 								},
 							},
 							{
-								ProviderSpecificConfig: createTestConditional(false, nil, false),
+								ProviderSpecificConfig: createTestConditional(true, nil, false),
 							},
 						},
 					},
@@ -420,6 +424,7 @@ func TestChainConditions(t *testing.T) {
 					},
 				},
 			},
+			IsMatched: true,
 		},
 	}
 
@@ -435,8 +440,8 @@ func TestChainConditions(t *testing.T) {
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
-			if ret.Passed != tc.IsPassed {
-				t.Errorf("Expected to be: %v, but got: %v", tc.IsPassed, ret)
+			if ret.Matched != tc.IsMatched {
+				t.Errorf("Expected to be: %v, but got: %v", tc.IsMatched, ret)
 			}
 		})
 	}
@@ -452,17 +457,17 @@ func TestRuleEngine(t *testing.T) {
 			Rules: []Rule{
 				{
 					Perform: "WOO",
-					When:    createTestConditional(true, nil, true),
+					When:    createTestConditional(false, nil, true),
 				},
 				{
 					Perform: "WOO - False",
 					When: AndCondition{
 						Conditions: []ConditionEntry{
 							{
-								ProviderSpecificConfig: createTestConditional(true, nil, true),
+								ProviderSpecificConfig: createTestConditional(false, nil, true),
 							},
 							{
-								ProviderSpecificConfig: createTestConditional(false, nil, true),
+								ProviderSpecificConfig: createTestConditional(true, nil, true),
 							},
 						},
 					},
@@ -472,10 +477,10 @@ func TestRuleEngine(t *testing.T) {
 					When: AndCondition{
 						Conditions: []ConditionEntry{
 							{
-								ProviderSpecificConfig: createTestConditional(true, nil, true),
+								ProviderSpecificConfig: createTestConditional(false, nil, true),
 							},
 							{
-								ProviderSpecificConfig: createTestConditional(false, nil, true),
+								ProviderSpecificConfig: createTestConditional(true, nil, true),
 							},
 						},
 					},

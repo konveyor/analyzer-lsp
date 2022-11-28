@@ -107,11 +107,11 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 
 	if len(incidents) == 0 {
 		return lib.ProviderEvaluateResponse{
-			Passed: true,
+			Matched: false,
 		}, nil
 	}
 	return lib.ProviderEvaluateResponse{
-		Passed:    false,
+		Matched:   true,
 		Incidents: incidents,
 	}, nil
 }

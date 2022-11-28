@@ -93,7 +93,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 	if err != nil {
 		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
 	}
-	response := lib.ProviderEvaluateResponse{Passed: true}
+	response := lib.ProviderEvaluateResponse{Matched: false}
 	switch cap {
 	case "file":
 		pattern := cond.File
@@ -106,7 +106,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		}
 
 		if len(matchingFiles) != 0 {
-			response.Passed = false
+			response.Matched = true
 		}
 
 		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
@@ -130,7 +130,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		}
 		matches := strings.Split(strings.TrimSpace(string(outputBytes)), "\n")
 		if len(matches) != 0 {
-			response.Passed = false
+			response.Matched = true
 		}
 
 		for _, match := range matches {
@@ -173,7 +173,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 				return response, err
 			}
 			if len(list) != 0 {
-				response.Passed = false
+				response.Matched = true
 				for _, node := range list {
 					response.Incidents = append(response.Incidents, lib.IncidentContext{
 						FileURI: fmt.Sprintf("file://%s", file),
@@ -205,7 +205,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 				return response, err
 			}
 			if len(list) != 0 {
-				response.Passed = false
+				response.Matched = true
 				for _, node := range list {
 					response.Incidents = append(response.Incidents, lib.IncidentContext{
 						FileURI: fmt.Sprintf("file://%s", file),
