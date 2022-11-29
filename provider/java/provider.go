@@ -64,7 +64,7 @@ func (p *javaProvider) Stop() {
 func (p *javaProvider) Capabilities() ([]lib.Capability, error) {
 	return []lib.Capability{
 		{
-			Capability:      "referenced",
+			Name:            "referenced",
 			TemplateContext: openapi3.Schema{},
 		},
 	}, nil

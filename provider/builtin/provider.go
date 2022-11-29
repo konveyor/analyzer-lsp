@@ -20,11 +20,11 @@ import (
 
 var capabilities = []lib.Capability{
 	{
-		Capability:      "filecontent",
+		Name:            "filecontent",
 		TemplateContext: openapi3.Schema{},
 	},
 	{
-		Capability: "file",
+		Name: "file",
 		TemplateContext: openapi3.Schema{
 			Properties: openapi3.Schemas{
 				"filepaths": &openapi3.SchemaRef{
@@ -41,11 +41,11 @@ var capabilities = []lib.Capability{
 		},
 	},
 	{
-		Capability:      "xml",
+		Name:            "xml",
 		TemplateContext: openapi3.Schema{},
 	},
 	{
-		Capability:      "json",
+		Name:            "json",
 		TemplateContext: openapi3.Schema{},
 	},
 }

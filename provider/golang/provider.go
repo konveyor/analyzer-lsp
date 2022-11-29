@@ -42,7 +42,7 @@ func NewGolangProvider(config lib.Config) *golangProvider {
 func (p *golangProvider) Capabilities() ([]lib.Capability, error) {
 	return []lib.Capability{
 		{
-			Capability:      "referenced",
+			Name:            "referenced",
 			TemplateContext: openapi3.Schema{},
 		},
 	}, nil

@@ -48,12 +48,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -68,7 +68,7 @@ func TestLoadRules(t *testing.T) {
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 			},
@@ -79,12 +79,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -99,7 +99,7 @@ func TestLoadRules(t *testing.T) {
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 			},
@@ -110,12 +110,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -128,12 +128,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -146,12 +146,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -166,7 +166,7 @@ func TestLoadRules(t *testing.T) {
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 			},
@@ -177,12 +177,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -197,7 +197,7 @@ func TestLoadRules(t *testing.T) {
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 			},
@@ -208,12 +208,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -228,7 +228,7 @@ func TestLoadRules(t *testing.T) {
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 			},
@@ -239,7 +239,7 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -252,7 +252,7 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -265,7 +265,7 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -278,12 +278,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -298,7 +298,7 @@ func TestLoadRules(t *testing.T) {
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 			},
@@ -309,12 +309,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -327,12 +327,12 @@ func TestLoadRules(t *testing.T) {
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 				"notadded": testProvider{
 					caps: []lib.Capability{{
-						Capability: "fake",
+						Name: "fake",
 					}},
 				},
 			},
@@ -347,7 +347,7 @@ func TestLoadRules(t *testing.T) {
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Capability: "file",
+						Name: "file",
 					}},
 				},
 			},
