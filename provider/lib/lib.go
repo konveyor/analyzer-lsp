@@ -5,12 +5,18 @@ package lib
 import (
 	"os"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"gopkg.in/yaml.v2"
 )
 
 var builtinConfig = Config{
 	Name:     "builtin",
 	Location: ".",
+}
+
+type Capability struct {
+	Name            string
+	TemplateContext openapi3.Schema
 }
 
 type Config struct {

@@ -13,10 +13,10 @@ import (
 )
 
 type testProvider struct {
-	caps []string
+	caps []lib.Capability
 }
 
-func (t testProvider) Capabilities() ([]string, error) {
+func (t testProvider) Capabilities() ([]lib.Capability, error) {
 	return t.caps, nil
 }
 
@@ -47,10 +47,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "rule-simple-default.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ExpectedRules: map[string]engine.Rule{
@@ -63,7 +67,9 @@ func TestLoadRules(t *testing.T) {
 			},
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 			},
 		},
@@ -72,10 +78,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "test-folder",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ExpectedRules: map[string]engine.Rule{
@@ -88,7 +98,9 @@ func TestLoadRules(t *testing.T) {
 			},
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 			},
 		},
@@ -97,10 +109,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "invalid-message.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ShouldErr:    true,
@@ -111,10 +127,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "invalid-rule-id.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ShouldErr:    true,
@@ -125,10 +145,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "rule-and.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ExpectedRules: map[string]engine.Rule{
@@ -141,7 +165,9 @@ func TestLoadRules(t *testing.T) {
 			},
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 			},
 		},
@@ -150,10 +176,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "rule-or.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ExpectedRules: map[string]engine.Rule{
@@ -166,7 +196,9 @@ func TestLoadRules(t *testing.T) {
 			},
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 			},
 		},
@@ -175,10 +207,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "rule-chain.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ExpectedRules: map[string]engine.Rule{
@@ -191,7 +227,9 @@ func TestLoadRules(t *testing.T) {
 			},
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 			},
 		},
@@ -200,7 +238,9 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "rule-simple-default.yaml",
 			providerNameClient: map[string]provider.Client{
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ShouldErr:    true,
@@ -211,7 +251,9 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "invalid-rule-no-conditions.yaml",
 			providerNameClient: map[string]provider.Client{
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ShouldErr:    true,
@@ -222,7 +264,9 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "invalid-rule-invalid-conditions.yaml",
 			providerNameClient: map[string]provider.Client{
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ShouldErr:    true,
@@ -233,10 +277,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "rule-not-simple.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ExpectedRules: map[string]engine.Rule{
@@ -249,7 +297,9 @@ func TestLoadRules(t *testing.T) {
 			},
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 			},
 		},
@@ -258,10 +308,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "invalid-dup-rule-id.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ShouldErr:    true,
@@ -272,10 +326,14 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "or-and-chain-layer.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 				"notadded": testProvider{
-					caps: []string{"fake"},
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 			ExpectedRules: map[string]engine.Rule{
@@ -288,7 +346,9 @@ func TestLoadRules(t *testing.T) {
 			},
 			ExpectedProvider: map[string]provider.Client{
 				"builtin": testProvider{
-					caps: []string{"file"},
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
 				},
 			},
 		},

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
@@ -38,9 +39,12 @@ func NewGolangProvider(config lib.Config) *golangProvider {
 	}
 }
 
-func (p *golangProvider) Capabilities() ([]string, error) {
-	return []string{
-		"referenced",
+func (p *golangProvider) Capabilities() ([]lib.Capability, error) {
+	return []lib.Capability{
+		{
+			Name:            "referenced",
+			TemplateContext: openapi3.Schema{},
+		},
 	}, nil
 }
 

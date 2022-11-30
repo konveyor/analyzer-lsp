@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
@@ -60,9 +61,12 @@ func (p *javaProvider) Stop() {
 	p.cmd.Wait()
 }
 
-func (p *javaProvider) Capabilities() ([]string, error) {
-	return []string{
-		"referenced",
+func (p *javaProvider) Capabilities() ([]lib.Capability, error) {
+	return []lib.Capability{
+		{
+			Name:            "referenced",
+			TemplateContext: openapi3.Schema{},
+		},
 	}, nil
 }
 

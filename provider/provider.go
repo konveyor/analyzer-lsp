@@ -17,7 +17,7 @@ import (
 
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
 type Client interface {
-	Capabilities() ([]string, error)
+	Capabilities() ([]lib.Capability, error)
 
 	// Block until initialized
 	Init(context.Context, logr.Logger) error
