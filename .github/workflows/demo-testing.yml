@@ -11,3 +11,7 @@ jobs:
         run: podman build -f testing.Dockerfile -t localhost/testing:latest
       - name: run image
         run: podman run localhost/testing:latest
+      - run: podman build -f Dockerfile -t localhost/demo:latest
+        name: build demo image
+      - name: run demo image
+        run: podman run localhost/demo:latest
