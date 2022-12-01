@@ -1,13 +1,12 @@
 package engine
 
 import (
-	"bytes"
 	"context"
 	"sync"
-	"text/template"
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/hubapi"
 )
@@ -203,14 +202,5 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 }
 
 func (r *ruleEngine) createPerformString(messageTemplate string, ctx map[string]interface{}) (string, error) {
-	t, err := template.New("message").Parse(messageTemplate)
-	if err != nil {
-		return "", err
-	}
-	buf := &bytes.Buffer{}
-	err = t.Execute(buf, ctx)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
+	return mustache.Render(messageTemplate, ctx)
 }

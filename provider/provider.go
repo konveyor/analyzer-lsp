@@ -1,11 +1,11 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"text/template"
+	"strings"
 
+	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider/builtin"
@@ -89,17 +89,28 @@ func (p *ProviderCondition) Evaluate(log logr.Logger, ctx map[string]interface{}
 }
 
 func templateCondition(condition []byte, ctx map[string]interface{}) ([]byte, error) {
-	//TODO(fabianvf): this delim thing is a pretty gross hack
-	t, err := template.New("condition").Delims("'{{", "}}'").Parse(string(condition))
+	//TODO(shanw-hurley):
+	// this is needed because for the initial yaml read, we convert this to a string,
+	// then when it is used here, we need the value to be whatever is in the context and not
+	// a string nested in the type.
+	// This may require some documentation, but I believe that it should be fine.
+	// example:
+	// xml:
+	//   filepaths: '{{poms.filepaths}}'
+	//    xpath: //dependencies/dependency
+	// converted to
+	// xml:
+	//   filepaths: {{poms.filepaths}}
+	//   xpath: //dependencies/dependency
+	s := strings.ReplaceAll(string(condition), `'{{`, "{{")
+	s = strings.ReplaceAll(s, `}}'`, "}}")
+
+	s, err := mustache.Render(s, true, ctx)
 	if err != nil {
 		return nil, err
 	}
-	buf := &bytes.Buffer{}
-	err = t.Execute(buf, ctx)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return []byte(s), nil
+
 }
 
 // We need some wrapper that can deal with out of tree providers, this will be a call, that will mock it out, but go against in tree.
