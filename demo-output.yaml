@@ -199,3 +199,32 @@
       file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
       lineNumber: 9
   extras: []
+- ruleID: xml-pom-001
+  description: ""
+  category: ""
+  incidents:
+  - uri: file://examples/java/pom.xml
+    effort: -1
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
+      matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+  - uri: file://examples/java/pom.xml
+    effort: -1
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
+      matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
+  - uri: file://examples/java/pom.xml
+    effort: -1
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n    "
+      matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
+  extras: []

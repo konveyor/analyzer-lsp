@@ -91,7 +91,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 	var cond builtinCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
-		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
+		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
 	response := lib.ProviderEvaluateResponse{Matched: false}
 	switch cap {
