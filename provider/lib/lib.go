@@ -52,9 +52,9 @@ func GetConfig(filepath string) ([]Config, error) {
 }
 
 type ProviderEvaluateResponse struct {
-	Passed          bool
-	Incidents       []IncidentContext
-	TemplateContext map[string]interface{}
+	Matched         bool                   `yaml:"matched"`
+	Incidents       []IncidentContext      `yaml:"incidents"`
+	TemplateContext map[string]interface{} `yaml:"templateContext"`
 }
 type IncidentContext struct {
 	FileURI string                 `yaml:"fileURI"`

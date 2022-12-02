@@ -9,9 +9,10 @@
     builtin.file: "*.go"
     not: true
 - message: POM XML dependencies
-  ruleID: chain-pom-002
+  ruleID: xml-pom-001
   when:
-    builtin.xml: "//dependencies/dependency"
+    builtin.xml: 
+      xpath: "//dependencies/dependency"
 - message: '{{ index . "matchingXML" }}'
   ruleID: chain-pom-001
   when: 

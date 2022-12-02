@@ -11,7 +11,7 @@ var _ Conditional = OrCondition{}
 var _ Conditional = ChainCondition{}
 
 type ConditionResponse struct {
-	Passed bool `yaml:"passed"`
+	Matched bool `yaml:"matched"`
 	// For each time the condition is hit, add all of the context.
 	// keys here, will be used in the message.
 	Incidents       []IncidentContext      `yaml:"incidents"`
@@ -61,7 +61,7 @@ func (a AndCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Con
 	}
 
 	fullResponse := ConditionResponse{
-		Passed:          true,
+		Matched:         true,
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
@@ -71,13 +71,13 @@ func (a AndCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Con
 			return ConditionResponse{}, err
 		}
 
-		passed := response.Passed
+		matched := response.Matched
 		if c.Not {
-			passed = !passed
+			matched = !matched
 
 		}
-		if !passed {
-			fullResponse.Passed = false
+		if !matched {
+			fullResponse.Matched = false
 		}
 
 		if !c.Ignorable {
@@ -103,7 +103,7 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Cond
 
 	// We need to append template context, and not short circut.
 	fullResponse := ConditionResponse{
-		Passed:          false,
+		Matched:         false,
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
@@ -112,12 +112,12 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (Cond
 		if err != nil {
 			return ConditionResponse{}, err
 		}
-		passed := response.Passed
+		matched := response.Matched
 		if c.Not {
-			passed = !passed
+			matched = !matched
 		}
-		if !fullResponse.Passed && passed {
-			fullResponse.Passed = true
+		if matched {
+			fullResponse.Matched = true
 		}
 
 		if !c.Ignorable {
@@ -142,9 +142,9 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluating")
 	}
 
-	fullResponse := ConditionResponse{Passed: true}
+	fullResponse := ConditionResponse{Matched: true}
 	incidents := []IncidentContext{}
-	var passed bool
+	var matched bool
 	for _, c := range ch.Conditions {
 		var response ConditionResponse
 		var err error
@@ -163,15 +163,15 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 		if c.As != "" {
 			ctx[c.As] = response.TemplateContext
 		}
-		passed = response.Passed
+		matched = response.Matched
 		if c.Not {
-			passed = !passed
+			matched = !matched
 		}
 		if !c.Ignorable {
 			incidents = append(incidents, response.Incidents...)
 		}
 	}
-	fullResponse.Passed = passed
+	fullResponse.Matched = matched
 	fullResponse.TemplateContext = ctx
 	fullResponse.Incidents = incidents
 
@@ -184,11 +184,11 @@ func (ce ConditionEntry) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 		return ConditionResponse{}, err
 	}
 
-	passed := response.Passed
+	matched := response.Matched
 	if ce.Not {
-		passed = !passed
+		matched = !matched
 	}
 
-	response.Passed = passed
+	response.Matched = matched
 	return response, nil
 }
