@@ -13,7 +13,7 @@
   when:
     builtin.xml: 
       xpath: "//dependencies/dependency"
-- message: '{{ index . "matchingXML" }}'
+- message: '{{{matchingXML}}}'
   ruleID: chain-pom-001
   when: 
     chain:
@@ -22,7 +22,7 @@
       ignore: true
     - builtin.xml:
         xpath: "//dependencies/dependency"
-        filepaths: '{{ index .poms "filepaths" }}'
+        filepaths: "{{poms.filepaths}}"
       from: poms
 - message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
     should be used instead
@@ -31,7 +31,7 @@
     or:
     - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
-- message: 'golang apiextensions/v1/customresourcedefinitions found {{index . "file"}}:{{index . "lineNumber"}}'
+- message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
   when:
     go.referenced: "v1beta1.CustomResourceDefinition"
@@ -43,7 +43,7 @@
       - go.referenced: "*CustomResourceDefinition*"
       - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
-- message: 'java found apiextensions/v1/customresourcedefinitions found {{index . "file"}}:{{index . "lineNumber"}}'
+- message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: lang-ref-003
   when:
     java.referenced: "*apiextensions.v1beta1.CustomResourceDefinition*"

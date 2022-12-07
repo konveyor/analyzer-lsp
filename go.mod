@@ -14,6 +14,7 @@ require (
 
 require (
 	github.com/antchfx/xpath v1.2.1 // indirect
+	github.com/cbroglie/mustache v1.4.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect

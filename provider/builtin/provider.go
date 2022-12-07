@@ -58,8 +58,8 @@ type builtinCondition struct {
 }
 
 type xmlCondition struct {
-	XPath     string   `yaml:'xpath'`
-	Filepaths []string `yaml:'filepaths'`
+	XPath     string   `yaml:"xpath"`
+	Filepaths []string `yaml:"filepaths"`
 }
 
 type jsonCondition struct {
