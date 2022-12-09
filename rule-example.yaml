@@ -1,19 +1,23 @@
 ---
-- message: all go files
+- perform:
+    message: all go files
   ruleID: file-001
   when:
     builtin.file: "*.go"
-- message: not any go files
+- perform:
+    message: not any go files
   ruleID: file-002
   when:
     builtin.file: "*.go"
     not: true
-- message: POM XML dependencies
+- perform:
+    message: POM XML dependencies
   ruleID: xml-pom-001
   when:
     builtin.xml: 
       xpath: "//dependencies/dependency"
-- message: '{{{matchingXML}}}'
+- perform:
+    message: '{{{matchingXML}}}'
   ruleID: chain-pom-001
   when: 
     chain:
@@ -24,18 +28,20 @@
         xpath: "//dependencies/dependency"
         filepaths: "{{poms.filepaths}}"
       from: poms
-- message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
-    should be used instead
+- perform:
+    message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
   ruleID: lang-ref-001
   when:
     or:
     - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
-- message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
+- perform:
+    message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
   when:
     go.referenced: "v1beta1.CustomResourceDefinition"
-- message: testing nested conditions
+- perform:
+    message: testing nested conditions
   ruleID: lang-ref-002
   when:
     or:
@@ -43,7 +49,36 @@
       - go.referenced: "*CustomResourceDefinition*"
       - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
-- message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
+- perform:
+    message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: lang-ref-003
   when:
     java.referenced: "*apiextensions.v1beta1.CustomResourceDefinition*"
+- perform:
+    tag:
+    - Golang
+  ruleID: tag-go-000
+  when:
+    builtin.file: "go.mod"
+- perform:
+    tag:
+    - Kubernetes
+  ruleID: tag-k8s-000
+  when:
+    builtin.filecontent: "require.*sigs.k8s.io/.*"
+- perform:
+    tag:
+    - Java
+  ruleID: tag-java-000
+  when:
+    builtin.file: "pom.xml"
+- perform:
+    message: "Tags {{tags}} found"
+  ruleID: tech-tag-001
+  when:
+    or:
+    - builtin.hasTags:
+      - Golang
+      - Kubernetes
+    - builtin.hasTags:
+      - Java

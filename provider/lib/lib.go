@@ -67,3 +67,8 @@ type ExternalLinks struct {
 	URL   string `yaml:"url"`
 	Title string `yaml:"title"`
 }
+
+type ProviderContext struct {
+	Tags     map[string]interface{} `yaml:"tags"`
+	Template map[string]interface{} `yaml:"template"`
+}

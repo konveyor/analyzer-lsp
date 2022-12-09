@@ -18,6 +18,11 @@ type ConditionResponse struct {
 	TemplateContext map[string]interface{} `yaml:",inline"`
 }
 
+type ConditionContext struct {
+	Tags     map[string]interface{} `yaml:"tags"`
+	Template map[string]interface{} `yaml:"template"`
+}
+
 type ConditionEntry struct {
 	From                   string
 	As                     string
@@ -28,7 +33,7 @@ type ConditionEntry struct {
 
 type IncidentContext struct {
 	FileURI string                 `yaml:"fileURI"`
-	Effort  int                    `yaml:"effort"`
+	Effort  *int                   `yaml:"effort"`
 	Extras  map[string]interface{} `yaml:"extras"`
 	Links   []ExternalLinks        `yaml:"externalLink"`
 }
@@ -39,23 +44,34 @@ type ExternalLinks struct {
 }
 
 type Conditional interface {
-	Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error)
+	Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error)
 }
 
 type Rule struct {
 	RuleID      string      `yaml:"ruleID,omitempty"`
 	Description string      `yaml:"description,omitempty"`
 	Category    string      `yaml:"category,omitempty"`
-	Perform     string      `yaml:"perform,omitempty"`
+	Perform     Perform     `yaml:"perform,omitempty"`
 	When        Conditional `yaml:"when,omitempty"`
+}
+
+type Perform struct {
+	Message *string  `yaml:"message,omitempty"`
+	Tag     []string `yaml:"tag,omitempty"`
+}
+
+func (p *Perform) Validate() error {
+	if p.Message != nil && p.Tag != nil {
+		return fmt.Errorf("cannot perform message and tag together")
+	}
+	return nil
 }
 
 type AndCondition struct {
 	Conditions []ConditionEntry `yaml:"and"`
 }
 
-func (a AndCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
-
+func (a AndCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
 	if len(a.Conditions) == 0 {
 		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluating")
 	}
@@ -96,7 +112,7 @@ type OrCondition struct {
 	Conditions []ConditionEntry `yaml:"or"`
 }
 
-func (o OrCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
+func (o OrCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
 	if len(o.Conditions) == 0 {
 		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluationg")
 	}
@@ -136,7 +152,7 @@ type ChainCondition struct {
 	Conditions []ConditionEntry `yaml:"chain"`
 }
 
-func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
+func (ch ChainCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
 
 	if len(ch.Conditions) == 0 {
 		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluating")
@@ -149,7 +165,7 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 		var response ConditionResponse
 		var err error
 
-		if _, ok := ctx[c.From]; !ok && c.From != "" {
+		if _, ok := ctx.Template[c.From]; !ok && c.From != "" {
 			// Short circut w/ error here
 			// TODO: determine if this is the right thing, I am assume the full rule should fail here
 			return ConditionResponse{}, fmt.Errorf("unable to find context value: %v", c.From)
@@ -161,7 +177,7 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 		}
 
 		if c.As != "" {
-			ctx[c.As] = response.TemplateContext
+			ctx.Template[c.As] = response.TemplateContext
 		}
 		matched = response.Matched
 		if c.Not {
@@ -172,13 +188,13 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (
 		}
 	}
 	fullResponse.Matched = matched
-	fullResponse.TemplateContext = ctx
+	fullResponse.TemplateContext = ctx.Template
 	fullResponse.Incidents = incidents
 
 	return fullResponse, nil
 }
 
-func (ce ConditionEntry) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
+func (ce ConditionEntry) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
 	response, err := ce.ProviderSpecificConfig.Evaluate(log, ctx)
 	if err != nil {
 		return ConditionResponse{}, err

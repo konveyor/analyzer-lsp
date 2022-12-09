@@ -33,6 +33,9 @@ func (t testProvider) Stop() {}
 var _ provider.Client = &testProvider{}
 
 func TestLoadRules(t *testing.T) {
+	allGoFiles := "all go files"
+	allGoOrJsonFiles := "all go or json files"
+	allGoAndJsonFiles := "all go and json files"
 	testCases := []struct {
 		Name               string
 		testFileName       string
@@ -62,7 +65,7 @@ func TestLoadRules(t *testing.T) {
 					RuleID:      "file-001",
 					Description: "",
 					Category:    "",
-					Perform:     "all go files",
+					Perform:     engine.Perform{Message: &allGoFiles},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -93,7 +96,7 @@ func TestLoadRules(t *testing.T) {
 					RuleID:      "file-001",
 					Description: "",
 					Category:    "",
-					Perform:     "all go files",
+					Perform:     engine.Perform{Message: &allGoFiles},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -120,7 +123,7 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 			ShouldErr:    true,
-			ErrorMessage: "unable to find message in rule",
+			ErrorMessage: "message must be a string",
 		},
 		{
 			Name:         "rule invalid ruleID",
@@ -160,7 +163,7 @@ func TestLoadRules(t *testing.T) {
 					RuleID:      "file-001",
 					Description: "",
 					Category:    "",
-					Perform:     "all go and json files",
+					Perform:     engine.Perform{Message: &allGoAndJsonFiles},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -191,7 +194,7 @@ func TestLoadRules(t *testing.T) {
 					RuleID:      "file-001",
 					Description: "",
 					Category:    "",
-					Perform:     "all go or json files",
+					Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -222,7 +225,7 @@ func TestLoadRules(t *testing.T) {
 					RuleID:      "file-001",
 					Description: "",
 					Category:    "",
-					Perform:     "all go or json files",
+					Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -292,7 +295,7 @@ func TestLoadRules(t *testing.T) {
 					RuleID:      "file-001",
 					Description: "",
 					Category:    "",
-					Perform:     "all go or json files",
+					Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -341,7 +344,7 @@ func TestLoadRules(t *testing.T) {
 					RuleID:      "file-001",
 					Description: "",
 					Category:    "",
-					Perform:     "all go or json files",
+					Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -349,6 +352,50 @@ func TestLoadRules(t *testing.T) {
 					caps: []lib.Capability{{
 						Name: "file",
 					}},
+				},
+			},
+		},
+		{
+			Name:         "test invalid perform, cannot set message and tag both",
+			testFileName: "invalid-perform-block.yaml",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ShouldErr:    true,
+			ErrorMessage: "cannot perform message and tag together",
+		},
+		{
+			Name:         "test valid tag action",
+			testFileName: "valid-tag-rule.yaml",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedRules: map[string]engine.Rule{
+				"tag-001": {
+					RuleID: "tag-001",
+					Perform: engine.Perform{
+						Tag: []string{"test"},
+					},
 				},
 			},
 		},
@@ -390,7 +437,7 @@ func TestLoadRules(t *testing.T) {
 				}
 
 				// We will test the conditions getter by itself.
-				if r.Perform != rule.Perform || r.Category != rule.Category || r.Description != rule.Description {
+				if !reflect.DeepEqual(r.Perform, rule.Perform) || r.Category != rule.Category || r.Description != rule.Description {
 					t.Errorf("rules are not equal got: %v wanted; %v", rule, r)
 				}
 			}

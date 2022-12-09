@@ -1,3 +1,4 @@
 ---
-- message: all go files
+- perform:
+    message: all go files
   ruleID: "file-001"
