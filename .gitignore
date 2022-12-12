@@ -9,3 +9,4 @@ examples/java/.project
 org.eclipse.core*
 org.eclipse.osgi*
 org.eclipse.equinox*
+provider_settings.json
