@@ -356,8 +356,8 @@ func TestLoadRules(t *testing.T) {
 			},
 		},
 		{
-			Name:         "test invalid perform, cannot set message and tag both",
-			testFileName: "invalid-perform-block.yaml",
+			Name:         "test multiple actions, cannot set message and tag both",
+			testFileName: "multiple-actions.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
 					caps: []lib.Capability{{
@@ -371,7 +371,25 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 			ShouldErr:    true,
-			ErrorMessage: "cannot perform message and tag together",
+			ErrorMessage: "cannot perform message and tag both",
+		},
+		{
+			Name:         "no actions, at least one action must be set",
+			testFileName: "no-actions.yaml",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ShouldErr:    true,
+			ErrorMessage: "either message or tag must be set",
 		},
 		{
 			Name:         "test valid tag action",

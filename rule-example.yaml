@@ -1,23 +1,19 @@
 ---
-- perform:
-    message: all go files
+- message: all go files
   ruleID: file-001
   when:
     builtin.file: "*.go"
-- perform:
-    message: not any go files
+- message: not any go files
   ruleID: file-002
   when:
     builtin.file: "*.go"
     not: true
-- perform:
-    message: POM XML dependencies
+- message: POM XML dependencies
   ruleID: xml-pom-001
   when:
     builtin.xml: 
       xpath: "//dependencies/dependency"
-- perform:
-    message: '{{{matchingXML}}}'
+- message: '{{{matchingXML}}}'
   ruleID: chain-pom-001
   when: 
     chain:
@@ -28,20 +24,17 @@
         xpath: "//dependencies/dependency"
         filepaths: "{{poms.filepaths}}"
       from: poms
-- perform:
-    message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
+- message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
   ruleID: lang-ref-001
   when:
     or:
     - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
-- perform:
-    message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
+- message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
   when:
     go.referenced: "v1beta1.CustomResourceDefinition"
-- perform:
-    message: testing nested conditions
+- message: testing nested conditions
   ruleID: lang-ref-002
   when:
     or:
@@ -49,31 +42,26 @@
       - go.referenced: "*CustomResourceDefinition*"
       - java.referenced: "*CustomResourceDefinition*"
     - go.referenced: "*CustomResourceDefinition*"
-- perform:
-    message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
+- message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: lang-ref-003
   when:
     java.referenced: "*apiextensions.v1beta1.CustomResourceDefinition*"
-- perform:
-    tag:
+- tag:
     - Golang
   ruleID: tag-go-000
   when:
     builtin.file: "go.mod"
-- perform:
-    tag:
+- tag:
     - Kubernetes
   ruleID: tag-k8s-000
   when:
     builtin.filecontent: "require.*sigs.k8s.io/.*"
-- perform:
-    tag:
+- tag:
     - Java
   ruleID: tag-java-000
   when:
     builtin.file: "pom.xml"
-- perform:
-    message: "Tags {{tags}} found"
+- message: "Tags {{tags}} found"
   ruleID: tech-tag-001
   when:
     or:

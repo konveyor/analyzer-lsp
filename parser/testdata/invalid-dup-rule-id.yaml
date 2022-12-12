@@ -1,11 +1,9 @@
 ---
-- perform:
-    message: all go and json files
+- message: all go and json files
   ruleID: file-001
   when:
     builtin.file: "*.go"
-- perform:
-    message: all go and json files
+- message: all go and json files
   ruleID: file-001
   when:
     builtin.file: "*.go"

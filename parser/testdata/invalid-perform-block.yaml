@@ -1,8 +1,0 @@
----
-- perform:
-    message: all go and json files
-    tag:
-    - "test"
-  ruleID: file-001
-  when:
-    builtin.file: "*.go"

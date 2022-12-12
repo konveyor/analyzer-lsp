@@ -1,6 +1,5 @@
 ---
-- perform:
-    message: all go files
+- message: all go files
   ruleID: file-001
   when:
     builtin.file: "*.go"

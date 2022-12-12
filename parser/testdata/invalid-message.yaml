@@ -1,6 +1,5 @@
 ---
-- perform:
-    message: True
+- message: True
   ruleID: file-001
   when:
     builtin.file: "*.go"

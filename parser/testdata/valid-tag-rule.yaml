@@ -1,6 +1,5 @@
 ---
-- perform:
-    tag:
+- tag:
     - "test"
   ruleID: tag-001
   when:

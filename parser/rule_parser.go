@@ -75,39 +75,38 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	ruleIDMap := map[string]*struct{}{}
 	providers := map[string]provider.Client{}
 	for _, ruleMap := range ruleMap {
-		// Rules contain Perform and When blocks
+		// Rules contain When blocks and actions
 		// When is where we need to handle conditions
-		performMap, ok := ruleMap["perform"].(map[interface{}]interface{})
-		if !ok {
-			return nil, nil, fmt.Errorf("a rule must have exactly one perform block")
-		}
+		actions := []string{"message", "tag"}
 
 		perform := engine.Perform{}
-		for k, val := range performMap {
-			key, ok := k.(string)
-			if !ok {
-				return nil, nil, fmt.Errorf("condition key must be a string")
-			}
-			switch key {
-			case "message":
-				message, ok := val.(string)
-				if !ok {
-					return nil, nil, fmt.Errorf("message must be a string")
-				}
-				perform.Message = &message
-			case "tag":
-				tagList, ok := val.([]interface{})
-				if !ok {
-					return nil, nil, fmt.Errorf("tag must be a list of strings")
-				}
-				for _, tagVal := range tagList {
-					tag, ok := tagVal.(string)
+		for _, action := range actions {
+			if val, exists := ruleMap[action]; exists {
+				switch action {
+				case "message":
+					message, ok := val.(string)
 					if !ok {
-						return nil, nil, fmt.Errorf("tag value must be a string")
+						return nil, nil, fmt.Errorf("message must be a string")
 					}
-					perform.Tag = append(perform.Tag, tag)
+					perform.Message = &message
+				case "tag":
+					tagList, ok := val.([]interface{})
+					if !ok {
+						return nil, nil, fmt.Errorf("tag must be a list of strings")
+					}
+					for _, tagVal := range tagList {
+						tag, ok := tagVal.(string)
+						if !ok {
+							return nil, nil, fmt.Errorf("tag value must be a string")
+						}
+						perform.Tag = append(perform.Tag, tag)
+					}
 				}
 			}
+		}
+
+		if err := perform.Validate(); err != nil {
+			return nil, nil, err
 		}
 
 		ruleID, ok := ruleMap["ruleID"].(string)
@@ -212,10 +211,6 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				providers[providerKey] = provider
 
 			}
-		}
-
-		if err := rule.Perform.Validate(); err != nil {
-			return nil, nil, err
 		}
 
 		ruleIDMap[rule.RuleID] = nil

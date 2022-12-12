@@ -51,7 +51,7 @@ type Rule struct {
 	RuleID      string      `yaml:"ruleID,omitempty"`
 	Description string      `yaml:"description,omitempty"`
 	Category    string      `yaml:"category,omitempty"`
-	Perform     Perform     `yaml:"perform,omitempty"`
+	Perform     Perform     `yaml:",inline"`
 	When        Conditional `yaml:"when,omitempty"`
 }
 
@@ -62,7 +62,10 @@ type Perform struct {
 
 func (p *Perform) Validate() error {
 	if p.Message != nil && p.Tag != nil {
-		return fmt.Errorf("cannot perform message and tag together")
+		return fmt.Errorf("cannot perform message and tag both")
+	}
+	if p.Message == nil && p.Tag == nil {
+		return fmt.Errorf("either message or tag must be set")
 	}
 	return nil
 }

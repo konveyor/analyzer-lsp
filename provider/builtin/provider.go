@@ -50,12 +50,8 @@ var capabilities = []lib.Capability{
 		TemplateContext: openapi3.Schema{},
 	},
 	{
-		Name: "hasTags",
-		TemplateContext: openapi3.Schema{
-			Properties: openapi3.Schemas{
-				"filepaths": &filePathsSchema,
-			},
-		},
+		Name:            "hasTags",
+		TemplateContext: openapi3.Schema{},
 	},
 }
 
