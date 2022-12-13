@@ -119,7 +119,7 @@ func Test_dependencyConditionEvaluation(t *testing.T) {
 				Client:     &fakeClient{dependencies: tt.dependencies},
 			}
 
-			resp, err := depCondition.Evaluate(logr.Logger{}, engine.ConditionContext{})
+			resp, err := depCondition.Evaluate(context.TODO(), logr.Logger{}, engine.ConditionContext{})
 			if err != nil {
 				if !tt.shouldErr {
 					t.Error(err)

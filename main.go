@@ -12,6 +12,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -37,8 +38,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
-
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
@@ -46,6 +45,20 @@ func main() {
 	logrusLog.SetLevel(logrus.Level(*logLevel))
 
 	log := logrusr.New(logrusLog)
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
+	tp, err := tracing.InitTracerProvider(log)
+	if err != nil {
+		log.Error(err, "failed to initialize tracing")
+		os.Exit(1)
+	}
+
+	defer tracing.Shutdown(ctx, log, tp)
+
+	ctx, span := tracing.StartNewSpan(ctx, "main")
+	defer span.End()
 
 	// Get the configs
 	configs, err := lib.GetConfig(*settingsFile)
@@ -97,9 +110,6 @@ func main() {
 	sort.SliceStable(violations, func(i, j int) bool {
 		return violations[i].Name < violations[j].Name
 	})
-
-	//Before we exit we need to clean up
-	cancelFunc()
 
 	// Write results out to CLI
 	b, _ := yaml.Marshal(violations)
