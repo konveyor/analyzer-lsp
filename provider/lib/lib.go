@@ -16,7 +16,7 @@ var builtinConfig = Config{
 
 type Capability struct {
 	Name            string
-	TemplateContext openapi3.Schema
+	TemplateContext openapi3.SchemaRef
 }
 
 type Config struct {
