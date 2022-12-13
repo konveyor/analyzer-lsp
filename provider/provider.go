@@ -12,6 +12,8 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider/golang"
 	"github.com/konveyor/analyzer-lsp/provider/java"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"github.com/konveyor/analyzer-lsp/tracing"
+	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/yaml.v2"
 )
 
@@ -39,14 +41,18 @@ func (p *ProviderCondition) Ignorable() bool {
 	return p.Ignore
 }
 
-func (p *ProviderCondition) Evaluate(log logr.Logger, ctx engine.ConditionContext) (engine.ConditionResponse, error) {
+func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
+	_, span := tracing.StartNewSpan(
+		ctx, "provider-condition", attribute.Key("cap").String(p.Capability))
+	defer span.End()
+
 	providerInfo := struct {
 		lib.ProviderContext `yaml:",inline"`
 		Capability          map[string]interface{} `yaml:",inline"`
 	}{
 		ProviderContext: lib.ProviderContext{
-			Tags:     ctx.Tags,
-			Template: ctx.Template,
+			Tags:     condCtx.Tags,
+			Template: condCtx.Template,
 		},
 		Capability: map[string]interface{}{
 			p.Capability: p.ConditionInfo,
@@ -58,11 +64,12 @@ func (p *ProviderCondition) Evaluate(log logr.Logger, ctx engine.ConditionContex
 		//TODO(fabianvf)
 		panic(err)
 	}
-	templatedInfo, err := templateCondition(serializedInfo, ctx.Template)
+	templatedInfo, err := templateCondition(serializedInfo, condCtx.Template)
 	if err != nil {
 		//TODO(fabianvf)
 		panic(err)
 	}
+	span.SetAttributes(attribute.Key("condition").String(string(templatedInfo)))
 	resp, err := p.Client.Evaluate(p.Capability, templatedInfo)
 	if err != nil {
 		// If an error always just return the empty

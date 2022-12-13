@@ -18,7 +18,7 @@ type testConditional struct {
 	sleep bool
 }
 
-func (t testConditional) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
+func (t testConditional) Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error) {
 	if t.sleep {
 		time.Sleep(5 * time.Second)
 	}
@@ -43,7 +43,7 @@ type testChainableConditionalAs struct {
 	AsValue       interface{}
 }
 
-func (t testChainableConditionalAs) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
+func (t testChainableConditionalAs) Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error) {
 	return ConditionResponse{
 		Matched: true,
 		TemplateContext: map[string]interface{}{
@@ -66,9 +66,9 @@ func (t testChainableConditionalFrom) Ignorable() bool {
 	return true
 }
 
-func (t testChainableConditionalFrom) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
+func (t testChainableConditionalFrom) Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error) {
 
-	if v, ok := ctx.Template[t.FromName]; ok {
+	if v, ok := condCtx.Template[t.FromName]; ok {
 		if m, ok := v.(map[string]interface{}); ok {
 			if reflect.DeepEqual(m[t.DocumentedKey], t.FromValue) {
 				return ConditionResponse{
@@ -177,7 +177,7 @@ func TestEvaluateAndConditions(t *testing.T) {
 				When: AndCondition{Conditions: tc.Conditions},
 			}
 
-			ret, err := processRule(rule, ConditionContext{
+			ret, err := processRule(context.TODO(), rule, ConditionContext{
 				Template: make(map[string]interface{}),
 			}, log)
 			if err != nil && !tc.IsError {
@@ -296,7 +296,7 @@ func TestEvaluateOrConditions(t *testing.T) {
 				},
 				When: OrCondition{tc.Conditions},
 			}
-			ret, err := processRule(rule, ConditionContext{
+			ret, err := processRule(context.TODO(), rule, ConditionContext{
 				Template: make(map[string]interface{}),
 			}, log)
 			if err != nil && !tc.IsError {
@@ -447,7 +447,7 @@ func TestChainConditions(t *testing.T) {
 				},
 				When: ChainCondition{tc.Conditions},
 			}
-			ret, err := processRule(rule, ConditionContext{
+			ret, err := processRule(context.TODO(), rule, ConditionContext{
 				Template: make(map[string]interface{}),
 			}, log)
 			if err != nil && !tc.IsError {
