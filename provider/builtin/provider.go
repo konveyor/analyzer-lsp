@@ -18,6 +18,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var filePathsSchema = openapi3.SchemaRef{
+	Value: &openapi3.Schema{Description: "List of filepaths matching pattern",
+		Items: &openapi3.SchemaRef{
+			Value: &openapi3.Schema{
+				Type: "string",
+			},
+		},
+	},
+}
+
 var capabilities = []lib.Capability{
 	{
 		Name:            "filecontent",
@@ -27,16 +37,7 @@ var capabilities = []lib.Capability{
 		Name: "file",
 		TemplateContext: openapi3.Schema{
 			Properties: openapi3.Schemas{
-				"filepaths": &openapi3.SchemaRef{
-					Value: &openapi3.Schema{
-						Description: "List of filepaths matching pattern",
-						Items: &openapi3.SchemaRef{
-							Value: &openapi3.Schema{
-								Type: "string",
-							},
-						},
-					},
-				},
+				"filepaths": &filePathsSchema,
 			},
 		},
 	},
@@ -48,13 +49,19 @@ var capabilities = []lib.Capability{
 		Name:            "json",
 		TemplateContext: openapi3.Schema{},
 	},
+	{
+		Name:            "hasTags",
+		TemplateContext: openapi3.Schema{},
+	},
 }
 
 type builtinCondition struct {
-	Filecontent string        `yaml:"filecontent"`
-	File        string        `yaml:"file"`
-	XML         xmlCondition  `yaml:"xml"`
-	JSON        jsonCondition `yaml:"json"`
+	Filecontent         string        `yaml:"filecontent"`
+	File                string        `yaml:"file"`
+	XML                 xmlCondition  `yaml:"xml"`
+	JSON                jsonCondition `yaml:"json"`
+	HasTags             []string      `yaml:"hasTags"`
+	lib.ProviderContext `yaml:",inline"`
 }
 
 type xmlCondition struct {
@@ -117,7 +124,6 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		}
 		return response, nil
 	case "filecontent":
-
 		pattern := cond.Filecontent
 		if pattern == "" {
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
@@ -218,7 +224,23 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			}
 		}
 		return response, nil
-
+	case "hasTags":
+		found := true
+		for _, tag := range cond.HasTags {
+			if _, exists := cond.ProviderContext.Tags[tag]; !exists {
+				found = false
+				break
+			}
+		}
+		if found {
+			response.Matched = true
+			response.Incidents = append(response.Incidents, lib.IncidentContext{
+				Extras: map[string]interface{}{
+					"tags": cond.HasTags,
+				},
+			})
+		}
+		return response, nil
 	default:
 		return response, fmt.Errorf("capability must be one of %v, not %s", capabilities, cap)
 	}

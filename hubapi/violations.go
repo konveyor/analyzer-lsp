@@ -1,6 +1,8 @@
 package hubapi
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type Violation struct {
 	// AnalysisID id of the analysis that generated this output
@@ -31,7 +33,7 @@ type Incident struct {
 	// URI defines location in the codebase where violation is found
 	URI string `yaml:"uri"`
 	// Effort defines expected story points for this incident
-	Effort int `yaml:"effort,omitempty"`
+	Effort *int `yaml:"effort,omitempty"`
 	// Message text description about the incident
 	Message string `yaml:"message"`
 	// ExternalLinks hyperlinks to external sources of docs, fixes

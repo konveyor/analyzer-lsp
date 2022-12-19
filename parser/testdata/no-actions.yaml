@@ -1,0 +1,5 @@
+---
+- ruleID: no-actions-001
+  when:
+    and:
+    - go.referenced: "a"

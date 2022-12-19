@@ -24,8 +24,7 @@
         xpath: "//dependencies/dependency"
         filepaths: "{{poms.filepaths}}"
       from: poms
-- message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
-    should be used instead
+- message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
   ruleID: lang-ref-001
   when:
     or:
@@ -47,3 +46,27 @@
   ruleID: lang-ref-003
   when:
     java.referenced: "*apiextensions.v1beta1.CustomResourceDefinition*"
+- tag:
+    - Golang
+  ruleID: tag-go-000
+  when:
+    builtin.file: "go.mod"
+- tag:
+    - Kubernetes
+  ruleID: tag-k8s-000
+  when:
+    builtin.filecontent: "require.*sigs.k8s.io/.*"
+- tag:
+    - Java
+  ruleID: tag-java-000
+  when:
+    builtin.file: "pom.xml"
+- message: "Tags {{tags}} found"
+  ruleID: tech-tag-001
+  when:
+    or:
+    - builtin.hasTags:
+      - Golang
+      - Kubernetes
+    - builtin.hasTags:
+      - Java

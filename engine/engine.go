@@ -18,6 +18,7 @@ type RuleEngine interface {
 
 type ruleMessage struct {
 	rule       Rule
+	ctx        ConditionContext
 	returnChan chan response
 }
 
@@ -69,7 +70,8 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 		select {
 		case m := <-ruleMessages:
 			logger.V(5).Info("taking rule")
-			bo, err := processRule(m.rule, logger)
+			m.ctx.Template = make(map[string]interface{})
+			bo, err := processRule(m.rule, m.ctx, logger)
 			m.returnChan <- response{
 				ConditionResponse: bo,
 				Err:               err,
@@ -83,21 +85,36 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 	}
 }
 
-// This will run the rules async, fanning them out, fanning them in, and then generating the results. will block until completed.
+// This will run the meta rules first, synchronously, generating metadata to pass on further as context to other rules
+// then runs remaining rules async, fanning them out, fanning them in, finally generating the results. will block until completed.
 func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violation {
 	// determine if we should run
 
 	ctx, cancelFunc := context.WithCancel(ctx)
 
+	// filter rules that generate metadata, they run first
+	metaRules := []Rule{}
+	otherRules := []Rule{}
+	for _, rule := range rules {
+		if rule.Perform.Tag == nil {
+			otherRules = append(otherRules, rule)
+		} else {
+			metaRules = append(metaRules, rule)
+		}
+	}
+
+	ruleContext := r.runMetaRules(metaRules)
+
 	// Need a better name for this thing
 	ret := make(chan response)
 
 	wg := &sync.WaitGroup{}
-	for _, rule := range rules {
+	for _, rule := range otherRules {
 		wg.Add(1)
 		r.ruleProcessing <- ruleMessage{
 			rule:       rule,
 			returnChan: ret,
+			ctx:        ruleContext,
 		}
 	}
 	r.logger.V(5).Info("All rules added buffer, waiting for engine to complete")
@@ -153,16 +170,43 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violat
 	return responses
 }
 
-func processRule(rule Rule, log logr.Logger) (ConditionResponse, error) {
+// runMetaRules filters and runs info rules synchronously
+// returns list of non-info rules, a context to pass to them
+func (r *ruleEngine) runMetaRules(infoRules []Rule) ConditionContext {
+	context := ConditionContext{
+		Tags:     make(map[string]interface{}),
+		Template: make(map[string]interface{}),
+	}
+	for _, rule := range infoRules {
+		response, err := processRule(rule, context, r.logger)
+		if err != nil {
+			r.logger.Error(err, "failed to evaluate rule", "ruleID", rule.RuleID)
+		} else if response.Matched {
+			r.logger.V(5).Info("info rule was matched", "ruleID", rule.RuleID)
+			for _, tag := range rule.Perform.Tag {
+				context.Tags[tag] = true
+			}
+		}
+	}
+	return context
+}
+
+func processRule(rule Rule, ruleCtx ConditionContext, log logr.Logger) (ConditionResponse, error) {
 	// Here is what a worker should run when getting a rule.
 	// For now, lets not fan out the running of conditions.
-	return rule.When.Evaluate(log, map[string]interface{}{})
+	return rule.When.Evaluate(log, ruleCtx)
 
 }
 
 func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule Rule) (hubapi.Violation, error) {
 	incidents := []hubapi.Incident{}
 	for _, m := range conditionResponse.Incidents {
+
+		incident := hubapi.Incident{
+			URI:    m.FileURI,
+			Effort: m.Effort,
+			Extras: m.Extras,
+		}
 		links := []hubapi.Link{}
 		if len(m.Links) > 0 {
 			for _, l := range m.Links {
@@ -171,25 +215,21 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 					Title: l.Title,
 				})
 			}
-
 		}
+		incident.ExternalLinks = links
 		// extras, err := json.Marshal(m.Extras)
 		// if err != nil {
 		// 	return hubapi.Violation{}, err
 		// }
-
-		templateString, err := r.createPerformString(rule.Perform, m.Extras)
-		if err != nil {
-			r.logger.Error(err, "unable to create template string")
+		if rule.Perform.Message != nil {
+			templateString, err := r.createPerformString(*rule.Perform.Message, m.Extras)
+			if err != nil {
+				r.logger.Error(err, "unable to create template string")
+			}
+			incident.Message = templateString
 		}
 
-		incidents = append(incidents, hubapi.Incident{
-			URI:           m.FileURI,
-			Effort:        m.Effort,
-			Message:       templateString,
-			Extras:        m.Extras,
-			ExternalLinks: links,
-		})
+		incidents = append(incidents, incident)
 	}
 
 	return hubapi.Violation{

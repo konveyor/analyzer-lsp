@@ -18,7 +18,7 @@ type testConditional struct {
 	sleep bool
 }
 
-func (t testConditional) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
+func (t testConditional) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
 	if t.sleep {
 		time.Sleep(5 * time.Second)
 	}
@@ -43,7 +43,7 @@ type testChainableConditionalAs struct {
 	AsValue       interface{}
 }
 
-func (t testChainableConditionalAs) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
+func (t testChainableConditionalAs) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
 	return ConditionResponse{
 		Matched: true,
 		TemplateContext: map[string]interface{}{
@@ -66,9 +66,9 @@ func (t testChainableConditionalFrom) Ignorable() bool {
 	return true
 }
 
-func (t testChainableConditionalFrom) Evaluate(log logr.Logger, ctx map[string]interface{}) (ConditionResponse, error) {
+func (t testChainableConditionalFrom) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
 
-	if v, ok := ctx[t.FromName]; ok {
+	if v, ok := ctx.Template[t.FromName]; ok {
 		if m, ok := v.(map[string]interface{}); ok {
 			if reflect.DeepEqual(m[t.DocumentedKey], t.FromValue) {
 				return ConditionResponse{
@@ -165,16 +165,21 @@ func TestEvaluateAndConditions(t *testing.T) {
 			},
 		},
 	}
-
+	testString := "testing"
 	logrusLog := logrus.New()
 	log := logrusr.New(logrusLog)
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			rule := Rule{
-				Perform: "testing",
-				When:    AndCondition{Conditions: tc.Conditions},
+				Perform: Perform{
+					Message: &testString,
+				},
+				When: AndCondition{Conditions: tc.Conditions},
 			}
-			ret, err := processRule(rule, log)
+
+			ret, err := processRule(rule, ConditionContext{
+				Template: make(map[string]interface{}),
+			}, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
@@ -280,16 +285,20 @@ func TestEvaluateOrConditions(t *testing.T) {
 			},
 		},
 	}
-
+	testString := "testing"
 	logrusLog := logrus.New()
 	log := logrusr.New(logrusLog)
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			rule := Rule{
-				Perform: "testing",
-				When:    OrCondition{tc.Conditions},
+				Perform: Perform{
+					Message: &testString,
+				},
+				When: OrCondition{tc.Conditions},
 			}
-			ret, err := processRule(rule, log)
+			ret, err := processRule(rule, ConditionContext{
+				Template: make(map[string]interface{}),
+			}, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
@@ -427,16 +436,20 @@ func TestChainConditions(t *testing.T) {
 			IsMatched: true,
 		},
 	}
-
+	testString := "testing"
 	logrusLog := logrus.New()
 	log := logrusr.New(logrusLog)
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			rule := Rule{
-				Perform: "testing",
-				When:    ChainCondition{tc.Conditions},
+				Perform: Perform{
+					Message: &testString,
+				},
+				When: ChainCondition{tc.Conditions},
 			}
-			ret, err := processRule(rule, log)
+			ret, err := processRule(rule, ConditionContext{
+				Template: make(map[string]interface{}),
+			}, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
 			}
@@ -448,6 +461,8 @@ func TestChainConditions(t *testing.T) {
 }
 
 func TestRuleEngine(t *testing.T) {
+	woo := "WOO"
+	wooFalse := "WOO - False"
 	testCases := []struct {
 		Name  string
 		Rules []Rule
@@ -456,11 +471,11 @@ func TestRuleEngine(t *testing.T) {
 			Name: "Test Running",
 			Rules: []Rule{
 				{
-					Perform: "WOO",
+					Perform: Perform{Message: &woo},
 					When:    createTestConditional(false, nil, true),
 				},
 				{
-					Perform: "WOO - False",
+					Perform: Perform{Message: &wooFalse},
 					When: AndCondition{
 						Conditions: []ConditionEntry{
 							{
@@ -473,7 +488,7 @@ func TestRuleEngine(t *testing.T) {
 					},
 				},
 				{
-					Perform: "WOO - False",
+					Perform: Perform{Message: &wooFalse},
 					When: AndCondition{
 						Conditions: []ConditionEntry{
 							{

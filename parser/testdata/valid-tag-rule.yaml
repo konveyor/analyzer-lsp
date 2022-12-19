@@ -1,0 +1,6 @@
+---
+- tag:
+    - "test"
+  ruleID: tag-001
+  when:
+    builtin.file: "*.go"

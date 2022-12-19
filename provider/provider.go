@@ -39,13 +39,26 @@ func (p *ProviderCondition) Ignorable() bool {
 	return p.Ignore
 }
 
-func (p *ProviderCondition) Evaluate(log logr.Logger, ctx map[string]interface{}) (engine.ConditionResponse, error) {
-	serializedInfo, err := yaml.Marshal(map[string]interface{}{p.Capability: p.ConditionInfo})
+func (p *ProviderCondition) Evaluate(log logr.Logger, ctx engine.ConditionContext) (engine.ConditionResponse, error) {
+	providerInfo := struct {
+		lib.ProviderContext `yaml:",inline"`
+		Capability          map[string]interface{} `yaml:",inline"`
+	}{
+		ProviderContext: lib.ProviderContext{
+			Tags:     ctx.Tags,
+			Template: ctx.Template,
+		},
+		Capability: map[string]interface{}{
+			p.Capability: p.ConditionInfo,
+		},
+	}
+
+	serializedInfo, err := yaml.Marshal(providerInfo)
 	if err != nil {
 		//TODO(fabianvf)
 		panic(err)
 	}
-	templatedInfo, err := templateCondition(serializedInfo, ctx)
+	templatedInfo, err := templateCondition(serializedInfo, ctx.Template)
 	if err != nil {
 		//TODO(fabianvf)
 		panic(err)
@@ -65,16 +78,10 @@ func (p *ProviderCondition) Evaluate(log logr.Logger, ctx map[string]interface{}
 				Title: link.Title,
 			})
 		}
-		// Default to -1 if no effort is assinged.
-		// TODO(shawn-hurley evaluate if this is the correct default or if we want the end facing doc to have nil as an option.)
-		effort := int(-1)
-		if inc.Effort != nil {
-			effort = *inc.Effort
-		}
 
 		incidents = append(incidents, engine.IncidentContext{
 			FileURI: inc.FileURI,
-			Effort:  effort,
+			Effort:  inc.Effort,
 			Extras:  inc.Extras,
 			Links:   links,
 		})

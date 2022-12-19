@@ -68,16 +68,47 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 		return nil, nil, err
 	}
 
+	// rules that provide metadata
+	infoRules := []engine.Rule{}
+	// all rules
 	rules := []engine.Rule{}
 	ruleIDMap := map[string]*struct{}{}
 	providers := map[string]provider.Client{}
 	for _, ruleMap := range ruleMap {
-		// Rules right now only contain two top level things, message and when.
+		// Rules contain When blocks and actions
 		// When is where we need to handle conditions
-		message, ok := ruleMap["message"].(string)
-		if !ok {
-			return nil, nil, fmt.Errorf("unable to find message in rule")
+		actions := []string{"message", "tag"}
+
+		perform := engine.Perform{}
+		for _, action := range actions {
+			if val, exists := ruleMap[action]; exists {
+				switch action {
+				case "message":
+					message, ok := val.(string)
+					if !ok {
+						return nil, nil, fmt.Errorf("message must be a string")
+					}
+					perform.Message = &message
+				case "tag":
+					tagList, ok := val.([]interface{})
+					if !ok {
+						return nil, nil, fmt.Errorf("tag must be a list of strings")
+					}
+					for _, tagVal := range tagList {
+						tag, ok := tagVal.(string)
+						if !ok {
+							return nil, nil, fmt.Errorf("tag value must be a string")
+						}
+						perform.Tag = append(perform.Tag, tag)
+					}
+				}
+			}
 		}
+
+		if err := perform.Validate(); err != nil {
+			return nil, nil, err
+		}
+
 		ruleID, ok := ruleMap["ruleID"].(string)
 		if !ok {
 			return nil, nil, fmt.Errorf("unable to find ruleID in rule")
@@ -88,7 +119,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 		}
 
 		rule := engine.Rule{
-			Perform: message,
+			Perform: perform,
 			RuleID:  ruleID,
 		}
 
@@ -106,7 +137,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			delete(whenMap, "not")
 			not, ok = notKeywordRaw.(bool)
 			if !ok {
-				return nil, nil, fmt.Errorf("not must a boolean, not %v", notKeywordRaw)
+				return nil, nil, fmt.Errorf("not must be a boolean, not %v", notKeywordRaw)
 			}
 		}
 
@@ -183,10 +214,14 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 		}
 
 		ruleIDMap[rule.RuleID] = nil
-		rules = append(rules, rule)
+		if rule.Perform.Tag != nil {
+			infoRules = append(infoRules, rule)
+		} else {
+			rules = append(rules, rule)
+		}
 	}
 
-	return rules, providers, nil
+	return append(infoRules, rules...), providers, nil
 
 }
 
