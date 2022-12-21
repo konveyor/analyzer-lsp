@@ -43,7 +43,7 @@ func (p *golangProvider) Capabilities() ([]lib.Capability, error) {
 	return []lib.Capability{
 		{
 			Name:            "referenced",
-			TemplateContext: openapi3.Schema{},
+			TemplateContext: openapi3.SchemaRef{},
 		},
 	}, nil
 }

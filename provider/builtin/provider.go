@@ -18,40 +18,41 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var filePathsSchema = openapi3.SchemaRef{
-	Value: &openapi3.Schema{Description: "List of filepaths matching pattern",
-		Items: &openapi3.SchemaRef{
-			Value: &openapi3.Schema{
-				Type: "string",
-			},
-		},
-	},
-}
-
 var capabilities = []lib.Capability{
 	{
 		Name:            "filecontent",
-		TemplateContext: openapi3.Schema{},
+		TemplateContext: openapi3.SchemaRef{},
 	},
 	{
 		Name: "file",
-		TemplateContext: openapi3.Schema{
-			Properties: openapi3.Schemas{
-				"filepaths": &filePathsSchema,
+		TemplateContext: openapi3.SchemaRef{
+			Value: &openapi3.Schema{
+				Properties: openapi3.Schemas{
+					"filepaths": &openapi3.SchemaRef{
+						Value: &openapi3.Schema{
+							Description: "List of filepaths matching pattern",
+							Items: &openapi3.SchemaRef{
+								Value: &openapi3.Schema{
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},
 	{
 		Name:            "xml",
-		TemplateContext: openapi3.Schema{},
+		TemplateContext: openapi3.SchemaRef{},
 	},
 	{
 		Name:            "json",
-		TemplateContext: openapi3.Schema{},
+		TemplateContext: openapi3.SchemaRef{},
 	},
 	{
 		Name:            "hasTags",
-		TemplateContext: openapi3.Schema{},
+		TemplateContext: openapi3.SchemaRef{},
 	},
 }
 
