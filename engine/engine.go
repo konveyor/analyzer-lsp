@@ -4,11 +4,13 @@ import (
 	"context"
 	"sync"
 
+	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/yaml.v2"
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/hubapi"
+	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
 type RuleEngine interface {
@@ -71,7 +73,7 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 		case m := <-ruleMessages:
 			logger.V(5).Info("taking rule")
 			m.ctx.Template = make(map[string]interface{})
-			bo, err := processRule(m.rule, m.ctx, logger)
+			bo, err := processRule(ctx, m.rule, m.ctx, logger)
 			m.returnChan <- response{
 				ConditionResponse: bo,
 				Err:               err,
@@ -103,7 +105,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violat
 		}
 	}
 
-	ruleContext := r.runMetaRules(metaRules)
+	ruleContext := r.runMetaRules(ctx, metaRules)
 
 	// Need a better name for this thing
 	ret := make(chan response)
@@ -172,13 +174,13 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violat
 
 // runMetaRules filters and runs info rules synchronously
 // returns list of non-info rules, a context to pass to them
-func (r *ruleEngine) runMetaRules(infoRules []Rule) ConditionContext {
+func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []Rule) ConditionContext {
 	context := ConditionContext{
 		Tags:     make(map[string]interface{}),
 		Template: make(map[string]interface{}),
 	}
 	for _, rule := range infoRules {
-		response, err := processRule(rule, context, r.logger)
+		response, err := processRule(ctx, rule, context, r.logger)
 		if err != nil {
 			r.logger.Error(err, "failed to evaluate rule", "ruleID", rule.RuleID)
 		} else if response.Matched {
@@ -191,10 +193,13 @@ func (r *ruleEngine) runMetaRules(infoRules []Rule) ConditionContext {
 	return context
 }
 
-func processRule(rule Rule, ruleCtx ConditionContext, log logr.Logger) (ConditionResponse, error) {
+func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log logr.Logger) (ConditionResponse, error) {
+	ctx, span := tracing.StartNewSpan(
+		ctx, "process-rule", attribute.Key("rule").String(rule.RuleID))
+	defer span.End()
 	// Here is what a worker should run when getting a rule.
 	// For now, lets not fan out the running of conditions.
-	return rule.When.Evaluate(log, ruleCtx)
+	return rule.When.Evaluate(ctx, log, ruleCtx)
 
 }
 
