@@ -28,6 +28,26 @@
   description: ""
   category: ""
   incidents:
+  - uri: dependency/dependency/dep.go
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: dependency/main.go
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: dependency/provider/golang/provider.go
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: dependency/provider/java/provider.go
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: dependency/provider/provider.go
+    message: all go files
+    externallinks: []
+    extras: {}
   - uri: engine/conditions.go
     message: all go files
     externallinks: []
