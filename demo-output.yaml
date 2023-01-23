@@ -40,7 +40,15 @@
     message: all go files
     externallinks: []
     extras: {}
+  - uri: dependency/provider/golang/provider_test.go
+    message: all go files
+    externallinks: []
+    extras: {}
   - uri: dependency/provider/java/provider.go
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: dependency/provider/java/provider_test.go
     message: all go files
     externallinks: []
     extras: {}

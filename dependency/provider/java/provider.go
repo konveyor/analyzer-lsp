@@ -18,7 +18,7 @@ func GetDepProvider() provider.DependencyProvider {
 	return &depProvider{}
 }
 
-func (d *depProvider) GetDependencies(path string) ([]dependency.Dep, error) {
+func (d *depProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
 
 	//Create temp file to use
 	f, err := os.CreateTemp("", "*")
@@ -43,37 +43,71 @@ func (d *depProvider) GetDependencies(path string) ([]dependency.Dep, error) {
 
 	lines := strings.Split(string(b), "\n")
 
-	deps := []dependency.Dep{}
-	for i, l := range lines {
-		if i == 0 || i == len(lines)-1 {
-			// the first value is the name of the jar for this pom
-			// we will ignore this for now.
-			continue
-		}
-		// remove all the pretty print characters.
-		l = strings.TrimFunc(l, func(r rune) bool {
-			if r == '+' || r == '-' || r == '\\' || r == '|' || r == ' ' || r == '"' {
-				return true
-			}
-			return false
+	// strip first and last line of the output
+	// first line is the base package, last line empty
+	if len(lines) > 2 {
+		lines = lines[1 : len(lines)-2]
+	}
 
-		})
-		// Split string on ":" must have 5 parts.
-		// For now we ignore Type as it appears most everything is a jar
-		// GroupID:Name:Type:Version:Location
-		parts := strings.Split(l, ":")
-		if len(parts) != 5 {
-			return nil, fmt.Errorf("unable to split depdenecy string correctly")
-		}
+	deps := map[dependency.Dep][]dependency.Dep{}
 
-		deps = append(deps, dependency.Dep{
-			Name:     fmt.Sprintf("%s.%s", parts[0], parts[1]),
-			Version:  parts[3],
-			Location: parts[4],
-		})
-
+	err = parseMavenDepLines(lines, deps)
+	if err != nil {
+		return nil, err
 	}
 
 	return deps, nil
+}
 
+// parseDepString parses a java dependency string
+// assumes format <group>:<name>:<type>:<version>:<scope>
+func parseDepString(dep string) (dependency.Dep, error) {
+	d := dependency.Dep{}
+	// remove all the pretty print characters.
+	dep = strings.TrimFunc(dep, func(r rune) bool {
+		if r == '+' || r == '-' || r == '\\' || r == '|' || r == ' ' || r == '"' || r == '\t' {
+			return true
+		}
+		return false
+
+	})
+	// Split string on ":" must have 5 parts.
+	// For now we ignore Type as it appears most everything is a jar
+	parts := strings.Split(dep, ":")
+	if len(parts) != 5 {
+		return d, fmt.Errorf("unable to split depdenecy string %s", dep)
+	}
+	d.Name = fmt.Sprintf("%s.%s", parts[0], parts[1])
+	d.Version = parts[3]
+	d.Location = parts[4]
+	return d, nil
+}
+
+// parseMavenDepLines recursively parses output lines from maven dependency tree
+func parseMavenDepLines(lines []string, deps map[dependency.Dep][]dependency.Dep) error {
+	if len(lines) > 0 {
+		baseDepString := lines[0]
+		baseDep, err := parseDepString(baseDepString)
+		if err != nil {
+			return err
+		}
+		if _, ok := deps[baseDep]; !ok {
+			deps[baseDep] = make([]dependency.Dep, 0)
+		}
+		idx := 1
+		// indirect deps are separated by 3 or more spaces after the direct dep
+		for idx < len(lines) && strings.Count(lines[idx], " ") > 2 {
+			transitiveDep, err := parseDepString(lines[idx])
+			if err != nil {
+				return err
+			}
+			deps[baseDep] = append(deps[baseDep], transitiveDep)
+			idx += 1
+		}
+		err = parseMavenDepLines(lines[idx:], deps)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
