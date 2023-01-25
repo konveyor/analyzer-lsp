@@ -19,14 +19,12 @@ import (
 // Rule Location to location that the bundle understands
 var locationToCode = map[string]int{
 	//Type is the default.
-	"type": 0,
-	// Not Implemented
+	"type":             0,
 	"inheritance":      1,
 	"method_call":      2,
 	"constructor_call": 3,
 	"annotation":       4,
-	// Not Implemented
-	"implements_type": 5,
+	"implements_type":  5,
 	// Not Implemented
 	"enum_constant": 6,
 	// Not Implemented
@@ -114,6 +112,8 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 	case 0:
 		// Filter handle for type, find all the referneces to this type.
 		incidents, err = p.filterTypeReferences(symbols)
+	case 1, 5:
+		incidents, err = p.filterTypesInheritance(symbols)
 	case 2:
 		incidents, err = p.filterMethodSymbols(symbols)
 	case 3:

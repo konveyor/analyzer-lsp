@@ -15,9 +15,9 @@
   when:
     or:
     # This was 
-    # - java.referenced:
-    #     location: CONSTRUCTOR_CALL
-    #     pattern: java.io.FileInputStream(*)
+    - java.referenced:
+        location: CONSTRUCTOR_CALL
+        pattern: java.io.FileInputStream(*)
     - java.referenced:
         location: CONSTRUCTOR_CALL
         pattern: java.io.FileWriter(*)
@@ -48,3 +48,9 @@
     - java.referenced:
         location: IMPORT
         pattern: org.springframework.web.bind.annotation.RestController
+    - java.referenced:
+        location: INHERITANCE
+        pattern: org.springframework.data.repository.PagingAndSortingRepository
+    - java.referenced:
+        location: IMPLEMENTS_TYPE
+        pattern: io.konveyor.demo.ordermanagement.service.ICustomerService
