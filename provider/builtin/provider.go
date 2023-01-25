@@ -169,15 +169,31 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			if err != nil {
 				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 			}
+		} else if len(cond.XML.Filepaths) == 1 {
+			// Currently, rendering will render a list as a space seperated paths as a single string.
+			xmlFiles = strings.Split(cond.XML.Filepaths[0], " ")
 		} else {
 			xmlFiles = cond.XML.Filepaths
 		}
 		for _, file := range xmlFiles {
-			f, err := os.Open(file)
+			absPath, err := filepath.Abs(file)
+			if err != nil {
+				fmt.Printf("unable to get abs path: %v", err)
+			}
+			f, err := os.Open(absPath)
+			if err != nil {
+				fmt.Printf("unable to open file: %v", err)
+			}
 			doc, err := xmlquery.Parse(f)
+			if err != nil {
+				fmt.Printf("unable to query file: %v", err)
+				continue
+				// return response, err
+			}
 			list, err := xmlquery.QueryAll(doc, query)
 			if err != nil {
-				return response, err
+				continue
+				// return response, err
 			}
 			if len(list) != 0 {
 				response.Matched = true

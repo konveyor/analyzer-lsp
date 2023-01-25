@@ -2,6 +2,125 @@
   description: ""
   category: ""
   incidents:
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\t\tcom.fasterxml.jackson\n\t\t\t\tjackson-bom\n\t\t\t\t${jackson.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
+      matchingXML: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\t\torg.springframework.data\n\t\t\t\tspring-data-bom\n\t\t\t\t${spring-data.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
+      matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-servlet-api\n\t\t\t${tomcat.version}\n\t\t\tprovided\n\t\t"
+      matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-core\n\t\t"
+      matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-databind\n\t\t"
+      matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework.data\n\t\t\tspring-data-jpa\n\t\t"
+      matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework\n\t\t\tspring-jdbc\n\t\t\t${spring-framework.version}\n\t\t"
+      matchingXML: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
+      matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework\n\t\t\tspring-web\n\t\t\t${spring-framework.version}\n\t\t"
+      matchingXML: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework.boot\n\t\t\tspring-boot-starter-actuator\n\t\t\t2.5.0\n\t\t"
+      matchingXML: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-jdbc\n\t\t\t${tomcat.version}\n\t\t\truntime\n\t\t"
+      matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.hibernate\n\t\t\thibernate-entitymanager\n\t\t\t${hibernate.version}\n\t\t"
+      matchingXML: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.hibernate.validator\n\t\t\thibernate-validator\n\t\t\t${hibernate-validator.version}\n\t\t"
+      matchingXML: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tch.qos.logback\n\t\t\tlogback-classic\n\t\t\t1.1.7\n\t\t"
+      matchingXML: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tcom.oracle.database.jdbc\n\t\t\tojdbc8\n\t\t\t21.1.0.0\n\t\t"
+      matchingXML: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.postgresql\n\t\t\tpostgresql\n\t\t\t42.2.23\n\t\t"
+      matchingXML: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"
+      matchingXML: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
   - uri: file://examples/java/pom.xml
     message: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
     externallinks: []
@@ -124,6 +243,10 @@
     message: all go files
     externallinks: []
     extras: {}
+  - uri: provider/java/filter.go
+    message: all go files
+    externallinks: []
+    extras: {}
   - uri: provider/java/provider.go
     message: all go files
     externallinks: []
@@ -158,21 +281,27 @@
     externallinks: []
     extras:
       file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+      kind: Module
       lineNumber: 2
+      name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
   - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
     message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
       should be used instead
     externallinks: []
     extras:
       file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+      kind: Module
       lineNumber: 9
+      name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
   - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
     message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
       should be used instead
     externallinks: []
     extras:
       file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+      kind: Module
       lineNumber: 9
+      name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
   extras: []
 - ruleID: lang-ref-003
   description: ""
@@ -183,19 +312,25 @@
     externallinks: []
     extras:
       file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+      kind: Module
       lineNumber: 2
+      name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
   - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
     message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
     externallinks: []
     extras:
       file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+      kind: Module
       lineNumber: 9
+      name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
   - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
     message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
     externallinks: []
     extras:
       file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+      kind: Module
       lineNumber: 9
+      name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
   extras: []
 - ruleID: tech-tag-001
   description: ""
@@ -219,6 +354,125 @@
   description: ""
   category: ""
   incidents:
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\t\tcom.fasterxml.jackson\n\t\t\t\tjackson-bom\n\t\t\t\t${jackson.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
+      matchingXML: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\t\torg.springframework.data\n\t\t\t\tspring-data-bom\n\t\t\t\t${spring-data.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
+      matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-servlet-api\n\t\t\t${tomcat.version}\n\t\t\tprovided\n\t\t"
+      matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-core\n\t\t"
+      matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-databind\n\t\t"
+      matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework.data\n\t\t\tspring-data-jpa\n\t\t"
+      matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework\n\t\t\tspring-jdbc\n\t\t\t${spring-framework.version}\n\t\t"
+      matchingXML: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
+      matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework\n\t\t\tspring-web\n\t\t\t${spring-framework.version}\n\t\t"
+      matchingXML: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.springframework.boot\n\t\t\tspring-boot-starter-actuator\n\t\t\t2.5.0\n\t\t"
+      matchingXML: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-jdbc\n\t\t\t${tomcat.version}\n\t\t\truntime\n\t\t"
+      matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.hibernate\n\t\t\thibernate-entitymanager\n\t\t\t${hibernate.version}\n\t\t"
+      matchingXML: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.hibernate.validator\n\t\t\thibernate-validator\n\t\t\t${hibernate-validator.version}\n\t\t"
+      matchingXML: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tch.qos.logback\n\t\t\tlogback-classic\n\t\t\t1.1.7\n\t\t"
+      matchingXML: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tcom.oracle.database.jdbc\n\t\t\tojdbc8\n\t\t\t21.1.0.0\n\t\t"
+      matchingXML: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\torg.postgresql\n\t\t\tpostgresql\n\t\t\t42.2.23\n\t\t"
+      matchingXML: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
+  - uri: file://examples/customers-tomcat-legacy/pom.xml
+    message: POM XML dependencies
+    externallinks: []
+    extras:
+      data: dependency
+      innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"
+      matchingXML: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
   - uri: file://examples/java/pom.xml
     message: POM XML dependencies
     externallinks: []

@@ -161,7 +161,7 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx ConditionContext) (Condit
 		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluating")
 	}
 
-	fullResponse := ConditionResponse{Matched: true}
+	fullResponse := ConditionResponse{Matched: false}
 	incidents := []IncidentContext{}
 	var matched bool
 	for _, c := range ch.Conditions {
@@ -182,6 +182,8 @@ func (ch ChainCondition) Evaluate(log logr.Logger, ctx ConditionContext) (Condit
 		if c.As != "" {
 			ctx.Template[c.As] = response.TemplateContext
 		}
+
+		// TODO this logic may need to be changed?
 		matched = response.Matched
 		if c.Not {
 			matched = !matched
