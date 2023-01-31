@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-public class CustomerService {
+public class CustomerService implements ICustomerService{
 	
 	@Autowired
 	private CustomerRepository repository;
