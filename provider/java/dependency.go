@@ -8,17 +8,9 @@ import (
 	"strings"
 
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
-	"github.com/konveyor/analyzer-lsp/dependency/provider"
 )
 
-type depProvider struct {
-}
-
-func GetDepProvider() provider.DependencyProvider {
-	return &depProvider{}
-}
-
-func (d *depProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
+func (p *javaProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
 
 	//Create temp file to use
 	f, err := os.CreateTemp("", "*")

@@ -7,6 +7,7 @@ import (
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
+	depprovider "github.com/konveyor/analyzer-lsp/dependency/provider"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider/builtin"
 	"github.com/konveyor/analyzer-lsp/provider/golang"
@@ -25,6 +26,8 @@ type Client interface {
 	Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error)
 
 	Stop()
+
+	depprovider.DependencyProvider
 }
 
 type ProviderCondition struct {

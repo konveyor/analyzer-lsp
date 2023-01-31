@@ -13,6 +13,7 @@ import (
 	"github.com/antchfx/xmlquery"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"gopkg.in/yaml.v2"
@@ -285,4 +286,9 @@ func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 // We don't need to init anything
 func (p *builtinProvider) Init(_ context.Context, _ logr.Logger) error {
 	return nil
+}
+
+// We don't have dependencies
+func (p *builtinProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
+	return nil, nil
 }

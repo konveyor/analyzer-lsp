@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
@@ -24,6 +25,9 @@ func (t testProvider) Init(ctx context.Context, log logr.Logger) error {
 	return nil
 }
 
+func (t testProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
+	return nil, nil
+}
 func (t testProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
 	return lib.ProviderEvaluateResponse{}, nil
 }

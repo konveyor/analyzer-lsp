@@ -8,17 +8,9 @@ import (
 	"strings"
 
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
-	"github.com/konveyor/analyzer-lsp/dependency/provider"
 )
 
-type depProvider struct {
-}
-
-func GetDepProvider() provider.DependencyProvider {
-	return &depProvider{}
-}
-
-func (d *depProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
+func (g *golangProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 
