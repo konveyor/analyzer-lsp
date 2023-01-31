@@ -12,6 +12,28 @@ const (
 	FILE_KEY              = "file"
 )
 
+func (p *javaProvider) filterModulesImports(symbols []protocol.WorkspaceSymbol) ([]lib.IncidentContext, error) {
+	incidents := []lib.IncidentContext{}
+	for _, symbol := range symbols {
+		if symbol.Kind != protocol.Module {
+			continue
+		}
+
+		incidents = append(incidents, lib.IncidentContext{
+			FileURI: symbol.Location.URI,
+			Extras: map[string]interface{}{
+				LINE_NUMBER_EXTRA_KEY: symbol.Location.Range.Start.Line,
+				KIND_EXTRA_KEY:        symbolKindToString(symbol.Kind),
+				SYMBOL_NAME_KEY:       symbol.Name,
+				FILE_KEY:              symbol.Location.URI,
+			},
+		})
+	}
+
+	return incidents, nil
+
+}
+
 func (p *javaProvider) filterTypeReferences(symbols []protocol.WorkspaceSymbol) ([]lib.IncidentContext, error) {
 	incidents := []lib.IncidentContext{}
 	for _, symbol := range symbols {

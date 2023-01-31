@@ -1,6 +1,6 @@
 FROM quay.io/konveyor/jdtls-server-base
 COPY  ./ /analyzer-lsp
-COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
+COPY demo-rules/provider_container_settings.json /analyzer-lsp/provider_settings.json
 
 WORKDIR /analyzer-lsp
 

@@ -45,3 +45,6 @@
     - java.referenced:
         location: METHOD_CALL
         pattern: java.nio.file.Paths.get(*)
+    - java.referenced:
+        location: IMPORT
+        pattern: org.springframework.web.bind.annotation.RestController

@@ -1,0 +1,15 @@
+[
+    {
+        "name": "go",
+        "location": "examples/golang",
+        "binaryLocation": "/root/go/bin/gopls"
+    },
+    {
+        "name": "java",
+        "location": "examples/customers-tomcat-legacy",
+        "binaryLocation": "/jdtls/bin/jdtls",
+        "providerSpecificConfig": {
+            "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
+        }
+    }
+]
