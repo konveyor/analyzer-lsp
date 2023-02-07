@@ -10,7 +10,14 @@ import (
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 )
 
-func (p *javaProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
+// TODO implement this for real
+func (p *javaProvider) findPom() string {
+	return filepath.Join(p.config.Location, "pom.xml")
+}
+
+func (p *javaProvider) GetDependencies() (map[dependency.Dep][]dependency.Dep, error) {
+
+	path := p.findPom()
 
 	//Create temp file to use
 	f, err := os.CreateTemp("", "*")

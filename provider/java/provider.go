@@ -85,13 +85,21 @@ func (p *javaProvider) Stop() {
 	p.cmd.Wait()
 }
 
-func (p *javaProvider) Capabilities() ([]lib.Capability, error) {
+func (p *javaProvider) Capabilities() []lib.Capability {
 	return []lib.Capability{
 		{
 			Name:            "referenced",
 			TemplateContext: openapi3.SchemaRef{},
 		},
-	}, nil
+		{
+			Name:            "dependency",
+			TemplateContext: openapi3.SchemaRef{},
+		},
+	}
+}
+
+func (p *javaProvider) HasCapability(name string) bool {
+	return lib.HasCapability(p.Capabilities(), name)
 }
 
 func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {

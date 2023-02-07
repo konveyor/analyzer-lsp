@@ -80,11 +80,18 @@ func main() {
 	}
 
 	// Now that we have all the providers, we need to start them.
-	for _, provider := range needProviders {
+	for name, provider := range needProviders {
 		err := provider.Init(ctx, log)
 		if err != nil {
 			log.Error(err, "unable to init the providers")
 			os.Exit(1)
+		}
+		if provider.HasCapability("dependency") {
+			deps, err := provider.GetDependencies()
+			if err != nil {
+				log.Error(err, "unable to retrieve dependencies from provider")
+			}
+			engine.AddDependencies(name, deps)
 		}
 	}
 

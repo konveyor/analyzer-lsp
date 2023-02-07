@@ -8,11 +8,13 @@ import (
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/hubapi"
 )
 
 type RuleEngine interface {
 	RunRules(context context.Context, rules []Rule) []hubapi.Violation
+	AddDependencies(provider string, deps map[dependency.Dep][]dependency.Dep)
 	Stop()
 }
 
@@ -63,6 +65,11 @@ func (r *ruleEngine) Stop() {
 	r.cancelFunc()
 	r.logger.V(5).Info("rule engine stopping")
 	r.wg.Wait()
+}
+
+// TODO implement for real
+func (r *ruleEngine) AddDependencies(provider string, deps map[dependency.Dep][]dependency.Dep) {
+	return
 }
 
 func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logger logr.Logger, wg *sync.WaitGroup) {

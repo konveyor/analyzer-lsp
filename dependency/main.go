@@ -18,7 +18,11 @@ func main() {
 	flag.Parse()
 
 	p := java.NewJavaProvider(lib.Config{Location: "../examples/java"})
-	deps, err := p.GetDependencies("../examples/java/pom.xml")
+	if !p.HasCapability("dependency") {
+		fmt.Println("Provider does not have dependency capability")
+		return
+	}
+	deps, err := p.GetDependencies()
 
 	if err != nil {
 		panic(err)

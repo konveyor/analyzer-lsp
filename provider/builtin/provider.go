@@ -92,8 +92,12 @@ func (p *builtinProvider) Stop() {
 	return
 }
 
-func (p *builtinProvider) Capabilities() ([]lib.Capability, error) {
-	return capabilities, nil
+func (p *builtinProvider) Capabilities() []lib.Capability {
+	return capabilities
+}
+
+func (p *builtinProvider) HasCapability(name string) bool {
+	return lib.HasCapability(p.Capabilities(), name)
 }
 
 func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
@@ -289,6 +293,6 @@ func (p *builtinProvider) Init(_ context.Context, _ logr.Logger) error {
 }
 
 // We don't have dependencies
-func (p *builtinProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
+func (p *builtinProvider) GetDependencies() (map[dependency.Dep][]dependency.Dep, error) {
 	return nil, nil
 }

@@ -39,13 +39,17 @@ func NewGolangProvider(config lib.Config) *golangProvider {
 	}
 }
 
-func (p *golangProvider) Capabilities() ([]lib.Capability, error) {
+func (p *golangProvider) Capabilities() []lib.Capability {
 	return []lib.Capability{
 		{
 			Name:            "referenced",
 			TemplateContext: openapi3.SchemaRef{},
 		},
-	}, nil
+	}
+}
+
+func (p *golangProvider) HasCapability(name string) bool {
+	return lib.HasCapability(p.Capabilities(), name)
 }
 
 type golangCondition struct {

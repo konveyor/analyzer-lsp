@@ -10,9 +10,16 @@ import (
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 )
 
-func (g *golangProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
+// TODO implement this for real
+func (g *golangProvider) findGoMod() string {
+	return filepath.Join(g.config.Location, "go.mod")
+}
+
+func (g *golangProvider) GetDependencies() (map[dependency.Dep][]dependency.Dep, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
+
+	path := g.findGoMod()
 
 	moddir := filepath.Dir(path)
 	// get the graph output

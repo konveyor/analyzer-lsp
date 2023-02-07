@@ -72,3 +72,12 @@ type ProviderContext struct {
 	Tags     map[string]interface{} `yaml:"tags"`
 	Template map[string]interface{} `yaml:"template"`
 }
+
+func HasCapability(caps []Capability, name string) bool {
+	for _, cap := range caps {
+		if cap.Name == name {
+			return true
+		}
+	}
+	return false
+}
