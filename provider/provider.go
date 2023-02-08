@@ -7,6 +7,8 @@ import (
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-version"
+	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	depprovider "github.com/konveyor/analyzer-lsp/dependency/provider"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider/builtin"
@@ -148,5 +150,37 @@ type DependencyCondition struct {
 }
 
 func (dc DependencyCondition) Evaluate(log logr.Logger, ctx engine.ConditionContext) (engine.ConditionResponse, error) {
-	return engine.ConditionResponse{}, nil
+	resp := engine.ConditionResponse{}
+	deps, err := dc.Client.GetDependencies()
+	if err != nil {
+		return resp, err
+	}
+	var matchedDep dependency.Dep
+	for _, dep := range deps {
+		if dep.Name == dc.Name {
+			matchedDep = dep
+			break
+		}
+	}
+
+	depVersion, err := version.NewVersion(matchedDep.Version)
+	if err != nil {
+		return resp, err
+	}
+
+	constraintPieces := []string{}
+	if dc.Lowerbound != "" {
+		constraintPieces = append(constraintPieces, "> "+dc.Lowerbound)
+	}
+	if dc.Upperbound != "" {
+		constraintPieces = append(constraintPieces, "< "+dc.Upperbound)
+	}
+	constraints, err := version.NewConstraint(strings.Join(constraintPieces, ", "))
+	if err != nil {
+		return resp, err
+	}
+
+	resp.Matched = constraints.Check(depVersion)
+
+	return resp, nil
 }
