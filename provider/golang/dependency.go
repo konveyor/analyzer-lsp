@@ -15,7 +15,23 @@ func (g *golangProvider) findGoMod() string {
 	return filepath.Join(g.config.Location, "go.mod")
 }
 
-func (g *golangProvider) GetDependencies() (map[dependency.Dep][]dependency.Dep, error) {
+func (g *golangProvider) GetDependencies() ([]dependency.Dep, error) {
+	ll, err := g.GetDependenciesLinkedList()
+	if err != nil {
+		return nil, err
+	}
+	if len(ll) == 0 {
+		return nil, nil
+	}
+	deps := []dependency.Dep{}
+	for topLevel, transitives := range ll {
+		deps = append(deps, topLevel)
+		deps = append(deps, transitives...)
+	}
+	return deps, err
+}
+
+func (g *golangProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 

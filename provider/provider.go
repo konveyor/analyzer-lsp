@@ -137,3 +137,16 @@ func GetProviderClient(config lib.Config) (Client, error) {
 		return nil, fmt.Errorf("unknown and invalid provider client")
 	}
 }
+
+// TODO where should this go
+type DependencyCondition struct {
+	Upperbound string
+	Lowerbound string
+	Name       string
+
+	Client Client
+}
+
+func (dc DependencyCondition) Evaluate(log logr.Logger, ctx engine.ConditionContext) (engine.ConditionResponse, error) {
+	return engine.ConditionResponse{}, nil
+}

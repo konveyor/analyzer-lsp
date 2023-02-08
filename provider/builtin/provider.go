@@ -293,6 +293,11 @@ func (p *builtinProvider) Init(_ context.Context, _ logr.Logger) error {
 }
 
 // We don't have dependencies
-func (p *builtinProvider) GetDependencies() (map[dependency.Dep][]dependency.Dep, error) {
+func (p *builtinProvider) GetDependencies() ([]dependency.Dep, error) {
+	return nil, nil
+}
+
+// We don't have dependencies
+func (p *builtinProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
 	return nil, nil
 }

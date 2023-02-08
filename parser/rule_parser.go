@@ -209,7 +209,6 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				}
 				rule.When = c
 				providers[providerKey] = provider
-
 			}
 		}
 
@@ -389,7 +388,33 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 				ignorable = i
 			}
 		}
+	}
 
+	if capability == "dependency" {
+		fullCondition, ok := value.(map[string]interface{})
+		if !ok {
+			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+		}
+		dependencyCondition, ok := fullCondition[strings.Join([]string{langProvider, capability}, ".")].(map[string]interface{})
+		if !ok {
+			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+		}
+		name, ok := dependencyCondition["name"].(string)
+		if !ok {
+			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (name is required)", langProvider)
+		}
+		upperbound, _ := dependencyCondition["upperbound"].(string)
+		lowerbound, _ := dependencyCondition["lowerbound"].(string)
+		if upperbound == "" && lowerbound == "" {
+			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (one of upperbound or lowerbound is required)", langProvider)
+		}
+
+		return &provider.DependencyCondition{
+			Name:       name,
+			Upperbound: upperbound,
+			Lowerbound: lowerbound,
+			Client:     client,
+		}, client, nil
 	}
 
 	return &provider.ProviderCondition{
