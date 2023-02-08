@@ -94,6 +94,7 @@
       - java.dependency:
           name: junit.junit
           upperbound: 4.12.2
+          lowerbound: 4.4.0
       - java.dependency:
           name: io.fabric8.kubernetes-client
           lowerbound: 5.0.100
