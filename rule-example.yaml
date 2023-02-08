@@ -73,3 +73,27 @@
       - Kubernetes
     - builtin.hasTags:
       - Java
+- message: "dependency {{name}} with {{version}} is bad and you should feel bad for using it"
+  ruleID: golang-gomod-dependencies
+  when:
+    and:
+      - go.dependency:
+          name: golang.org/x/text
+          upperbound: v0.3.8
+      - go.dependency:
+          name: k8s.io/apimachinery
+          lowerbound: v0.24.3
+      - go.dependency:
+          name: sigs.k8s.io/structured-merge-diff/v4
+          lowerbound: v4.2.0
+          upperbound: v4.2.2
+- message: "dependency {{name}} with {{version}} is bad and you should feel bad for using it"
+  ruleID: java-pomxml-dependencies
+  when:
+    and:
+      - java.dependency:
+          name: junit.junit
+          upperbound: 4.12.2
+      - java.dependency:
+          name: io.fabric8.kubernetes-client
+          lowerbound: 5.0.100

@@ -155,22 +155,6 @@
     message: all go files
     externallinks: []
     extras: {}
-  - uri: dependency/provider/golang/provider.go
-    message: all go files
-    externallinks: []
-    extras: {}
-  - uri: dependency/provider/golang/provider_test.go
-    message: all go files
-    externallinks: []
-    extras: {}
-  - uri: dependency/provider/java/provider.go
-    message: all go files
-    externallinks: []
-    extras: {}
-  - uri: dependency/provider/java/provider_test.go
-    message: all go files
-    externallinks: []
-    extras: {}
   - uri: dependency/provider/provider.go
     message: all go files
     externallinks: []
@@ -239,7 +223,23 @@
     message: all go files
     externallinks: []
     extras: {}
+  - uri: provider/golang/dependency.go
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: provider/golang/dependency_test.go
+    message: all go files
+    externallinks: []
+    extras: {}
   - uri: provider/golang/provider.go
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: provider/java/dependency.go
+    message: all go files
+    externallinks: []
+    extras: {}
+  - uri: provider/java/dependency_test.go
     message: all go files
     externallinks: []
     extras: {}
@@ -259,6 +259,10 @@
     message: all go files
     externallinks: []
     extras: {}
+  - uri: provider/provider_test.go
+    message: all go files
+    externallinks: []
+    extras: {}
   extras: []
 - ruleID: go-lang-ref-001
   description: ""
@@ -270,6 +274,51 @@
     extras:
       file: file:///analyzer-lsp/examples/golang/main.go
       lineNumber: 9
+  extras: []
+- ruleID: golang-gomod-dependencies
+  description: ""
+  category: ""
+  incidents:
+  - uri: ""
+    message: dependency golang.org/x/text with v0.3.7 is bad and you should feel bad
+      for using it
+    externallinks: []
+    extras:
+      name: golang.org/x/text
+      version: v0.3.7
+  - uri: ""
+    message: dependency k8s.io/apimachinery with v0.24.4 is bad and you should feel
+      bad for using it
+    externallinks: []
+    extras:
+      name: k8s.io/apimachinery
+      version: v0.24.4
+  - uri: ""
+    message: dependency sigs.k8s.io/structured-merge-diff/v4 with v4.2.1 is bad and
+      you should feel bad for using it
+    externallinks: []
+    extras:
+      name: sigs.k8s.io/structured-merge-diff/v4
+      version: v4.2.1
+  extras: []
+- ruleID: java-pomxml-dependencies
+  description: ""
+  category: ""
+  incidents:
+  - uri: test
+    message: dependency junit.junit with 4.11 is bad and you should feel bad for using
+      it
+    externallinks: []
+    extras:
+      name: junit.junit
+      version: "4.11"
+  - uri: compile
+    message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you should
+      feel bad for using it
+    externallinks: []
+    extras:
+      name: io.fabric8.kubernetes-client
+      version: 6.0.0
   extras: []
 - ruleID: lang-ref-001
   description: ""
