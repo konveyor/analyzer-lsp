@@ -45,6 +45,11 @@ func (p *golangProvider) Capabilities() []lib.Capability {
 			Name:            "referenced",
 			TemplateContext: openapi3.SchemaRef{},
 		},
+		{
+
+			Name:            "dependency",
+			TemplateContext: openapi3.SchemaRef{},
+		},
 	}
 }
 

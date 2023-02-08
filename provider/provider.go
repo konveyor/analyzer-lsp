@@ -155,12 +155,15 @@ func (dc DependencyCondition) Evaluate(log logr.Logger, ctx engine.ConditionCont
 	if err != nil {
 		return resp, err
 	}
-	var matchedDep dependency.Dep
+	var matchedDep *dependency.Dep
 	for _, dep := range deps {
 		if dep.Name == dc.Name {
-			matchedDep = dep
+			matchedDep = &dep
 			break
 		}
+	}
+	if matchedDep == nil {
+		return resp, nil
 	}
 
 	depVersion, err := version.NewVersion(matchedDep.Version)
@@ -181,6 +184,17 @@ func (dc DependencyCondition) Evaluate(log logr.Logger, ctx engine.ConditionCont
 	}
 
 	resp.Matched = constraints.Check(depVersion)
+	resp.Incidents = []engine.IncidentContext{engine.IncidentContext{
+		FileURI: matchedDep.Location,
+		Extras: map[string]interface{}{
+			"name":    matchedDep.Name,
+			"version": matchedDep.Version,
+		},
+	}}
+	resp.TemplateContext = map[string]interface{}{
+		"name":    matchedDep.Name,
+		"version": matchedDep.Version,
+	}
 
 	return resp, nil
 }

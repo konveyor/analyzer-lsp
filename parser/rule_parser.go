@@ -391,30 +391,43 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 	}
 
 	if capability == "dependency" {
-		fullCondition, ok := value.(map[string]interface{})
+		depCondition := provider.DependencyCondition{
+			Client: client,
+		}
+
+		fullCondition, ok := value.(map[interface{}]interface{})
 		if !ok {
 			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
 		}
-		dependencyCondition, ok := fullCondition[strings.Join([]string{langProvider, capability}, ".")].(map[string]interface{})
-		if !ok {
-			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+		for k, v := range fullCondition {
+			key, ok := k.(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+			}
+			value, ok := v.(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+			}
+			switch key {
+			case "name":
+				depCondition.Name = value
+			case "upperbound":
+				depCondition.Upperbound = value
+			case "lowerbound":
+				depCondition.Lowerbound = value
+			default:
+				return nil, nil, fmt.Errorf("%s is not a valid argument for a dependency condition", key)
+			}
 		}
-		name, ok := dependencyCondition["name"].(string)
-		if !ok {
+
+		if depCondition.Name == "" {
 			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (name is required)", langProvider)
 		}
-		upperbound, _ := dependencyCondition["upperbound"].(string)
-		lowerbound, _ := dependencyCondition["lowerbound"].(string)
-		if upperbound == "" && lowerbound == "" {
+		if depCondition.Upperbound == "" && depCondition.Lowerbound == "" {
 			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (one of upperbound or lowerbound is required)", langProvider)
 		}
 
-		return &provider.DependencyCondition{
-			Name:       name,
-			Upperbound: upperbound,
-			Lowerbound: lowerbound,
-			Client:     client,
-		}, client, nil
+		return &depCondition, client, nil
 	}
 
 	return &provider.ProviderCondition{
