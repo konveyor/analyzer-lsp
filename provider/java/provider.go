@@ -27,12 +27,9 @@ var locationToCode = map[string]int{
 	"implements_type":  5,
 	// Not Implemented
 	"enum_constant": 6,
-	// Not Implemented
-	"return_type": 7,
-	// Not Implemented
-	"import": 8,
-	// Not Implemented
-	"method": 9,
+	"return_type":   7,
+	"import":        8,
+	"method":        9,
 }
 
 type javaProvider struct {
@@ -118,6 +115,8 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 		incidents, err = p.filterMethodSymbols(symbols)
 	case 3:
 		incidents, err = p.filterConstructorSymbols(symbols)
+	case 7:
+		incidents, err = p.filterMethodSymbols(symbols)
 	case 8:
 		incidents, err = p.filterModulesImports(symbols)
 	default:

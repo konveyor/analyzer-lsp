@@ -14,7 +14,6 @@
   ruleID: local-storage-00001
   when:
     or:
-    # This was 
     - java.referenced:
         location: CONSTRUCTOR_CALL
         pattern: java.io.FileInputStream(*)
@@ -54,3 +53,6 @@
     - java.referenced:
         location: IMPLEMENTS_TYPE
         pattern: io.konveyor.demo.ordermanagement.service.ICustomerService
+    - java.referenced:
+        location: RETURN_TYPE
+        pattern: io.konveyor.demo.ordermanagement.model.Customer*
