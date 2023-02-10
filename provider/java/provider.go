@@ -26,10 +26,10 @@ var locationToCode = map[string]int{
 	"annotation":       4,
 	"implements_type":  5,
 	// Not Implemented
-	"enum_constant": 6,
-	"return_type":   7,
-	"import":        8,
-	"method":        9,
+	"enum_constant":        6,
+	"return_type":          7,
+	"import":               8,
+	"variable_declaration": 9,
 }
 
 type javaProvider struct {
@@ -134,6 +134,8 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 		incidents, err = p.filterMethodSymbols(symbols)
 	case 8:
 		incidents, err = p.filterModulesImports(symbols)
+	case 9:
+		incidents, err = p.filterVariableDeclaration(symbols)
 	default:
 
 	}

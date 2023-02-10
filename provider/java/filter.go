@@ -12,6 +12,23 @@ const (
 	FILE_KEY              = "file"
 )
 
+func (p *javaProvider) filterVariableDeclaration(symbols []protocol.WorkspaceSymbol) ([]lib.IncidentContext, error) {
+	incidents := []lib.IncidentContext{}
+	for _, ref := range symbols {
+		incidents = append(incidents, lib.IncidentContext{
+			FileURI: ref.Location.URI,
+			Extras: map[string]interface{}{
+				LINE_NUMBER_EXTRA_KEY: ref.Location.Range.Start.Line,
+				// TODO(fabianvf) remove this, Temporary for testing purpses
+				KIND_EXTRA_KEY:  symbolKindToString(ref.Kind),
+				SYMBOL_NAME_KEY: ref.Name,
+				FILE_KEY:        ref.Location.URI,
+			},
+		})
+	}
+	return incidents, nil
+}
+
 func (p *javaProvider) filterModulesImports(symbols []protocol.WorkspaceSymbol) ([]lib.IncidentContext, error) {
 	incidents := []lib.IncidentContext{}
 	for _, symbol := range symbols {

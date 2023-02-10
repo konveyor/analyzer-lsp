@@ -46,7 +46,7 @@ func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger) RuleEng
 	wg := &sync.WaitGroup{}
 
 	for i := 0; i < workers; i++ {
-		logger := log.WithValues("workder", i)
+		logger := log.WithValues("worker", i)
 		wg.Add(1)
 		go processRuleWorker(ctx, ruleProcessor, logger, wg)
 	}

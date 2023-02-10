@@ -56,3 +56,6 @@
     - java.referenced:
         location: RETURN_TYPE
         pattern: io.konveyor.demo.ordermanagement.model.Customer*
+    - java.referenced:
+        location: VARIABLE_DECLARATION
+        pattern: io.konveyor.demo.ordermanagement.model.Customer*
