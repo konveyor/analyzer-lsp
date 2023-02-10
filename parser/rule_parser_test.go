@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
@@ -16,9 +17,10 @@ type testProvider struct {
 	caps []lib.Capability
 }
 
-func (t testProvider) Capabilities() ([]lib.Capability, error) {
-	return t.caps, nil
+func (t testProvider) Capabilities() []lib.Capability {
+	return t.caps
 }
+func (t testProvider) HasCapability(string) bool { return true }
 
 func (t testProvider) Init(ctx context.Context, log logr.Logger) error {
 	return nil
@@ -26,6 +28,14 @@ func (t testProvider) Init(ctx context.Context, log logr.Logger) error {
 
 func (t testProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
 	return lib.ProviderEvaluateResponse{}, nil
+}
+
+func (t testProvider) GetDependencies() ([]dependency.Dep, error) {
+	return nil, nil
+}
+
+func (t testProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
+	return nil, nil
 }
 
 func (t testProvider) Stop() {}
@@ -437,12 +447,12 @@ func TestLoadRules(t *testing.T) {
 			}
 
 			for k, c := range clients {
-				gotCaps, _ := c.Capabilities()
+				gotCaps := c.Capabilities()
 				expectedProvider, ok := tc.ExpectedProvider[k]
 				if !ok {
 					t.Errorf("could not find provider: %v", k)
 				}
-				expectedCaps, _ := expectedProvider.Capabilities()
+				expectedCaps := expectedProvider.Capabilities()
 				if !reflect.DeepEqual(gotCaps, expectedCaps) {
 					t.Errorf("expected provider and got provider caps don't match")
 				}

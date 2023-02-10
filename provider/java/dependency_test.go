@@ -47,42 +47,50 @@ func Test_parseMavenDepLines(t *testing.T) {
 					Name:     "junit.junit",
 					Version:  "4.11",
 					Location: "test",
+					Indirect: false,
 				}: {
 					{
 						Name:     "org.hamcrest.hamcrest-core",
 						Version:  "1.3",
 						Location: "test",
+						Indirect: true,
 					},
 				},
 				{
 					Name:     "io.fabric8.kubernetes-client",
 					Version:  "6.0.0",
 					Location: "compile",
+					Indirect: false,
 				}: {
 					{
 						Name:     "io.fabric8.kubernetes-httpclient-okhttp",
 						Version:  "6.0.0",
 						Location: "runtime",
+						Indirect: true,
 					},
 					{
 						Name:     "com.squareup.okhttp3.okhttp",
 						Version:  "3.12.12",
 						Location: "runtime",
+						Indirect: true,
 					},
 					{
 						Name:     "com.squareup.okio.okio",
 						Version:  "1.15.0",
 						Location: "runtime",
+						Indirect: true,
 					},
 					{
 						Name:     "com.squareup.okhttp3.logging-interceptor",
 						Version:  "3.12.12",
 						Location: "runtime",
+						Indirect: true,
 					},
 					{
 						Name:     "io.fabric8.zjsonpatch",
 						Version:  "0.3.0",
 						Location: "compile",
+						Indirect: true,
 					},
 				},
 			},

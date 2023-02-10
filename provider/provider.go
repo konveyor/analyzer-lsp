@@ -7,6 +7,9 @@ import (
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-version"
+	"github.com/konveyor/analyzer-lsp/dependency/dependency"
+	depprovider "github.com/konveyor/analyzer-lsp/dependency/provider"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider/builtin"
 	"github.com/konveyor/analyzer-lsp/provider/golang"
@@ -17,7 +20,8 @@ import (
 
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
 type Client interface {
-	Capabilities() ([]lib.Capability, error)
+	Capabilities() []lib.Capability
+	HasCapability(name string) bool
 
 	// Block until initialized
 	Init(context.Context, logr.Logger) error
@@ -25,6 +29,8 @@ type Client interface {
 	Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error)
 
 	Stop()
+
+	depprovider.DependencyProvider
 }
 
 type ProviderCondition struct {
@@ -132,4 +138,63 @@ func GetProviderClient(config lib.Config) (Client, error) {
 	default:
 		return nil, fmt.Errorf("unknown and invalid provider client")
 	}
+}
+
+// TODO where should this go
+type DependencyCondition struct {
+	Upperbound string
+	Lowerbound string
+	Name       string
+
+	Client Client
+}
+
+func (dc DependencyCondition) Evaluate(log logr.Logger, ctx engine.ConditionContext) (engine.ConditionResponse, error) {
+	resp := engine.ConditionResponse{}
+	deps, err := dc.Client.GetDependencies()
+	if err != nil {
+		return resp, err
+	}
+	var matchedDep *dependency.Dep
+	for _, dep := range deps {
+		if dep.Name == dc.Name {
+			matchedDep = &dep
+			break
+		}
+	}
+	if matchedDep == nil {
+		return resp, nil
+	}
+
+	depVersion, err := version.NewVersion(matchedDep.Version)
+	if err != nil {
+		return resp, err
+	}
+
+	constraintPieces := []string{}
+	if dc.Lowerbound != "" {
+		constraintPieces = append(constraintPieces, "> "+dc.Lowerbound)
+	}
+	if dc.Upperbound != "" {
+		constraintPieces = append(constraintPieces, "< "+dc.Upperbound)
+	}
+	constraints, err := version.NewConstraint(strings.Join(constraintPieces, ", "))
+	if err != nil {
+		return resp, err
+	}
+
+	resp.Matched = constraints.Check(depVersion)
+	resp.Incidents = []engine.IncidentContext{engine.IncidentContext{
+		FileURI: matchedDep.Location,
+		Extras: map[string]interface{}{
+			"name":    matchedDep.Name,
+			"version": matchedDep.Version,
+		},
+	}}
+	resp.TemplateContext = map[string]interface{}{
+		"name":    matchedDep.Name,
+		"version": matchedDep.Version,
+	}
+
+	return resp, nil
 }

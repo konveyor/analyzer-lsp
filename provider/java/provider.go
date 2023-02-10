@@ -46,6 +46,8 @@ type javaProvider struct {
 	cancelFunc context.CancelFunc
 	cmd        *exec.Cmd
 	once       sync.Once
+
+	hasMaven bool
 }
 
 type javaCondition struct {
@@ -69,13 +71,15 @@ func NewJavaProvider(config lib.Config) *javaProvider {
 	bundlesString := config.ProviderSpecificConfig[BUNDLES_INIT_OPTION]
 	bundles := strings.Split(bundlesString, ",")
 
-	workspace := config.ProviderSpecificConfig[WORKSPACE_INIT_OPTION]
+	_, mvnBinaryError := exec.LookPath("mvn")
 
+	workspace := config.ProviderSpecificConfig[WORKSPACE_INIT_OPTION]
 	return &javaProvider{
 		config:    config,
 		bundles:   bundles,
 		workspace: workspace,
 		once:      sync.Once{},
+		hasMaven:  mvnBinaryError == nil,
 	}
 }
 
@@ -85,13 +89,24 @@ func (p *javaProvider) Stop() {
 	p.cmd.Wait()
 }
 
-func (p *javaProvider) Capabilities() ([]lib.Capability, error) {
-	return []lib.Capability{
+func (p *javaProvider) Capabilities() []lib.Capability {
+	caps := []lib.Capability{
 		{
 			Name:            "referenced",
 			TemplateContext: openapi3.SchemaRef{},
 		},
-	}, nil
+	}
+	if p.hasMaven {
+		caps = append(caps, lib.Capability{
+			Name:            "dependency",
+			TemplateContext: openapi3.SchemaRef{},
+		})
+	}
+	return caps
+}
+
+func (p *javaProvider) HasCapability(name string) bool {
+	return lib.HasCapability(p.Capabilities(), name)
 }
 
 func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {

@@ -209,7 +209,6 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				}
 				rule.When = c
 				providers[providerKey] = provider
-
 			}
 		}
 
@@ -378,18 +377,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 		return nil, nil, fmt.Errorf("unable to find provider for :%v", langProvider)
 	}
 
-	providerCaps, err := client.Capabilities()
-	if err != nil {
-		return nil, nil, err
-	}
-	found := false
-	for _, c := range providerCaps {
-		if c.Name == capability {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !client.HasCapability(capability) {
 		return nil, nil, fmt.Errorf("unable to find cap: %v from provider: %v", capability, langProvider)
 	}
 
@@ -400,7 +388,46 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 				ignorable = i
 			}
 		}
+	}
 
+	if capability == "dependency" {
+		depCondition := provider.DependencyCondition{
+			Client: client,
+		}
+
+		fullCondition, ok := value.(map[interface{}]interface{})
+		if !ok {
+			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+		}
+		for k, v := range fullCondition {
+			key, ok := k.(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+			}
+			value, ok := v.(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+			}
+			switch key {
+			case "name":
+				depCondition.Name = value
+			case "upperbound":
+				depCondition.Upperbound = value
+			case "lowerbound":
+				depCondition.Lowerbound = value
+			default:
+				return nil, nil, fmt.Errorf("%s is not a valid argument for a dependency condition", key)
+			}
+		}
+
+		if depCondition.Name == "" {
+			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (name is required)", langProvider)
+		}
+		if depCondition.Upperbound == "" && depCondition.Lowerbound == "" {
+			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (one of upperbound or lowerbound is required)", langProvider)
+		}
+
+		return &depCondition, client, nil
 	}
 
 	return &provider.ProviderCondition{

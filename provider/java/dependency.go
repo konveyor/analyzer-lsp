@@ -8,17 +8,38 @@ import (
 	"strings"
 
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
-	"github.com/konveyor/analyzer-lsp/dependency/provider"
 )
 
-type depProvider struct {
+// TODO implement this for real
+func (p *javaProvider) findPom() string {
+	var depPath string
+	if p.config.DependencyPath == "" {
+		depPath = "pom.xml"
+	} else {
+		depPath = p.config.DependencyPath
+	}
+	return filepath.Join(p.config.Location, depPath)
 }
 
-func GetDepProvider() provider.DependencyProvider {
-	return &depProvider{}
+func (p *javaProvider) GetDependencies() ([]dependency.Dep, error) {
+	ll, err := p.GetDependenciesLinkedList()
+	if err != nil {
+		return nil, err
+	}
+	if len(ll) == 0 {
+		return nil, nil
+	}
+	deps := []dependency.Dep{}
+	for topLevel, transitives := range ll {
+		deps = append(deps, topLevel)
+		deps = append(deps, transitives...)
+	}
+	return deps, err
 }
 
-func (d *depProvider) GetDependencies(path string) (map[dependency.Dep][]dependency.Dep, error) {
+func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
+
+	path := p.findPom()
 
 	//Create temp file to use
 	f, err := os.CreateTemp("", "*")
@@ -75,7 +96,7 @@ func parseDepString(dep string) (dependency.Dep, error) {
 	// For now we ignore Type as it appears most everything is a jar
 	parts := strings.Split(dep, ":")
 	if len(parts) != 5 {
-		return d, fmt.Errorf("unable to split depdenecy string %s", dep)
+		return d, fmt.Errorf("unable to split dependency string %s", dep)
 	}
 	d.Name = fmt.Sprintf("%s.%s", parts[0], parts[1])
 	d.Version = parts[3]
@@ -101,6 +122,7 @@ func parseMavenDepLines(lines []string, deps map[dependency.Dep][]dependency.Dep
 			if err != nil {
 				return err
 			}
+			transitiveDep.Indirect = true
 			deps[baseDep] = append(deps[baseDep], transitiveDep)
 			idx += 1
 		}

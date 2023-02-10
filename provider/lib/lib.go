@@ -26,6 +26,10 @@ type Config struct {
 	// Provider will be responisble for parsing
 	Location string `yaml:"location,omitempty"`
 
+	// This is the path to look for the dependencies for the project.
+	// It is relative to the Location
+	DependencyPath string `yaml:"dependencyPath,omitempty"`
+
 	BinaryLocation string `yaml:"binaryLocation,omitempty"`
 
 	// This will have to be defined for each provider
@@ -71,4 +75,13 @@ type ExternalLinks struct {
 type ProviderContext struct {
 	Tags     map[string]interface{} `yaml:"tags"`
 	Template map[string]interface{} `yaml:"template"`
+}
+
+func HasCapability(caps []Capability, name string) bool {
+	for _, cap := range caps {
+		if cap.Name == name {
+			return true
+		}
+	}
+	return false
 }

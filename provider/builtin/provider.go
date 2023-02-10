@@ -13,6 +13,7 @@ import (
 	"github.com/antchfx/xmlquery"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"gopkg.in/yaml.v2"
@@ -91,8 +92,12 @@ func (p *builtinProvider) Stop() {
 	return
 }
 
-func (p *builtinProvider) Capabilities() ([]lib.Capability, error) {
-	return capabilities, nil
+func (p *builtinProvider) Capabilities() []lib.Capability {
+	return capabilities
+}
+
+func (p *builtinProvider) HasCapability(name string) bool {
+	return lib.HasCapability(p.Capabilities(), name)
 }
 
 func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
@@ -285,4 +290,14 @@ func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 // We don't need to init anything
 func (p *builtinProvider) Init(_ context.Context, _ logr.Logger) error {
 	return nil
+}
+
+// We don't have dependencies
+func (p *builtinProvider) GetDependencies() ([]dependency.Dep, error) {
+	return nil, nil
+}
+
+// We don't have dependencies
+func (p *builtinProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
+	return nil, nil
 }

@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/konveyor/analyzer-lsp/dependency/provider/java"
+	"github.com/konveyor/analyzer-lsp/provider/java"
+	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"gopkg.in/yaml.v2"
 )
 
@@ -16,8 +17,12 @@ var (
 func main() {
 	flag.Parse()
 
-	p := java.GetDepProvider()
-	deps, err := p.GetDependencies("../examples/java/pom.xml")
+	p := java.NewJavaProvider(lib.Config{Location: "../examples/java"})
+	if !p.HasCapability("dependency") {
+		fmt.Println("Provider does not have dependency capability")
+		return
+	}
+	deps, err := p.GetDependencies()
 
 	if err != nil {
 		panic(err)
