@@ -12,7 +12,13 @@ import (
 
 // TODO implement this for real
 func (p *javaProvider) findPom() string {
-	return filepath.Join(p.config.Location, "pom.xml")
+	var depPath string
+	if p.config.DependencyPath == "" {
+		depPath = "pom.xml"
+	} else {
+		depPath = p.config.DependencyPath
+	}
+	return filepath.Join(p.config.Location, depPath)
 }
 
 func (p *javaProvider) GetDependencies() ([]dependency.Dep, error) {

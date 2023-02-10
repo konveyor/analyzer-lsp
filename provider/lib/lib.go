@@ -26,6 +26,10 @@ type Config struct {
 	// Provider will be responisble for parsing
 	Location string `yaml:"location,omitempty"`
 
+	// This is the path to look for the dependencies for the project.
+	// It is relative to the Location
+	DependencyPath string `yaml:"dependencyPath,omitempty"`
+
 	BinaryLocation string `yaml:"binaryLocation,omitempty"`
 
 	// This will have to be defined for each provider

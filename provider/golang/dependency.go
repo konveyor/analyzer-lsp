@@ -12,7 +12,13 @@ import (
 
 // TODO implement this for real
 func (g *golangProvider) findGoMod() string {
-	return filepath.Join(g.config.Location, "go.mod")
+	var depPath string
+	if g.config.DependencyPath == "" {
+		depPath = "go.mod"
+	} else {
+		depPath = g.config.DependencyPath
+	}
+	return filepath.Join(g.config.Location, depPath)
 }
 
 func (g *golangProvider) GetDependencies() ([]dependency.Dep, error) {
