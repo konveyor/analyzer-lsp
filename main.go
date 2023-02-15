@@ -73,12 +73,11 @@ func main() {
 		Log:                  log.WithName("parser"),
 	}
 
-	rules, needProviders, err := parser.LoadRules(*rulesFile)
+	ruleSet, needProviders, err := parser.LoadRules(*rulesFile)
 	if err != nil {
 		log.Error(err, "unable to parse all the rules")
 		os.Exit(1)
 	}
-
 	// Now that we have all the providers, we need to start them.
 	for _, provider := range needProviders {
 		err := provider.Init(ctx, log)
@@ -88,7 +87,7 @@ func main() {
 		}
 	}
 
-	violations := engine.RunRules(ctx, rules)
+	violations := engine.RunRules(ctx, ruleSet)
 	engine.Stop()
 
 	for _, provider := range needProviders {
@@ -96,7 +95,7 @@ func main() {
 	}
 
 	sort.SliceStable(violations, func(i, j int) bool {
-		return violations[i].RuleID < violations[j].RuleID
+		return violations[i].Name < violations[j].Name
 	})
 
 	//Before we exit we need to clean up

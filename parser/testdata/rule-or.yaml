@@ -1,4 +1,3 @@
----
 - message: all go or json files
   ruleID: file-001
   when:

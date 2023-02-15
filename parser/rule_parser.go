@@ -13,46 +13,127 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
+const (
+	RULE_SET_GOLDEN_FILE_NAME = "ruleset.yaml"
+)
+
+var defaultRuleSet = &engine.RuleSet{
+	Name: "konveyor-analysis",
+}
+
 type RuleParser struct {
 	ProviderNameToClient map[string]provider.Client
 	Log                  logr.Logger
 }
 
+func (r *RuleParser) loadRuleSet(dir string) *engine.RuleSet {
+	goldenFile := path.Join(dir, RULE_SET_GOLDEN_FILE_NAME)
+	info, err := os.Stat(goldenFile)
+	if err != nil {
+		r.Log.V(8).Error(err, "unable to load rule set")
+		return nil
+	}
+	if !info.Mode().IsRegular() {
+		return nil
+	}
+	content, err := os.ReadFile(goldenFile)
+	if err != nil {
+		r.Log.V(8).Error(err, "unable to load rule set")
+		return nil
+	}
+
+	set := engine.RuleSet{}
+
+	// Assume that there is a rule set header.
+	err = yaml.Unmarshal(content, &set)
+
+	if err != nil {
+		r.Log.V(8).Error(err, "unable to load rule set")
+		return nil
+	}
+	if len(set.Rules) != 0 {
+		r.Log.V(8).Error(fmt.Errorf("rules should not be added in the ruleset"), "unable to load rule set")
+		return nil
+	}
+
+	return &set
+}
+
 // This will load the rules from the filestytem, using the provided provider clients
-func (r *RuleParser) LoadRules(filepath string) ([]engine.Rule, map[string]provider.Client, error) {
+func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]provider.Client, error) {
 	// Load Rules from file containing rules.
 	info, err := os.Stat(filepath)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// If a single file, then it must have the ruleset metadata.
 	if info.Mode().IsRegular() {
-		return r.LoadRule(filepath)
+		rules, m, err := r.LoadRule(filepath)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		ruleSet := r.loadRuleSet(path.Dir(filepath))
+		// if nil, use the default rule set
+		if ruleSet == nil {
+			ruleSet = defaultRuleSet
+		}
+		ruleSet.Rules = rules
+
+		return []engine.RuleSet{*ruleSet}, m, err
 	}
 
-	var rules []engine.Rule
+	var ruleSets []engine.RuleSet
 	clientMap := map[string]provider.Client{}
 	// If this takes too long, we should consider moving this to async.
 	files, err := os.ReadDir(filepath)
 	if err != nil {
-		return rules, nil, err
+		return nil, nil, err
 	}
+	var ruleSet *engine.RuleSet
+	rules := []engine.Rule{}
+	foundTree := false
 	for _, f := range files {
-		r, m, err := r.LoadRules(path.Join(filepath, f.Name()))
+		info, err := os.Stat(path.Join(filepath, f.Name()))
 		if err != nil {
 			return nil, nil, err
 		}
-		for k, v := range m {
-			clientMap[k] = v
+		if info.IsDir() {
+			foundTree = true
+			r, m, err := r.LoadRules(path.Join(filepath, f.Name()))
+			if err != nil {
+				return nil, nil, err
+			}
+			ruleSets = append(ruleSets, r...)
+			for k, v := range m {
+				clientMap[k] = v
+			}
+			// If a dir, all the info should be gotten from the regular files
+			// found under this tree
+			continue
 		}
-		rules = append(rules, r...)
+		if info.Mode().IsRegular() {
+			if f.Name() == RULE_SET_GOLDEN_FILE_NAME {
+				ruleSet = r.loadRuleSet(filepath)
+				continue
+			}
+			r, m, err := r.LoadRule(path.Join(filepath, f.Name()))
+			if err != nil {
+				return nil, nil, err
+			}
+			for k, v := range m {
+				clientMap[k] = v
+			}
+			rules = append(rules, r...)
+			continue
+		}
 	}
 
-	if err != nil {
-		return nil, nil, err
+	if ruleSet == nil && !foundTree {
+		return nil, nil, fmt.Errorf("unable to find %v", RULE_SET_GOLDEN_FILE_NAME)
 	}
-
-	return rules, clientMap, err
+	return ruleSets, clientMap, err
 }
 
 func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provider.Client, error) {
@@ -60,9 +141,11 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	if err != nil {
 		return nil, nil, err
 	}
-
+	// Determine if the content has a ruleset header.
+	// if not, only for a given folder does a ruleset header have to exist.
 	ruleMap := []map[string]interface{}{}
 
+	// Assume that there is a rule set header.
 	err = yaml.Unmarshal(content, &ruleMap)
 	if err != nil {
 		return nil, nil, err
