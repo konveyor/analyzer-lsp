@@ -72,9 +72,14 @@ type ExternalLinks struct {
 	Title string `yaml:"title"`
 }
 
+type ChainTemplate struct {
+	Filepaths []string               `yaml:"filepaths"`
+	Extras    map[string]interface{} `yaml:"extras"`
+}
+
 type ProviderContext struct {
-	Tags     map[string]interface{} `yaml:"tags"`
-	Template map[string]interface{} `yaml:"template"`
+	Tags     map[string]interface{}   `yaml:"tags"`
+	Template map[string]ChainTemplate `yaml:"template"`
 }
 
 func HasCapability(caps []Capability, name string) bool {

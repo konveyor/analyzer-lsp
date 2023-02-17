@@ -101,7 +101,7 @@ func (p *ProviderCondition) Evaluate(log logr.Logger, ctx engine.ConditionContex
 
 }
 
-func templateCondition(condition []byte, ctx map[string]interface{}) ([]byte, error) {
+func templateCondition(condition []byte, ctx map[string]lib.ChainTemplate) ([]byte, error) {
 	//TODO(shanw-hurley):
 	// this is needed because for the initial yaml read, we convert this to a string,
 	// then when it is used here, we need the value to be whatever is in the context and not

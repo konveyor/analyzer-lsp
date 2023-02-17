@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/provider/lib"
 )
 
 var _ Conditional = AndCondition{}
@@ -18,8 +19,8 @@ type ConditionResponse struct {
 }
 
 type ConditionContext struct {
-	Tags     map[string]interface{} `yaml:"tags"`
-	Template map[string]interface{} `yaml:"template"`
+	Tags     map[string]interface{}       `yaml:"tags"`
+	Template map[string]lib.ChainTemplate `yaml:"template"`
 }
 
 type ConditionEntry struct {
@@ -94,7 +95,10 @@ func (a AndCondition) Evaluate(log logr.Logger, ctx ConditionContext) (Condition
 			return ConditionResponse{}, err
 		}
 		if c.As != "" {
-			ctx.Template[c.As] = response.TemplateContext
+			ctx.Template[c.As] = lib.ChainTemplate{
+				Filepaths: incidentsToFilepaths(response.Incidents),
+				Extras:    response.TemplateContext,
+			}
 		}
 
 		matched := response.Matched
@@ -146,7 +150,10 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionR
 		}
 
 		if c.As != "" {
-			ctx.Template[c.As] = response.TemplateContext
+			ctx.Template[c.As] = lib.ChainTemplate{
+				Filepaths: incidentsToFilepaths(response.Incidents),
+				Extras:    response.TemplateContext,
+			}
 		}
 
 		matched := response.Matched
@@ -182,4 +189,12 @@ func (ce ConditionEntry) Evaluate(log logr.Logger, ctx ConditionContext) (Condit
 
 	response.Matched = matched
 	return response, nil
+}
+
+func incidentsToFilepaths(incident []IncidentContext) []string {
+	filepaths := []string{}
+	for _, ic := range incident {
+		filepaths = append(filepaths, ic.FileURI)
+	}
+	return filepaths
 }

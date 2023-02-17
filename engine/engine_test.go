@@ -9,6 +9,7 @@ import (
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
 )
 
@@ -69,13 +70,11 @@ func (t testChainableConditionalFrom) Ignorable() bool {
 func (t testChainableConditionalFrom) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
 
 	if v, ok := ctx.Template[t.FromName]; ok {
-		if m, ok := v.(map[string]interface{}); ok {
-			if reflect.DeepEqual(m[t.DocumentedKey], t.FromValue) {
-				return ConditionResponse{
-					Matched:         true,
-					TemplateContext: map[string]interface{}{},
-				}, nil
-			}
+		if reflect.DeepEqual(v.Extras[t.DocumentedKey], t.FromValue) {
+			return ConditionResponse{
+				Matched:         true,
+				TemplateContext: map[string]interface{}{},
+			}, nil
 		}
 	}
 	return ConditionResponse{}, fmt.Errorf("unable to find from in context")
@@ -178,7 +177,7 @@ func TestEvaluateAndConditions(t *testing.T) {
 			}
 
 			ret, err := processRule(rule, ConditionContext{
-				Template: make(map[string]interface{}),
+				Template: make(map[string]lib.ChainTemplate),
 			}, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
@@ -297,7 +296,7 @@ func TestEvaluateOrConditions(t *testing.T) {
 				When: OrCondition{tc.Conditions},
 			}
 			ret, err := processRule(rule, ConditionContext{
-				Template: make(map[string]interface{}),
+				Template: make(map[string]lib.ChainTemplate),
 			}, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
@@ -448,7 +447,7 @@ func TestChainConditions(t *testing.T) {
 				When: OrCondition{tc.Conditions},
 			}
 			ret, err := processRule(rule, ConditionContext{
-				Template: make(map[string]interface{}),
+				Template: make(map[string]lib.ChainTemplate),
 			}, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
