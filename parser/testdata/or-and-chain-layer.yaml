@@ -6,7 +6,7 @@
     - and:
       - builtin.file: "*.go"
       - builtin.file: "*.json"
-    - chain:
+    - or:
       - builtin.file: "*.go"
       - builtin.file: "*.json"
     - or:

@@ -406,7 +406,7 @@ func TestChainConditions(t *testing.T) {
 						Conditions: []ConditionEntry{
 							{
 								As: "testing",
-								ProviderSpecificConfig: ChainCondition{
+								ProviderSpecificConfig: OrCondition{
 									Conditions: []ConditionEntry{
 										{
 											As: "testing",
@@ -445,7 +445,7 @@ func TestChainConditions(t *testing.T) {
 				Perform: Perform{
 					Message: &testString,
 				},
-				When: ChainCondition{tc.Conditions},
+				When: OrCondition{tc.Conditions},
 			}
 			ret, err := processRule(rule, ConditionContext{
 				Template: make(map[string]interface{}),

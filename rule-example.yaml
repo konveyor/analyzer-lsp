@@ -16,7 +16,7 @@
 - message: '{{{matchingXML}}}'
   ruleID: chain-pom-001
   when:
-    chain:
+    or:
     - builtin.file: pom.xml
       as: poms
       ignore: true

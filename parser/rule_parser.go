@@ -175,19 +175,6 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				for k, prov := range provs {
 					providers[k] = prov
 				}
-			case "chain":
-				m, ok := value.([]interface{})
-				if !ok {
-					return nil, nil, fmt.Errorf("invalid type for chain clause, must be an array")
-				}
-				conditions, provs, err := r.getConditions(m)
-				if err != nil {
-					return nil, nil, err
-				}
-				rule.When = engine.ChainCondition{Conditions: conditions}
-				for k, prov := range provs {
-					providers[k] = prov
-				}
 			case "":
 				return nil, nil, fmt.Errorf("must have at least one condition")
 			default:
@@ -312,27 +299,6 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 					Ignorable: ignorable,
 					Not:       not,
 					ProviderSpecificConfig: engine.OrCondition{
-						Conditions: conds,
-					},
-				})
-				for k, prov := range provs {
-					providers[k] = prov
-				}
-			case "chain":
-				iConditions, ok := v.([]interface{})
-				if !ok {
-					return nil, nil, fmt.Errorf("inner condition for and is not array")
-				}
-				conds, provs, err := r.getConditions(iConditions)
-				if err != nil {
-					return nil, nil, err
-				}
-				conditions = append(conditions, engine.ConditionEntry{
-					From:      from,
-					As:        as,
-					Ignorable: ignorable,
-					Not:       not,
-					ProviderSpecificConfig: engine.ChainCondition{
 						Conditions: conds,
 					},
 				})
