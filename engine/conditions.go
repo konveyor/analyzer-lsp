@@ -47,6 +47,20 @@ type Conditional interface {
 	Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error)
 }
 
+type RuleSet struct {
+	Name        string             `json:"name,omitempty"`
+	Description string             `json:"description,omitempty"`
+	Source      *RuleSetTechnology `json:"source,omitempty"`
+	Target      *RuleSetTechnology `json:"target,omitempty"`
+	Tags        []string           `json:"tags,omitempty"`
+	Rules       []Rule             `json:"rules,omitempty"`
+}
+
+type RuleSetTechnology struct {
+	ID           string `json:"id,omitempty"`
+	VersionRange string `json:"versionRange,omitempty"`
+}
+
 type Rule struct {
 	RuleID      string      `yaml:"ruleID,omitempty"`
 	Description string      `yaml:"description,omitempty"`

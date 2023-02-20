@@ -13,20 +13,22 @@ import (
 )
 
 type RuleEngine interface {
-	RunRules(context context.Context, rules []Rule) []hubapi.Violation
+	RunRules(context context.Context, rules []RuleSet) []hubapi.RuleSet
 	Stop()
 }
 
 type ruleMessage struct {
-	rule       Rule
-	ctx        ConditionContext
-	returnChan chan response
+	rule        Rule
+	ruleSetName string
+	ctx         ConditionContext
+	returnChan  chan response
 }
 
 type response struct {
 	ConditionResponse ConditionResponse `yaml:"conditionResponse"`
 	Err               error             `yaml:"err"`
 	Rule              Rule              `yaml:"rule"`
+	RuleSetName       string
 }
 
 type ruleEngine struct {
@@ -77,6 +79,7 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 				ConditionResponse: bo,
 				Err:               err,
 				Rule:              m.rule,
+				RuleSetName:       m.ruleSetName,
 			}
 		case <-ctx.Done():
 			logger.V(5).Info("stopping rule worker")
@@ -86,21 +89,52 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 	}
 }
 
+func (r *ruleEngine) createRuleSet(ruleSet RuleSet) hubapi.RuleSet {
+	rs := hubapi.RuleSet{
+		Name:        ruleSet.Name,
+		Description: ruleSet.Description,
+		Tags:        ruleSet.Tags,
+		Violations:  map[string]hubapi.Violation{},
+	}
+
+	if ruleSet.Source != nil {
+		rs.Source = &hubapi.RuleSetTechnology{
+			ID:           ruleSet.Source.ID,
+			VersionRange: ruleSet.Source.VersionRange,
+		}
+	}
+
+	if ruleSet.Target != nil {
+		rs.Target = &hubapi.RuleSetTechnology{
+			ID:           ruleSet.Target.ID,
+			VersionRange: ruleSet.Target.VersionRange,
+		}
+	}
+	return rs
+}
+
 // This will run the meta rules first, synchronously, generating metadata to pass on further as context to other rules
 // then runs remaining rules async, fanning them out, fanning them in, finally generating the results. will block until completed.
-func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violation {
+func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.RuleSet {
 	// determine if we should run
 
 	ctx, cancelFunc := context.WithCancel(ctx)
 
 	// filter rules that generate metadata, they run first
 	metaRules := []Rule{}
-	otherRules := []Rule{}
-	for _, rule := range rules {
-		if rule.Perform.Tag == nil {
-			otherRules = append(otherRules, rule)
-		} else {
-			metaRules = append(metaRules, rule)
+	mapRuleSets := map[string]hubapi.RuleSet{}
+	ruleMessages := []ruleMessage{}
+	for _, ruleSet := range ruleSets {
+		mapRuleSets[ruleSet.Name] = r.createRuleSet(ruleSet)
+		for _, rule := range ruleSet.Rules {
+			if rule.Perform.Tag == nil {
+				ruleMessages = append(ruleMessages, ruleMessage{
+					rule:        rule,
+					ruleSetName: ruleSet.Name,
+				})
+			} else {
+				metaRules = append(metaRules, rule)
+			}
 		}
 	}
 
@@ -110,17 +144,14 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violat
 	ret := make(chan response)
 
 	wg := &sync.WaitGroup{}
-	for _, rule := range otherRules {
+	for _, rule := range ruleMessages {
 		wg.Add(1)
-		r.ruleProcessing <- ruleMessage{
-			rule:       rule,
-			returnChan: ret,
-			ctx:        ruleContext,
-		}
+		rule.returnChan = ret
+		rule.ctx = ruleContext
+		r.ruleProcessing <- rule
 	}
 	r.logger.V(5).Info("All rules added buffer, waiting for engine to complete")
 
-	responses := []hubapi.Violation{}
 	// Handle returns
 	go func() {
 		for {
@@ -133,7 +164,11 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violat
 					if err != nil {
 						r.logger.Error(err, "unable to create violation from response")
 					}
-					responses = append(responses, violation)
+					rs, ok := mapRuleSets[response.RuleSetName]
+					if !ok {
+						r.logger.Info("this should never happen that we don't find the ruleset")
+					}
+					rs.Violations[response.Rule.RuleID] = violation
 				} else {
 					// Log that rule did not pass
 					r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "response", response)
@@ -159,6 +194,10 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violat
 		r.logger.V(2).Info("done processing all the rules")
 	case <-ctx.Done():
 		r.logger.V(1).Info("processing of rules was canceled")
+	}
+	responses := []hubapi.RuleSet{}
+	for _, ruleSet := range mapRuleSets {
+		responses = append(responses, ruleSet)
 	}
 	// Cannel running go-routine
 	cancelFunc()
@@ -234,7 +273,6 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 	}
 
 	return hubapi.Violation{
-		RuleID:      rule.RuleID,
 		Description: rule.Description,
 		Category:    rule.Category,
 		Incidents:   incidents,

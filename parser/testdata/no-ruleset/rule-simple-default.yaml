@@ -1,6 +1,5 @@
-- message: all go and json files
-  tag:
-  - "test"
+---
+- message: all go files
   ruleID: file-001
   when:
     builtin.file: "*.go"

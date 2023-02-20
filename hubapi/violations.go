@@ -4,14 +4,24 @@ import (
 	"encoding/json"
 )
 
+type RuleSet struct {
+	Name        string               `yaml:"name,omitempty"`
+	Description string               `yaml:"description,omitempty"`
+	Source      *RuleSetTechnology   `yaml:"source,omitempty"`
+	Target      *RuleSetTechnology   `yaml:"target,omitempty"`
+	Tags        []string             `yaml:"tags,omitempty"`
+	Violations  map[string]Violation `yaml:"violations,omitempty"`
+}
+
+type RuleSetTechnology struct {
+	ID           string `json:"id,omitempty"`
+	VersionRange string `json:"version_range,omitempty"`
+}
+
 type Violation struct {
 	// AnalysisID id of the analysis that generated this output
 	// TODO: we don't know exactly what this looks like yet but that is ok.
 	//AnalysisID     string     `json:"analysisID"`
-
-	// RuleID id of the rule for this violation
-	// TODO: we need to add this to the rule format.
-	RuleID string `yaml:"ruleID"`
 
 	// Description text description about the violation
 	// TODO: we don't have this in the rule as of today.

@@ -464,37 +464,41 @@ func TestRuleEngine(t *testing.T) {
 	wooFalse := "WOO - False"
 	testCases := []struct {
 		Name  string
-		Rules []Rule
+		Rules []RuleSet
 	}{
 		{
 			Name: "Test Running",
-			Rules: []Rule{
+			Rules: []RuleSet{
 				{
-					Perform: Perform{Message: &woo},
-					When:    createTestConditional(false, nil, true),
-				},
-				{
-					Perform: Perform{Message: &wooFalse},
-					When: AndCondition{
-						Conditions: []ConditionEntry{
-							{
-								ProviderSpecificConfig: createTestConditional(false, nil, true),
-							},
-							{
-								ProviderSpecificConfig: createTestConditional(true, nil, true),
+					Rules: []Rule{
+						{
+							Perform: Perform{Message: &woo},
+							When:    createTestConditional(false, nil, true),
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, true),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, true),
+									},
+								},
 							},
 						},
-					},
-				},
-				{
-					Perform: Perform{Message: &wooFalse},
-					When: AndCondition{
-						Conditions: []ConditionEntry{
-							{
-								ProviderSpecificConfig: createTestConditional(false, nil, true),
-							},
-							{
-								ProviderSpecificConfig: createTestConditional(true, nil, true),
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, true),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, true),
+									},
+								},
 							},
 						},
 					},

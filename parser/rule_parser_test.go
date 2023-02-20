@@ -1,4 +1,4 @@
-package parser
+package parser_test
 
 import (
 	"context"
@@ -6,11 +6,14 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/engine"
+	ruleparser "github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"github.com/sirupsen/logrus"
 )
 
 type testProvider struct {
@@ -50,7 +53,7 @@ func TestLoadRules(t *testing.T) {
 		Name               string
 		testFileName       string
 		providerNameClient map[string]provider.Client
-		ExpectedRules      map[string]engine.Rule
+		ExpectedRuleSet    map[string]engine.RuleSet
 		ExpectedProvider   map[string]provider.Client
 		ShouldErr          bool
 		ErrorMessage       string
@@ -70,12 +73,16 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ExpectedRules: map[string]engine.Rule{
-				"file-001": {
-					RuleID:      "file-001",
-					Description: "",
-					Category:    "",
-					Perform:     engine.Perform{Message: &allGoFiles},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleID:      "file-001",
+							Description: "",
+							Category:    "",
+							Perform:     engine.Perform{Message: &allGoFiles},
+						},
+					},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -101,12 +108,16 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ExpectedRules: map[string]engine.Rule{
-				"file-001": {
-					RuleID:      "file-001",
-					Description: "",
-					Category:    "",
-					Perform:     engine.Perform{Message: &allGoFiles},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"file-ruleset": {
+					Rules: []engine.Rule{
+						{
+							RuleID:      "file-001",
+							Description: "",
+							Category:    "",
+							Perform:     engine.Perform{Message: &allGoFiles},
+						},
+					},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -168,12 +179,16 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ExpectedRules: map[string]engine.Rule{
-				"file-001": {
-					RuleID:      "file-001",
-					Description: "",
-					Category:    "",
-					Perform:     engine.Perform{Message: &allGoAndJsonFiles},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleID:      "file-001",
+							Description: "",
+							Category:    "",
+							Perform:     engine.Perform{Message: &allGoAndJsonFiles},
+						},
+					},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -199,12 +214,16 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ExpectedRules: map[string]engine.Rule{
-				"file-001": {
-					RuleID:      "file-001",
-					Description: "",
-					Category:    "",
-					Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleID:      "file-001",
+							Description: "",
+							Category:    "",
+							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+						},
+					},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -230,12 +249,16 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ExpectedRules: map[string]engine.Rule{
-				"file-001": {
-					RuleID:      "file-001",
-					Description: "",
-					Category:    "",
-					Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleID:      "file-001",
+							Description: "",
+							Category:    "",
+							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+						},
+					},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -300,12 +323,16 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ExpectedRules: map[string]engine.Rule{
-				"file-001": {
-					RuleID:      "file-001",
-					Description: "",
-					Category:    "",
-					Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleID:      "file-001",
+							Description: "",
+							Category:    "",
+							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+						},
+					},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -349,12 +376,16 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ExpectedRules: map[string]engine.Rule{
-				"file-001": {
-					RuleID:      "file-001",
-					Description: "",
-					Category:    "",
-					Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleID:      "file-001",
+							Description: "",
+							Category:    "",
+							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+						},
+					},
 				},
 			},
 			ExpectedProvider: map[string]provider.Client{
@@ -418,24 +449,93 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ExpectedRules: map[string]engine.Rule{
-				"tag-001": {
-					RuleID: "tag-001",
-					Perform: engine.Perform{
-						Tag: []string{"test"},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleID: "tag-001",
+							Perform: engine.Perform{
+								Tag: []string{"test"},
+							},
+						},
 					},
+				},
+			},
+		},
+		{
+			Name:         "multiple-rulesets",
+			testFileName: "folder-of-rulesets",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"file-ruleset-a": {
+					Rules: []engine.Rule{
+						{
+							RuleID:      "file-001",
+							Description: "",
+							Category:    "",
+							Perform:     engine.Perform{Message: &allGoFiles},
+						},
+					},
+				},
+				"file-ruleset-b": {
+					Rules: []engine.Rule{
+						{
+							RuleID:      "file-001",
+							Description: "",
+							Category:    "",
+							Perform:     engine.Perform{Message: &allGoFiles},
+						},
+					},
+				},
+			},
+			ExpectedProvider: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+		},
+		{
+			Name:         "failure-no-ruleset",
+			testFileName: "no-ruleset",
+			ShouldErr:    true,
+			ErrorMessage: "unable to find ruleset.yaml",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
 				},
 			},
 		},
 	}
 
 	for _, tc := range testCases {
+		logrusLog := logrus.New()
 		t.Run(tc.Name, func(t *testing.T) {
-			ruleParser := RuleParser{
+			ruleParser := ruleparser.RuleParser{
 				ProviderNameToClient: tc.providerNameClient,
+				Log:                  logrusr.New(logrusLog),
 			}
 
-			rules, clients, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
+			ruleSets, clients, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
 			if err != nil {
 				if tc.ShouldErr && tc.ErrorMessage == err.Error() {
 					return
@@ -458,16 +558,23 @@ func TestLoadRules(t *testing.T) {
 				}
 			}
 
-			for _, rule := range rules {
-				r, ok := tc.ExpectedRules[rule.RuleID]
-				if !ok {
-					t.Errorf("unable to find rule with ruleID: %v", rule.RuleID)
+			for _, ruleSet := range ruleSets {
+				expectedSet := tc.ExpectedRuleSet[ruleSet.Name]
+				if len(ruleSet.Rules) != len(expectedSet.Rules) {
+					t.Errorf("rule sets did not have matching rules")
 				}
-
+				for _, rule := range ruleSet.Rules {
+					foundRule := false
+					for _, expectedRule := range expectedSet.Rules {
+						if reflect.DeepEqual(expectedRule.Perform, rule.Perform) || expectedRule.Category == rule.Category || expectedRule.Description == rule.Description {
+							foundRule = true
+						}
+					}
+					if !foundRule {
+						t.Errorf("not have matching rule")
+					}
+				}
 				// We will test the conditions getter by itself.
-				if !reflect.DeepEqual(r.Perform, rule.Perform) || r.Category != rule.Category || r.Description != rule.Description {
-					t.Errorf("rules are not equal got: %v wanted; %v", rule, r)
-				}
 			}
 		})
 	}
