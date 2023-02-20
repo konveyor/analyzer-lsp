@@ -18,6 +18,14 @@ type RuleSetTechnology struct {
 	VersionRange string `json:"version_range,omitempty"`
 }
 
+type Category string
+
+var (
+	Potential   Category = "potential"
+	Information Category = "information"
+	Mandatory   Category = "mandatory"
+)
+
 type Violation struct {
 	// AnalysisID id of the analysis that generated this output
 	// TODO: we don't know exactly what this looks like yet but that is ok.
@@ -29,25 +37,29 @@ type Violation struct {
 
 	// Category category of the violation
 	// TODO: add this to rules
-	Category string `yaml:"category",omitempty"`
+	Category *Category `yaml:"category,omitempty"`
+
+	Labels []string `yaml:"labels,omitempty"`
 
 	// Incidents list of instances of violation found
 	Incidents []Incident `yaml:"incidents"`
 
+	// ExternalLinks hyperlinks to external sources of docs, fixes
+	Links []Link `yaml:"links,omitempty"`
+
 	// Extras reserved for additional data
 	Extras json.RawMessage
+
+	// Effort defines expected story points for this incident
+	Effort *int `yaml:"effort,omitempty"`
 }
 
 // Incident defines instance of a violation
 type Incident struct {
 	// URI defines location in the codebase where violation is found
 	URI string `yaml:"uri"`
-	// Effort defines expected story points for this incident
-	Effort *int `yaml:"effort,omitempty"`
 	// Message text description about the incident
 	Message string `yaml:"message"`
-	// ExternalLinks hyperlinks to external sources of docs, fixes
-	ExternalLinks []Link `json:"externalLinks"`
 	// Extras reserved for additional data
 	//Extras json.RawMessage
 	Extras map[string]interface{}

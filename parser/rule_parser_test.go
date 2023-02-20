@@ -10,6 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/hubapi"
 	ruleparser "github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
@@ -79,7 +80,7 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    "",
+							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoFiles},
 						},
 					},
@@ -114,7 +115,7 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    "",
+							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoFiles},
 						},
 					},
@@ -185,7 +186,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    "",
 							Perform:     engine.Perform{Message: &allGoAndJsonFiles},
 						},
 					},
@@ -220,7 +220,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    "",
 							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
@@ -255,7 +254,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    "",
 							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
@@ -329,7 +327,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    "",
 							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
@@ -382,7 +379,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    "",
 							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
@@ -483,7 +479,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    "",
 							Perform:     engine.Perform{Message: &allGoFiles},
 						},
 					},
@@ -493,7 +488,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    "",
 							Perform:     engine.Perform{Message: &allGoFiles},
 						},
 					},
@@ -566,12 +560,18 @@ func TestLoadRules(t *testing.T) {
 				for _, rule := range ruleSet.Rules {
 					foundRule := false
 					for _, expectedRule := range expectedSet.Rules {
-						if reflect.DeepEqual(expectedRule.Perform, rule.Perform) || expectedRule.Category == rule.Category || expectedRule.Description == rule.Description {
-							foundRule = true
+						if reflect.DeepEqual(expectedRule.Perform, rule.Perform) && expectedRule.Description == rule.Description {
+							if expectedRule.Category != nil && rule.Category != nil {
+								foundRule = *expectedRule.Category == *rule.Category
+							} else if expectedRule.Category != nil || rule.Category != nil {
+								foundRule = false
+							} else {
+								foundRule = true
+							}
 						}
 					}
 					if !foundRule {
-						t.Errorf("not have matching rule")
+						t.Errorf("not have matching rule go: %#v, expected rules: %#v", rule, expectedSet)
 					}
 				}
 				// We will test the conditions getter by itself.

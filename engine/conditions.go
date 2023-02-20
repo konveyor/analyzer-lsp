@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/hubapi"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 )
 
@@ -35,12 +36,7 @@ type IncidentContext struct {
 	FileURI string                 `yaml:"fileURI"`
 	Effort  *int                   `yaml:"effort"`
 	Extras  map[string]interface{} `yaml:"extras"`
-	Links   []ExternalLinks        `yaml:"externalLink"`
-}
-
-type ExternalLinks struct {
-	URL   string `yaml:"url"`
-	Title string `yaml:"title"`
+	Links   []hubapi.Link          `yaml:"externalLink"`
 }
 
 type Conditional interface {
@@ -62,11 +58,14 @@ type RuleSetTechnology struct {
 }
 
 type Rule struct {
-	RuleID      string      `yaml:"ruleID,omitempty"`
-	Description string      `yaml:"description,omitempty"`
-	Category    string      `yaml:"category,omitempty"`
-	Perform     Perform     `yaml:",inline"`
-	When        Conditional `yaml:"when,omitempty"`
+	RuleID      string           `yaml:"ruleID,omitempty" json:"ruleID,omitempty"`
+	Description string           `yaml:"description,omitempty" json:"description,omitempty"`
+	Category    *hubapi.Category `yaml:"category,omitempty" json:"category,omitempty"`
+	Links       []hubapi.Link    `yaml:"links,omitempty" json:"links,omitempty"`
+	Labels      []string         `yaml:"labels,omitempty" json:"labels,omitempty"`
+	Effort      *int             `json:"effort,omitempty"`
+	Perform     Perform          `yaml:",inline" json:"perform,omitempty"`
+	When        Conditional      `yaml:"when,omitempty" json:"when,omitempty"`
 }
 
 type Perform struct {
