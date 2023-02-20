@@ -175,19 +175,6 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				for k, prov := range provs {
 					providers[k] = prov
 				}
-			case "chain":
-				m, ok := value.([]interface{})
-				if !ok {
-					return nil, nil, fmt.Errorf("invalid type for chain clause, must be an array")
-				}
-				conditions, provs, err := r.getConditions(m)
-				if err != nil {
-					return nil, nil, err
-				}
-				rule.When = engine.ChainCondition{Conditions: conditions}
-				for k, prov := range provs {
-					providers[k] = prov
-				}
 			case "":
 				return nil, nil, fmt.Errorf("must have at least one condition")
 			default:
@@ -228,6 +215,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 
 	conditions := []engine.ConditionEntry{}
 	providers := map[string]provider.Client{}
+	chainNameToIndex := map[string]int{}
 	for _, conditionInterface := range conditionsInterface {
 		// get map from interface
 		conditionMap, ok := conditionInterface.(map[interface{}]interface{})
@@ -275,6 +263,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			if !ok {
 				return nil, nil, fmt.Errorf("condition key must be string")
 			}
+			var ce engine.ConditionEntry
 			switch key {
 			case "and":
 				iConditions, ok := v.([]interface{})
@@ -285,7 +274,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				conditions = append(conditions, engine.ConditionEntry{
+				ce = engine.ConditionEntry{
 					From:      from,
 					As:        as,
 					Ignorable: ignorable,
@@ -293,7 +282,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 					ProviderSpecificConfig: engine.AndCondition{
 						Conditions: conds,
 					},
-				})
+				}
 				for k, prov := range provs {
 					providers[k] = prov
 				}
@@ -306,7 +295,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				conditions = append(conditions, engine.ConditionEntry{
+				ce = engine.ConditionEntry{
 					From:      from,
 					As:        as,
 					Ignorable: ignorable,
@@ -314,28 +303,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 					ProviderSpecificConfig: engine.OrCondition{
 						Conditions: conds,
 					},
-				})
-				for k, prov := range provs {
-					providers[k] = prov
 				}
-			case "chain":
-				iConditions, ok := v.([]interface{})
-				if !ok {
-					return nil, nil, fmt.Errorf("inner condition for and is not array")
-				}
-				conds, provs, err := r.getConditions(iConditions)
-				if err != nil {
-					return nil, nil, err
-				}
-				conditions = append(conditions, engine.ConditionEntry{
-					From:      from,
-					As:        as,
-					Ignorable: ignorable,
-					Not:       not,
-					ProviderSpecificConfig: engine.ChainCondition{
-						Conditions: conds,
-					},
-				})
 				for k, prov := range provs {
 					providers[k] = prov
 				}
@@ -354,14 +322,30 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				conditions = append(conditions, engine.ConditionEntry{
+
+				ce = engine.ConditionEntry{
 					From:                   from,
 					As:                     as,
 					ProviderSpecificConfig: condition,
 					Ignorable:              ignorable,
 					Not:                    not,
-				})
+				}
 				providers[providerKey] = provider
+			}
+			if ce.As != "" {
+				index, ok := chainNameToIndex[ce.As]
+				if !ok {
+					//prepend
+					conditions = append([]engine.ConditionEntry{ce}, conditions...)
+				}
+				//insert
+				conditions = append(conditions[:index+1], conditions[index:]...)
+				conditions[index] = ce
+			} else if ce.From != "" && ce.As == "" {
+				chainNameToIndex[ce.From] = len(conditions)
+				conditions = append(conditions, ce)
+			} else {
+				conditions = append(conditions, ce)
 			}
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/hubapi"
+	"github.com/konveyor/analyzer-lsp/provider/lib"
 )
 
 type RuleEngine interface {
@@ -70,7 +71,7 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 		select {
 		case m := <-ruleMessages:
 			logger.V(5).Info("taking rule")
-			m.ctx.Template = make(map[string]interface{})
+			m.ctx.Template = make(map[string]lib.ChainTemplate)
 			bo, err := processRule(m.rule, m.ctx, logger)
 			m.returnChan <- response{
 				ConditionResponse: bo,
@@ -175,7 +176,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, rules []Rule) []hubapi.Violat
 func (r *ruleEngine) runMetaRules(infoRules []Rule) ConditionContext {
 	context := ConditionContext{
 		Tags:     make(map[string]interface{}),
-		Template: make(map[string]interface{}),
+		Template: make(map[string]lib.ChainTemplate),
 	}
 	for _, rule := range infoRules {
 		response, err := processRule(rule, context, r.logger)

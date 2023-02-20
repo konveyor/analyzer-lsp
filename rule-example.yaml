@@ -16,14 +16,14 @@
 - message: '{{{matchingXML}}}'
   ruleID: chain-pom-001
   when:
-    chain:
-    - builtin.file: pom.xml
-      as: poms
-      ignore: true
+    or:
     - builtin.xml:
         xpath: "//dependencies/dependency"
         filepaths: "{{poms.filepaths}}"
       from: poms
+    - builtin.file: pom.xml
+      as: poms
+      ignore: true
 - message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
   ruleID: lang-ref-001
   when:

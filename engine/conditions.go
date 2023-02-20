@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/provider/lib"
 )
 
 var _ Conditional = AndCondition{}
 var _ Conditional = OrCondition{}
-var _ Conditional = ChainCondition{}
 
 type ConditionResponse struct {
 	Matched bool `yaml:"matched"`
@@ -19,8 +19,8 @@ type ConditionResponse struct {
 }
 
 type ConditionContext struct {
-	Tags     map[string]interface{} `yaml:"tags"`
-	Template map[string]interface{} `yaml:"template"`
+	Tags     map[string]interface{}       `yaml:"tags"`
+	Template map[string]lib.ChainTemplate `yaml:"template"`
 }
 
 type ConditionEntry struct {
@@ -85,9 +85,20 @@ func (a AndCondition) Evaluate(log logr.Logger, ctx ConditionContext) (Condition
 		TemplateContext: map[string]interface{}{},
 	}
 	for _, c := range a.Conditions {
+		if _, ok := ctx.Template[c.From]; !ok && c.From != "" {
+			// Short circut w/ error here
+			// TODO: determine if this is the right thing, I am assume the full rule should fail here
+			return ConditionResponse{}, fmt.Errorf("unable to find context value: %v", c.From)
+		}
 		response, err := c.ProviderSpecificConfig.Evaluate(log, ctx)
 		if err != nil {
 			return ConditionResponse{}, err
+		}
+		if c.As != "" {
+			ctx.Template[c.As] = lib.ChainTemplate{
+				Filepaths: incidentsToFilepaths(response.Incidents),
+				Extras:    response.TemplateContext,
+			}
 		}
 
 		matched := response.Matched
@@ -127,10 +138,24 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionR
 		TemplateContext: map[string]interface{}{},
 	}
 	for _, c := range o.Conditions {
+		if _, ok := ctx.Template[c.From]; !ok && c.From != "" {
+			// Short circut w/ error here
+			// TODO: determine if this is the right thing, I am assume the full rule should fail here
+			return ConditionResponse{}, fmt.Errorf("unable to find context value: %v", c.From)
+		}
+
 		response, err := c.ProviderSpecificConfig.Evaluate(log, ctx)
 		if err != nil {
 			return ConditionResponse{}, err
 		}
+
+		if c.As != "" {
+			ctx.Template[c.As] = lib.ChainTemplate{
+				Filepaths: incidentsToFilepaths(response.Incidents),
+				Extras:    response.TemplateContext,
+			}
+		}
+
 		matched := response.Matched
 		if c.Not {
 			matched = !matched
@@ -151,54 +176,6 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionR
 	return fullResponse, nil
 }
 
-type ChainCondition struct {
-	Conditions []ConditionEntry `yaml:"chain"`
-}
-
-func (ch ChainCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
-
-	if len(ch.Conditions) == 0 {
-		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluating")
-	}
-
-	fullResponse := ConditionResponse{Matched: false}
-	incidents := []IncidentContext{}
-	var matched bool
-	for _, c := range ch.Conditions {
-		var response ConditionResponse
-		var err error
-
-		if _, ok := ctx.Template[c.From]; !ok && c.From != "" {
-			// Short circut w/ error here
-			// TODO: determine if this is the right thing, I am assume the full rule should fail here
-			return ConditionResponse{}, fmt.Errorf("unable to find context value: %v", c.From)
-		}
-
-		response, err = c.ProviderSpecificConfig.Evaluate(log, ctx)
-		if err != nil {
-			return fullResponse, err
-		}
-
-		if c.As != "" {
-			ctx.Template[c.As] = response.TemplateContext
-		}
-
-		// TODO this logic may need to be changed?
-		matched = response.Matched
-		if c.Not {
-			matched = !matched
-		}
-		if !c.Ignorable {
-			incidents = append(incidents, response.Incidents...)
-		}
-	}
-	fullResponse.Matched = matched
-	fullResponse.TemplateContext = ctx.Template
-	fullResponse.Incidents = incidents
-
-	return fullResponse, nil
-}
-
 func (ce ConditionEntry) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
 	response, err := ce.ProviderSpecificConfig.Evaluate(log, ctx)
 	if err != nil {
@@ -212,4 +189,12 @@ func (ce ConditionEntry) Evaluate(log logr.Logger, ctx ConditionContext) (Condit
 
 	response.Matched = matched
 	return response, nil
+}
+
+func incidentsToFilepaths(incident []IncidentContext) []string {
+	filepaths := []string{}
+	for _, ic := range incident {
+		filepaths = append(filepaths, ic.FileURI)
+	}
+	return filepaths
 }
