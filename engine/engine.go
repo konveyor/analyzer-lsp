@@ -244,7 +244,6 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 
 		incident := hubapi.Incident{
 			URI:    m.FileURI,
-			Effort: m.Effort,
 			Extras: m.Extras,
 		}
 		links := []hubapi.Link{}
@@ -256,7 +255,6 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 				})
 			}
 		}
-		incident.ExternalLinks = links
 		// extras, err := json.Marshal(m.Extras)
 		// if err != nil {
 		// 	return hubapi.Violation{}, err
@@ -274,9 +272,12 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 
 	return hubapi.Violation{
 		Description: rule.Description,
+		Labels:      rule.Labels,
 		Category:    rule.Category,
 		Incidents:   incidents,
 		Extras:      []byte{},
+		Effort:      rule.Effort,
+		Links:       rule.Links,
 	}, nil
 }
 

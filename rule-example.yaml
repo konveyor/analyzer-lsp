@@ -1,5 +1,14 @@
 - message: all go files
   ruleID: file-001
+  description: "Testing that we can get all the go files in the project"
+  links:
+  - title: "Golang"
+    url: "https://go.dev"
+  labels:
+  - "testing"
+  - "test"
+  category: potential
+  effort: 3
   when:
     builtin.file: "*.go"
 - message: not any go files

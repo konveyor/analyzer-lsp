@@ -77,19 +77,11 @@ func (p *ProviderCondition) Evaluate(log logr.Logger, ctx engine.ConditionContex
 
 	incidents := []engine.IncidentContext{}
 	for _, inc := range resp.Incidents {
-		links := []engine.ExternalLinks{}
-		for _, link := range inc.Links {
-			links = append(links, engine.ExternalLinks{
-				URL:   link.URL,
-				Title: link.Title,
-			})
-		}
-
 		incidents = append(incidents, engine.IncidentContext{
 			FileURI: inc.FileURI,
 			Effort:  inc.Effort,
 			Extras:  inc.Extras,
-			Links:   links,
+			Links:   p.Rule.Links,
 		})
 	}
 
