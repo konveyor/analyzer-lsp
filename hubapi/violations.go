@@ -24,6 +24,7 @@ var (
 	Potential   Category = "potential"
 	Information Category = "information"
 	Mandatory   Category = "mandatory"
+	Optional    Category = "optional"
 )
 
 type Violation struct {
