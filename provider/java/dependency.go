@@ -1,6 +1,7 @@
 package java
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -37,7 +38,23 @@ func (p *javaProvider) GetDependencies() ([]dependency.Dep, error) {
 	return deps, err
 }
 
+func (p *javaProvider) getLocalRepoPath() string {
+	cmd := exec.Command("mvn", "help:evaluate", "-Dexpression=settings.localRepository", "-q", "-DforceStdout")
+	var outb bytes.Buffer
+	cmd.Stdout = &outb
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("here: %v", err)
+		return ""
+	}
+
+	// check errors
+	return string(outb.String())
+}
+
 func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
+
+	localRepoPath := p.getLocalRepoPath()
 
 	path := p.findPom()
 
@@ -72,7 +89,7 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depende
 
 	deps := map[dependency.Dep][]dependency.Dep{}
 
-	err = parseMavenDepLines(lines, deps)
+	err = parseMavenDepLines(lines, deps, localRepoPath)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +99,7 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depende
 
 // parseDepString parses a java dependency string
 // assumes format <group>:<name>:<type>:<version>:<scope>
-func parseDepString(dep string) (dependency.Dep, error) {
+func parseDepString(dep, localRepoPath string) (dependency.Dep, error) {
 	d := dependency.Dep{}
 	// remove all the pretty print characters.
 	dep = strings.TrimFunc(dep, func(r rune) bool {
@@ -100,15 +117,23 @@ func parseDepString(dep string) (dependency.Dep, error) {
 	}
 	d.Name = fmt.Sprintf("%s.%s", parts[0], parts[1])
 	d.Version = parts[3]
-	d.Location = parts[4]
+	d.Type = parts[4]
+
+	fp := filepath.Join(localRepoPath, strings.Replace(d.Name, ".", "/", -1), d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
+	b, err := os.ReadFile(fp)
+	if err != nil {
+		return d, err
+	}
+	d.SHA = string(b)
+
 	return d, nil
 }
 
 // parseMavenDepLines recursively parses output lines from maven dependency tree
-func parseMavenDepLines(lines []string, deps map[dependency.Dep][]dependency.Dep) error {
+func parseMavenDepLines(lines []string, deps map[dependency.Dep][]dependency.Dep, localRepoPath string) error {
 	if len(lines) > 0 {
 		baseDepString := lines[0]
-		baseDep, err := parseDepString(baseDepString)
+		baseDep, err := parseDepString(baseDepString, localRepoPath)
 		if err != nil {
 			return err
 		}
@@ -118,7 +143,7 @@ func parseMavenDepLines(lines []string, deps map[dependency.Dep][]dependency.Dep
 		idx := 1
 		// indirect deps are separated by 3 or more spaces after the direct dep
 		for idx < len(lines) && strings.Count(lines[idx], " ") > 2 {
-			transitiveDep, err := parseDepString(lines[idx])
+			transitiveDep, err := parseDepString(lines[idx], localRepoPath)
 			if err != nil {
 				return err
 			}
@@ -126,7 +151,7 @@ func parseMavenDepLines(lines []string, deps map[dependency.Dep][]dependency.Dep
 			deps[baseDep] = append(deps[baseDep], transitiveDep)
 			idx += 1
 		}
-		err = parseMavenDepLines(lines[idx:], deps)
+		err = parseMavenDepLines(lines[idx:], deps, localRepoPath)
 		if err != nil {
 			return err
 		}
