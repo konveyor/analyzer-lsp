@@ -50,6 +50,7 @@ func TestLoadRules(t *testing.T) {
 	allGoFiles := "all go files"
 	allGoOrJsonFiles := "all go or json files"
 	allGoAndJsonFiles := "all go and json files"
+	effort := 3
 	testCases := []struct {
 		Name               string
 		testFileName       string
@@ -78,7 +79,18 @@ func TestLoadRules(t *testing.T) {
 				"konveyor-analysis": {
 					Rules: []engine.Rule{
 						{
-							RuleID:      "file-001",
+							RuleID: "file-001",
+							Links: []hubapi.Link{
+								{
+									URL:   "https://go.dev",
+									Title: "Golang",
+								},
+							},
+							Labels: []string{
+								"testing",
+								"test",
+							},
+							Effort:      &effort,
 							Description: "",
 							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoFiles},
@@ -115,7 +127,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
-							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoFiles},
 						},
 					},
@@ -539,6 +550,12 @@ func TestLoadRules(t *testing.T) {
 			if err == nil && tc.ShouldErr {
 				t.Errorf("expected error but not none")
 			}
+			if len(tc.ExpectedProvider) != 0 && len(clients) == 0 {
+				t.Errorf("unable to get correct clients")
+			}
+			if len(tc.ExpectedRuleSet) != 0 && len(ruleSets) == 0 {
+				t.Errorf("unable to get correct ruleSets")
+			}
 
 			for k, c := range clients {
 				gotCaps := c.Capabilities()
@@ -571,7 +588,7 @@ func TestLoadRules(t *testing.T) {
 						}
 					}
 					if !foundRule {
-						t.Errorf("not have matching rule go: %#v, expected rules: %#v", rule, expectedSet)
+						t.Errorf("not have matching rule go: %#v, expected rules: %#v", rule, expectedSet.Rules)
 					}
 				}
 				// We will test the conditions getter by itself.

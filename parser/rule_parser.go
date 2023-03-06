@@ -134,6 +134,10 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	if ruleSet == nil && !foundTree {
 		return nil, nil, fmt.Errorf("unable to find %v", RULE_SET_GOLDEN_FILE_NAME)
 	}
+	if ruleSet != nil {
+		ruleSet.Rules = rules
+		ruleSets = append(ruleSets, *ruleSet)
+	}
 	return ruleSets, clientMap, err
 }
 
