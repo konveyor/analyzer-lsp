@@ -49,7 +49,15 @@ func GetConfig(filepath string) ([]Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	configs = append(configs, builtinConfig)
+	foundBuiltin := false
+	for _, c := range configs {
+		if c.Name == builtinConfig.Name {
+			foundBuiltin = true
+		}
+	}
+	if !foundBuiltin {
+		configs = append(configs, builtinConfig)
+	}
 
 	return configs, nil
 
