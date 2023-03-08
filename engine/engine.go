@@ -120,8 +120,8 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 
 	ctx, cancelFunc := context.WithCancel(ctx)
 
-	// filter rules that generate metadata, they run first
-	metaRules := []Rule{}
+	// filter rules that generate metadata indexed by ruleset name, they run first
+	metaRules := []ruleMessage{}
 	mapRuleSets := map[string]hubapi.RuleSet{}
 	ruleMessages := []ruleMessage{}
 	for _, ruleSet := range ruleSets {
@@ -133,12 +133,15 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 					ruleSetName: ruleSet.Name,
 				})
 			} else {
-				metaRules = append(metaRules, rule)
+				metaRules = append(metaRules, ruleMessage{
+					rule:        rule,
+					ruleSetName: ruleSet.Name,
+				})
 			}
 		}
 	}
 
-	ruleContext := r.runMetaRules(metaRules)
+	ruleContext := r.runMetaRules(metaRules, mapRuleSets)
 
 	// Need a better name for this thing
 	ret := make(chan response)
@@ -212,12 +215,13 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 
 // runMetaRules filters and runs info rules synchronously
 // returns list of non-info rules, a context to pass to them
-func (r *ruleEngine) runMetaRules(infoRules []Rule) ConditionContext {
+func (r *ruleEngine) runMetaRules(infoRules []ruleMessage, mapRuleSets map[string]hubapi.RuleSet) ConditionContext {
 	context := ConditionContext{
 		Tags:     make(map[string]interface{}),
 		Template: make(map[string]lib.ChainTemplate),
 	}
-	for _, rule := range infoRules {
+	for _, ruleMessage := range infoRules {
+		rule := ruleMessage.rule
 		response, err := processRule(rule, context, r.logger)
 		if err != nil {
 			r.logger.Error(err, "failed to evaluate rule", "ruleID", rule.RuleID)
@@ -226,6 +230,16 @@ func (r *ruleEngine) runMetaRules(infoRules []Rule) ConditionContext {
 			for _, tag := range rule.Perform.Tag {
 				context.Tags[tag] = true
 			}
+			violation, err := r.createViolation(response, rule)
+			if err != nil {
+				r.logger.Error(err, "unable to create violation from response")
+			}
+			violation.Tags = append(violation.Tags, rule.Perform.Tag...)
+			rs, ok := mapRuleSets[ruleMessage.ruleSetName]
+			if !ok {
+				r.logger.Info("this should never happen that we don't find the ruleset")
+			}
+			rs.Violations[rule.RuleID] = violation
 		}
 	}
 	return context
