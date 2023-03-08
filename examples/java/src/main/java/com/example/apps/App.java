@@ -9,5 +9,8 @@ public class App
     {
         CustomResourceDefinition crd = new CustomResourceDefinition();
         System.out.println( crd );
+
+        GenericClass<String> element = new GenericClass<String>("Hello world!");
+        element.get();
     }
 }

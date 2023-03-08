@@ -324,6 +324,17 @@
           lineNumber: 9
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
       extras: []
+    lang-ref-004:
+      description: ""
+      incidents:
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+        message: found generic call
+        extras:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          kind: Method
+          lineNumber: 7
+          name: main
+      extras: []
     tag-go-000:
       description: ""
       tags:

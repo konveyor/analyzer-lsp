@@ -106,3 +106,10 @@
       - java.dependency:
           name: io.fabric8.kubernetes-client
           lowerbound: 5.0.100
+- message: "found generic call"
+  ruleID: lang-ref-004
+  when:
+    java.referenced:
+      location: METHOD_CALL
+      pattern: com.example.apps.GenericClass.get
+
