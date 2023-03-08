@@ -41,6 +41,9 @@ type Violation struct {
 
 	Labels []string `yaml:"labels,omitempty"`
 
+	// Tags list of tags generated for the applications
+	Tags []string `yaml:"tags,omitempty"`
+
 	// Incidents list of instances of violation found
 	Incidents []Incident `yaml:"incidents"`
 
