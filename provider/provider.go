@@ -177,7 +177,7 @@ func (dc DependencyCondition) Evaluate(log logr.Logger, ctx engine.ConditionCont
 
 	resp.Matched = constraints.Check(depVersion)
 	resp.Incidents = []engine.IncidentContext{engine.IncidentContext{
-		FileURI: matchedDep.Location,
+		FileURI: matchedDep.Type,
 		Extras: map[string]interface{}{
 			"name":    matchedDep.Name,
 			"version": matchedDep.Version,
