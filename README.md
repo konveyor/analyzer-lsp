@@ -22,6 +22,26 @@ To run the rules (rule-example.yaml) against the examples:
 $ podman run test-analyzer-engine
 ```
 
+## Running from source code
+
+To run the engine from source code, you need to:
+
+* Configure providers. By default, providers are configured in `provider_settings.json`. See [Providers](#./docs/providers.md) for instructions on configuring providers.
+* Configure rules. By default, rules are present in `rules_example.yaml`. See [Rules](#./docs/rules.md) for details on rule format. 
+
+Once the providers are configured, you can run:
+
+```sh
+go run main.go
+```
+
+CLI Options:
+* `--provider-settings`: Path to provider settings file
+* `--rules`: Path to rules file
+* `--output`: Path to output file
+* `--error-on-violation`: Exit with error when violations are found, also print violations to console
+* `--verbose=<level>`: Level for logging  
+
 ## Code Base Starting Point
 
  Using the LSP/Protocal from ACME https://github.com/fhs/acme-lsp and stripping out anything related to serving, proxy or anything. Just keeping the types for communication
