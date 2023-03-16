@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/cbroglie/mustache"
@@ -144,6 +145,10 @@ type DependencyCondition struct {
 	Upperbound string
 	Lowerbound string
 	Name       string
+	// NameRegex will be a valid go regex that will be used to
+	// search the name of a given dependency.
+	// Examples include kubernetes* or jakarta-.*-2.2.
+	NameRegex string
 
 	Client Client
 }
@@ -154,14 +159,38 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	if err != nil {
 		return resp, err
 	}
+	regex, err := regexp.Compile(dc.NameRegex)
+	if err != nil {
+		return resp, err
+	}
 	var matchedDep *dependency.Dep
 	for _, dep := range deps {
 		if dep.Name == dc.Name {
 			matchedDep = &dep
 			break
 		}
+		if dc.NameRegex != "" && regex.MatchString(dep.Name) {
+			matchedDep = &dep
+			break
+		}
 	}
 	if matchedDep == nil {
+		return resp, nil
+	}
+
+	if matchedDep.Version == "" {
+		resp.Matched = true
+		resp.Incidents = []engine.IncidentContext{engine.IncidentContext{
+			FileURI: matchedDep.Type,
+			Extras: map[string]interface{}{
+				"name":    matchedDep.Name,
+				"version": matchedDep.Version,
+			},
+		}}
+		resp.TemplateContext = map[string]interface{}{
+			"name":    matchedDep.Name,
+			"version": matchedDep.Version,
+		}
 		return resp, nil
 	}
 

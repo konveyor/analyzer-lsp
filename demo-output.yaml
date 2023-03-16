@@ -370,7 +370,7 @@
       - uri: file://./rule-example.yaml
         message: ""
         extras:
-          lineNumber: "69"
+          lineNumber: "72"
           matchingText: require.*sigs.k8s.io/.*"
       extras: []
     tech-tag-001:

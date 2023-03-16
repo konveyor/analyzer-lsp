@@ -3,6 +3,7 @@ package java
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,7 +45,6 @@ func (p *javaProvider) getLocalRepoPath() string {
 	cmd.Stdout = &outb
 	err := cmd.Run()
 	if err != nil {
-		fmt.Printf("here: %v", err)
 		return ""
 	}
 
@@ -53,7 +53,6 @@ func (p *javaProvider) getLocalRepoPath() string {
 }
 
 func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
-
 	localRepoPath := p.getLocalRepoPath()
 
 	path := p.findPom()
@@ -94,7 +93,33 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depende
 		return nil, err
 	}
 
+	//Walk the dir, looking for .jar files to add to the dependency
+	w := walker{
+		deps: deps,
+	}
+	filepath.WalkDir(moddir, w.walkDirForJar)
+
 	return deps, nil
+}
+
+type walker struct {
+	deps map[dependency.Dep][]dependency.Dep
+}
+
+func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
+	if info == nil {
+		return nil
+	}
+	if info.IsDir() {
+		return filepath.WalkDir(filepath.Join(path, info.Name()), w.walkDirForJar)
+	}
+	if strings.HasSuffix(info.Name(), ".jar") {
+		d := dependency.Dep{
+			Name: info.Name(),
+		}
+		w.deps[d] = []dependency.Dep{}
+	}
+	return nil
 }
 
 // parseDepString parses a java dependency string
@@ -119,7 +144,7 @@ func parseDepString(dep, localRepoPath string) (dependency.Dep, error) {
 	d.Version = parts[3]
 	d.Type = parts[4]
 
-	fp := filepath.Join(localRepoPath, strings.Replace(d.Name, ".", "/", -1), d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
+	fp := filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
 	b, err := os.ReadFile(fp)
 	if err != nil {
 		return d, err

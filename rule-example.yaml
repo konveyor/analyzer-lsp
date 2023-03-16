@@ -38,6 +38,7 @@
     or:
     - java.referenced:
         pattern: "*CustomResourceDefinition*"
+        location: TYPE
     - go.referenced: "*CustomResourceDefinition*"
 - message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
@@ -51,12 +52,14 @@
       - go.referenced: "*CustomResourceDefinition*"
       - java.referenced:
           pattern: "*CustomResourceDefinition*"
+          location: TYPE
     - go.referenced: "*CustomResourceDefinition*"
 - message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: lang-ref-003
   when:
     java.referenced: 
       pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
+      location: TYPE
 - tag:
     - Golang
   ruleID: tag-go-000
