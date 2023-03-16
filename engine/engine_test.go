@@ -504,6 +504,149 @@ func TestRuleEngine(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "test 11 rules",
+			Rules: []RuleSet{
+				{
+					Rules: []Rule{
+						{
+							Perform: Perform{Message: &woo},
+							When:    createTestConditional(false, nil, false),
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+						{
+							Perform: Perform{Message: &wooFalse},
+							When: AndCondition{
+								Conditions: []ConditionEntry{
+									{
+										ProviderSpecificConfig: createTestConditional(false, nil, false),
+									},
+									{
+										ProviderSpecificConfig: createTestConditional(true, nil, false),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	logrusLog := logrus.New()
