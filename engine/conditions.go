@@ -1,11 +1,13 @@
 package engine
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/hubapi"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
 var _ Conditional = AndCondition{}
@@ -40,7 +42,7 @@ type IncidentContext struct {
 }
 
 type Conditional interface {
-	Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error)
+	Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error)
 }
 
 type RuleSet struct {
@@ -87,7 +89,10 @@ type AndCondition struct {
 	Conditions []ConditionEntry `yaml:"and"`
 }
 
-func (a AndCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
+func (a AndCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error) {
+	ctx, span := tracing.StartNewSpan(ctx, "and-condition")
+	defer span.End()
+
 	if len(a.Conditions) == 0 {
 		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluating")
 	}
@@ -98,17 +103,17 @@ func (a AndCondition) Evaluate(log logr.Logger, ctx ConditionContext) (Condition
 		TemplateContext: map[string]interface{}{},
 	}
 	for _, c := range a.Conditions {
-		if _, ok := ctx.Template[c.From]; !ok && c.From != "" {
+		if _, ok := condCtx.Template[c.From]; !ok && c.From != "" {
 			// Short circut w/ error here
 			// TODO: determine if this is the right thing, I am assume the full rule should fail here
 			return ConditionResponse{}, fmt.Errorf("unable to find context value: %v", c.From)
 		}
-		response, err := c.ProviderSpecificConfig.Evaluate(log, ctx)
+		response, err := c.ProviderSpecificConfig.Evaluate(ctx, log, condCtx)
 		if err != nil {
 			return ConditionResponse{}, err
 		}
 		if c.As != "" {
-			ctx.Template[c.As] = lib.ChainTemplate{
+			condCtx.Template[c.As] = lib.ChainTemplate{
 				Filepaths: incidentsToFilepaths(response.Incidents),
 				Extras:    response.TemplateContext,
 			}
@@ -139,7 +144,10 @@ type OrCondition struct {
 	Conditions []ConditionEntry `yaml:"or"`
 }
 
-func (o OrCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
+func (o OrCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error) {
+	ctx, span := tracing.StartNewSpan(ctx, "or-condition")
+	defer span.End()
+
 	if len(o.Conditions) == 0 {
 		return ConditionResponse{}, fmt.Errorf("conditions must not be empty while evaluationg")
 	}
@@ -151,19 +159,19 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionR
 		TemplateContext: map[string]interface{}{},
 	}
 	for _, c := range o.Conditions {
-		if _, ok := ctx.Template[c.From]; !ok && c.From != "" {
+		if _, ok := condCtx.Template[c.From]; !ok && c.From != "" {
 			// Short circut w/ error here
 			// TODO: determine if this is the right thing, I am assume the full rule should fail here
 			return ConditionResponse{}, fmt.Errorf("unable to find context value: %v", c.From)
 		}
 
-		response, err := c.ProviderSpecificConfig.Evaluate(log, ctx)
+		response, err := c.ProviderSpecificConfig.Evaluate(ctx, log, condCtx)
 		if err != nil {
 			return ConditionResponse{}, err
 		}
 
 		if c.As != "" {
-			ctx.Template[c.As] = lib.ChainTemplate{
+			condCtx.Template[c.As] = lib.ChainTemplate{
 				Filepaths: incidentsToFilepaths(response.Incidents),
 				Extras:    response.TemplateContext,
 			}
@@ -189,8 +197,8 @@ func (o OrCondition) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionR
 	return fullResponse, nil
 }
 
-func (ce ConditionEntry) Evaluate(log logr.Logger, ctx ConditionContext) (ConditionResponse, error) {
-	response, err := ce.ProviderSpecificConfig.Evaluate(log, ctx)
+func (ce ConditionEntry) Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error) {
+	response, err := ce.ProviderSpecificConfig.Evaluate(ctx, log, condCtx)
 	if err != nil {
 		return ConditionResponse{}, err
 	}
