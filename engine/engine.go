@@ -77,6 +77,7 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 			logger.V(5).Info("taking rule")
 			m.ctx.Template = make(map[string]lib.ChainTemplate)
 			bo, err := processRule(ctx, m.rule, m.ctx, logger)
+			logger.V(5).Info("finished rule", "response", bo, "error", err)
 			m.returnChan <- response{
 				ConditionResponse: bo,
 				Err:               err,
@@ -149,6 +150,38 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 	ret := make(chan response)
 
 	wg := &sync.WaitGroup{}
+	// Handle returns
+	go func() {
+		for {
+			select {
+			case response := <-ret:
+				func() {
+					r.logger.Info("rule returned", "rule", response)
+					defer wg.Done()
+					if response.Err != nil {
+						r.logger.Error(response.Err, "failed to evaluate rule", "ruleID", response.Rule.RuleID)
+					} else if response.ConditionResponse.Matched {
+						violation, err := r.createViolation(response.ConditionResponse, response.Rule)
+						if err != nil {
+							r.logger.Error(err, "unable to create violation from response")
+						}
+						rs, ok := mapRuleSets[response.RuleSetName]
+						if !ok {
+							r.logger.Info("this should never happen that we don't find the ruleset")
+						}
+						rs.Violations[response.Rule.RuleID] = violation
+					} else {
+						// Log that rule did not pass
+						r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "response", response)
+					}
+				}()
+			case <-ctx.Done():
+				// At this point we should just return the function, we may want to close the wait group too.
+				return
+			}
+		}
+	}()
+
 	for _, rule := range ruleMessages {
 		wg.Add(1)
 		rule.returnChan = ret
@@ -156,36 +189,6 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 		r.ruleProcessing <- rule
 	}
 	r.logger.V(5).Info("All rules added buffer, waiting for engine to complete")
-
-	// Handle returns
-	go func() {
-		for {
-			select {
-			case response := <-ret:
-				if response.Err != nil {
-					r.logger.Error(response.Err, "failed to evaluate rule", "ruleID", response.Rule.RuleID)
-				} else if response.ConditionResponse.Matched {
-					violation, err := r.createViolation(response.ConditionResponse, response.Rule)
-					if err != nil {
-						r.logger.Error(err, "unable to create violation from response")
-					}
-					rs, ok := mapRuleSets[response.RuleSetName]
-					if !ok {
-						r.logger.Info("this should never happen that we don't find the ruleset")
-					}
-					rs.Violations[response.Rule.RuleID] = violation
-				} else {
-					// Log that rule did not pass
-					r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "response", response)
-
-				}
-				wg.Done()
-			case <-ctx.Done():
-				// At this point we should just return the function, we may want to close the wait group too.
-				return
-			}
-		}
-	}()
 
 	done := make(chan struct{})
 	go func() {
