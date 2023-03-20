@@ -19,7 +19,7 @@ import (
 // Rule Location to location that the bundle understands
 var locationToCode = map[string]int{
 	//Type is the default.
-	"type":             0,
+	"":                 0,
 	"inheritance":      1,
 	"method_call":      2,
 	"constructor_call": 3,
@@ -30,6 +30,7 @@ var locationToCode = map[string]int{
 	"return_type":          7,
 	"import":               8,
 	"variable_declaration": 9,
+	"type":                 10,
 }
 
 type javaProvider struct {
@@ -123,7 +124,7 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
 	case 0:
 		// Filter handle for type, find all the referneces to this type.
-		incidents, err = p.filterTypeReferences(symbols)
+		incidents, err = p.filterDefault(symbols)
 	case 1, 5:
 		incidents, err = p.filterTypesInheritance(symbols)
 	case 2:
@@ -136,6 +137,8 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 		incidents, err = p.filterModulesImports(symbols)
 	case 9:
 		incidents, err = p.filterVariableDeclaration(symbols)
+	case 10:
+		incidents, err = p.filterTypeReferences(symbols)
 	default:
 
 	}

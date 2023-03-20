@@ -88,6 +88,23 @@ func (p *javaProvider) filterTypeReferences(symbols []protocol.WorkspaceSymbol) 
 	return incidents, nil
 }
 
+func (p *javaProvider) filterDefault(symbols []protocol.WorkspaceSymbol) ([]lib.IncidentContext, error) {
+	incidents := []lib.IncidentContext{}
+	for _, symbol := range symbols {
+		incidents = append(incidents, lib.IncidentContext{
+			FileURI: symbol.Location.URI,
+			Extras: map[string]interface{}{
+				LINE_NUMBER_EXTRA_KEY: symbol.Location.Range.Start.Line,
+
+				KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
+				SYMBOL_NAME_KEY: symbol.Name,
+				FILE_KEY:        symbol.Location.URI,
+			},
+		})
+	}
+	return incidents, nil
+}
+
 // TODO: we will probably want to filter symbols bassed on if in any way the method is being used in the code directly.
 // This will need to be part of a "filtration" concept that windup has. Searching partiular subsets of things (just the application, applicatoin + corp libraries and the everything.)
 // Today this is just giving everything.

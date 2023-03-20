@@ -554,14 +554,21 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 				depCondition.Upperbound = value
 			case "lowerbound":
 				depCondition.Lowerbound = value
+			case "nameregex":
+				depCondition.NameRegex = value
 			default:
 				return nil, nil, fmt.Errorf("%s is not a valid argument for a dependency condition", key)
 			}
 		}
 
+		if depCondition.NameRegex != "" {
+			return &depCondition, client, nil
+
+		}
 		if depCondition.Name == "" {
 			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (name is required)", langProvider)
 		}
+
 		if depCondition.Upperbound == "" && depCondition.Lowerbound == "" {
 			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (one of upperbound or lowerbound is required)", langProvider)
 		}
