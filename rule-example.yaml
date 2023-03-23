@@ -61,12 +61,12 @@
       pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
       location: TYPE
 - tag:
-    - Golang
+    - Language=Golang
   ruleID: tag-go-000
   when:
     builtin.file: "go.mod"
 - tag:
-    - Kubernetes
+    - Infra=Kubernetes
   ruleID: tag-k8s-000
   when:
     builtin.filecontent: "require.*sigs.k8s.io/.*"

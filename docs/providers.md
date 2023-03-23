@@ -39,4 +39,9 @@ The `java` provider takes following additional configuration options:
 * `bundles`: Path to extension bundles to enhance default Java language server's capabilities. See the [bundle](https://github.com/konveyor/java-analyzer-bundle) Konveyor uses.
 * `workspace`: Path to directory where the provider generates debug information such as logs.
 
+#### Builtin
+
+The `builtin` provider takes following additional configuration options:
+
+* `tagsFile`: Path to YAML file that contains a list of tags for the application being analyzed
 

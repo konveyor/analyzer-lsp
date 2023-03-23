@@ -29,16 +29,24 @@ labels:
 effort: 1
 ```
 
-Actions of a rule are:
+A rule has `message` and `tag` actions.
+
+The `message` action generates a message for every violation created when rule matches. The message also supports templating in that the custom data exported by providers can be used in the message.
 
 ```yaml
 # when a match is found, analyzer generates a violation with this message
 message: "helpful message about the violation"
+```
+
+The `tag` action allows generating tags for the application. Each string in the tag can be a comma separated list of tags. Optionally, tags can have categories.
+
+```yaml
 # when a match is found, analyzer generates these tags for the application
 tag:
-  - "tag1"
-  - "tag2"
-
+  # tags can be comma separated
+  - "tag1,tag2,tag3"
+  # optionally, tags can be assigned categories
+  - "Category=tag4,tag5"
 ```
 
 Finally, a rule contains a `when` block to specify a condition:
@@ -257,8 +265,9 @@ source:
 target:
   id: "tech2"
   versionRange: "versionRange"
-# additional tags for ruleset
-tags:
+# additional labels for ruleset
+# labels help filter rulesets
+labels:
   - awesome_rules1
 ```
 
