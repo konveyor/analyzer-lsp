@@ -194,7 +194,7 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		return resp, nil
 	}
 
-	depVersion, err := version.NewVersion(matchedDep.Version)
+	depVersion, err := getVersion(matchedDep.Version)
 	if err != nil {
 		return resp, err
 	}
@@ -225,4 +225,24 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	}
 
 	return resp, nil
+}
+
+func getVersion(depVersion string) (*version.Version, error) {
+	v, err := version.NewVersion(depVersion)
+	if err == nil {
+		return v, nil
+	}
+	// Parsing failed so we'll try to extract a version and parse that
+	re := regexp.MustCompile("v?([0-9]+(?:\\.[0-9]+)*)")
+	matches := re.FindStringSubmatch(depVersion)
+
+	// The group is matching twice for some reason, double-check it's just a dup match
+	trueMatches := map[string]bool{}
+	for _, match := range matches {
+		trueMatches[match] = true
+	}
+	if len(trueMatches) != 1 {
+		return nil, err
+	}
+	return version.NewVersion(matches[0])
 }

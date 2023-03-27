@@ -10,7 +10,7 @@ FROM quay.io/konveyor/jdtls-server-base
 WORKDIR /analyzer-lsp
 # TODO limit to prevent unnecessary rebuilds
 COPY  . /analyzer-lsp
-COPY --from=builder /analyzer-lsp/konveyor-analyzer /analyzer-lsp/konveyor-analyzer
+COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
 COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
 
 

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/antchfx/xmlquery"
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 )
 
@@ -26,10 +27,10 @@ func (p *javaProvider) findPom() string {
 func (p *javaProvider) GetDependencies() ([]dependency.Dep, error) {
 	ll, err := p.GetDependenciesLinkedList()
 	if err != nil {
-		return nil, err
+		return p.GetDependencyFallback()
 	}
 	if len(ll) == 0 {
-		return nil, nil
+		return p.GetDependencyFallback()
 	}
 	deps := []dependency.Dep{}
 	for topLevel, transitives := range ll {
@@ -50,6 +51,45 @@ func (p *javaProvider) getLocalRepoPath() string {
 
 	// check errors
 	return string(outb.String())
+}
+
+func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, error) {
+	pomDependencyQuery := "//dependencies/dependency/*"
+	path := p.findPom()
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := os.Open(absPath)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := xmlquery.Parse(f)
+	if err != nil {
+		return nil, err
+	}
+	list, err := xmlquery.QueryAll(doc, pomDependencyQuery)
+	if err != nil {
+		return nil, err
+	}
+	deps := []dependency.Dep{}
+	name := ""
+	// TODO this is comedically janky
+	for _, node := range list {
+		if node.Data == "groupId" {
+			name = node.InnerText()
+		} else if node.Data == "artifactId" {
+			name += "." + node.InnerText()
+		} else if node.Data == "version" {
+			deps = append(deps, dependency.Dep{Name: name, Version: node.InnerText()})
+			name = ""
+		} else {
+			panic(node.Data)
+		}
+	}
+	return deps, nil
 }
 
 func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
