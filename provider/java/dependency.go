@@ -85,9 +85,8 @@ func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, error) {
 		} else if node.Data == "version" {
 			deps = append(deps, dependency.Dep{Name: name, Version: node.InnerText()})
 			name = ""
-		} else {
-			panic(node.Data)
 		}
+		// Ignore the others
 	}
 	return deps, nil
 }
