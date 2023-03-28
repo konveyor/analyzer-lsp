@@ -161,67 +161,70 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	}
 	regex, err := regexp.Compile(dc.NameRegex)
 	if err != nil {
+		fmt.Printf("regex: %v", regex)
 		return resp, err
 	}
-	var matchedDep *dependency.Dep
+	matchedDeps := []*dependency.Dep{}
 	for _, dep := range deps {
 		if dep.Name == dc.Name {
-			matchedDep = &dep
+			matchedDeps = append(matchedDeps, &dep)
 			break
 		}
 		if dc.NameRegex != "" && regex.MatchString(dep.Name) {
-			matchedDep = &dep
-			break
+			matchedDeps = append(matchedDeps, &dep)
 		}
 	}
-	if matchedDep == nil {
+	if len(matchedDeps) == 0 {
 		return resp, nil
 	}
 
-	if matchedDep.Version == "" {
-		resp.Matched = true
-		resp.Incidents = []engine.IncidentContext{engine.IncidentContext{
+	for _, matchedDep := range matchedDeps {
+		if matchedDep.Version == "" || (dc.Lowerbound == "" && dc.Upperbound == "") {
+			resp.Matched = true
+			resp.Incidents = append(resp.Incidents, engine.IncidentContext{
+				FileURI: matchedDep.Type,
+				Extras: map[string]interface{}{
+					"name":    matchedDep.Name,
+					"version": matchedDep.Version,
+				},
+			})
+			// For now, lets leave this TODO to figure out what we should be setting in the context
+			resp.TemplateContext = map[string]interface{}{
+				"name":    matchedDep.Name,
+				"version": matchedDep.Version,
+			}
+			continue
+		}
+
+		depVersion, err := getVersion(matchedDep.Version)
+		if err != nil {
+			return resp, err
+		}
+
+		constraintPieces := []string{}
+		if dc.Lowerbound != "" {
+			constraintPieces = append(constraintPieces, "> "+dc.Lowerbound)
+		}
+		if dc.Upperbound != "" {
+			constraintPieces = append(constraintPieces, "< "+dc.Upperbound)
+		}
+		constraints, err := version.NewConstraint(strings.Join(constraintPieces, ", "))
+		if err != nil {
+			return resp, err
+		}
+
+		resp.Matched = constraints.Check(depVersion)
+		resp.Incidents = append(resp.Incidents, engine.IncidentContext{
 			FileURI: matchedDep.Type,
 			Extras: map[string]interface{}{
 				"name":    matchedDep.Name,
 				"version": matchedDep.Version,
 			},
-		}}
+		})
 		resp.TemplateContext = map[string]interface{}{
 			"name":    matchedDep.Name,
 			"version": matchedDep.Version,
 		}
-		return resp, nil
-	}
-
-	depVersion, err := getVersion(matchedDep.Version)
-	if err != nil {
-		return resp, err
-	}
-
-	constraintPieces := []string{}
-	if dc.Lowerbound != "" {
-		constraintPieces = append(constraintPieces, "> "+dc.Lowerbound)
-	}
-	if dc.Upperbound != "" {
-		constraintPieces = append(constraintPieces, "< "+dc.Upperbound)
-	}
-	constraints, err := version.NewConstraint(strings.Join(constraintPieces, ", "))
-	if err != nil {
-		return resp, err
-	}
-
-	resp.Matched = constraints.Check(depVersion)
-	resp.Incidents = []engine.IncidentContext{engine.IncidentContext{
-		FileURI: matchedDep.Type,
-		Extras: map[string]interface{}{
-			"name":    matchedDep.Name,
-			"version": matchedDep.Version,
-		},
-	}}
-	resp.TemplateContext = map[string]interface{}{
-		"name":    matchedDep.Name,
-		"version": matchedDep.Version,
 	}
 
 	return resp, nil
