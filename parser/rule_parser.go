@@ -218,10 +218,37 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			return nil, nil, fmt.Errorf("a Rule must have a single condition")
 		}
 
+		var from string
+		var as string
+		var ignorable bool
+		var not bool
+		fromRaw, ok := whenMap["from"]
+		if ok {
+			delete(whenMap, "from")
+			from, ok = fromRaw.(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("from must be a string literal, not %v", fromRaw)
+			}
+		}
+		asRaw, ok := whenMap["as"]
+		if ok {
+			delete(whenMap, "as")
+			as, ok = asRaw.(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("as must be a string literal, not %v", asRaw)
+			}
+		}
+		ignorableRaw, ok := whenMap["ignore"]
+		if ok {
+			delete(whenMap, "ignore")
+			ignorable, ok = ignorableRaw.(bool)
+			if !ok {
+				return nil, nil, fmt.Errorf("ignore must be a boolean, not %v", ignorableRaw)
+			}
+		}
 		// IF there is a not, then we assume a single condition at this level and store it to be used in the default case.
 		// There may be a better way of doing this.
 		notKeywordRaw, ok := whenMap["not"]
-		not := false
 		if ok {
 			// Delete from map after getting the value, so that when we range over the when map it does not have to be handeled again.
 			delete(whenMap, "not")
@@ -281,8 +308,11 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				}
 
 				c := engine.ConditionEntry{
-					Not:                    not,
+					From:                   from,
+					As:                     as,
 					ProviderSpecificConfig: condition,
+					Ignorable:              ignorable,
+					Not:                    not,
 				}
 				rule.When = c
 				providers[providerKey] = provider
@@ -403,7 +433,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			delete(conditionMap, "ignore")
 			ignorable, ok = ignorableRaw.(bool)
 			if !ok {
-				return nil, nil, fmt.Errorf("as must be a boolean, not %v", ignorableRaw)
+				return nil, nil, fmt.Errorf("ignore must be a boolean, not %v", ignorableRaw)
 			}
 		}
 		notKeywordRaw, ok := conditionMap["not"]
@@ -411,7 +441,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			delete(conditionMap, "not")
 			not, ok = notKeywordRaw.(bool)
 			if !ok {
-				return nil, nil, fmt.Errorf("not must a boolean, not %v", notKeywordRaw)
+				return nil, nil, fmt.Errorf("not must be a boolean, not %v", notKeywordRaw)
 			}
 		}
 		for k, v := range conditionMap {
