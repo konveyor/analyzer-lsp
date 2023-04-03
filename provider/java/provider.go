@@ -131,6 +131,8 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 		incidents, err = p.filterMethodSymbols(symbols)
 	case 3:
 		incidents, err = p.filterConstructorSymbols(symbols)
+	case 4:
+		incidents, err = p.filterDefault(symbols)
 	case 7:
 		incidents, err = p.filterMethodSymbols(symbols)
 	case 8:
