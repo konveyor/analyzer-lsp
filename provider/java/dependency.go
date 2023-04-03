@@ -75,16 +75,19 @@ func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, error) {
 		return nil, err
 	}
 	deps := []dependency.Dep{}
-	name := ""
+	dep := dependency.Dep{}
 	// TODO this is comedically janky
 	for _, node := range list {
 		if node.Data == "groupId" {
-			name = node.InnerText()
+			if dep.Name != "" {
+				deps = append(deps, dep)
+				dep = dependency.Dep{}
+			}
+			dep.Name = node.InnerText()
 		} else if node.Data == "artifactId" {
-			name += "." + node.InnerText()
+			dep.Name += "." + node.InnerText()
 		} else if node.Data == "version" {
-			deps = append(deps, dependency.Dep{Name: name, Version: node.InnerText()})
-			name = ""
+			dep.Version = node.InnerText()
 		}
 		// Ignore the others
 	}
