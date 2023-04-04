@@ -181,24 +181,27 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			xmlFiles = cond.XML.Filepaths
 		}
 		for _, file := range xmlFiles {
+			if !strings.HasPrefix(file, "/") {
+				file = filepath.Join(p.config.Location, file)
+			}
 			absPath, err := filepath.Abs(file)
 			if err != nil {
-				fmt.Printf("unable to get abs path: %v", err)
+				fmt.Printf("unable to get abs path: %v\n", err)
+				continue
 			}
 			f, err := os.Open(absPath)
 			if err != nil {
-				fmt.Printf("unable to open file: %v", err)
+				fmt.Printf("unable to open file: %v\n", err)
+				continue
 			}
 			doc, err := xmlquery.Parse(f)
 			if err != nil {
-				fmt.Printf("unable to query file: %v", err)
+				fmt.Printf("unable to query file: %v\n", err)
 				continue
-				// return response, err
 			}
 			list, err := xmlquery.QueryAll(doc, query)
 			if err != nil {
 				continue
-				// return response, err
 			}
 			if len(list) != 0 {
 				response.Matched = true
