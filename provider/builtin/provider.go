@@ -174,6 +174,11 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			if err != nil {
 				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 			}
+			xhtmlFiles, err := findFilesMatchingPattern(p.config.Location, "*.xhtml")
+			if err != nil {
+				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", "*.xhtml", err)
+			}
+			xmlFiles = append(xmlFiles, xhtmlFiles...)
 		} else if len(cond.XML.Filepaths) == 1 {
 			// Currently, rendering will render a list as a space seperated paths as a single string.
 			xmlFiles = strings.Split(cond.XML.Filepaths[0], " ")
