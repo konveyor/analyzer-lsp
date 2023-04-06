@@ -229,6 +229,8 @@ func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, 
 		Tags:     make(map[string]interface{}),
 		Template: make(map[string]lib.ChainTemplate),
 	}
+	// track unique tags per ruleset
+	rulesetTagsCache := map[string]map[string]bool{}
 	for _, ruleMessage := range infoRules {
 		rule := ruleMessage.rule
 		response, err := processRule(ctx, rule, context, r.logger)
@@ -250,7 +252,15 @@ func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, 
 			if !ok {
 				r.logger.Info("this should never happen that we don't find the ruleset")
 			} else {
-				rs.Tags = append(rs.Tags, rule.Perform.Tag...)
+				if _, ok := rulesetTagsCache[rs.Name]; !ok {
+					rulesetTagsCache[rs.Name] = make(map[string]bool)
+				}
+				for _, tag := range rule.Perform.Tag {
+					if _, ok := rulesetTagsCache[rs.Name][tag]; !ok {
+						rulesetTagsCache[rs.Name][tag] = true
+						rs.Tags = append(rs.Tags, tag)
+					}
+				}
 				mapRuleSets[ruleMessage.ruleSetName] = rs
 			}
 		}
@@ -260,7 +270,7 @@ func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, 
 
 func parseTagsFromPerformString(tagString string) ([]string, error) {
 	tags := []string{}
-	pattern := regexp.MustCompile(`^(?:\w+=){0,1}(\w+(?:, *[\w,]+)*),?$`)
+	pattern := regexp.MustCompile(`^(?:[\w- ]+=){0,1}([\w- ]+(?:, *[\w- ,]+)*),?$`)
 	if !pattern.MatchString(tagString) {
 		return nil, fmt.Errorf("unexpected tag string %s", tagString)
 	}

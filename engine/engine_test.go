@@ -680,8 +680,8 @@ func Test_parseTagsFromPerformString(t *testing.T) {
 		},
 		{
 			name:      "tc2",
-			tagString: "test1,",
-			want:      []string{"test1"},
+			tagString: "test1-tag,",
+			want:      []string{"test1-tag"},
 		},
 		{
 			name:      "tc3",
@@ -702,6 +702,11 @@ func Test_parseTagsFromPerformString(t *testing.T) {
 			name:      "tc6",
 			tagString: "test1, test2, test3, test4",
 			want:      []string{"test1", "test2", "test3", "test4"},
+		},
+		{
+			name:      "tc6",
+			tagString: "test tag1, test tag2",
+			want:      []string{"test tag1", "test tag2"},
 		},
 		{
 			name:      "tc7",
