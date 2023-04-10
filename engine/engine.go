@@ -95,13 +95,15 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 	}
 }
 
-func (r *ruleEngine) createRuleSet(ruleSet RuleSet) hubapi.RuleSet {
-	rs := hubapi.RuleSet{
+func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *hubapi.RuleSet {
+	rs := &hubapi.RuleSet{
 		Name:        ruleSet.Name,
 		Description: ruleSet.Description,
 		Labels:      ruleSet.Labels,
 		Tags:        []string{},
 		Violations:  map[string]hubapi.Violation{},
+		Errors:      map[string]string{},
+		Unmatched:   []string{},
 	}
 
 	if ruleSet.Source != nil {
@@ -129,7 +131,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 
 	// filter rules that generate metadata indexed by ruleset name, they run first
 	metaRules := []ruleMessage{}
-	mapRuleSets := map[string]hubapi.RuleSet{}
+	mapRuleSets := map[string]*hubapi.RuleSet{}
 	ruleMessages := []ruleMessage{}
 	for _, ruleSet := range ruleSets {
 		mapRuleSets[ruleSet.Name] = r.createRuleSet(ruleSet)
@@ -164,6 +166,9 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 					defer wg.Done()
 					if response.Err != nil {
 						r.logger.Error(response.Err, "failed to evaluate rule", "ruleID", response.Rule.RuleID)
+						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
+							rs.Errors[response.Rule.RuleID] = response.Err.Error()
+						}
 					} else if response.ConditionResponse.Matched {
 						violation, err := r.createViolation(response.ConditionResponse, response.Rule)
 						if err != nil {
@@ -177,6 +182,9 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 					} else {
 						// Log that rule did not pass
 						r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "response", response)
+						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
+							rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
+						}
 					}
 				}()
 			case <-ctx.Done():
@@ -209,7 +217,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 	}
 	responses := []hubapi.RuleSet{}
 	for _, ruleSet := range mapRuleSets {
-		responses = append(responses, ruleSet)
+		responses = append(responses, *ruleSet)
 	}
 	// Cannel running go-routine
 	cancelFunc()
@@ -224,7 +232,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 
 // runMetaRules filters and runs info rules synchronously
 // returns list of non-info rules, a context to pass to them
-func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]hubapi.RuleSet) ConditionContext {
+func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*hubapi.RuleSet) ConditionContext {
 	context := ConditionContext{
 		Tags:     make(map[string]interface{}),
 		Template: make(map[string]lib.ChainTemplate),
@@ -236,6 +244,9 @@ func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, 
 		response, err := processRule(ctx, rule, context, r.logger)
 		if err != nil {
 			r.logger.Error(err, "failed to evaluate rule", "ruleID", rule.RuleID)
+			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
+				rs.Errors[rule.RuleID] = err.Error()
+			}
 		} else if response.Matched {
 			r.logger.V(5).Info("info rule was matched", "ruleID", rule.RuleID)
 			for _, tagString := range rule.Perform.Tag {
@@ -262,6 +273,11 @@ func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, 
 					}
 				}
 				mapRuleSets[ruleMessage.ruleSetName] = rs
+			}
+		} else {
+			r.logger.Info("info rule not matched", "rule", rule.RuleID)
+			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
+				rs.Unmatched = append(rs.Unmatched, rule.RuleID)
 			}
 		}
 	}

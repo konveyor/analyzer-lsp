@@ -5,13 +5,28 @@ import (
 )
 
 type RuleSet struct {
-	Name        string               `yaml:"name,omitempty"`
-	Description string               `yaml:"description,omitempty"`
-	Source      *RuleSetTechnology   `yaml:"source,omitempty"`
-	Target      *RuleSetTechnology   `yaml:"target,omitempty"`
-	Labels      []string             `yaml:"labels,omitempty"`
-	Tags        []string             `yaml:"tags,omitempty"`
-	Violations  map[string]Violation `yaml:"violations,omitempty"`
+	// Name is a name for the ruleset.
+	Name string `yaml:"name,omitempty"`
+	// Description text description for the ruleset.
+	Description string `yaml:"description,omitempty"`
+	// Source is the source technology which the rules target to.
+	Source *RuleSetTechnology `yaml:"source,omitempty"`
+	// Target is the target technology which the rules target to.
+	Target *RuleSetTechnology `yaml:"target,omitempty"`
+	// Labels are list of labels for the ruleset.
+	Labels []string `yaml:"labels,omitempty"`
+	// Tags list of generated tags from the rules in this ruleset.
+	Tags []string `yaml:"tags,omitempty"`
+	// Violations is a map containing violations generated for the
+	// matched rules in this ruleset. Keys are rule IDs, values are
+	// their respective generated violations.
+	Violations map[string]Violation `yaml:"violations,omitempty"`
+	// Errors is a map containing errors generated during evaluation
+	// of rules in this ruleset. Keys are rule IDs, values are
+	// their respective generated errors.
+	Errors map[string]string `yaml:"errors,omitempty"`
+	// Unmatched is a list of rule IDs of the rules that weren't matched.
+	Unmatched []string
 }
 
 type RuleSetTechnology struct {
