@@ -174,6 +174,11 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			if err != nil {
 				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 			}
+			xhtmlFiles, err := findFilesMatchingPattern(p.config.Location, "*.xhtml")
+			if err != nil {
+				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", "*.xhtml", err)
+			}
+			xmlFiles = append(xmlFiles, xhtmlFiles...)
 		} else if len(cond.XML.Filepaths) == 1 {
 			// Currently, rendering will render a list as a space seperated paths as a single string.
 			xmlFiles = strings.Split(cond.XML.Filepaths[0], " ")
@@ -186,21 +191,39 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			}
 			absPath, err := filepath.Abs(file)
 			if err != nil {
-				fmt.Printf("unable to get abs path: %v\n", err)
+				fmt.Printf("unable to get absolute path for '%s': %v\n", file, err)
 				continue
 			}
 			f, err := os.Open(absPath)
 			if err != nil {
-				fmt.Printf("unable to open file: %v\n", err)
+				fmt.Printf("unable to open file '%s': %v\n", absPath, err)
 				continue
 			}
-			doc, err := xmlquery.Parse(f)
+			// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
+			var doc *xmlquery.Node
+			doc, err = xmlquery.ParseWithOptions(f, xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
 			if err != nil {
-				fmt.Printf("unable to query file: %v\n", err)
-				continue
+				if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
+					// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
+					b, err := os.ReadFile(absPath)
+					if err != nil {
+						fmt.Printf("unable to parse xml file '%s': %v\n", absPath, err)
+						continue
+					}
+					docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
+					doc, err = xmlquery.Parse(strings.NewReader(docString))
+					if err != nil {
+						fmt.Printf("unable to parse xml file '%s': %v\n", absPath, err)
+						continue
+					}
+				} else {
+					fmt.Printf("unable to parse xml file '%s': %v\n", absPath, err)
+					continue
+				}
 			}
 			list, err := xmlquery.QueryAll(doc, query)
 			if err != nil {
+				fmt.Printf("unable to query file '%s' with query '%s': %v\n", absPath, query, err)
 				continue
 			}
 			if len(list) != 0 {
