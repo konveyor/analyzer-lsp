@@ -181,9 +181,24 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			xmlFiles = append(xmlFiles, xhtmlFiles...)
 		} else if len(cond.XML.Filepaths) == 1 {
 			// Currently, rendering will render a list as a space seperated paths as a single string.
-			xmlFiles = strings.Split(cond.XML.Filepaths[0], " ")
+			patterns := strings.Split(cond.XML.Filepaths[0], " ")
+			for _, pattern := range patterns {
+				files, err := findFilesMatchingPattern(p.config.Location, pattern)
+				if err != nil {
+					xmlFiles = append(xmlFiles, pattern)
+				} else {
+					xmlFiles = append(xmlFiles, files...)
+				}
+			}
 		} else {
-			xmlFiles = cond.XML.Filepaths
+			for _, pattern := range cond.XML.Filepaths {
+				files, err := findFilesMatchingPattern(p.config.Location, pattern)
+				if err != nil {
+					xmlFiles = append(xmlFiles, pattern)
+				} else {
+					xmlFiles = append(xmlFiles, files...)
+				}
+			}
 		}
 		for _, file := range xmlFiles {
 			if !strings.HasPrefix(file, "/") {
