@@ -185,6 +185,10 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			for _, pattern := range patterns {
 				files, err := findFilesMatchingPattern(p.config.Location, pattern)
 				if err != nil {
+					// Something went wrong dealing with the pattern, so we'll assume the user input
+					// is good and pass it on
+					// TODO(fabianvf): if we're ever hitting this for real we should investigate
+					fmt.Printf("Unable to resolve pattern '%s': %v", pattern, err)
 					xmlFiles = append(xmlFiles, pattern)
 				} else {
 					xmlFiles = append(xmlFiles, files...)
