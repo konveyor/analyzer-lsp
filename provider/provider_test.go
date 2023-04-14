@@ -8,6 +8,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"go.lsp.dev/uri"
 )
 
 var _ Client = &fakeClient{}
@@ -24,12 +25,12 @@ func (c *fakeClient) Evaluate(string, []byte) (lib.ProviderEvaluateResponse, err
 func (c *fakeClient) Init(context.Context, logr.Logger) error { return nil }
 func (c *fakeClient) Stop()                                   {}
 
-func (c *fakeClient) GetDependencies() ([]dependency.Dep, error) {
-	return c.dependencies, nil
+func (c *fakeClient) GetDependencies() ([]dependency.Dep, uri.URI, error) {
+	return c.dependencies, uri.File("test"), nil
 }
 
-func (c *fakeClient) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
-	return nil, nil
+func (c *fakeClient) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, uri.URI, error) {
+	return nil, uri.File("test"), nil
 }
 
 func Test_dependencyConditionEvaluation(t *testing.T) {

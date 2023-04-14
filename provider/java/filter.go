@@ -3,6 +3,7 @@ package java
 import (
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"go.lsp.dev/uri"
 )
 
 const (
@@ -15,16 +16,11 @@ const (
 func (p *javaProvider) filterVariableDeclaration(symbols []protocol.WorkspaceSymbol) ([]lib.IncidentContext, error) {
 	incidents := []lib.IncidentContext{}
 	for _, ref := range symbols {
-		incidents = append(incidents, lib.IncidentContext{
-			FileURI: ref.Location.URI,
-			Extras: map[string]interface{}{
-				LINE_NUMBER_EXTRA_KEY: ref.Location.Range.Start.Line,
-				// TODO(fabianvf) remove this, Temporary for testing purpses
-				KIND_EXTRA_KEY:  symbolKindToString(ref.Kind),
-				SYMBOL_NAME_KEY: ref.Name,
-				FILE_KEY:        ref.Location.URI,
-			},
-		})
+		incident, err := p.convertToIncidentContext(ref)
+		if err != nil {
+			return nil, err
+		}
+		incidents = append(incidents, incident)
 	}
 	return incidents, nil
 }
@@ -35,15 +31,11 @@ func (p *javaProvider) filterModulesImports(symbols []protocol.WorkspaceSymbol) 
 		if symbol.Kind != protocol.Module {
 			continue
 		}
-		incidents = append(incidents, lib.IncidentContext{
-			FileURI: symbol.Location.URI,
-			Extras: map[string]interface{}{
-				LINE_NUMBER_EXTRA_KEY: symbol.Location.Range.Start.Line,
-				KIND_EXTRA_KEY:        symbolKindToString(symbol.Kind),
-				SYMBOL_NAME_KEY:       symbol.Name,
-				FILE_KEY:              symbol.Location.URI,
-			},
-		})
+		incident, err := p.convertToIncidentContext(symbol)
+		if err != nil {
+			return nil, err
+		}
+		incidents = append(incidents, incident)
 	}
 	return incidents, nil
 }
@@ -51,15 +43,11 @@ func (p *javaProvider) filterModulesImports(symbols []protocol.WorkspaceSymbol) 
 func (p *javaProvider) filterTypesInheritance(symbols []protocol.WorkspaceSymbol) ([]lib.IncidentContext, error) {
 	incidents := []lib.IncidentContext{}
 	for _, symbol := range symbols {
-		incidents = append(incidents, lib.IncidentContext{
-			FileURI: symbol.Location.URI,
-			Extras: map[string]interface{}{
-				LINE_NUMBER_EXTRA_KEY: symbol.Location.Range.Start.Line,
-				KIND_EXTRA_KEY:        symbolKindToString(symbol.Kind),
-				SYMBOL_NAME_KEY:       symbol.Name,
-				FILE_KEY:              symbol.Location.URI,
-			},
-		})
+		incident, err := p.convertToIncidentContext(symbol)
+		if err != nil {
+			return nil, err
+		}
+		incidents = append(incidents, incident)
 	}
 
 	return incidents, nil
@@ -71,18 +59,11 @@ func (p *javaProvider) filterTypeReferences(symbols []protocol.WorkspaceSymbol) 
 		references := p.GetAllReferences(symbol)
 
 		for _, ref := range references {
-			// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
-			// if strings.Contains(ref.URI, p.config.Location) {
-			incidents = append(incidents, lib.IncidentContext{
-				FileURI: ref.URI,
-				Extras: map[string]interface{}{
-					LINE_NUMBER_EXTRA_KEY: ref.Range.Start.Line,
-					// TODO(fabianvf) remove this, Temporary for testing purpses
-					KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
-					SYMBOL_NAME_KEY: symbol.Name,
-					FILE_KEY:        ref.URI,
-				},
-			})
+			incident, err := p.convertSymbolRefToIncidentContext(symbol, ref)
+			if err != nil {
+				return nil, err
+			}
+			incidents = append(incidents, incident)
 		}
 	}
 	return incidents, nil
@@ -91,16 +72,11 @@ func (p *javaProvider) filterTypeReferences(symbols []protocol.WorkspaceSymbol) 
 func (p *javaProvider) filterDefault(symbols []protocol.WorkspaceSymbol) ([]lib.IncidentContext, error) {
 	incidents := []lib.IncidentContext{}
 	for _, symbol := range symbols {
-		incidents = append(incidents, lib.IncidentContext{
-			FileURI: symbol.Location.URI,
-			Extras: map[string]interface{}{
-				LINE_NUMBER_EXTRA_KEY: symbol.Location.Range.Start.Line,
-
-				KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
-				SYMBOL_NAME_KEY: symbol.Name,
-				FILE_KEY:        symbol.Location.URI,
-			},
-		})
+		incident, err := p.convertToIncidentContext(symbol)
+		if err != nil {
+			return nil, err
+		}
+		incidents = append(incidents, incident)
 	}
 	return incidents, nil
 }
@@ -111,21 +87,12 @@ func (p *javaProvider) filterDefault(symbols []protocol.WorkspaceSymbol) ([]lib.
 func (p *javaProvider) filterMethodSymbols(symbols []protocol.WorkspaceSymbol) ([]lib.IncidentContext, error) {
 	incidents := []lib.IncidentContext{}
 	for _, symbol := range symbols {
-		// Verify symbol is method.
-		if symbol.Kind != protocol.Method {
-			continue
+		incident, err := p.convertToIncidentContext(symbol)
+		if err != nil {
+			return nil, err
 		}
+		incidents = append(incidents, incident)
 
-		incidents = append(incidents, lib.IncidentContext{
-			FileURI: symbol.Location.URI,
-			Extras: map[string]interface{}{
-				LINE_NUMBER_EXTRA_KEY: symbol.Location.Range.Start.Line,
-
-				KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
-				SYMBOL_NAME_KEY: symbol.Name,
-				FILE_KEY:        symbol.Location.URI,
-			},
-		})
 	}
 	return incidents, nil
 
@@ -135,20 +102,80 @@ func (p *javaProvider) filterConstructorSymbols(symbols []protocol.WorkspaceSymb
 
 	incidents := []lib.IncidentContext{}
 	for _, symbol := range symbols {
-		// Verify symbol is Constructor.
-		if symbol.Kind != protocol.Constructor {
-			continue
+		references := p.GetAllReferences(symbol)
+		for _, ref := range references {
+			incident, err := p.convertSymbolRefToIncidentContext(symbol, ref)
+			if err != nil {
+				return nil, err
+			}
+			incidents = append(incidents, incident)
 		}
-
-		incidents = append(incidents, lib.IncidentContext{
-			FileURI: symbol.Location.URI,
-			Extras: map[string]interface{}{
-				LINE_NUMBER_EXTRA_KEY: symbol.Location.Range.Start.Line,
-				KIND_EXTRA_KEY:        symbolKindToString(symbol.Kind),
-				SYMBOL_NAME_KEY:       symbol.Name,
-				FILE_KEY:              symbol.Location.URI,
-			},
-		})
 	}
 	return incidents, nil
+}
+
+func (p *javaProvider) convertToIncidentContext(symbol protocol.WorkspaceSymbol) (lib.IncidentContext, error) {
+	u, err := uri.Parse(symbol.Location.URI)
+	if err != nil {
+		return lib.IncidentContext{}, err
+	}
+
+	incident := lib.IncidentContext{
+		FileURI: u,
+		Variables: map[string]interface{}{
+			LINE_NUMBER_EXTRA_KEY: symbol.Location.Range.Start.Line,
+
+			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
+			SYMBOL_NAME_KEY: symbol.Name,
+			FILE_KEY:        symbol.Location.URI,
+		},
+	}
+	if symbol.Location.Range.Start.Line == 0 && symbol.Location.Range.Start.Character == 0 && symbol.Location.Range.End.Line == 0 && symbol.Location.Range.End.Character == 0 {
+		return incident, nil
+	}
+	incident.CodeLocation = &lib.Location{
+		StartPosition: lib.Position{
+			Line:      symbol.Location.Range.Start.Line,
+			Character: symbol.Location.Range.Start.Character,
+		},
+		EndPosition: lib.Position{
+			Line:      symbol.Location.Range.End.Line,
+			Character: symbol.Location.Range.End.Character,
+		},
+	}
+	return incident, nil
+}
+
+func (p *javaProvider) convertSymbolRefToIncidentContext(symbol protocol.WorkspaceSymbol, ref protocol.Location) (lib.IncidentContext, error) {
+	u, err := uri.Parse(ref.URI)
+	if err != nil {
+		return lib.IncidentContext{}, err
+	}
+	incident := lib.IncidentContext{
+		FileURI: u,
+		Variables: map[string]interface{}{
+
+			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
+			SYMBOL_NAME_KEY: symbol.Name,
+		},
+	}
+	if ref.Range.Start.Line == 0 && ref.Range.Start.Character == 0 && ref.Range.End.Line == 0 && ref.Range.End.Character == 0 {
+		return incident, nil
+	}
+
+	incident.CodeLocation = &lib.Location{
+		StartPosition: lib.Position{
+			Line:      ref.Range.Start.Line,
+			Character: ref.Range.Start.Character,
+		},
+		EndPosition: lib.Position{
+			Line:      ref.Range.End.Line,
+			Character: ref.Range.End.Character,
+		},
+	}
+	incident.Variables[FILE_KEY] = ref.URI
+	incident.Variables[LINE_NUMBER_EXTRA_KEY] = ref.Range.Start.Line
+
+	return incident, nil
+
 }

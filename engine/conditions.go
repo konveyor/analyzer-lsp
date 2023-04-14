@@ -8,6 +8,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/hubapi"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/konveyor/analyzer-lsp/tracing"
+	"go.lsp.dev/uri"
 )
 
 var _ Conditional = AndCondition{}
@@ -35,10 +36,36 @@ type ConditionEntry struct {
 }
 
 type IncidentContext struct {
-	FileURI string                 `yaml:"fileURI"`
-	Effort  *int                   `yaml:"effort"`
-	Extras  map[string]interface{} `yaml:"extras"`
-	Links   []hubapi.Link          `yaml:"externalLink"`
+	FileURI      uri.URI                `yaml:"fileURI"`
+	Effort       *int                   `yaml:"effort"`
+	Variables    map[string]interface{} `yaml:"variables"`
+	Links        []hubapi.Link          `yaml:"externalLink"`
+	CodeLocation *Location              `yaml:"location,omitempty"`
+}
+
+type Location struct {
+	StartPosition Position `yaml:"startPosition"`
+	EndPosition   Position `yaml:"endPosition"`
+}
+
+type Position struct {
+	/*Line defined:
+	 * Line position in a document (zero-based).
+	 * If a line number is greater than the number of lines in a document, it defaults back to the number of lines in the document.
+	 * If a line number is negative, it defaults to 0.
+	 */
+	Line int `yaml:"line"`
+
+	/*Character defined:
+	 * Character offset on a line in a document (zero-based). Assuming that the line is
+	 * represented as a string, the `character` value represents the gap between the
+	 * `character` and `character + 1`.
+	 *
+	 * If the character value is greater than the line length it defaults back to the
+	 * line length.
+	 * If a line number is negative, it defaults to 0.
+	 */
+	Character int `yaml:"character"`
 }
 
 type Conditional interface {
@@ -216,7 +243,7 @@ func (ce ConditionEntry) Evaluate(ctx context.Context, log logr.Logger, condCtx 
 func incidentsToFilepaths(incident []IncidentContext) []string {
 	filepaths := []string{}
 	for _, ic := range incident {
-		filepaths = append(filepaths, ic.FileURI)
+		filepaths = append(filepaths, ic.FileURI.Filename())
 	}
 	return filepaths
 }

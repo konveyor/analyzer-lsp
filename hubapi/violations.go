@@ -2,6 +2,8 @@ package hubapi
 
 import (
 	"encoding/json"
+
+	"go.lsp.dev/uri"
 )
 
 type RuleSet struct {
@@ -61,9 +63,10 @@ type Violation struct {
 // Incident defines instance of a violation
 type Incident struct {
 	// URI defines location in the codebase where violation is found
-	URI string `yaml:"uri"`
+	URI uri.URI `yaml:"uri"`
 	// Message text description about the incident
-	Message string `yaml:"message"`
+	Message  string `yaml:"message"`
+	CodeSnip string `yaml:"codeSnip,omitempty"`
 	// Extras reserved for additional data
 	//Extras json.RawMessage
 	Extras map[string]interface{}

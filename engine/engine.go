@@ -1,8 +1,10 @@
 package engine
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -300,7 +302,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 
 		incident := hubapi.Incident{
 			URI:    m.FileURI,
-			Extras: m.Extras,
+			Extras: m.Variables,
 		}
 		links := []hubapi.Link{}
 		if len(m.Links) > 0 {
@@ -311,12 +313,36 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 				})
 			}
 		}
-		// extras, err := json.Marshal(m.Extras)
-		// if err != nil {
-		// 	return hubapi.Violation{}, err
-		// }
+		// Some violations may not have a location in code.
+		if m.CodeLocation != nil {
+			//Find the file, open it in a buffer.
+			readFile, err := os.Open(m.FileURI.Filename())
+			if err != nil {
+				r.logger.V(5).Error(err, "Unable to read file")
+				return hubapi.Violation{}, err
+			}
+			defer readFile.Close()
+
+			scanner := bufio.NewScanner(readFile)
+			lineNumber := 0
+			codeSnip := ""
+			for scanner.Scan() {
+				if lineNumber == m.CodeLocation.EndPosition.Line {
+					lineBytes := scanner.Bytes()
+					codeSnip = codeSnip + string(lineBytes[:m.CodeLocation.EndPosition.Character])
+					break
+				}
+				if lineNumber >= m.CodeLocation.StartPosition.Line {
+					lineBytes := scanner.Bytes()
+					codeSnip = codeSnip + string(lineBytes[m.CodeLocation.StartPosition.Character])
+				}
+				lineNumber += 1
+			}
+			incident.CodeSnip = strings.TrimSpace(codeSnip)
+		}
+
 		if rule.Perform.Message != nil {
-			templateString, err := r.createPerformString(*rule.Perform.Message, m.Extras)
+			templateString, err := r.createPerformString(*rule.Perform.Message, m.Variables)
 			if err != nil {
 				r.logger.Error(err, "unable to create template string")
 			}

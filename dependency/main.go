@@ -8,6 +8,7 @@ import (
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/konveyor/analyzer-lsp/provider/java"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -28,6 +29,13 @@ func main() {
 	flag.Parse()
 
 	err := validateFlags()
+	p := java.NewJavaProvider(lib.Config{Location: "../examples/java"})
+	if !p.HasCapability("dependency") {
+		fmt.Println("Provider does not have dependency capability")
+		return
+	}
+	_, _, err = p.GetDependencies()
+
 	if err != nil {
 		log.Error(err, "failed to validate input flags")
 		os.Exit(1)
@@ -60,7 +68,7 @@ func main() {
 		}
 
 		if *treeOutput {
-			deps, err := provider.GetDependenciesLinkedList()
+			deps, _, err := provider.GetDependenciesLinkedList()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
@@ -72,7 +80,7 @@ func main() {
 				depsTree[parentDep] = transitiveDeps
 			}
 		} else {
-			deps, err := provider.GetDependencies()
+			deps, _, err := provider.GetDependencies()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
