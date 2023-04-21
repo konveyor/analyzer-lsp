@@ -16,7 +16,7 @@ require (
 require github.com/go-logr/stdr v1.2.2 // indirect
 
 require (
-	github.com/antchfx/xpath v1.2.1 // indirect
+	github.com/antchfx/xpath v1.2.4 // indirect
 	github.com/cbroglie/mustache v1.4.0
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
