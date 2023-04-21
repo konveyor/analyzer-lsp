@@ -50,6 +50,7 @@ type RuleSet struct {
 	Description string             `json:"description,omitempty"`
 	Source      *RuleSetTechnology `json:"source,omitempty"`
 	Target      *RuleSetTechnology `json:"target,omitempty"`
+	Labels      []string           `json:"labels,omitempty"`
 	Tags        []string           `json:"tags,omitempty"`
 	Rules       []Rule             `json:"rules,omitempty"`
 }

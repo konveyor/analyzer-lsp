@@ -665,3 +665,65 @@ func TestRuleEngine(t *testing.T) {
 		})
 	}
 }
+
+func Test_parseTagsFromPerformString(t *testing.T) {
+	tests := []struct {
+		name      string
+		tagString string
+		want      []string
+		wantErr   bool
+	}{
+		{
+			name:      "tc1",
+			tagString: "test1,test2,test3,test4",
+			want:      []string{"test1", "test2", "test3", "test4"},
+		},
+		{
+			name:      "tc2",
+			tagString: "test1-tag,",
+			want:      []string{"test1-tag"},
+		},
+		{
+			name:      "tc3",
+			tagString: "test1",
+			want:      []string{"test1"},
+		},
+		{
+			name:      "tc4",
+			tagString: "Category=test1,test2,test3,test4",
+			want:      []string{"test1", "test2", "test3", "test4"},
+		},
+		{
+			name:      "tc5",
+			tagString: "Category=test1,",
+			want:      []string{"test1"},
+		},
+		{
+			name:      "tc6",
+			tagString: "test1, test2, test3, test4",
+			want:      []string{"test1", "test2", "test3", "test4"},
+		},
+		{
+			name:      "tc6",
+			tagString: "test tag1, test tag2",
+			want:      []string{"test tag1", "test tag2"},
+		},
+		{
+			name:      "tc7",
+			tagString: "Category==test1,test2,test3,test4",
+			want:      nil,
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseTagsFromPerformString(tt.tagString)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parseTagsFromPerformString() = %v, want %v", got, tt.want)
+			}
+			if tt.wantErr != (err != nil) {
+				t.Errorf("parseTagsFromPerformString() = error %v, want %v", err != nil, tt.wantErr)
+			}
+		})
+	}
+}

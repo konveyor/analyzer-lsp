@@ -19,6 +19,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const TAGS_FILE_INIT_OPTION = "tagsFile"
+
 var capabilities = []lib.Capability{
 	{
 		Name:            "filecontent",
@@ -80,6 +82,7 @@ type builtinProvider struct {
 	ctx context.Context
 
 	config lib.Config
+	tags   map[string]bool
 }
 
 func NewBuiltinProvider(config lib.Config) *builtinProvider {
@@ -295,8 +298,10 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		found := true
 		for _, tag := range cond.HasTags {
 			if _, exists := cond.ProviderContext.Tags[tag]; !exists {
-				found = false
-				break
+				if _, exists := p.tags[tag]; !exists {
+					found = false
+					break
+				}
 			}
 		}
 		if found {
@@ -334,6 +339,32 @@ func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 
 // We don't need to init anything
 func (p *builtinProvider) Init(_ context.Context, _ logr.Logger) error {
+	err := p.loadTags()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *builtinProvider) loadTags() error {
+	tagsFile := p.config.ProviderSpecificConfig[TAGS_FILE_INIT_OPTION]
+
+	p.tags = make(map[string]bool)
+	if tagsFile == "" {
+		return nil
+	}
+	content, err := os.ReadFile(tagsFile)
+	if err != nil {
+		return err
+	}
+	var tags []string
+	err = yaml.Unmarshal(content, &tags)
+	if err != nil {
+		return err
+	}
+	for _, tag := range tags {
+		p.tags[tag] = true
+	}
 	return nil
 }
 

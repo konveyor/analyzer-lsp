@@ -2,6 +2,9 @@ package engine
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+	"strings"
 	"sync"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -96,7 +99,8 @@ func (r *ruleEngine) createRuleSet(ruleSet RuleSet) hubapi.RuleSet {
 	rs := hubapi.RuleSet{
 		Name:        ruleSet.Name,
 		Description: ruleSet.Description,
-		Tags:        ruleSet.Tags,
+		Labels:      ruleSet.Labels,
+		Tags:        []string{},
 		Violations:  map[string]hubapi.Violation{},
 	}
 
@@ -225,6 +229,8 @@ func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, 
 		Tags:     make(map[string]interface{}),
 		Template: make(map[string]lib.ChainTemplate),
 	}
+	// track unique tags per ruleset
+	rulesetTagsCache := map[string]map[string]bool{}
 	for _, ruleMessage := range infoRules {
 		rule := ruleMessage.rule
 		response, err := processRule(ctx, rule, context, r.logger)
@@ -232,22 +238,50 @@ func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, 
 			r.logger.Error(err, "failed to evaluate rule", "ruleID", rule.RuleID)
 		} else if response.Matched {
 			r.logger.V(5).Info("info rule was matched", "ruleID", rule.RuleID)
-			for _, tag := range rule.Perform.Tag {
-				context.Tags[tag] = true
+			for _, tagString := range rule.Perform.Tag {
+				tags, err := parseTagsFromPerformString(tagString)
+				if err != nil {
+					r.logger.Error(err, "unable to create tags", "ruleID", rule.RuleID)
+					continue
+				}
+				for _, tag := range tags {
+					context.Tags[tag] = true
+				}
 			}
-			violation, err := r.createViolation(response, rule)
-			if err != nil {
-				r.logger.Error(err, "unable to create violation from response")
-			}
-			violation.Tags = append(violation.Tags, rule.Perform.Tag...)
 			rs, ok := mapRuleSets[ruleMessage.ruleSetName]
 			if !ok {
 				r.logger.Info("this should never happen that we don't find the ruleset")
+			} else {
+				if _, ok := rulesetTagsCache[rs.Name]; !ok {
+					rulesetTagsCache[rs.Name] = make(map[string]bool)
+				}
+				for _, tag := range rule.Perform.Tag {
+					if _, ok := rulesetTagsCache[rs.Name][tag]; !ok {
+						rulesetTagsCache[rs.Name][tag] = true
+						rs.Tags = append(rs.Tags, tag)
+					}
+				}
+				mapRuleSets[ruleMessage.ruleSetName] = rs
 			}
-			rs.Violations[rule.RuleID] = violation
 		}
 	}
 	return context
+}
+
+func parseTagsFromPerformString(tagString string) ([]string, error) {
+	tags := []string{}
+	pattern := regexp.MustCompile(`^(?:[\w- ]+=){0,1}([\w- ]+(?:, *[\w- ,]+)*),?$`)
+	if !pattern.MatchString(tagString) {
+		return nil, fmt.Errorf("unexpected tag string %s", tagString)
+	}
+	for _, groups := range pattern.FindAllStringSubmatch(tagString, -1) {
+		for _, tag := range strings.Split(groups[1], ",") {
+			if tag != "" {
+				tags = append(tags, strings.Trim(tag, " "))
+			}
+		}
+	}
+	return tags, nil
 }
 
 func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log logr.Logger) (ConditionResponse, error) {

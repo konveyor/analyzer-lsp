@@ -1,4 +1,8 @@
 - name: konveyor-analysis
+  tags:
+  - Language=Golang
+  - Infra=Kubernetes
+  - Java
   violations:
     chain-pom-001:
       description: ""
@@ -337,41 +341,6 @@
           kind: Method
           lineNumber: 7
           name: main
-      extras: []
-    tag-go-000:
-      description: ""
-      tags:
-      - Golang
-      incidents:
-      - uri: examples/golang/go.mod
-        message: ""
-        extras: {}
-      - uri: go.mod
-        message: ""
-        extras: {}
-      extras: []
-    tag-java-000:
-      description: ""
-      tags:
-      - Java
-      incidents:
-      - uri: examples/customers-tomcat-legacy/pom.xml
-        message: ""
-        extras: {}
-      - uri: examples/java/pom.xml
-        message: ""
-        extras: {}
-      extras: []
-    tag-k8s-000:
-      description: ""
-      tags:
-      - Kubernetes
-      incidents:
-      - uri: file://./rule-example.yaml
-        message: ""
-        extras:
-          lineNumber: "72"
-          matchingText: require.*sigs.k8s.io/.*"
       extras: []
     tech-tag-001:
       description: ""

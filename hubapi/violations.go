@@ -9,6 +9,7 @@ type RuleSet struct {
 	Description string               `yaml:"description,omitempty"`
 	Source      *RuleSetTechnology   `yaml:"source,omitempty"`
 	Target      *RuleSetTechnology   `yaml:"target,omitempty"`
+	Labels      []string             `yaml:"labels,omitempty"`
 	Tags        []string             `yaml:"tags,omitempty"`
 	Violations  map[string]Violation `yaml:"violations,omitempty"`
 }

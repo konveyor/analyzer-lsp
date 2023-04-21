@@ -100,20 +100,20 @@ func main() {
 		}
 	}
 
-	violations := engine.RunRules(ctx, ruleSet)
+	rulesets := engine.RunRules(ctx, ruleSet)
 	engine.Stop()
 
 	for _, provider := range needProviders {
 		provider.Stop()
 	}
 
-	sort.SliceStable(violations, func(i, j int) bool {
-		return violations[i].Name < violations[j].Name
+	sort.SliceStable(rulesets, func(i, j int) bool {
+		return rulesets[i].Name < rulesets[j].Name
 	})
 
 	// Write results out to CLI
-	b, _ := yaml.Marshal(violations)
-	if *errorOnViolations && len(violations) != 0 {
+	b, _ := yaml.Marshal(rulesets)
+	if *errorOnViolations && len(rulesets) != 0 {
 		fmt.Printf("%s", string(b))
 		os.Exit(EXIT_ON_ERROR_CODE)
 	}
