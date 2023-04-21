@@ -141,6 +141,9 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		grep := exec.Command("grep", "-o", "-n", "-R", "-E", pattern, p.config.Location)
 		outputBytes, err := grep.Output()
 		if err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+				return response, nil
+			}
 			return response, fmt.Errorf("could not run grep with provided pattern %+v", err)
 		}
 		matches := strings.Split(strings.TrimSpace(string(outputBytes)), "\n")
