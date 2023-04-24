@@ -11,6 +11,7 @@ import (
 
 	"github.com/antchfx/jsonquery"
 	"github.com/antchfx/xmlquery"
+	"github.com/antchfx/xpath"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
@@ -69,8 +70,9 @@ type builtinCondition struct {
 }
 
 type xmlCondition struct {
-	XPath     string   `yaml:"xpath"`
-	Filepaths []string `yaml:"filepaths"`
+	XPath      string            `yaml:"xpath"`
+	Namespaces map[string]string `yaml:"namespaces"`
+	Filepaths  []string          `yaml:"filepaths"`
 }
 
 type jsonCondition struct {
@@ -168,9 +170,9 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		}
 		return response, nil
 	case "xml":
-		query := cond.XML.XPath
-		if query == "" {
-			return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
+		query, err := xpath.CompileWithNS(cond.XML.XPath, cond.XML.Namespaces)
+		if query == nil || err != nil {
+			return response, fmt.Errorf("Could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
 		}
 		//TODO(fabianvf): how should we scope the files searched here?
 		var xmlFiles []string
@@ -246,11 +248,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 					continue
 				}
 			}
-			list, err := xmlquery.QueryAll(doc, query)
-			if err != nil {
-				fmt.Printf("unable to query file '%s' with query '%s': %v\n", absPath, query, err)
-				continue
-			}
+			list := xmlquery.QuerySelectorAll(doc, query)
 			if len(list) != 0 {
 				response.Matched = true
 				for _, node := range list {
