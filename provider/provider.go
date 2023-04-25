@@ -203,10 +203,24 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 
 		constraintPieces := []string{}
 		if dc.Lowerbound != "" {
-			constraintPieces = append(constraintPieces, "> "+dc.Lowerbound)
+			var v string
+			lb, err := getVersion(dc.Lowerbound)
+			if err != nil {
+				v = dc.Lowerbound
+			} else {
+				v = lb.Original()
+			}
+			constraintPieces = append(constraintPieces, ">= "+v)
 		}
 		if dc.Upperbound != "" {
-			constraintPieces = append(constraintPieces, "< "+dc.Upperbound)
+			var v string
+			ub, err := getVersion(dc.Upperbound)
+			if err != nil {
+				v = dc.Upperbound
+			} else {
+				v = ub.Original()
+			}
+			constraintPieces = append(constraintPieces, "<= "+v)
 		}
 		constraints, err := version.NewConstraint(strings.Join(constraintPieces, ", "))
 		if err != nil {
@@ -230,6 +244,10 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	return resp, nil
 }
 
+// TODO(fabianvf): We need to strip out the go-version library for a more lenient
+// one, since it breaks on the `.RELEASE` and `.Final` suffixes which are common in Java.
+// This function will extract only a numeric version pattern and strip out those suffixes.
+// In the long term we'll probably need to write a version comparison library from scratch.
 func getVersion(depVersion string) (*version.Version, error) {
 	v, err := version.NewVersion(depVersion)
 	if err == nil {
