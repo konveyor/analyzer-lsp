@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/antchfx/jsonquery"
@@ -340,15 +341,23 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 }
 
 func findFilesMatchingPattern(root, pattern string) ([]string, error) {
+	var regex *regexp.Regexp
+	// if the regex doesn't compile, we'll default to using filepath.Match on the pattern directly
+	regex, _ = regexp.Compile(pattern)
 	matches := []string{}
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		// TODO(fabianvf): is a fileglob style pattern sufficient or do we need regexes?
-		matched, err := filepath.Match(pattern, d.Name())
-		if err != nil {
-			return err
+		var matched bool
+		if regex != nil {
+			matched = regex.MatchString(d.Name())
+		} else {
+			// TODO(fabianvf): is a fileglob style pattern sufficient or do we need regexes?
+			matched, err = filepath.Match(pattern, d.Name())
+			if err != nil {
+				return err
+			}
 		}
 		if matched {
 			matches = append(matches, path)
