@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/antchfx/xmlquery"
@@ -90,6 +91,9 @@ func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, error) {
 			dep.Version = node.InnerText()
 		}
 		// Ignore the others
+	}
+	if !reflect.DeepEqual(dep, dependency.Dep{}) {
+		deps = append(deps, dep)
 	}
 	return deps, nil
 }
