@@ -358,6 +358,7 @@
         message: found generic call
         codeSnip: element.get()
         variables:
+          VariableName: element
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
           lineNumber: 13

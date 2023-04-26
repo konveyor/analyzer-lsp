@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	path "path/filepath"
+	"regexp"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -396,6 +397,71 @@ func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interfa
 		links = append(links, link)
 	}
 	rule.Links = links
+
+	if customVars, ok := ruleMap["customVariables"]; ok {
+		var customVarsList []interface{}
+		var ok bool
+		if customVarsList, ok = customVars.([]interface{}); !ok {
+			r.Log.V(5).WithValues("ruleID", rule.RuleID).Info("unable to get custom variables")
+			return
+		}
+		s := []engine.CustomVariable{}
+		for _, customVarMapInterface := range customVarsList {
+			customVarMap, ok := customVarMapInterface.(map[interface{}]interface{})
+			if !ok {
+				r.Log.V(5).WithValues("ruleID", rule.RuleID).Info("unable to get custom variables")
+				continue
+			}
+			custVar := engine.CustomVariable{}
+			err := r.addCustomVarFields(customVarMap, &custVar)
+			if err != nil {
+				r.Log.V(5).WithValues("ruleID", rule.RuleID).Error(err, "unable to get custom variables")
+				continue
+			}
+			s = append(s, custVar)
+		}
+		rule.CustomVariables = s
+	}
+}
+
+func (r *RuleParser) addCustomVarFields(m map[interface{}]interface{}, customVar *engine.CustomVariable) error {
+	if name, ok := m["name"]; ok {
+		nameString, ok := name.(string)
+		if !ok {
+			return fmt.Errorf("unable to get name as string")
+
+		}
+		customVar.Name = nameString
+	}
+	if defaultVal, ok := m["defaultValue"]; ok {
+		defaultValString, ok := defaultVal.(string)
+		if !ok {
+			return fmt.Errorf("unable to get defaultValue as string")
+		}
+		customVar.DefaultValue = defaultValString
+	}
+
+	if capGroup, ok := m["nameOfCaptureGroup"]; ok {
+		capGroupString, ok := capGroup.(string)
+		if !ok {
+			return fmt.Errorf("unable to capture group as string")
+		}
+		customVar.NameOfCaptureGroup = capGroupString
+	}
+
+	if r, ok := m["pattern"]; ok {
+		patternString, ok := r.(string)
+		if !ok {
+			return fmt.Errorf("unable to get pattern as string")
+		}
+		reg, err := regexp.Compile(patternString)
+		if err != nil {
+			return err
+		}
+		customVar.Pattern = reg
+	}
+
+	return nil
 }
 
 func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.ConditionEntry, map[string]provider.Client, error) {

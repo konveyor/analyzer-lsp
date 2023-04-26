@@ -341,6 +341,35 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			incident.CodeSnip = strings.TrimSpace(codeSnip)
 		}
 
+		if len(rule.CustomVariables) > 0 {
+			for _, cv := range rule.CustomVariables {
+				match := cv.Pattern.FindStringSubmatch(incident.CodeSnip)
+				switch len(match) {
+				case 0:
+					m.Variables[cv.Name] = cv.DefaultValue
+					continue
+				case 1:
+					m.Variables[cv.Name] = match[0]
+					continue
+				case 2:
+					m.Variables[cv.Name] = match[1]
+				default:
+					// if more than 1 match, then we have to look up the names.
+					found := false
+					for i, n := range cv.Pattern.SubexpNames() {
+						if n == cv.NameOfCaptureGroup {
+							m.Variables[cv.Name] = match[i]
+							found = true
+							break
+						}
+					}
+					if !found {
+						m.Variables[cv.Name] = cv.DefaultValue
+					}
+				}
+			}
+		}
+
 		if rule.Perform.Message != nil {
 			templateString, err := r.createPerformString(*rule.Perform.Message, m.Variables)
 			if err != nil {
