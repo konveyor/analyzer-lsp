@@ -69,7 +69,7 @@ type Incident struct {
 	CodeSnip string `yaml:"codeSnip,omitempty"`
 	// Extras reserved for additional data
 	//Extras json.RawMessage
-	Extras map[string]interface{}
+	Variables map[string]interface{} `yaml:"variables,omitempty"`
 }
 
 // Link defines an external hyperlink

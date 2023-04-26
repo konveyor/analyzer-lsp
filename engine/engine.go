@@ -301,8 +301,8 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 	for _, m := range conditionResponse.Incidents {
 
 		incident := hubapi.Incident{
-			URI:    m.FileURI,
-			Extras: m.Variables,
+			URI:       m.FileURI,
+			Variables: m.Variables,
 		}
 		links := []hubapi.Link{}
 		if len(m.Links) > 0 {
