@@ -15,6 +15,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
+	"go.lsp.dev/uri"
 )
 
 type testProvider struct {
@@ -34,12 +35,12 @@ func (t testProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEv
 	return lib.ProviderEvaluateResponse{}, nil
 }
 
-func (t testProvider) GetDependencies() ([]dependency.Dep, error) {
-	return nil, nil
+func (t testProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
+	return nil, uri.File("test"), nil
 }
 
-func (t testProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
-	return nil, nil
+func (t testProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, uri.URI, error) {
+	return nil, uri.File("test"), nil
 }
 
 func (t testProvider) Stop() {}

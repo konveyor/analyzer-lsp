@@ -17,6 +17,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
@@ -129,8 +130,15 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 
 		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
 		for _, match := range matchingFiles {
+			ab, err := filepath.Abs(filepath.Join(p.config.Location, match))
+			if err != nil {
+				//TODO: Probably want to log or something to let us know we can't get absolute path here.
+				fmt.Printf("\n\n\n%v", err)
+				ab = match
+			}
+			fmt.Printf("\n\nPath Info: %#v\nmatch: %v\nconfigLocation: %v", ab, match, p.config.Location)
 			response.Incidents = append(response.Incidents, lib.IncidentContext{
-				FileURI: match,
+				FileURI: uri.File(ab),
 			})
 		}
 		return response, nil
@@ -160,9 +168,13 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 				//TODO(fabianvf): Just log or return?
 				return response, fmt.Errorf("Malformed response from grep, cannot parse %s with pattern {filepath}:{lineNumber}:{matchingText}", match)
 			}
+			ab, err := filepath.Abs(pieces[0])
+			if err != nil {
+				ab = pieces[0]
+			}
 			response.Incidents = append(response.Incidents, lib.IncidentContext{
-				FileURI: fmt.Sprintf("file://%s", pieces[0]),
-				Extras: map[string]interface{}{
+				FileURI: uri.File(ab),
+				Variables: map[string]interface{}{
 					"lineNumber":   pieces[1],
 					"matchingText": pieces[2],
 				},
@@ -252,9 +264,13 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			if len(list) != 0 {
 				response.Matched = true
 				for _, node := range list {
+					ab, err := filepath.Abs(file)
+					if err != nil {
+						ab = file
+					}
 					response.Incidents = append(response.Incidents, lib.IncidentContext{
-						FileURI: fmt.Sprintf("file://%s", file),
-						Extras: map[string]interface{}{
+						FileURI: uri.File(ab),
+						Variables: map[string]interface{}{
 							"matchingXML": node.OutputXML(false),
 							"innerText":   node.InnerText(),
 							"data":        node.Data,
@@ -284,9 +300,13 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			if len(list) != 0 {
 				response.Matched = true
 				for _, node := range list {
+					ab, err := filepath.Abs(file)
+					if err != nil {
+						ab = file
+					}
 					response.Incidents = append(response.Incidents, lib.IncidentContext{
-						FileURI: fmt.Sprintf("file://%s", file),
-						Extras: map[string]interface{}{
+						FileURI: uri.File(ab),
+						Variables: map[string]interface{}{
 							"matchingJSON": node.InnerText(),
 							"data":         node.Data,
 						},
@@ -308,7 +328,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		if found {
 			response.Matched = true
 			response.Incidents = append(response.Incidents, lib.IncidentContext{
-				Extras: map[string]interface{}{
+				Variables: map[string]interface{}{
 					"tags": cond.HasTags,
 				},
 			})
@@ -370,11 +390,11 @@ func (p *builtinProvider) loadTags() error {
 }
 
 // We don't have dependencies
-func (p *builtinProvider) GetDependencies() ([]dependency.Dep, error) {
-	return nil, nil
+func (p *builtinProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
+	return nil, "", nil
 }
 
 // We don't have dependencies
-func (p *builtinProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
-	return nil, nil
+func (p *builtinProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, uri.URI, error) {
+	return nil, "", nil
 }

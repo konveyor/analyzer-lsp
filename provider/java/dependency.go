@@ -12,6 +12,7 @@ import (
 
 	"github.com/antchfx/xmlquery"
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
+	"go.lsp.dev/uri"
 )
 
 // TODO implement this for real
@@ -22,11 +23,15 @@ func (p *javaProvider) findPom() string {
 	} else {
 		depPath = p.config.DependencyPath
 	}
-	return filepath.Join(p.config.Location, depPath)
+	f, err := filepath.Abs(filepath.Join(p.config.Location, depPath))
+	if err != nil {
+		return ""
+	}
+	return f
 }
 
-func (p *javaProvider) GetDependencies() ([]dependency.Dep, error) {
-	ll, err := p.GetDependenciesLinkedList()
+func (p *javaProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
+	ll, file, err := p.GetDependenciesLinkedList()
 	if err != nil {
 		return p.GetDependencyFallback()
 	}
@@ -38,7 +43,7 @@ func (p *javaProvider) GetDependencies() ([]dependency.Dep, error) {
 		deps = append(deps, topLevel)
 		deps = append(deps, transitives...)
 	}
-	return deps, err
+	return deps, file, err
 }
 
 func (p *javaProvider) getLocalRepoPath() string {
@@ -54,26 +59,27 @@ func (p *javaProvider) getLocalRepoPath() string {
 	return string(outb.String())
 }
 
-func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, error) {
+func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, uri.URI, error) {
 	pomDependencyQuery := "//dependencies/dependency/*"
 	path := p.findPom()
+	file := uri.File(path)
 
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 
 	f, err := os.Open(absPath)
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 	doc, err := xmlquery.Parse(f)
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 	list, err := xmlquery.QueryAll(doc, pomDependencyQuery)
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 	deps := []dependency.Dep{}
 	dep := dependency.Dep{}
@@ -95,18 +101,19 @@ func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, error) {
 	if !reflect.DeepEqual(dep, dependency.Dep{}) {
 		deps = append(deps, dep)
 	}
-	return deps, nil
+	return deps, file, nil
 }
 
-func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
+func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, uri.URI, error) {
 	localRepoPath := p.getLocalRepoPath()
 
 	path := p.findPom()
+	file := uri.File(path)
 
 	//Create temp file to use
 	f, err := os.CreateTemp("", "*")
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 	defer os.Remove(f.Name())
 
@@ -116,12 +123,12 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depende
 	cmd.Dir = moddir
 	err = cmd.Run()
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 
 	b, err := os.ReadFile(f.Name())
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 
 	lines := strings.Split(string(b), "\n")
@@ -136,7 +143,7 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depende
 
 	err = parseMavenDepLines(lines, deps, localRepoPath)
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 
 	//Walk the dir, looking for .jar files to add to the dependency
@@ -145,7 +152,7 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depende
 	}
 	filepath.WalkDir(moddir, w.walkDirForJar)
 
-	return deps, nil
+	return deps, file, nil
 }
 
 type walker struct {

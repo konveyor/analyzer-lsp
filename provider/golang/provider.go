@@ -13,6 +13,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
@@ -82,9 +83,13 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provide
 			for _, ref := range references {
 				// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
 				if strings.Contains(ref.URI, p.config.Location) {
+					u, err := uri.Parse(ref.URI)
+					if err != nil {
+						return lib.ProviderEvaluateResponse{}, err
+					}
 					incidents = append(incidents, lib.IncidentContext{
-						FileURI: ref.URI,
-						Extras: map[string]interface{}{
+						FileURI: u,
+						Variables: map[string]interface{}{
 							"file":       ref.URI,
 							"lineNumber": ref.Range.Start.Line,
 						},

@@ -85,12 +85,26 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 
 	incidents := []engine.IncidentContext{}
 	for _, inc := range resp.Incidents {
-		incidents = append(incidents, engine.IncidentContext{
-			FileURI: inc.FileURI,
-			Effort:  inc.Effort,
-			Extras:  inc.Extras,
-			Links:   p.Rule.Links,
-		})
+		i := engine.IncidentContext{
+			FileURI:   inc.FileURI,
+			Effort:    inc.Effort,
+			Variables: inc.Variables,
+			Links:     p.Rule.Links,
+		}
+
+		if inc.CodeLocation != nil {
+			i.CodeLocation = &engine.Location{
+				StartPosition: engine.Position{
+					Line:      int(inc.CodeLocation.StartPosition.Line),
+					Character: int(inc.CodeLocation.StartPosition.Character),
+				},
+				EndPosition: engine.Position{
+					Line:      int(inc.CodeLocation.EndPosition.Line),
+					Character: int(inc.CodeLocation.EndPosition.Character),
+				},
+			}
+		}
+		incidents = append(incidents, i)
 	}
 
 	return engine.ConditionResponse{
@@ -155,13 +169,12 @@ type DependencyCondition struct {
 
 func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
 	resp := engine.ConditionResponse{}
-	deps, err := dc.Client.GetDependencies()
+	deps, file, err := dc.Client.GetDependencies()
 	if err != nil {
 		return resp, err
 	}
 	regex, err := regexp.Compile(dc.NameRegex)
 	if err != nil {
-		fmt.Printf("regex: %v", regex)
 		return resp, err
 	}
 	matchedDeps := []*dependency.Dep{}
@@ -182,10 +195,11 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		if matchedDep.Version == "" || (dc.Lowerbound == "" && dc.Upperbound == "") {
 			resp.Matched = true
 			resp.Incidents = append(resp.Incidents, engine.IncidentContext{
-				FileURI: matchedDep.Type,
-				Extras: map[string]interface{}{
+				FileURI: file,
+				Variables: map[string]interface{}{
 					"name":    matchedDep.Name,
 					"version": matchedDep.Version,
+					"type":    matchedDep.Type,
 				},
 			})
 			// For now, lets leave this TODO to figure out what we should be setting in the context
@@ -229,8 +243,8 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 
 		resp.Matched = constraints.Check(depVersion)
 		resp.Incidents = append(resp.Incidents, engine.IncidentContext{
-			FileURI: matchedDep.Type,
-			Extras: map[string]interface{}{
+			FileURI: file,
+			Variables: map[string]interface{}{
 				"name":    matchedDep.Name,
 				"version": matchedDep.Version,
 			},

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
@@ -69,10 +70,36 @@ type ProviderEvaluateResponse struct {
 	TemplateContext map[string]interface{} `yaml:"templateContext"`
 }
 type IncidentContext struct {
-	FileURI string                 `yaml:"fileURI"`
-	Effort  *int                   `yaml:"effort,omitempty"`
-	Extras  map[string]interface{} `yaml:"extras,omitempty"`
-	Links   []ExternalLinks        `yaml:"externalLink,omitempty"`
+	FileURI      uri.URI                `yaml:"fileURI"`
+	Effort       *int                   `yaml:"effort,omitempty"`
+	Variables    map[string]interface{} `yaml:"variables,omitempty"`
+	Links        []ExternalLinks        `yaml:"externalLink,omitempty"`
+	CodeLocation *Location              `yaml:"location,omitempty"`
+}
+
+type Location struct {
+	StartPosition Position
+	EndPosition   Position
+}
+
+type Position struct {
+	/*Line defined:
+	 * Line position in a document (zero-based).
+	 * If a line number is greater than the number of lines in a document, it defaults back to the number of lines in the document.
+	 * If a line number is negative, it defaults to 0.
+	 */
+	Line float64 `json:"line"`
+
+	/*Character defined:
+	 * Character offset on a line in a document (zero-based). Assuming that the line is
+	 * represented as a string, the `character` value represents the gap between the
+	 * `character` and `character + 1`.
+	 *
+	 * If the character value is greater than the line length it defaults back to the
+	 * line length.
+	 * If a line number is negative, it defaults to 0.
+	 */
+	Character float64 `json:"character"`
 }
 
 type ExternalLinks struct {

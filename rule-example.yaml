@@ -111,6 +111,9 @@
           lowerbound: 5.0.100
 - message: "found generic call"
   ruleID: lang-ref-004
+  customVariables:
+   - pattern: '([A-z]+)\.get\(\)'
+     name: VariableName
   when:
     java.referenced:
       location: METHOD_CALL

@@ -7,123 +7,123 @@
     chain-pom-001:
       description: ""
       incidents:
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\t\tcom.fasterxml.jackson\n\t\t\t\tjackson-bom\n\t\t\t\t${jackson.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
           matchingXML: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\t\torg.springframework.data\n\t\t\t\tspring-data-bom\n\t\t\t\t${spring-data.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-servlet-api\n\t\t\t${tomcat.version}\n\t\t\tprovided\n\t\t"
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-core\n\t\t"
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-databind\n\t\t"
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework.data\n\t\t\tspring-data-jpa\n\t\t"
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-jdbc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-web\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework.boot\n\t\t\tspring-boot-starter-actuator\n\t\t\t2.5.0\n\t\t"
           matchingXML: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-jdbc\n\t\t\t${tomcat.version}\n\t\t\truntime\n\t\t"
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.hibernate\n\t\t\thibernate-entitymanager\n\t\t\t${hibernate.version}\n\t\t"
           matchingXML: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.hibernate.validator\n\t\t\thibernate-validator\n\t\t\t${hibernate-validator.version}\n\t\t"
           matchingXML: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tch.qos.logback\n\t\t\tlogback-classic\n\t\t\t1.1.7\n\t\t"
           matchingXML: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tcom.oracle.database.jdbc\n\t\t\tojdbc8\n\t\t\t21.1.0.0\n\t\t"
           matchingXML: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.postgresql\n\t\t\tpostgresql\n\t\t\t42.2.23\n\t\t"
           matchingXML: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"
           matchingXML: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
-      - uri: file://examples/java/pom.xml
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
-        extras:
+        variables:
           data: dependency
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
           matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
-      - uri: file://examples/java/pom.xml
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
-      - uri: file://examples/java/pom.xml
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
-        extras:
+        variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n
             \   "
@@ -136,96 +136,66 @@
       - testing
       - test
       incidents:
-      - uri: dependency/dependency/dep.go
+      - uri: file:///analyzer-lsp/dependency/dependency/dep.go
         message: all go files
-        extras: {}
-      - uri: dependency/main.go
+      - uri: file:///analyzer-lsp/dependency/main.go
         message: all go files
-        extras: {}
-      - uri: dependency/provider/provider.go
+      - uri: file:///analyzer-lsp/dependency/provider/provider.go
         message: all go files
-        extras: {}
-      - uri: engine/conditions.go
+      - uri: file:///analyzer-lsp/engine/conditions.go
         message: all go files
-        extras: {}
-      - uri: engine/engine.go
+      - uri: file:///analyzer-lsp/engine/engine.go
         message: all go files
-        extras: {}
-      - uri: engine/engine_test.go
+      - uri: file:///analyzer-lsp/engine/engine_test.go
         message: all go files
-        extras: {}
-      - uri: examples/golang/main.go
+      - uri: file:///analyzer-lsp/examples/golang/main.go
         message: all go files
-        extras: {}
-      - uri: hubapi/violations.go
+      - uri: file:///analyzer-lsp/hubapi/violations.go
         message: all go files
-        extras: {}
-      - uri: jsonrpc2/handler.go
+      - uri: file:///analyzer-lsp/jsonrpc2/handler.go
         message: all go files
-        extras: {}
-      - uri: jsonrpc2/jsonrpc2.go
+      - uri: file:///analyzer-lsp/jsonrpc2/jsonrpc2.go
         message: all go files
-        extras: {}
-      - uri: jsonrpc2/stream.go
+      - uri: file:///analyzer-lsp/jsonrpc2/stream.go
         message: all go files
-        extras: {}
-      - uri: jsonrpc2/wire.go
+      - uri: file:///analyzer-lsp/jsonrpc2/wire.go
         message: all go files
-        extras: {}
-      - uri: lsp/protocol/doc.go
+      - uri: file:///analyzer-lsp/lsp/protocol/doc.go
         message: all go files
-        extras: {}
-      - uri: lsp/protocol/enums.go
+      - uri: file:///analyzer-lsp/lsp/protocol/enums.go
         message: all go files
-        extras: {}
-      - uri: lsp/protocol/tsprotocol.go
+      - uri: file:///analyzer-lsp/lsp/protocol/tsprotocol.go
         message: all go files
-        extras: {}
-      - uri: main.go
+      - uri: file:///analyzer-lsp/main.go
         message: all go files
-        extras: {}
-      - uri: parser/rule_parser.go
+      - uri: file:///analyzer-lsp/parser/rule_parser.go
         message: all go files
-        extras: {}
-      - uri: parser/rule_parser_test.go
+      - uri: file:///analyzer-lsp/parser/rule_parser_test.go
         message: all go files
-        extras: {}
-      - uri: provider/builtin/provider.go
+      - uri: file:///analyzer-lsp/provider/builtin/provider.go
         message: all go files
-        extras: {}
-      - uri: provider/golang/dependency.go
+      - uri: file:///analyzer-lsp/provider/golang/dependency.go
         message: all go files
-        extras: {}
-      - uri: provider/golang/dependency_test.go
+      - uri: file:///analyzer-lsp/provider/golang/dependency_test.go
         message: all go files
-        extras: {}
-      - uri: provider/golang/provider.go
+      - uri: file:///analyzer-lsp/provider/golang/provider.go
         message: all go files
-        extras: {}
-      - uri: provider/java/dependency.go
+      - uri: file:///analyzer-lsp/provider/java/dependency.go
         message: all go files
-        extras: {}
-      - uri: provider/java/dependency_test.go
+      - uri: file:///analyzer-lsp/provider/java/dependency_test.go
         message: all go files
-        extras: {}
-      - uri: provider/java/filter.go
+      - uri: file:///analyzer-lsp/provider/java/filter.go
         message: all go files
-        extras: {}
-      - uri: provider/java/provider.go
+      - uri: file:///analyzer-lsp/provider/java/provider.go
         message: all go files
-        extras: {}
-      - uri: provider/lib/lib.go
+      - uri: file:///analyzer-lsp/provider/lib/lib.go
         message: all go files
-        extras: {}
-      - uri: provider/provider.go
+      - uri: file:///analyzer-lsp/provider/provider.go
         message: all go files
-        extras: {}
-      - uri: provider/provider_test.go
+      - uri: file:///analyzer-lsp/provider/provider_test.go
         message: all go files
-        extras: {}
-      - uri: tracing/trace.go
+      - uri: file:///analyzer-lsp/tracing/trace.go
         message: all go files
-        extras: {}
       links:
       - url: https://go.dev
         title: Golang
@@ -236,45 +206,45 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/golang/main.go
         message: golang apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/golang/main.go:9
-        extras:
+        variables:
           file: file:///analyzer-lsp/examples/golang/main.go
           lineNumber: 9
       extras: []
     golang-gomod-dependencies:
       description: ""
       incidents:
-      - uri: ""
+      - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: dependency golang.org/x/text with v0.3.7 is bad and you should feel
           bad for using it
-        extras:
+        variables:
           name: golang.org/x/text
           version: v0.3.7
-      - uri: ""
+      - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: dependency k8s.io/apimachinery with v0.24.4 is bad and you should
           feel bad for using it
-        extras:
+        variables:
           name: k8s.io/apimachinery
           version: v0.24.4
-      - uri: ""
+      - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: dependency sigs.k8s.io/structured-merge-diff/v4 with v4.2.1 is bad
           and you should feel bad for using it
-        extras:
+        variables:
           name: sigs.k8s.io/structured-merge-diff/v4
           version: v4.2.1
       extras: []
     java-pomxml-dependencies:
       description: ""
       incidents:
-      - uri: test
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: dependency junit.junit with 4.11 is bad and you should feel bad for
           using it
-        extras:
+        variables:
           name: junit.junit
           version: "4.11"
-      - uri: compile
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you
           should feel bad for using it
-        extras:
+        variables:
           name: io.fabric8.kubernetes-client
           version: 6.0.0
       extras: []
@@ -284,7 +254,8 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        extras:
+        codeSnip: import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+        variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Module
           lineNumber: 2
@@ -292,7 +263,8 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        extras:
+        codeSnip: CustomResourceDefinition
+        variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Module
           lineNumber: 9
@@ -300,46 +272,96 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        extras:
+        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition
+        variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Module
           lineNumber: 9
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
+          should be used instead
+        codeSnip: import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+        variables:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          kind: Method
+          lineNumber: 2
+          name: main
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
+          should be used instead
+        codeSnip: CustomResourceDefinition
+        variables:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          kind: Method
+          lineNumber: 9
+          name: main
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
+          should be used instead
+        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition
+        variables:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          kind: Method
+          lineNumber: 9
+          name: main
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
+          should be used instead
+        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition()
+        variables:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          kind: Method
+          lineNumber: 9
+          name: main
       extras: []
     lang-ref-003:
       description: ""
       incidents:
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:2
-        extras:
+        codeSnip: import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+        variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Module
+          kind: Method
           lineNumber: 2
-          name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+          name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
-        extras:
+        codeSnip: CustomResourceDefinition
+        variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Module
+          kind: Method
           lineNumber: 9
-          name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+          name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
-        extras:
+        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition
+        variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Module
+          kind: Method
           lineNumber: 9
-          name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+          name: main
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
+        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition()
+        variables:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          kind: Method
+          lineNumber: 9
+          name: main
       extras: []
     lang-ref-004:
       description: ""
       incidents:
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: found generic call
-        extras:
+        codeSnip: element.get()
+        variables:
+          VariableName: element
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
-          lineNumber: 7
+          lineNumber: 13
           name: main
       extras: []
     tech-tag-001:
@@ -347,136 +369,136 @@
       incidents:
       - uri: ""
         message: Tags [Golang Kubernetes] found
-        extras:
+        variables:
           tags:
           - Golang
           - Kubernetes
       - uri: ""
         message: Tags [Java] found
-        extras:
+        variables:
           tags:
           - Java
       extras: []
     xml-pom-001:
       description: ""
       incidents:
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\t\tcom.fasterxml.jackson\n\t\t\t\tjackson-bom\n\t\t\t\t${jackson.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
           matchingXML: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\t\torg.springframework.data\n\t\t\t\tspring-data-bom\n\t\t\t\t${spring-data.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-servlet-api\n\t\t\t${tomcat.version}\n\t\t\tprovided\n\t\t"
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-core\n\t\t"
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-databind\n\t\t"
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework.data\n\t\t\tspring-data-jpa\n\t\t"
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-jdbc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-web\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework.boot\n\t\t\tspring-boot-starter-actuator\n\t\t\t2.5.0\n\t\t"
           matchingXML: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-jdbc\n\t\t\t${tomcat.version}\n\t\t\truntime\n\t\t"
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.hibernate\n\t\t\thibernate-entitymanager\n\t\t\t${hibernate.version}\n\t\t"
           matchingXML: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.hibernate.validator\n\t\t\thibernate-validator\n\t\t\t${hibernate-validator.version}\n\t\t"
           matchingXML: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tch.qos.logback\n\t\t\tlogback-classic\n\t\t\t1.1.7\n\t\t"
           matchingXML: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tcom.oracle.database.jdbc\n\t\t\tojdbc8\n\t\t\t21.1.0.0\n\t\t"
           matchingXML: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\torg.postgresql\n\t\t\tpostgresql\n\t\t\t42.2.23\n\t\t"
           matchingXML: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
-      - uri: file://examples/customers-tomcat-legacy/pom.xml
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"
           matchingXML: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
-      - uri: file://examples/java/pom.xml
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
           matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
-      - uri: file://examples/java/pom.xml
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
-      - uri: file://examples/java/pom.xml
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies
-        extras:
+        variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n
             \   "

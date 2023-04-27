@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/analyzer-lsp/dependency/dependency"
+	"go.lsp.dev/uri"
 )
 
 // TODO implement this for real
@@ -18,30 +19,35 @@ func (g *golangProvider) findGoMod() string {
 	} else {
 		depPath = g.config.DependencyPath
 	}
-	return filepath.Join(g.config.Location, depPath)
+	f, err := filepath.Abs(filepath.Join(g.config.Location, depPath))
+	if err != nil {
+		return ""
+	}
+	return f
 }
 
-func (g *golangProvider) GetDependencies() ([]dependency.Dep, error) {
-	ll, err := g.GetDependenciesLinkedList()
+func (g *golangProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
+	ll, f, err := g.GetDependenciesLinkedList()
 	if err != nil {
-		return nil, err
+		return nil, f, err
 	}
 	if len(ll) == 0 {
-		return nil, nil
+		return nil, f, nil
 	}
 	deps := []dependency.Dep{}
 	for topLevel, transitives := range ll {
 		deps = append(deps, topLevel)
 		deps = append(deps, transitives...)
 	}
-	return deps, err
+	return deps, f, err
 }
 
-func (g *golangProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, error) {
+func (g *golangProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, uri.URI, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 
 	path := g.findGoMod()
+	file := uri.File(path)
 
 	moddir := filepath.Dir(path)
 	// get the graph output
@@ -51,7 +57,7 @@ func (g *golangProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depen
 	cmd.Stdout = &buf
 	err := cmd.Run()
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 
 	// use base and graph to get the deps and their deps.
@@ -61,10 +67,10 @@ func (g *golangProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depen
 
 	deps, err := parseGoDepLines(lines)
 	if err != nil {
-		return nil, err
+		return nil, file, err
 	}
 
-	return deps, nil
+	return deps, file, nil
 }
 
 // parseGoDepString parses a golang dependency string
