@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/yaml.v2"
 
@@ -314,7 +315,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			}
 		}
 		// Some violations may not have a location in code.
-		if m.CodeLocation != nil {
+		if m.CodeLocation != nil && strings.HasPrefix(string(m.FileURI), uri.FileScheme) {
 			//Find the file, open it in a buffer.
 			readFile, err := os.Open(m.FileURI.Filename())
 			if err != nil {
@@ -329,12 +330,20 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			for scanner.Scan() {
 				if lineNumber == m.CodeLocation.EndPosition.Line {
 					lineBytes := scanner.Bytes()
-					codeSnip = codeSnip + string(lineBytes[:m.CodeLocation.EndPosition.Character])
+					char := m.CodeLocation.EndPosition.Character
+					if char >= len(lineBytes) {
+						char = len(lineBytes) - 1
+					}
+					codeSnip = codeSnip + string(lineBytes[:char])
 					break
 				}
 				if lineNumber >= m.CodeLocation.StartPosition.Line {
 					lineBytes := scanner.Bytes()
-					codeSnip = codeSnip + string(lineBytes[m.CodeLocation.StartPosition.Character])
+					char := m.CodeLocation.StartPosition.Character
+					if char >= len(lineBytes) || char < 0 {
+						char = 0
+					}
+					codeSnip = codeSnip + string(lineBytes[char:])
 				}
 				lineNumber += 1
 			}
