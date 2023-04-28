@@ -1,6 +1,9 @@
 package java
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"go.lsp.dev/uri"
@@ -115,9 +118,17 @@ func (p *javaProvider) filterConstructorSymbols(symbols []protocol.WorkspaceSymb
 }
 
 func (p *javaProvider) convertToIncidentContext(symbol protocol.WorkspaceSymbol) (lib.IncidentContext, error) {
-	u, err := uri.Parse(symbol.Location.URI)
-	if err != nil {
-		return lib.IncidentContext{}, err
+	var u uri.URI
+	var err error
+
+	// TODO: Can remove when the LSP starts giving files to decompiled binaries
+	if strings.HasPrefix(symbol.Location.URI, "jdt") {
+		u = uri.URI(symbol.Location.URI)
+	} else {
+		u, err = uri.Parse(symbol.Location.URI)
+		if err != nil {
+			return lib.IncidentContext{}, err
+		}
 	}
 
 	incident := lib.IncidentContext{
@@ -147,9 +158,18 @@ func (p *javaProvider) convertToIncidentContext(symbol protocol.WorkspaceSymbol)
 }
 
 func (p *javaProvider) convertSymbolRefToIncidentContext(symbol protocol.WorkspaceSymbol, ref protocol.Location) (lib.IncidentContext, error) {
-	u, err := uri.Parse(ref.URI)
-	if err != nil {
-		return lib.IncidentContext{}, err
+	var u uri.URI
+	var err error
+
+	// TODO: Can remove when the LSP starts giving files to decompiled binaries
+	if strings.HasPrefix(symbol.Location.URI, "jdt") {
+		u = uri.URI(symbol.Location.URI)
+	} else {
+		u, err = uri.Parse(ref.URI)
+		if err != nil {
+			fmt.Printf("\n\nHERE!!!!\n")
+			return lib.IncidentContext{}, err
+		}
 	}
 	incident := lib.IncidentContext{
 		FileURI: u,
