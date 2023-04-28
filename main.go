@@ -27,6 +27,8 @@ var (
 	outputViolations  = flag.String("output-file", "output.yaml", "filepath to to store rule violations")
 	errorOnViolations = flag.Bool("error-on-violation", false, "exit with 3 if any violation are found will also print violations to console")
 	logLevel          = flag.Int("verbose", 9, "level for logging output")
+	enableJaeger      = flag.Bool("enable-jaeger", false, "enable tracer exports to jaeger endpoint")
+	jaegerEndpoint    = flag.String("jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
 )
 
 func main() {
@@ -49,7 +51,11 @@ func main() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
-	tp, err := tracing.InitTracerProvider(log)
+	tracerOptions := tracing.Options{
+		EnableJaeger:   *enableJaeger,
+		JaegerEndpoint: *jaegerEndpoint,
+	}
+	tp, err := tracing.InitTracerProvider(log, tracerOptions)
 	if err != nil {
 		log.Error(err, "failed to initialize tracing")
 		os.Exit(1)
