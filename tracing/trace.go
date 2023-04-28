@@ -14,9 +14,14 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func newJaegerExporter() (tracesdk.SpanExporter, error) {
+type Options struct {
+	EnableJaeger   bool
+	JaegerEndpoint string
+}
+
+func newJaegerExporter(endpoint string) (tracesdk.SpanExporter, error) {
 	exp, err := jaeger.New(
-		jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://localhost:14268/api/traces")),
+		jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(endpoint)),
 	)
 	if err != nil {
 		return nil, err
@@ -24,23 +29,26 @@ func newJaegerExporter() (tracesdk.SpanExporter, error) {
 	return exp, nil
 }
 
-func InitTracerProvider(log logr.Logger) (*tracesdk.TracerProvider, error) {
-	exp, err := newJaegerExporter()
-	if err != nil {
-		log.Error(err, "failed to create jaeger exporter")
-		return nil, err
-	}
-
-	tp := tracesdk.NewTracerProvider(
+func InitTracerProvider(log logr.Logger, o Options) (*tracesdk.TracerProvider, error) {
+	tracerOptions := []tracesdk.TracerProviderOption{
 		tracesdk.WithSampler(tracesdk.AlwaysSample()),
-		tracesdk.WithBatcher(exp),
 		// Record information about this application in a Resource.
 		tracesdk.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceNameKey.String("analyzer-lsp"),
 		)),
-	)
+	}
+	if o.EnableJaeger {
+		exp, err := newJaegerExporter(o.JaegerEndpoint)
+		if err != nil {
+			log.Error(err, "failed to create jaeger exporter")
+			return nil, err
+		}
+		tracerOptions = append(tracerOptions,
+			tracesdk.WithBatcher(exp))
+	}
 
+	tp := tracesdk.NewTracerProvider(tracerOptions...)
 	otel.SetTracerProvider(tp)
 
 	return tp, nil
