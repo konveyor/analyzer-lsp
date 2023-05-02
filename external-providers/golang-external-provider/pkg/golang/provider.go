@@ -17,6 +17,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// TODO(shawn-hurley): Pipe the logger through
+// Determine how and where external providers will
 type golangProvider struct {
 	rpc        *jsonrpc2.Conn
 	ctx        context.Context
@@ -28,8 +30,8 @@ type golangProvider struct {
 }
 
 func (p *golangProvider) Stop() {
-	p.cancelFunc()
 	// Ignore the error here, it stopped and we wanted it to.
+	p.cancelFunc()
 	p.cmd.Wait()
 }
 
@@ -47,7 +49,6 @@ func (p *golangProvider) Capabilities() []lib.Capability {
 			TemplateContext: openapi3.SchemaRef{},
 		},
 		{
-
 			Name:            "dependency",
 			TemplateContext: openapi3.SchemaRef{},
 		},
@@ -68,7 +69,6 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provide
 	if err != nil {
 		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
 	}
-
 	query := cond.Referenced
 	if query == "" {
 		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
@@ -109,7 +109,8 @@ func (p *golangProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provide
 	}, nil
 }
 
-func (p *golangProvider) Init(ctx context.Context, log logr.Logger) error {
+func (p *golangProvider) Init(_ context.Context, log logr.Logger) error {
+	ctx := context.Background()
 	ctx, cancelFunc := context.WithCancel(ctx)
 	log = log.WithValues("provider", "golang")
 	var returnErr error
@@ -134,6 +135,7 @@ func (p *golangProvider) Init(ctx context.Context, log logr.Logger) error {
 			if err != nil {
 				fmt.Printf("cmd failed - %v", err)
 				// TODO: Probably should cancel the ctx here, to shut everything down
+				return
 			}
 		}()
 		rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
@@ -185,6 +187,7 @@ func (p *golangProvider) initialization(ctx context.Context, log logr.Logger) {
 	if err := p.rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
 		fmt.Printf("initialized failed: %v", err)
 	}
+	fmt.Printf("golang connection initialized")
 	log.V(2).Info("golang connection initialized")
 }
 
@@ -195,9 +198,9 @@ func (p *golangProvider) GetAllSymbols(query string) []protocol.WorkspaceSymbol 
 	}
 
 	var refs []protocol.WorkspaceSymbol
-	err := p.rpc.Call(p.ctx, "workspace/symbol", wsp, &refs)
+	err := p.rpc.Call(context.TODO(), "workspace/symbol", wsp, &refs)
 	if err != nil {
-		fmt.Printf("error: %v", err)
+		fmt.Printf("\n\nerror: %v\n", err)
 	}
 
 	return refs

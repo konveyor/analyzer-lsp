@@ -1,0 +1,7 @@
+[
+    {
+        "name": "go",
+        "location": "/Users/shurley/repos/analyzer-lsp/examples/golang",
+        "binaryLocation": "/opt/homebrew/bin/gopls"
+    },
+]

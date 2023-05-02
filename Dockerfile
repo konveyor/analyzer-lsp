@@ -11,7 +11,7 @@ WORKDIR /analyzer-lsp
 # TODO limit to prevent unnecessary rebuilds
 COPY  . /analyzer-lsp
 COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
+COPY --from=builder /analyzer-lsp/external-providers/golang-external-provider/golang-external-provider /usr/bin/golang-external-provider
 COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
 
-
-CMD ["/bin/bash", "-c", "go run main.go;cat output.yaml"]
+CMD ["/bin/bash", "-c", "golang-external-provider & disown -r; go run main.go; cat output.yaml"]

@@ -104,6 +104,11 @@ func main() {
 			os.Exit(1)
 		}
 		providers[config.Name] = provider
+		err = provider.Init(ctx, log)
+		if err != nil {
+			log.Error(err, "unable to create provider client")
+			os.Exit(1)
+		}
 	}
 
 	parser := parser.RuleParser{

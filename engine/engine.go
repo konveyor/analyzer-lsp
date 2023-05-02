@@ -163,6 +163,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 					r.logger.Info("rule returned", "rule", response)
 					defer wg.Done()
 					if response.Err != nil {
+						fmt.Printf("\n%v\n", response.Err)
 						r.logger.Error(response.Err, "failed to evaluate rule", "ruleID", response.Rule.RuleID)
 						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()

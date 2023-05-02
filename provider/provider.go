@@ -13,7 +13,7 @@ import (
 	depprovider "github.com/konveyor/analyzer-lsp/dependency/provider"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider/builtin"
-	"github.com/konveyor/analyzer-lsp/provider/golang"
+	"github.com/konveyor/analyzer-lsp/provider/grpc"
 	"github.com/konveyor/analyzer-lsp/provider/java"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/konveyor/analyzer-lsp/tracing"
@@ -112,7 +112,6 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 		TemplateContext: resp.TemplateContext,
 		Incidents:       incidents,
 	}, nil
-
 }
 
 func templateCondition(condition []byte, ctx map[string]lib.ChainTemplate) ([]byte, error) {
@@ -143,12 +142,12 @@ func templateCondition(condition []byte, ctx map[string]lib.ChainTemplate) ([]by
 // We need some wrapper that can deal with out of tree providers, this will be a call, that will mock it out, but go against in tree.
 func GetProviderClient(config lib.Config) (Client, error) {
 	switch config.Name {
-	case "go":
-		return golang.NewGolangProvider(config), nil
 	case "java":
 		return java.NewJavaProvider(config), nil
 	case "builtin":
 		return builtin.NewBuiltinProvider(config), nil
+	case "go":
+		return grpc.NewGRPCClient(), nil
 	default:
 		return nil, fmt.Errorf("unknown and invalid provider client")
 	}

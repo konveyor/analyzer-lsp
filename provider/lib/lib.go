@@ -38,7 +38,6 @@ type Config struct {
 }
 
 func GetConfig(filepath string) ([]Config, error) {
-
 	content, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, err
