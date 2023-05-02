@@ -9,6 +9,7 @@ require (
 	github.com/getkin/kin-openapi v0.108.0
 	github.com/go-logr/logr v1.2.3
 	github.com/sirupsen/logrus v1.9.0
+	github.com/spf13/pflag v1.0.5
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel/trace v1.11.2
 	gopkg.in/yaml.v2 v2.4.0
@@ -17,7 +18,7 @@ require (
 require github.com/go-logr/stdr v1.2.2 // indirect
 
 require (
-	github.com/antchfx/xpath v1.2.4 // indirect
+	github.com/antchfx/xpath v1.2.4
 	github.com/cbroglie/mustache v1.4.0
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect

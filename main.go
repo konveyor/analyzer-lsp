@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
 )
 
@@ -23,7 +23,7 @@ const (
 
 var (
 	settingsFile      = flag.String("provider-settings", "provider_settings.json", "path to the provider settings")
-	rulesFile         = flag.String("rules", "rule-example.yaml", "filename or directory containing rule files")
+	rulesFile         = flag.StringArray("rules", []string{"rule-example.yaml"}, "filename or directory containing rule files")
 	outputViolations  = flag.String("output-file", "output.yaml", "filepath to to store rule violations")
 	errorOnViolations = flag.Bool("error-on-violation", false, "exit with 3 if any violation are found will also print violations to console")
 	logLevel          = flag.Int("verbose", 9, "level for logging output")
@@ -67,8 +67,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	//start up the rule engine
-	engine := engine.CreateRuleEngine(ctx, 10, log)
+	//start up the rule eng
+	eng := engine.CreateRuleEngine(ctx, 10, log)
 
 	providers := map[string]provider.Client{}
 
@@ -85,11 +85,18 @@ func main() {
 		ProviderNameToClient: providers,
 		Log:                  log.WithName("parser"),
 	}
-
-	ruleSet, needProviders, err := parser.LoadRules(*rulesFile)
-	if err != nil {
-		log.Error(err, "unable to parse all the rules")
-		os.Exit(1)
+	ruleSets := []engine.RuleSet{}
+	needProviders := map[string]provider.Client{}
+	for _, f := range *rulesFile {
+		internRuleSet, internNeedProviders, err := parser.LoadRules(f)
+		if err != nil {
+			log.Error(err, "unable to parse all the rules")
+			os.Exit(1)
+		}
+		ruleSets = append(ruleSets, internRuleSet...)
+		for k, v := range internNeedProviders {
+			needProviders[k] = v
+		}
 	}
 	// Now that we have all the providers, we need to start them.
 	for _, provider := range needProviders {
@@ -100,8 +107,8 @@ func main() {
 		}
 	}
 
-	rulesets := engine.RunRules(ctx, ruleSet)
-	engine.Stop()
+	rulesets := eng.RunRules(ctx, ruleSets)
+	eng.Stop()
 
 	for _, provider := range needProviders {
 		provider.Stop()
@@ -127,9 +134,12 @@ func validateFlags() error {
 		return fmt.Errorf("unable to find provider settings file")
 	}
 
-	_, err = os.Stat(*rulesFile)
-	if err != nil {
-		return fmt.Errorf("unable to find rule path or file")
+	for _, f := range *rulesFile {
+		fmt.Printf("f: %v", f)
+		_, err = os.Stat(f)
+		if err != nil {
+			return fmt.Errorf("unable to find rule path or file")
+		}
 	}
 
 	return nil
