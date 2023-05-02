@@ -23,6 +23,21 @@ var defaultRuleSet = &engine.RuleSet{
 	Name: "konveyor-analysis",
 }
 
+type parserErrors struct {
+	errs []error
+}
+
+func (e parserErrors) Error() string {
+	s := ""
+	for i, e := range e.errs {
+		if i == 0 {
+			s = e.Error()
+		}
+		s = fmt.Sprintf("%s\n%s", s, e.Error())
+	}
+	return s
+}
+
 type RuleParser struct {
 	ProviderNameToClient map[string]provider.Client
 	Log                  logr.Logger
@@ -73,7 +88,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	if info.Mode().IsRegular() {
 		rules, m, err := r.LoadRule(filepath)
 		if err != nil {
-			return nil, nil, err
+
 		}
 
 		ruleSet := r.loadRuleSet(path.Dir(filepath))
@@ -96,16 +111,19 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	var ruleSet *engine.RuleSet
 	rules := []engine.Rule{}
 	foundTree := false
+	parserErr := &parserErrors{}
 	for _, f := range files {
 		info, err := os.Stat(path.Join(filepath, f.Name()))
 		if err != nil {
-			return nil, nil, err
+			parserErr.errs = append(parserErr.errs, err)
+			continue
 		}
 		if info.IsDir() {
 			foundTree = true
 			r, m, err := r.LoadRules(path.Join(filepath, f.Name()))
 			if err != nil {
-				return nil, nil, err
+				parserErr.errs = append(parserErr.errs, err)
+				continue
 			}
 			ruleSets = append(ruleSets, r...)
 			for k, v := range m {
@@ -122,7 +140,8 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 			}
 			r, m, err := r.LoadRule(path.Join(filepath, f.Name()))
 			if err != nil {
-				return nil, nil, err
+				parserErr.errs = append(parserErr.errs, err)
+				continue
 			}
 			for k, v := range m {
 				clientMap[k] = v
@@ -139,7 +158,11 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 		ruleSet.Rules = rules
 		ruleSets = append(ruleSets, *ruleSet)
 	}
-	return ruleSets, clientMap, err
+	// Return nil if there are no captured errors
+	if len(parserErr.errs) == 0 {
+		return ruleSets, clientMap, nil
+	}
+	return ruleSets, clientMap, parserErr
 }
 
 func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provider.Client, error) {
@@ -154,7 +177,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	// Assume that there is a rule set header.
 	err = yaml.Unmarshal(content, &ruleMap)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("unable to convert file: %s to yaml", filepath)
 	}
 
 	// rules that provide metadata

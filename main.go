@@ -90,8 +90,7 @@ func main() {
 	for _, f := range *rulesFile {
 		internRuleSet, internNeedProviders, err := parser.LoadRules(f)
 		if err != nil {
-			log.Error(err, "unable to parse all the rules")
-			os.Exit(1)
+			log.WithValues("fileName", f).Error(err, "unable to parse all the rules for ruleset")
 		}
 		ruleSets = append(ruleSets, internRuleSet...)
 		for k, v := range internNeedProviders {
@@ -135,7 +134,6 @@ func validateFlags() error {
 	}
 
 	for _, f := range *rulesFile {
-		fmt.Printf("f: %v", f)
 		_, err = os.Stat(f)
 		if err != nil {
 			return fmt.Errorf("unable to find rule path or file")
