@@ -217,7 +217,9 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 	}
 	responses := []hubapi.RuleSet{}
 	for _, ruleSet := range mapRuleSets {
-		responses = append(responses, *ruleSet)
+		if ruleSet != nil {
+			responses = append(responses, *ruleSet)
+		}
 	}
 	// Cannel running go-routine
 	cancelFunc()
