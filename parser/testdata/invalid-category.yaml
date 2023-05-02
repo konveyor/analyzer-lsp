@@ -1,0 +1,13 @@
+---
+- message: all go files
+  ruleID: file-001
+  links:
+  - title: "Golang"
+    url: "https://go.dev"
+  labels:
+  - "testing"
+  - "test"
+  category: this-is-invalid
+  effort: 3
+  when:
+    builtin.file: "*.go"
