@@ -118,4 +118,10 @@
     java.referenced:
       location: METHOD_CALL
       pattern: com.example.apps.GenericClass.get
+- message: "error test"
+  ruleID: error-rule-001
+  when:
+    builtin.xml:
+      xpath:
+        invalid-query: "test"
 

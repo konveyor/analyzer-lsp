@@ -504,3 +504,10 @@
             \   "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       extras: []
+  errors:
+    error-rule-001: |-
+      unable to get query info: yaml: unmarshal errors:
+        line 8: cannot unmarshal !!map into string
+  unmatched:
+  - file-002
+  - lang-ref-002
