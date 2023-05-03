@@ -128,6 +128,7 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
+							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoFiles},
 						},
 					},
@@ -198,6 +199,7 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
+							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoAndJsonFiles},
 						},
 					},
@@ -232,6 +234,7 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
+							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
@@ -266,6 +269,7 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
+							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
@@ -339,6 +343,7 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
+							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
@@ -390,6 +395,7 @@ func TestLoadRules(t *testing.T) {
 					Rules: []engine.Rule{
 						{
 							RuleID:      "file-001",
+							Category:    &hubapi.Potential,
 							Description: "",
 							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
 						},
@@ -491,6 +497,7 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
+							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoFiles},
 						},
 					},
@@ -500,6 +507,7 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleID:      "file-001",
 							Description: "",
+							Category:    &hubapi.Potential,
 							Perform:     engine.Perform{Message: &allGoFiles},
 						},
 					},
@@ -531,6 +539,52 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:         "handle not-valid category",
+			testFileName: "invalid-category.yaml",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []lib.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleID: "file-001",
+							Links: []hubapi.Link{
+								{
+									URL:   "https://go.dev",
+									Title: "Golang",
+								},
+							},
+							Labels: []string{
+								"testing",
+								"test",
+							},
+							Effort:      &effort,
+							Description: "",
+							Category:    &hubapi.Potential,
+							Perform:     engine.Perform{Message: &allGoFiles},
+						},
+					},
+				},
+			},
+			ExpectedProvider: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []lib.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -547,15 +601,19 @@ func TestLoadRules(t *testing.T) {
 					return
 				}
 				t.Errorf("Got err: %v expected: should have error: %v or message: %v", err, tc.ShouldErr, tc.ErrorMessage)
+				return
 			}
 			if err == nil && tc.ShouldErr {
 				t.Errorf("expected error but not none")
+				return
 			}
 			if len(tc.ExpectedProvider) != 0 && len(clients) == 0 {
 				t.Errorf("unable to get correct clients")
+				return
 			}
 			if len(tc.ExpectedRuleSet) != 0 && len(ruleSets) == 0 {
 				t.Errorf("unable to get correct ruleSets")
+				return
 			}
 
 			for k, c := range clients {

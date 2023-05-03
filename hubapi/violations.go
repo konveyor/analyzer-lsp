@@ -39,9 +39,18 @@ type RuleSetTechnology struct {
 type Category string
 
 var (
-	Potential   Category = "potential"
-	Information Category = "information"
-	Mandatory   Category = "mandatory"
+	// Potential - rule states that there may be issue, but the rule author is unsure.
+	// This is used when you are trying to communicate that something may be wrong/incorrect
+	// But individual situations may require more context.
+	Potential Category = "potential"
+	// Optional - rule states that there is an issue, but that this issue can be fixed later.
+	// Primary use case is when migrating frameworks, and something has a deprecated notice,
+	// You should fix this but it wont break the migration/upgrade.
+	Optional Category = "optional"
+	// Mandatory - rule states that there is an issue that must be fixed.
+	// This is used, based on the ruleset, to tell the user that this is a real issue.
+	// For migrations, this means it must be fixed or the upgrade with fail.
+	Mandatory Category = "mandatory"
 )
 
 type Violation struct {

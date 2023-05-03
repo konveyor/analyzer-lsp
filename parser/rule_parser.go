@@ -353,16 +353,18 @@ func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interfa
 	}
 	rule.Description = description
 
-	category, ok := ruleMap["category"].(string)
-	if !ok {
-		r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find category")
-	}
-	c := hubapi.Category(strings.ToLower(category))
-	if c != hubapi.Potential && c != hubapi.Mandatory && c != hubapi.Information {
-		r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find category")
-		rule.Category = nil
-	} else {
-		rule.Category = &c
+	if rule.Perform.Message != nil {
+		category, ok := ruleMap["category"].(string)
+		if !ok {
+			r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find category")
+		}
+		c := hubapi.Category(strings.ToLower(category))
+		if c != hubapi.Potential && c != hubapi.Mandatory && c != hubapi.Optional {
+			r.Log.V(8).WithValues("ruleID", rule.RuleID).Info(fmt.Sprintf("unable to find category: %v, defaulting to %v", c, hubapi.Potential))
+			rule.Category = &hubapi.Potential
+		} else {
+			rule.Category = &c
+		}
 	}
 
 	effort, ok := ruleMap["effort"].(int)
