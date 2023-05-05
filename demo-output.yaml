@@ -3,6 +3,7 @@
   - Language=Golang
   - Infra=Kubernetes
   - Java
+  - Backend=Golang
   violations:
     chain-pom-001:
       description: ""
@@ -409,6 +410,16 @@
           kind: Method
           lineNumber: 13
           name: main
+      extras: []
+    multiple-actions-001:
+      description: ""
+      category: potential
+      incidents:
+      - uri: ""
+        message: Tags [Golang] found, creating message and new tag both
+        variables:
+          tags:
+          - Golang
       extras: []
     tech-tag-001:
       description: ""

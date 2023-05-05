@@ -425,7 +425,7 @@ func TestLoadRules(t *testing.T) {
 			},
 		},
 		{
-			Name:         "test multiple actions, cannot set message and tag both",
+			Name:         "test multiple actions, can set message and tag both",
 			testFileName: "multiple-actions.yaml",
 			providerNameClient: map[string]provider.Client{
 				"builtin": testProvider{
@@ -433,14 +433,32 @@ func TestLoadRules(t *testing.T) {
 						Name: "file",
 					}},
 				},
-				"notadded": testProvider{
+			},
+			ExpectedProvider: map[string]provider.Client{
+				"builtin": testProvider{
 					caps: []lib.Capability{{
-						Name: "fake",
+						Name: "file",
 					}},
 				},
 			},
-			ShouldErr:    true,
-			ErrorMessage: "cannot perform message and tag both",
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Category:    &hubapi.Potential,
+								Description: "",
+							},
+							Perform: engine.Perform{
+								Message: &allGoFiles,
+								Tag:     []string{"test"},
+							},
+						},
+					},
+				},
+			},
+			ShouldErr: false,
 		},
 		{
 			Name:         "no actions, at least one action must be set",

@@ -118,44 +118,16 @@ func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *hubapi.RuleSet {
 	return rs
 }
 
-// This will run the meta rules first, synchronously, generating metadata to pass on further as context to other rules
+// This will run tagging rules first, synchronously, generating tags to pass on further as context to other rules
 // then runs remaining rules async, fanning them out, fanning them in, finally generating the results. will block until completed.
 func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors ...RuleSelector) []hubapi.RuleSet {
 	// determine if we should run
 
 	ctx, cancelFunc := context.WithCancel(ctx)
 
-	// filter rules that generate metadata indexed by ruleset name, they run first
-	metaRules := []ruleMessage{}
-	mapRuleSets := map[string]*hubapi.RuleSet{}
-	ruleMessages := []ruleMessage{}
-	for _, ruleSet := range ruleSets {
-		mapRuleSets[ruleSet.Name] = r.createRuleSet(ruleSet)
-		for _, rule := range ruleSet.Rules {
-			// labels on ruleset apply to all rules in it
-			rule.Labels = append(rule.Labels, ruleSet.Labels...)
-			// skip rule when doesn't match any selector
-			if !matchesAllSelectors(rule.RuleMeta, selectors...) {
-				mapRuleSets[ruleSet.Name].Skipped = append(mapRuleSets[ruleSet.Name].Skipped, rule.RuleID)
-				r.logger.Info("one or more selectors did not match for rule, skipping", "rule", rule.RuleMeta)
-				continue
-			}
+	taggingRules, otherRules, mapRuleSets := r.filterRules(ruleSets, selectors...)
 
-			if rule.Perform.Tag == nil {
-				ruleMessages = append(ruleMessages, ruleMessage{
-					rule:        rule,
-					ruleSetName: ruleSet.Name,
-				})
-			} else {
-				metaRules = append(metaRules, ruleMessage{
-					rule:        rule,
-					ruleSetName: ruleSet.Name,
-				})
-			}
-		}
-	}
-
-	ruleContext := r.runMetaRules(ctx, metaRules, mapRuleSets)
+	ruleContext := r.runTaggingRules(ctx, taggingRules, mapRuleSets)
 
 	// Need a better name for this thing
 	ret := make(chan response)
@@ -199,7 +171,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 		}
 	}()
 
-	for _, rule := range ruleMessages {
+	for _, rule := range otherRules {
 		wg.Add(1)
 		rule.returnChan = ret
 		rule.ctx = ruleContext
@@ -237,9 +209,56 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 	return responses
 }
 
-// runMetaRules filters and runs info rules synchronously
+// filterRules splits rules into tagging and other rules
+func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) ([]ruleMessage, []ruleMessage, map[string]*hubapi.RuleSet) {
+	// filter rules that generate tags, they run first
+	taggingRules := []ruleMessage{}
+	mapRuleSets := map[string]*hubapi.RuleSet{}
+	// all rules except meta
+	otherRules := []ruleMessage{}
+	for _, ruleSet := range ruleSets {
+		mapRuleSets[ruleSet.Name] = r.createRuleSet(ruleSet)
+		for _, rule := range ruleSet.Rules {
+			// labels on ruleset apply to all rules in it
+			rule.Labels = append(rule.Labels, ruleSet.Labels...)
+			// skip rule when doesn't match any selector
+			if !matchesAllSelectors(rule.RuleMeta, selectors...) {
+				mapRuleSets[ruleSet.Name].Skipped = append(mapRuleSets[ruleSet.Name].Skipped, rule.RuleID)
+				r.logger.Info("one or more selectors did not match for rule, skipping", "rule", rule.RuleMeta)
+				continue
+			}
+
+			if rule.Perform.Tag == nil {
+				otherRules = append(otherRules, ruleMessage{
+					rule:        rule,
+					ruleSetName: ruleSet.Name,
+				})
+			} else {
+				taggingRules = append(taggingRules, ruleMessage{
+					rule:        rule,
+					ruleSetName: ruleSet.Name,
+				})
+				// if both message and tag are set
+				// split message part into a new rule
+				if rule.Perform.Message != nil {
+					rule.Perform.Tag = nil
+					otherRules = append(
+						otherRules,
+						ruleMessage{
+							rule:        rule,
+							ruleSetName: ruleSet.Name,
+						},
+					)
+				}
+			}
+		}
+	}
+	return taggingRules, otherRules, mapRuleSets
+}
+
+// runTaggingRules filters and runs info rules synchronously
 // returns list of non-info rules, a context to pass to them
-func (r *ruleEngine) runMetaRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*hubapi.RuleSet) ConditionContext {
+func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*hubapi.RuleSet) ConditionContext {
 	context := ConditionContext{
 		Tags:     make(map[string]interface{}),
 		Template: make(map[string]lib.ChainTemplate),

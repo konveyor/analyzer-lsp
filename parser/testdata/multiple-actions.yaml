@@ -1,4 +1,4 @@
-- message: all go and json files
+- message: all go files
   tag:
   - "test"
   ruleID: file-001
