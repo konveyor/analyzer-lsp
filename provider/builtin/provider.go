@@ -137,7 +137,6 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 				fmt.Printf("\n\n\n%v", err)
 				ab = match
 			}
-			fmt.Printf("\n\nPath Info: %#v\nmatch: %v\nconfigLocation: %v", ab, match, p.config.Location)
 			response.Incidents = append(response.Incidents, lib.IncidentContext{
 				FileURI: uri.File(ab),
 			})
