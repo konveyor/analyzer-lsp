@@ -16,6 +16,6 @@ COPY demo-output.yaml /demo-output.yaml
 COPY examples /analyzer-lsp/examples
 
 WORKDIR /analyzer-lsp
-RUN /bin/bash -c "golang-external-provider & disown; konveyor-analyzer --output-file violation_output.yaml"
+RUN /bin/bash -c "golang-external-provider & disown && sleep 5; konveyor-analyzer --output-file violation_output.yaml"
 
 CMD [ "diff", "../demo-output.yaml", "violation_output.yaml" ]
