@@ -20,6 +20,12 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
+const (
+	// TODO: make this configurable in the future
+	// We may or may not need to do this so holding off for now.
+	CONTEXT_LINES = 10
+)
+
 type RuleEngine interface {
 	RunRules(context context.Context, rules []RuleSet) []hubapi.RuleSet
 	Stop()
@@ -346,26 +352,16 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			lineNumber := 0
 			codeSnip := ""
 			for scanner.Scan() {
-				if lineNumber == m.CodeLocation.EndPosition.Line {
-					lineBytes := scanner.Bytes()
-					char := m.CodeLocation.EndPosition.Character
-					if char >= len(lineBytes) {
-						char = len(lineBytes) - 1
-					}
-					codeSnip = codeSnip + string(lineBytes[:char])
+				if (lineNumber - CONTEXT_LINES) == m.CodeLocation.EndPosition.Line {
+					codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
 					break
 				}
-				if lineNumber >= m.CodeLocation.StartPosition.Line {
-					lineBytes := scanner.Bytes()
-					char := m.CodeLocation.StartPosition.Character
-					if char >= len(lineBytes) || char < 0 {
-						char = 0
-					}
-					codeSnip = codeSnip + string(lineBytes[char:])
+				if (lineNumber + CONTEXT_LINES) >= m.CodeLocation.StartPosition.Line {
+					codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
 				}
 				lineNumber += 1
 			}
-			incident.CodeSnip = strings.TrimSpace(codeSnip)
+			incident.CodeSnip = codeSnip
 		}
 
 		if len(rule.CustomVariables) > 0 {
