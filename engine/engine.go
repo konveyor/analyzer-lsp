@@ -430,6 +430,9 @@ func (r *ruleEngine) createPerformString(messageTemplate string, ctx map[string]
 	return mustache.Render(messageTemplate, ctx)
 }
 
+// matchesAllSelectors returns false when any one of the selectors does not match
+// selectors can be of different types e.g. label-selector, or category-selector
+// when multiple selectors are present, we want all of them to match to filter-in the rule.
 func matchesAllSelectors(m RuleMeta, selectors ...RuleSelector) bool {
 	for _, s := range selectors {
 		if !s.Matches(m) {
