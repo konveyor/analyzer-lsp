@@ -169,6 +169,10 @@
         message: all go files
       - uri: file:///analyzer-lsp/main.go
         message: all go files
+      - uri: file:///analyzer-lsp/parser/labels/labels.go
+        message: all go files
+      - uri: file:///analyzer-lsp/parser/labels/labels_test.go
+        message: all go files
       - uri: file:///analyzer-lsp/parser/rule_parser.go
         message: all go files
       - uri: file:///analyzer-lsp/parser/rule_parser_test.go
