@@ -232,7 +232,9 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 
 		rule := engine.Rule{
 			Perform: perform,
-			RuleID:  ruleID,
+			RuleMeta: engine.RuleMeta{
+				RuleID: ruleID,
+			},
 		}
 
 		r.addRuleFields(&rule, ruleMap)

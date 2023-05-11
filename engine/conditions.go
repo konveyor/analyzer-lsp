@@ -89,15 +89,24 @@ type RuleSetTechnology struct {
 }
 
 type Rule struct {
-	RuleID          string           `yaml:"ruleID,omitempty" json:"ruleID,omitempty"`
-	Description     string           `yaml:"description,omitempty" json:"description,omitempty"`
-	Category        *hubapi.Category `yaml:"category,omitempty" json:"category,omitempty"`
-	Links           []hubapi.Link    `yaml:"links,omitempty" json:"links,omitempty"`
-	Labels          []string         `yaml:"labels,omitempty" json:"labels,omitempty"`
-	Effort          *int             `json:"effort,omitempty"`
+	RuleMeta        `yaml:",inline" json:",inline"`
 	Perform         Perform          `yaml:",inline" json:"perform,omitempty"`
 	When            Conditional      `yaml:"when,omitempty" json:"when,omitempty"`
 	CustomVariables []CustomVariable `yaml:"customVariables,omitempty" json:"customVariables,omitempty"`
+}
+
+type RuleMeta struct {
+	RuleID      string           `yaml:"ruleID,omitempty" json:"ruleID,omitempty"`
+	Description string           `yaml:"description,omitempty" json:"description,omitempty"`
+	Category    *hubapi.Category `yaml:"category,omitempty" json:"category,omitempty"`
+	Labels      []string         `yaml:"labels,omitempty" json:"labels,omitempty"`
+	Effort      *int             `json:"effort,omitempty"`
+	Links       []hubapi.Link    `yaml:"links,omitempty" json:"links,omitempty"`
+}
+
+// RuleSelector selects rules based on rule metadata
+type RuleSelector interface {
+	Matches(RuleMeta) bool
 }
 
 type CustomVariable struct {

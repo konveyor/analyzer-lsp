@@ -80,21 +80,23 @@ func TestLoadRules(t *testing.T) {
 				"konveyor-analysis": {
 					Rules: []engine.Rule{
 						{
-							RuleID: "file-001",
-							Links: []hubapi.Link{
-								{
-									URL:   "https://go.dev",
-									Title: "Golang",
+							RuleMeta: engine.RuleMeta{
+								RuleID: "file-001",
+								Links: []hubapi.Link{
+									{
+										URL:   "https://go.dev",
+										Title: "Golang",
+									},
 								},
+								Labels: []string{
+									"testing",
+									"test",
+								},
+								Effort:      &effort,
+								Description: "",
+								Category:    &hubapi.Potential,
 							},
-							Labels: []string{
-								"testing",
-								"test",
-							},
-							Effort:      &effort,
-							Description: "",
-							Category:    &hubapi.Potential,
-							Perform:     engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{Message: &allGoFiles},
 						},
 					},
 				},
@@ -126,10 +128,12 @@ func TestLoadRules(t *testing.T) {
 				"file-ruleset": {
 					Rules: []engine.Rule{
 						{
-							RuleID:      "file-001",
-							Description: "",
-							Category:    &hubapi.Potential,
-							Perform:     engine.Perform{Message: &allGoFiles},
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &hubapi.Potential,
+							},
+							Perform: engine.Perform{Message: &allGoFiles},
 						},
 					},
 				},
@@ -197,10 +201,12 @@ func TestLoadRules(t *testing.T) {
 				"konveyor-analysis": {
 					Rules: []engine.Rule{
 						{
-							RuleID:      "file-001",
-							Description: "",
-							Category:    &hubapi.Potential,
-							Perform:     engine.Perform{Message: &allGoAndJsonFiles},
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &hubapi.Potential,
+							},
+							Perform: engine.Perform{Message: &allGoAndJsonFiles},
 						},
 					},
 				},
@@ -232,10 +238,12 @@ func TestLoadRules(t *testing.T) {
 				"konveyor-analysis": {
 					Rules: []engine.Rule{
 						{
-							RuleID:      "file-001",
-							Description: "",
-							Category:    &hubapi.Potential,
-							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &hubapi.Potential,
+							},
+							Perform: engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
 				},
@@ -267,10 +275,12 @@ func TestLoadRules(t *testing.T) {
 				"konveyor-analysis": {
 					Rules: []engine.Rule{
 						{
-							RuleID:      "file-001",
-							Description: "",
-							Category:    &hubapi.Potential,
-							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &hubapi.Potential,
+							},
+							Perform: engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
 				},
@@ -341,10 +351,12 @@ func TestLoadRules(t *testing.T) {
 				"konveyor-analysis": {
 					Rules: []engine.Rule{
 						{
-							RuleID:      "file-001",
-							Description: "",
-							Category:    &hubapi.Potential,
-							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &hubapi.Potential,
+							},
+							Perform: engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
 				},
@@ -394,10 +406,12 @@ func TestLoadRules(t *testing.T) {
 				"konveyor-analysis": {
 					Rules: []engine.Rule{
 						{
-							RuleID:      "file-001",
-							Category:    &hubapi.Potential,
-							Description: "",
-							Perform:     engine.Perform{Message: &allGoOrJsonFiles},
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Category:    &hubapi.Potential,
+								Description: "",
+							},
+							Perform: engine.Perform{Message: &allGoOrJsonFiles},
 						},
 					},
 				},
@@ -467,7 +481,9 @@ func TestLoadRules(t *testing.T) {
 				"konveyor-analysis": {
 					Rules: []engine.Rule{
 						{
-							RuleID: "tag-001",
+							RuleMeta: engine.RuleMeta{
+								RuleID: "tag-001",
+							},
 							Perform: engine.Perform{
 								Tag: []string{"test"},
 							},
@@ -495,20 +511,23 @@ func TestLoadRules(t *testing.T) {
 				"file-ruleset-a": {
 					Rules: []engine.Rule{
 						{
-							RuleID:      "file-001",
-							Description: "",
-							Category:    &hubapi.Potential,
-							Perform:     engine.Perform{Message: &allGoFiles},
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &hubapi.Potential,
+							},
+							Perform: engine.Perform{Message: &allGoFiles},
 						},
 					},
 				},
 				"file-ruleset-b": {
 					Rules: []engine.Rule{
 						{
-							RuleID:      "file-001",
-							Description: "",
-							Category:    &hubapi.Potential,
-							Perform:     engine.Perform{Message: &allGoFiles},
+							RuleMeta: engine.RuleMeta{RuleID: "file-001",
+								Description: "",
+								Category:    &hubapi.Potential,
+							},
+							Perform: engine.Perform{Message: &allGoFiles},
 						},
 					},
 				},
@@ -558,21 +577,23 @@ func TestLoadRules(t *testing.T) {
 				"konveyor-analysis": {
 					Rules: []engine.Rule{
 						{
-							RuleID: "file-001",
-							Links: []hubapi.Link{
-								{
-									URL:   "https://go.dev",
-									Title: "Golang",
+							RuleMeta: engine.RuleMeta{
+								RuleID: "file-001",
+								Links: []hubapi.Link{
+									{
+										URL:   "https://go.dev",
+										Title: "Golang",
+									},
 								},
+								Labels: []string{
+									"testing",
+									"test",
+								},
+								Effort:      &effort,
+								Description: "",
+								Category:    &hubapi.Potential,
 							},
-							Labels: []string{
-								"testing",
-								"test",
-							},
-							Effort:      &effort,
-							Description: "",
-							Category:    &hubapi.Potential,
-							Perform:     engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{Message: &allGoFiles},
 						},
 					},
 				},
