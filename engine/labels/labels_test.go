@@ -229,7 +229,7 @@ func Test_ruleSelector_Matches(t *testing.T) {
 		},
 		{
 			name: "nested && and || queries with mixed dots, unmatched",
-			expr: "(konveyor.io/sourceTech=eap7 && konveyor.io/targetTech=eap10) || (special-rule && !konveyor.io/type=restricted)",
+			expr: "(konveyor.io/sourceTech=eap7 && konveyor.io/targetTech=eap10) || (!special-rule && !konveyor.io/type=restricted)",
 			ruleLabels: []string{
 				"konveyor.io/sourceTech=eap8",
 				"konveyor.io/targetTech=eap11",

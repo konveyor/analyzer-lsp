@@ -141,6 +141,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 		for _, rule := range ruleSet.Rules {
 			// skip rule when doesn't match any selector
 			if !matchesAllSelectors(rule.RuleMeta, selectors...) {
+				mapRuleSets[ruleSet.Name].Skipped = append(mapRuleSets[ruleSet.Name].Skipped, rule.RuleID)
 				r.logger.Info("one or more selectors did not match for rule, skipping", "rule", rule.RuleMeta)
 				continue
 			}

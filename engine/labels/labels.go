@@ -167,7 +167,7 @@ func getBooleanExpression(expr string, labels map[string]string) string {
 		}
 		if labelVal, ok := labels[exprLabelKey]; !ok {
 			replaceMap[toReplace] = "false"
-		} else if labelVal != exprLabelVal {
+		} else if exprLabelVal != "" && labelVal != exprLabelVal {
 			replaceMap[toReplace] = "false"
 		} else {
 			replaceMap[toReplace] = "true"
