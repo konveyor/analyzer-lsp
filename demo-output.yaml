@@ -259,7 +259,10 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        codeSnip: import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Module
@@ -268,7 +271,10 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        codeSnip: CustomResourceDefinition
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");        element.get();    }}
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Module
@@ -277,7 +283,10 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");        element.get();    }}
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Module
@@ -286,7 +295,10 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        codeSnip: import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -295,7 +307,10 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        codeSnip: CustomResourceDefinition
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");        element.get();    }}
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -304,7 +319,10 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");        element.get();    }}
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -313,7 +331,10 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
-        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition()
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");        element.get();    }}
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -326,7 +347,10 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:2
-        codeSnip: import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -334,7 +358,10 @@
           name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
-        codeSnip: CustomResourceDefinition
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");        element.get();    }}
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -342,7 +369,10 @@
           name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
-        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");        element.get();    }}
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -350,7 +380,10 @@
           name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
-        codeSnip: CustomResourceDefinition crd = new CustomResourceDefinition()
+        codeSnip: package com.example.apps;import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;public
+          class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");        element.get();    }}
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -363,7 +396,9 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: found generic call
-        codeSnip: element.get()
+        codeSnip: public class App {    public static void main( String[] args )    {        CustomResourceDefinition
+          crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
+          element = new GenericClass<String>("Hello world!");        element.get();    }}
         variables:
           VariableName: element
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
