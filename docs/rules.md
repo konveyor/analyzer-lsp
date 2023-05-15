@@ -1,12 +1,16 @@
 # Rules
 
-Rule is the basic unit of input passed to the Rules Engine. The engine parses rules, evaluates them and generates _Violations_ when rules are matched. A collection of one or more rules form a [_Ruleset_](#ruleset). _Rulesets_ provide an opionated way of organizing multiple rules that achieve a common goal. 
+The analyzer rules are a set of instructions that are used to analyze source code and detect issues. Rules are fundamental pieces that codify modernization knowledge.
+
+The analyzer parses user provided rules, evaluates them and generates _Violations_ for matched rules. A collection of one or more rules form a [_Ruleset_](#ruleset). _Rulesets_ provide an opionated way of organizing multiple rules that achieve a common goal. The analyzer CLI takes a set of rulesets as input arguments.
 
 ## Rule
 
-A Rule consists of conditions, actions and metadata. It instructs analyzer to take specified actions when given conditions match.
+A Rule is written in YAML. It consists of metadata, conditions and actions. It instructs analyzer to take specified actions when given conditions match.
 
-Metadata fields of a rule are:
+### Rule Metadata
+
+Rule metadata contains general information about a rule:
 
 ```yaml
 # id must be unique among a Ruleset
@@ -19,15 +23,25 @@ category: "potential|information|mandatory"
 links:
   - url: "konveyor.io"
     title: "title to be shown in report"
-# labels provide metadata about the rule
-# can be used to find / filter rules
+# labels are key=value pairs attached to rules, value
+# can be empty or omitted, keys can be subdomain prefixed
 labels:
-  - "label1"
+  # key=value pair
+  - "label1=val1"
+  # valid label with value omitted
   - "label2"
+  # valid label with empty value
+  - "label3="
+  # subdomain prefixed key
+  - "konveyor.io/label1=val1"
 # effort is an integer value to indicate level of 
 # effort needed to fix this issue
 effort: 1
 ```
+
+See [labels doc](./labels.md) for more details on `labels` field.
+
+### Rule Actions
 
 A rule has `message` and `tag` actions.
 
@@ -49,16 +63,17 @@ tag:
   - "Category=tag4,tag5"
 ```
 
+### Rule Conditions
+
 Finally, a rule contains a `when` block to specify a condition:
 
 ```yaml
 when:
-  <conditions>
+  <condition>
+    <nested-condition>
 ```
 
-### When
-
-`When` consists of a condition.
+`When` has exactly one condition. Multiple conditions can be nested within the top-level condition.
 
 #### Provider Conditions
 
@@ -257,14 +272,6 @@ Each Ruleset is stored in its own directory with a `ruleset.yaml` file at the di
 # doesn't necessarily has to be unique globally
 name: "Name of the ruleset"
 description: "Describes the ruleset"
-# source technology this ruleset applies to
-source: 
-  id: "tech1"
-  versionRange: "versionRange"
-# target technology this ruleset applies to
-target:
-  id: "tech2"
-  versionRange: "versionRange"
 # additional labels for ruleset
 # labels help filter rulesets
 labels:
