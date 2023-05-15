@@ -6,15 +6,16 @@ import (
 	"go.lsp.dev/uri"
 )
 
+const (
+	SourceTechnologyLabel = "konveyor.io/source"
+	TargetTechnologyLabel = "konveyor.io/target"
+)
+
 type RuleSet struct {
 	// Name is a name for the ruleset.
 	Name string `yaml:"name,omitempty"`
 	// Description text description for the ruleset.
 	Description string `yaml:"description,omitempty"`
-	// Source is the source technology which the rules target to.
-	Source *RuleSetTechnology `yaml:"source,omitempty"`
-	// Target is the target technology which the rules target to.
-	Target *RuleSetTechnology `yaml:"target,omitempty"`
 	// Labels are list of labels for the ruleset.
 	Labels []string `yaml:"labels,omitempty"`
 	// Tags list of generated tags from the rules in this ruleset.

@@ -36,11 +36,19 @@ go run main.go
 ```
 
 CLI Options:
-* `--provider-settings`: Path to provider settings file
-* `--rules`: Path to rules file
-* `--output`: Path to output file
-* `--error-on-violation`: Exit with error when violations are found, also print violations to console
-* `--verbose=<level>`: Level for logging  
+
+```sh
+  --provider-settings string   path to the provider settings (default "provider_settings.json")
+  --rules stringArray          filename or directory containing rule files (default [rule-example.yaml])
+  --output-file string         filepath to to store rule violations (default "output.yaml")
+  --label-selector string      an expression to select rules based on labels
+  --enable-jaeger              enable tracer exports to jaeger endpoint
+  --error-on-violation         exit with 3 if any violation are found will also print violations to console
+  --jaeger-endpoint string     jaeger endpoint to collect tracing data (default "http://localhost:14268/api/traces")
+  --verbose int                level for logging output (default 9)
+```
+
+* See [label selector](./docs/labels.md#label-selector) for more info on `--label-selector` option.
 
 ## Code Base Starting Point
 

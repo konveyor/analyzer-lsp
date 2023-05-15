@@ -113,20 +113,7 @@ func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *hubapi.RuleSet {
 		Violations:  map[string]hubapi.Violation{},
 		Errors:      map[string]string{},
 		Unmatched:   []string{},
-	}
-
-	if ruleSet.Source != nil {
-		rs.Source = &hubapi.RuleSetTechnology{
-			ID:           ruleSet.Source.ID,
-			VersionRange: ruleSet.Source.VersionRange,
-		}
-	}
-
-	if ruleSet.Target != nil {
-		rs.Target = &hubapi.RuleSetTechnology{
-			ID:           ruleSet.Target.ID,
-			VersionRange: ruleSet.Target.VersionRange,
-		}
+		Skipped:     []string{},
 	}
 	return rs
 }
