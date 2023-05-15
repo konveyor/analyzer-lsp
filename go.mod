@@ -15,7 +15,11 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require github.com/go-logr/stdr v1.2.2 // indirect
+require (
+	github.com/PaesslerAG/gval v1.2.2 // indirect
+	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
+)
 
 require (
 	github.com/antchfx/xpath v1.2.4

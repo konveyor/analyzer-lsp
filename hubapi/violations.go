@@ -28,7 +28,9 @@ type RuleSet struct {
 	// their respective generated errors.
 	Errors map[string]string `yaml:"errors,omitempty"`
 	// Unmatched is a list of rule IDs of the rules that weren't matched.
-	Unmatched []string
+	Unmatched []string `yaml:"unmatched,omitempty"`
+	// Skipped is a list of rule IDs that were skipped
+	Skipped []string `yaml:"skipped,omitempty"`
 }
 
 type RuleSetTechnology struct {

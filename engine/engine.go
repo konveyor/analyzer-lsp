@@ -27,7 +27,7 @@ const (
 )
 
 type RuleEngine interface {
-	RunRules(context context.Context, rules []RuleSet) []hubapi.RuleSet
+	RunRules(context context.Context, rules []RuleSet, selectors ...RuleSelector) []hubapi.RuleSet
 	Stop()
 }
 
@@ -133,7 +133,7 @@ func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *hubapi.RuleSet {
 
 // This will run the meta rules first, synchronously, generating metadata to pass on further as context to other rules
 // then runs remaining rules async, fanning them out, fanning them in, finally generating the results. will block until completed.
-func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.RuleSet {
+func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors ...RuleSelector) []hubapi.RuleSet {
 	// determine if we should run
 
 	ctx, cancelFunc := context.WithCancel(ctx)
@@ -145,6 +145,13 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet) []hubapi.
 	for _, ruleSet := range ruleSets {
 		mapRuleSets[ruleSet.Name] = r.createRuleSet(ruleSet)
 		for _, rule := range ruleSet.Rules {
+			// skip rule when doesn't match any selector
+			if !matchesAllSelectors(rule.RuleMeta, selectors...) {
+				mapRuleSets[ruleSet.Name].Skipped = append(mapRuleSets[ruleSet.Name].Skipped, rule.RuleID)
+				r.logger.Info("one or more selectors did not match for rule, skipping", "rule", rule.RuleMeta)
+				continue
+			}
+
 			if rule.Perform.Tag == nil {
 				ruleMessages = append(ruleMessages, ruleMessage{
 					rule:        rule,
@@ -417,4 +424,16 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 
 func (r *ruleEngine) createPerformString(messageTemplate string, ctx map[string]interface{}) (string, error) {
 	return mustache.Render(messageTemplate, ctx)
+}
+
+// matchesAllSelectors returns false when any one of the selectors does not match
+// selectors can be of different types e.g. label-selector, or category-selector
+// when multiple selectors are present, we want all of them to match to filter-in the rule.
+func matchesAllSelectors(m RuleMeta, selectors ...RuleSelector) bool {
+	for _, s := range selectors {
+		if !s.Matches(m) {
+			return false
+		}
+	}
+	return true
 }
