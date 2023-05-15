@@ -132,6 +132,8 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 	for _, ruleSet := range ruleSets {
 		mapRuleSets[ruleSet.Name] = r.createRuleSet(ruleSet)
 		for _, rule := range ruleSet.Rules {
+			// labels on ruleset apply to all rules in it
+			rule.Labels = append(rule.Labels, ruleSet.Labels...)
 			// skip rule when doesn't match any selector
 			if !matchesAllSelectors(rule.RuleMeta, selectors...) {
 				mapRuleSets[ruleSet.Name].Skipped = append(mapRuleSets[ruleSet.Name].Skipped, rule.RuleID)
