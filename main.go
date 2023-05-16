@@ -31,6 +31,8 @@ var (
 	logLevel          = flag.Int("verbose", 9, "level for logging output")
 	enableJaeger      = flag.Bool("enable-jaeger", false, "enable tracer exports to jaeger endpoint")
 	jaegerEndpoint    = flag.String("jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
+	limitIncidents    = flag.Int("limit-incidents", 1500, "Set this to the limit incidents that a given rule can give, zero means no limit")
+	limitCodeSnips    = flag.Int("limit-code-snips", 20, "limit the number code snippets that are retrieved for a file while evaluating a rule, 0 means no limit")
 )
 
 func main() {
@@ -86,7 +88,12 @@ func main() {
 	}
 
 	//start up the rule eng
-	eng := engine.CreateRuleEngine(ctx, 10, log)
+	eng := engine.CreateRuleEngine(ctx,
+		10,
+		log,
+		engine.WithIncidentLimit(*limitIncidents),
+		engine.WithCodeSnipLimit(*limitCodeSnips),
+	)
 
 	providers := map[string]provider.Client{}
 

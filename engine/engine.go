@@ -52,9 +52,26 @@ type ruleEngine struct {
 	logger         logr.Logger
 
 	wg *sync.WaitGroup
+
+	incidentLimit int
+	codeSnipLimit int
 }
 
-func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger) RuleEngine {
+type Option func(engine *ruleEngine)
+
+func WithIncidentLimit(i int) Option {
+	return func(engine *ruleEngine) {
+		engine.incidentLimit = i
+	}
+}
+
+func WithCodeSnipLimit(i int) Option {
+	return func(engine *ruleEngine) {
+		engine.codeSnipLimit = i
+	}
+}
+
+func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger, options ...Option) RuleEngine {
 	// Only allow for 10 rules to be waiting in the buffer at once.
 	// Adding more workers will increase the number of rules running at once.
 	ruleProcessor := make(chan ruleMessage, 10)
@@ -68,12 +85,16 @@ func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger) RuleEng
 		go processRuleWorker(ctx, ruleProcessor, logger, wg)
 	}
 
-	return &ruleEngine{
+	r := &ruleEngine{
 		ruleProcessing: ruleProcessor,
 		cancelFunc:     cancelFunc,
 		logger:         log,
 		wg:             wg,
 	}
+	for _, o := range options {
+		o(r)
+	}
+	return r
 }
 
 func (r *ruleEngine) Stop() {
@@ -338,8 +359,12 @@ func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log l
 
 func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule Rule) (hubapi.Violation, error) {
 	incidents := []hubapi.Incident{}
+	fileCodeSnipCount := map[string]int{}
 	for _, m := range conditionResponse.Incidents {
-
+		// Exit loop, we don't care about any incidents past the filter.
+		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
+			break
+		}
 		incident := hubapi.Incident{
 			URI:       m.FileURI,
 			Variables: m.Variables,
@@ -354,7 +379,8 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			}
 		}
 		// Some violations may not have a location in code.
-		if m.CodeLocation != nil && strings.HasPrefix(string(m.FileURI), uri.FileScheme) {
+		limitSnip := (r.codeSnipLimit != 0 && fileCodeSnipCount[string(m.FileURI)] == r.codeSnipLimit)
+		if m.CodeLocation != nil && strings.HasPrefix(string(m.FileURI), uri.FileScheme) && !limitSnip {
 			//Find the file, open it in a buffer.
 			readFile, err := os.Open(m.FileURI.Filename())
 			if err != nil {
@@ -377,6 +403,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 				lineNumber += 1
 			}
 			incident.CodeSnip = codeSnip
+			fileCodeSnipCount[string(m.FileURI)] += 1
 		}
 
 		if len(rule.CustomVariables) > 0 {
