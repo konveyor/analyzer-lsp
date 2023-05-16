@@ -124,4 +124,11 @@
     builtin.xml:
       xpath:
         invalid-query: "test"
+- message: "Tags {{tags}} found, creating message and new tag both"
+  ruleID: multiple-actions-001
+  tag:
+  - Backend=Golang
+  when:
+    builtin.hasTags:
+    - Golang
 

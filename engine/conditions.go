@@ -122,9 +122,6 @@ type Perform struct {
 }
 
 func (p *Perform) Validate() error {
-	if p.Message != nil && p.Tag != nil {
-		return fmt.Errorf("cannot perform message and tag both")
-	}
 	if p.Message == nil && p.Tag == nil {
 		return fmt.Errorf("either message or tag must be set")
 	}
