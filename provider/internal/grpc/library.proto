@@ -15,11 +15,16 @@ message Capability {
 }
 
 message Config {
-  string name = 1;
-  string location = 2;
-  string dependencyPath = 3;
-  string binaryLocation = 4;
-  google.protobuf.Struct providerSpecificConfig= 5;
+  string location = 1;
+  string dependencyPath = 2;
+  string lspServerPath= 3;
+  google.protobuf.Struct providerSpecificConfig= 4;
+}
+
+message InitResponse {
+  string error = 1 ;
+  bool successful = 2;
+  int64 id = 3;
 }
 
 message ExternalLink {
@@ -82,8 +87,40 @@ message CapabilitiesResponse {
 service ProviderService {
   rpc Capabilities (google.protobuf.Empty) returns (CapabilitiesResponse) {};
   rpc HasCapability (HasCapabilityRequest) returns (HasCapabilityResponse) {};
-  rpc Init (google.protobuf.Empty) returns (BasicResponse) {};
+  rpc Init (Config) returns (InitResponse) {};
   rpc Evaluate (EvaluateRequest) returns (EvaluateResponse) {};
   rpc Stop (google.protobuf.Empty) returns (google.protobuf.Empty) {};
+  rpc GetDependencies (google.protobuf.Empty) returns (DependencyResponse) {};
+  rpc GetDependenciesLinkedList(google.protobuf.Empty) returns (DependencyLinkedListResponse) {};
 }
 
+message Dependency {
+  string name = 1;
+  string version = 2;
+  string type = 3;
+  string sha = 4;
+  bool indirect = 5;
+}
+
+message DependencyList {
+  repeated Dependency deps = 1;
+}
+
+message DependencyResponse{
+  bool successful  = 1;
+  string error  = 2;
+  string fileURI = 3;
+  DependencyList list = 4;
+}
+
+message DependencyLinkedListItem {
+  Dependency key = 1;
+  DependencyList value = 2;
+}
+
+message DependencyLinkedListResponse {
+  bool successful  = 1;
+  string error  = 2;
+  string fileURI = 3;
+  repeated DependencyLinkedListItem list = 4;
+}

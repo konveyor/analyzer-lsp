@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v3.21.12
-// source: provider/lib/grpc/library.proto
+// source: provider/internal/grpc/library.proto
 
 package grpc
 
@@ -20,11 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ProviderService_Capabilities_FullMethodName  = "/provider.ProviderService/Capabilities"
-	ProviderService_HasCapability_FullMethodName = "/provider.ProviderService/HasCapability"
-	ProviderService_Init_FullMethodName          = "/provider.ProviderService/Init"
-	ProviderService_Evaluate_FullMethodName      = "/provider.ProviderService/Evaluate"
-	ProviderService_Stop_FullMethodName          = "/provider.ProviderService/Stop"
+	ProviderService_Capabilities_FullMethodName              = "/provider.ProviderService/Capabilities"
+	ProviderService_HasCapability_FullMethodName             = "/provider.ProviderService/HasCapability"
+	ProviderService_Init_FullMethodName                      = "/provider.ProviderService/Init"
+	ProviderService_Evaluate_FullMethodName                  = "/provider.ProviderService/Evaluate"
+	ProviderService_Stop_FullMethodName                      = "/provider.ProviderService/Stop"
+	ProviderService_GetDependencies_FullMethodName           = "/provider.ProviderService/GetDependencies"
+	ProviderService_GetDependenciesLinkedList_FullMethodName = "/provider.ProviderService/GetDependenciesLinkedList"
 )
 
 // ProviderServiceClient is the client API for ProviderService service.
@@ -33,9 +35,11 @@ const (
 type ProviderServiceClient interface {
 	Capabilities(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CapabilitiesResponse, error)
 	HasCapability(ctx context.Context, in *HasCapabilityRequest, opts ...grpc.CallOption) (*HasCapabilityResponse, error)
-	Init(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BasicResponse, error)
+	Init(ctx context.Context, in *Config, opts ...grpc.CallOption) (*InitResponse, error)
 	Evaluate(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error)
 	Stop(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetDependencies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DependencyResponse, error)
+	GetDependenciesLinkedList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DependencyLinkedListResponse, error)
 }
 
 type providerServiceClient struct {
@@ -64,8 +68,8 @@ func (c *providerServiceClient) HasCapability(ctx context.Context, in *HasCapabi
 	return out, nil
 }
 
-func (c *providerServiceClient) Init(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BasicResponse, error) {
-	out := new(BasicResponse)
+func (c *providerServiceClient) Init(ctx context.Context, in *Config, opts ...grpc.CallOption) (*InitResponse, error) {
+	out := new(InitResponse)
 	err := c.cc.Invoke(ctx, ProviderService_Init_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -91,15 +95,35 @@ func (c *providerServiceClient) Stop(ctx context.Context, in *emptypb.Empty, opt
 	return out, nil
 }
 
+func (c *providerServiceClient) GetDependencies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DependencyResponse, error) {
+	out := new(DependencyResponse)
+	err := c.cc.Invoke(ctx, ProviderService_GetDependencies_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *providerServiceClient) GetDependenciesLinkedList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DependencyLinkedListResponse, error) {
+	out := new(DependencyLinkedListResponse)
+	err := c.cc.Invoke(ctx, ProviderService_GetDependenciesLinkedList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProviderServiceServer is the server API for ProviderService service.
 // All implementations must embed UnimplementedProviderServiceServer
 // for forward compatibility
 type ProviderServiceServer interface {
 	Capabilities(context.Context, *emptypb.Empty) (*CapabilitiesResponse, error)
 	HasCapability(context.Context, *HasCapabilityRequest) (*HasCapabilityResponse, error)
-	Init(context.Context, *emptypb.Empty) (*BasicResponse, error)
+	Init(context.Context, *Config) (*InitResponse, error)
 	Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error)
 	Stop(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	GetDependencies(context.Context, *emptypb.Empty) (*DependencyResponse, error)
+	GetDependenciesLinkedList(context.Context, *emptypb.Empty) (*DependencyLinkedListResponse, error)
 	mustEmbedUnimplementedProviderServiceServer()
 }
 
@@ -113,7 +137,7 @@ func (UnimplementedProviderServiceServer) Capabilities(context.Context, *emptypb
 func (UnimplementedProviderServiceServer) HasCapability(context.Context, *HasCapabilityRequest) (*HasCapabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HasCapability not implemented")
 }
-func (UnimplementedProviderServiceServer) Init(context.Context, *emptypb.Empty) (*BasicResponse, error) {
+func (UnimplementedProviderServiceServer) Init(context.Context, *Config) (*InitResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Init not implemented")
 }
 func (UnimplementedProviderServiceServer) Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error) {
@@ -121,6 +145,12 @@ func (UnimplementedProviderServiceServer) Evaluate(context.Context, *EvaluateReq
 }
 func (UnimplementedProviderServiceServer) Stop(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
+}
+func (UnimplementedProviderServiceServer) GetDependencies(context.Context, *emptypb.Empty) (*DependencyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDependencies not implemented")
+}
+func (UnimplementedProviderServiceServer) GetDependenciesLinkedList(context.Context, *emptypb.Empty) (*DependencyLinkedListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDependenciesLinkedList not implemented")
 }
 func (UnimplementedProviderServiceServer) mustEmbedUnimplementedProviderServiceServer() {}
 
@@ -172,7 +202,7 @@ func _ProviderService_HasCapability_Handler(srv interface{}, ctx context.Context
 }
 
 func _ProviderService_Init_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(Config)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -184,7 +214,7 @@ func _ProviderService_Init_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: ProviderService_Init_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProviderServiceServer).Init(ctx, req.(*emptypb.Empty))
+		return srv.(ProviderServiceServer).Init(ctx, req.(*Config))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -225,6 +255,42 @@ func _ProviderService_Stop_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProviderService_GetDependencies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProviderServiceServer).GetDependencies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProviderService_GetDependencies_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProviderServiceServer).GetDependencies(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProviderService_GetDependenciesLinkedList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProviderServiceServer).GetDependenciesLinkedList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProviderService_GetDependenciesLinkedList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProviderServiceServer).GetDependenciesLinkedList(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProviderService_ServiceDesc is the grpc.ServiceDesc for ProviderService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,7 +318,15 @@ var ProviderService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Stop",
 			Handler:    _ProviderService_Stop_Handler,
 		},
+		{
+			MethodName: "GetDependencies",
+			Handler:    _ProviderService_GetDependencies_Handler,
+		},
+		{
+			MethodName: "GetDependenciesLinkedList",
+			Handler:    _ProviderService_GetDependenciesLinkedList_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "provider/lib/grpc/library.proto",
+	Metadata: "provider/internal/grpc/library.proto",
 }

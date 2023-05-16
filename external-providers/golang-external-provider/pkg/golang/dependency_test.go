@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/konveyor/analyzer-lsp/dependency/dependency"
+	dependency "github.com/konveyor/analyzer-lsp/provider"
 )
 
 func Test_parseGoDepLines(t *testing.T) {

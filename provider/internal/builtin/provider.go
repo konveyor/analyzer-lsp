@@ -15,16 +15,15 @@ import (
 	"github.com/antchfx/xpath"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
-	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
 const TAGS_FILE_INIT_OPTION = "tagsFile"
 
-var capabilities = []lib.Capability{
+var capabilities = []provider.Capability{
 	{
 		Name:            "filecontent",
 		TemplateContext: openapi3.SchemaRef{},
@@ -63,13 +62,15 @@ var capabilities = []lib.Capability{
 }
 
 type builtinCondition struct {
-	Filecontent         string        `yaml:"filecontent"`
-	File                string        `yaml:"file"`
-	XML                 xmlCondition  `yaml:"xml"`
-	JSON                jsonCondition `yaml:"json"`
-	HasTags             []string      `yaml:"hasTags"`
-	lib.ProviderContext `yaml:",inline"`
+	Filecontent              string        `yaml:"filecontent"`
+	File                     string        `yaml:"file"`
+	XML                      xmlCondition  `yaml:"xml"`
+	JSON                     jsonCondition `yaml:"json"`
+	HasTags                  []string      `yaml:"hasTags"`
+	provider.ProviderContext `yaml:",inline"`
 }
+
+var _ provider.Client = &builtinProvider{}
 
 type xmlCondition struct {
 	XPath      string            `yaml:"xpath"`
@@ -85,11 +86,11 @@ type builtinProvider struct {
 	rpc *jsonrpc2.Conn
 	ctx context.Context
 
-	config lib.Config
+	config provider.Config
 	tags   map[string]bool
 }
 
-func NewBuiltinProvider(config lib.Config) *builtinProvider {
+func NewBuiltinProvider(config provider.Config) *builtinProvider {
 	return &builtinProvider{
 		config: config,
 	}
@@ -99,28 +100,28 @@ func (p *builtinProvider) Stop() {
 	return
 }
 
-func (p *builtinProvider) Capabilities() []lib.Capability {
+func (p *builtinProvider) Capabilities() []provider.Capability {
 	return capabilities
 }
 
 func (p *builtinProvider) HasCapability(name string) bool {
-	return lib.HasCapability(p.Capabilities(), name)
+	return provider.HasCapability(p.Capabilities(), name)
 }
 
-func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
+func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond builtinCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
-		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
+		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
-	response := lib.ProviderEvaluateResponse{Matched: false}
+	response := provider.ProviderEvaluateResponse{Matched: false}
 	switch cap {
 	case "file":
 		pattern := cond.File
 		if pattern == "" {
 			return response, fmt.Errorf("could not parse provided file pattern as string: %v", conditionInfo)
 		}
-		matchingFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
+		matchingFiles, err := findFilesMatchingPattern(p.config.InitConfig.Location, pattern)
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
@@ -131,15 +132,23 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 
 		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
 		for _, match := range matchingFiles {
-			ab, err := filepath.Abs(filepath.Join(p.config.Location, match))
+			if filepath.IsAbs(match) {
+				response.Incidents = append(response.Incidents, provider.IncidentContext{
+					FileURI: uri.File(match),
+				})
+				continue
+
+			}
+			ab, err := filepath.Abs(filepath.Join(p.config.InitConfig.Location, match))
 			if err != nil {
 				//TODO: Probably want to log or something to let us know we can't get absolute path here.
-				fmt.Printf("\n\n\n%v", err)
+				fmt.Printf("\n%v", err)
 				ab = match
 			}
-			response.Incidents = append(response.Incidents, lib.IncidentContext{
+			response.Incidents = append(response.Incidents, provider.IncidentContext{
 				FileURI: uri.File(ab),
 			})
+
 		}
 		return response, nil
 	case "filecontent":
@@ -148,7 +157,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 		var outputBytes []byte
-		grep := exec.Command("grep", "-o", "-n", "-R", "-E", pattern, p.config.Location)
+		grep := exec.Command("grep", "-o", "-n", "-R", "-E", pattern, p.config.InitConfig.Location)
 		outputBytes, err := grep.Output()
 		if err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
@@ -172,7 +181,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			if err != nil {
 				ab = pieces[0]
 			}
-			response.Incidents = append(response.Incidents, lib.IncidentContext{
+			response.Incidents = append(response.Incidents, provider.IncidentContext{
 				FileURI: uri.File(ab),
 				Variables: map[string]interface{}{
 					"lineNumber":   pieces[1],
@@ -190,11 +199,11 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		var xmlFiles []string
 		if len(cond.XML.Filepaths) == 0 {
 			pattern := "*.xml"
-			xmlFiles, err = findFilesMatchingPattern(p.config.Location, pattern)
+			xmlFiles, err = findFilesMatchingPattern(p.config.InitConfig.Location, pattern)
 			if err != nil {
 				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 			}
-			xhtmlFiles, err := findFilesMatchingPattern(p.config.Location, "*.xhtml")
+			xhtmlFiles, err := findFilesMatchingPattern(p.config.InitConfig.Location, "*.xhtml")
 			if err != nil {
 				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", "*.xhtml", err)
 			}
@@ -203,7 +212,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			// Currently, rendering will render a list as a space seperated paths as a single string.
 			patterns := strings.Split(cond.XML.Filepaths[0], " ")
 			for _, pattern := range patterns {
-				files, err := findFilesMatchingPattern(p.config.Location, pattern)
+				files, err := findFilesMatchingPattern(p.config.InitConfig.Location, pattern)
 				if err != nil {
 					// Something went wrong dealing with the pattern, so we'll assume the user input
 					// is good and pass it on
@@ -216,7 +225,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			}
 		} else {
 			for _, pattern := range cond.XML.Filepaths {
-				files, err := findFilesMatchingPattern(p.config.Location, pattern)
+				files, err := findFilesMatchingPattern(p.config.InitConfig.Location, pattern)
 				if err != nil {
 					xmlFiles = append(xmlFiles, pattern)
 				} else {
@@ -226,7 +235,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		}
 		for _, file := range xmlFiles {
 			if !strings.HasPrefix(file, "/") {
-				file = filepath.Join(p.config.Location, file)
+				file = filepath.Join(p.config.InitConfig.Location, file)
 			}
 			absPath, err := filepath.Abs(file)
 			if err != nil {
@@ -268,7 +277,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 					if err != nil {
 						ab = file
 					}
-					response.Incidents = append(response.Incidents, lib.IncidentContext{
+					response.Incidents = append(response.Incidents, provider.IncidentContext{
 						FileURI: uri.File(ab),
 						Variables: map[string]interface{}{
 							"matchingXML": node.OutputXML(false),
@@ -286,7 +295,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 			return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
 		}
 		pattern := "*.json"
-		jsonFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
+		jsonFiles, err := findFilesMatchingPattern(p.config.InitConfig.Location, pattern)
 		if err != nil {
 			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 		}
@@ -304,7 +313,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 					if err != nil {
 						ab = file
 					}
-					response.Incidents = append(response.Incidents, lib.IncidentContext{
+					response.Incidents = append(response.Incidents, provider.IncidentContext{
 						FileURI: uri.File(ab),
 						Variables: map[string]interface{}{
 							"matchingJSON": node.InnerText(),
@@ -327,7 +336,7 @@ func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (lib.Provid
 		}
 		if found {
 			response.Matched = true
-			response.Incidents = append(response.Incidents, lib.IncidentContext{
+			response.Incidents = append(response.Incidents, provider.IncidentContext{
 				Variables: map[string]interface{}{
 					"tags": cond.HasTags,
 				},
@@ -367,16 +376,20 @@ func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 }
 
 // We don't need to init anything
-func (p *builtinProvider) Init(_ context.Context, _ logr.Logger) error {
+func (p *builtinProvider) Init(_ context.Context, _ logr.Logger, _ provider.InitConfig) (int, error) {
 	err := p.loadTags()
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return 0, nil
 }
 
 func (p *builtinProvider) loadTags() error {
-	tagsFile := p.config.ProviderSpecificConfig[TAGS_FILE_INIT_OPTION]
+	tagsFile, ok := p.config.InitConfig.ProviderSpecificConfig[TAGS_FILE_INIT_OPTION].(string)
+	// for now, if the tags file is invalid, lets ignore
+	if !ok {
+		return nil
+	}
 
 	p.tags = make(map[string]bool)
 	if tagsFile == "" {
@@ -398,11 +411,11 @@ func (p *builtinProvider) loadTags() error {
 }
 
 // We don't have dependencies
-func (p *builtinProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
+func (p *builtinProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	return nil, "", nil
 }
 
 // We don't have dependencies
-func (p *builtinProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, uri.URI, error) {
+func (p *builtinProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
 	return nil, "", nil
 }

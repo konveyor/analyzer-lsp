@@ -12,7 +12,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
-	"github.com/konveyor/analyzer-lsp/provider/lib"
+	"github.com/konveyor/analyzer-lsp/provider"
 	"gopkg.in/yaml.v2"
 )
 
@@ -34,7 +34,7 @@ var locationToCode = map[string]int{
 }
 
 type javaProvider struct {
-	config lib.Config
+	config provider.Config
 
 	bundles   []string
 	workspace string
@@ -48,6 +48,8 @@ type javaProvider struct {
 	hasMaven bool
 }
 
+var _ provider.Client = &javaProvider{}
+
 type javaCondition struct {
 	Referenced referenceCondition `yaml:'referenced'`
 }
@@ -60,18 +62,25 @@ type referenceCondition struct {
 const BUNDLES_INIT_OPTION = "bundles"
 const WORKSPACE_INIT_OPTION = "workspace"
 
-func NewJavaProvider(config lib.Config) *javaProvider {
+func NewJavaProvider(config provider.Config) *javaProvider {
 
 	// Get the provider config out for this config.
 
 	// Getting values out of provider config
 	// TODO: Eventually we will want to make this a helper so that external providers can easily ask and get config.
-	bundlesString := config.ProviderSpecificConfig[BUNDLES_INIT_OPTION]
+	bundlesString, ok := config.InitConfig.ProviderSpecificConfig[BUNDLES_INIT_OPTION].(string)
+	if !ok {
+		bundlesString = ""
+	}
 	bundles := strings.Split(bundlesString, ",")
 
 	_, mvnBinaryError := exec.LookPath("mvn")
 
-	workspace := config.ProviderSpecificConfig[WORKSPACE_INIT_OPTION]
+	workspace, ok := config.InitConfig.ProviderSpecificConfig[WORKSPACE_INIT_OPTION].(string)
+	if !ok {
+		workspace = ""
+	}
+
 	return &javaProvider{
 		config:    config,
 		bundles:   bundles,
@@ -87,15 +96,15 @@ func (p *javaProvider) Stop() {
 	p.cmd.Wait()
 }
 
-func (p *javaProvider) Capabilities() []lib.Capability {
-	caps := []lib.Capability{
+func (p *javaProvider) Capabilities() []provider.Capability {
+	caps := []provider.Capability{
 		{
 			Name:            "referenced",
 			TemplateContext: openapi3.SchemaRef{},
 		},
 	}
 	if p.hasMaven {
-		caps = append(caps, lib.Capability{
+		caps = append(caps, provider.Capability{
 			Name:            "dependency",
 			TemplateContext: openapi3.SchemaRef{},
 		})
@@ -104,23 +113,23 @@ func (p *javaProvider) Capabilities() []lib.Capability {
 }
 
 func (p *javaProvider) HasCapability(name string) bool {
-	return lib.HasCapability(p.Capabilities(), name)
+	return provider.HasCapability(p.Capabilities(), name)
 }
 
-func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderEvaluateResponse, error) {
+func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	cond := &javaCondition{}
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
-		return lib.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
+		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
 
 	if cond.Referenced.Pattern == "" {
-		return lib.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
+		return provider.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
 	}
 
 	symbols := p.GetAllSymbols(cond.Referenced.Pattern, cond.Referenced.Location)
 
-	incidents := []lib.IncidentContext{}
+	incidents := []provider.IncidentContext{}
 	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
 	case 0:
 		// Filter handle for type, find all the referneces to this type.
@@ -147,15 +156,15 @@ func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (lib.ProviderE
 
 	// push error up for easier printing.
 	if err != nil {
-		return lib.ProviderEvaluateResponse{}, err
+		return provider.ProviderEvaluateResponse{}, err
 	}
 
 	if len(incidents) == 0 {
-		return lib.ProviderEvaluateResponse{
+		return provider.ProviderEvaluateResponse{
 			Matched: false,
 		}, nil
 	}
-	return lib.ProviderEvaluateResponse{
+	return provider.ProviderEvaluateResponse{
 		Matched:   true,
 		Incidents: incidents,
 	}, nil
@@ -219,14 +228,14 @@ func symbolKindToString(symbolKind protocol.SymbolKind) string {
 	return ""
 }
 
-func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
+func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (int, error) {
 	log = log.WithValues("provider", "java")
 
 	var returnErr error
 	ctx, cancelFunc := context.WithCancel(ctx)
 	p.once.Do(func() {
 
-		cmd := exec.CommandContext(ctx, p.config.BinaryLocation,
+		cmd := exec.CommandContext(ctx, config.LSPServerPath,
 			"-configuration",
 			"./",
 			"-data",
@@ -267,12 +276,12 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger) error {
 		p.ctx = ctx
 		p.initialization(ctx, log)
 	})
-	return returnErr
+	return 0, returnErr
 }
 
 func (p *javaProvider) initialization(ctx context.Context, log logr.Logger) {
 
-	absLocation, err := filepath.Abs(p.config.Location)
+	absLocation, err := filepath.Abs(p.config.InitConfig.Location)
 	if err != nil {
 		log.Error(err, "unable to get path to analyize")
 		panic(1)

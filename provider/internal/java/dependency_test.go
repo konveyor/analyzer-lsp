@@ -5,20 +5,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/konveyor/analyzer-lsp/dependency/dependency"
+	"github.com/konveyor/analyzer-lsp/provider"
 )
 
 func Test_parseMavenDepLines(t *testing.T) {
 	tests := []struct {
 		name        string
 		mavenOutput string
-		wantDeps    map[dependency.Dep][]dependency.Dep
+		wantDeps    map[provider.Dep][]provider.Dep
 		wantErr     bool
 	}{
 		{
 			name:        "an empty maven output should not return any dependencies",
 			mavenOutput: "",
-			wantDeps:    map[dependency.Dep][]dependency.Dep{},
+			wantDeps:    map[provider.Dep][]provider.Dep{},
 			wantErr:     false,
 		},
 		{
@@ -28,7 +28,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 |  \- invalid dep
 +- invalid dep
 |  +- invalid dep`,
-			wantDeps: map[dependency.Dep][]dependency.Dep{},
+			wantDeps: map[provider.Dep][]provider.Dep{},
 			wantErr:  true,
 		},
 		{
@@ -42,7 +42,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 |  |  |  \- com.squareup.okio:okio:jar:1.15.0:runtime
 |  |  \- com.squareup.okhttp3:logging-interceptor:jar:3.12.12:runtime
 |  \- io.fabric8:zjsonpatch:jar:0.3.0:compile`,
-			wantDeps: map[dependency.Dep][]dependency.Dep{
+			wantDeps: map[provider.Dep][]provider.Dep{
 				{
 					Name:     "junit.junit",
 					Version:  "4.11",
@@ -108,7 +108,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			lines := strings.Split(tt.mavenOutput, "\n")
-			deps := map[dependency.Dep][]dependency.Dep{}
+			deps := map[provider.Dep][]provider.Dep{}
 			if err := parseMavenDepLines(lines[1:], deps, "testdata"); (err != nil) != tt.wantErr {
 				t.Errorf("parseMavenDepLines() error = %v, wantErr %v", err, tt.wantErr)
 			}

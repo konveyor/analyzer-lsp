@@ -9,7 +9,6 @@ import (
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
 )
 
@@ -176,7 +175,7 @@ func TestEvaluateAndConditions(t *testing.T) {
 			}
 
 			ret, err := processRule(context.TODO(), rule, ConditionContext{
-				Template: make(map[string]lib.ChainTemplate),
+				Template: make(map[string]ChainTemplate),
 			}, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
@@ -295,7 +294,7 @@ func TestEvaluateOrConditions(t *testing.T) {
 				When: OrCondition{tc.Conditions},
 			}
 			ret, err := processRule(context.TODO(), rule, ConditionContext{
-				Template: make(map[string]lib.ChainTemplate),
+				Template: make(map[string]ChainTemplate),
 			}, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)
@@ -446,7 +445,7 @@ func TestChainConditions(t *testing.T) {
 				When: OrCondition{tc.Conditions},
 			}
 			ret, err := processRule(context.TODO(), rule, ConditionContext{
-				Template: make(map[string]lib.ChainTemplate),
+				Template: make(map[string]ChainTemplate),
 			}, log)
 			if err != nil && !tc.IsError {
 				t.Errorf("got err: %v, expected no error", err)

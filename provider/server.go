@@ -7,7 +7,7 @@ import (
 	"net"
 
 	"github.com/go-logr/logr"
-	libgrpc "github.com/konveyor/analyzer-lsp/provider/lib/grpc"
+	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -26,6 +26,7 @@ type server struct {
 	libgrpc.UnimplementedProviderServiceServer
 }
 
+// Provider GRPC Service
 func NewServer(client Client, port int, logger logr.Logger) Server {
 	return &server{
 		Client:                             client,
@@ -82,16 +83,26 @@ func (s *server) HasCapability(ctx context.Context, hcr *libgrpc.HasCapabilityRe
 	}, nil
 }
 
-func (s *server) Init(ctx context.Context, _ *emptypb.Empty) (*libgrpc.BasicResponse, error) {
-	err := s.Client.Init(ctx, s.Log)
+func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.InitResponse, error) {
+	c := InitConfig{
+		Location:       config.Location,
+		DependencyPath: config.DependencyPath,
+		LSPServerPath:  config.LspServerPath,
+		//	ProviderSpecificConfig: config.ProviderSpecificConfig.AsMap(),
+	}
+
+	c.ProviderSpecificConfig = config.ProviderSpecificConfig.AsMap()
+
+	i, err := s.Client.Init(ctx, s.Log, c)
 	if err != nil {
-		return &libgrpc.BasicResponse{
+		return &libgrpc.InitResponse{
 			Error:      err.Error(),
 			Successful: false,
 		}, nil
 	}
 
-	return &libgrpc.BasicResponse{
+	return &libgrpc.InitResponse{
+		Id:         int64(i),
 		Successful: true,
 	}, nil
 }
@@ -172,4 +183,72 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 func (s *server) Stop(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	s.Client.Stop()
 	return &emptypb.Empty{}, nil
+}
+
+func (s *server) GetDependencies(ctx context.Context, in *emptypb.Empty) (*libgrpc.DependencyResponse, error) {
+	deps, uri, err := s.Client.GetDependencies()
+	if err != nil {
+		return &libgrpc.DependencyResponse{
+			Successful: false,
+			Error:      err.Error(),
+		}, nil
+	}
+	ds := []*libgrpc.Dependency{}
+	for _, d := range deps {
+		ds = append(ds, &libgrpc.Dependency{
+			Name:     d.Name,
+			Version:  d.Version,
+			Type:     d.Type,
+			Sha:      d.SHA,
+			Indirect: d.Indirect,
+		})
+	}
+	return &libgrpc.DependencyResponse{
+		Successful: true,
+		FileURI:    string(uri),
+		List: &libgrpc.DependencyList{
+			Deps: ds,
+		},
+	}, nil
+
+}
+
+func (s *server) GetDependenciesLinkedList(ctx context.Context, in *emptypb.Empty) (*libgrpc.DependencyLinkedListResponse, error) {
+	deps, uri, err := s.Client.GetDependenciesLinkedList()
+	if err != nil {
+		return &libgrpc.DependencyLinkedListResponse{
+			Successful: false,
+			Error:      err.Error(),
+		}, nil
+	}
+	l := []*libgrpc.DependencyLinkedListItem{}
+	for k, v := range deps {
+		d := []*libgrpc.Dependency{}
+		for _, x := range v {
+			d = append(d, &libgrpc.Dependency{
+				Name:     x.Name,
+				Version:  x.Version,
+				Type:     x.Type,
+				Sha:      x.SHA,
+				Indirect: x.Indirect,
+			})
+		}
+		l = append(l, &libgrpc.DependencyLinkedListItem{
+			Key: &libgrpc.Dependency{
+				Name:     k.Name,
+				Version:  k.Version,
+				Type:     k.Type,
+				Sha:      k.SHA,
+				Indirect: k.Indirect,
+			},
+			Value: &libgrpc.DependencyList{
+				Deps: d,
+			},
+		})
+	}
+	return &libgrpc.DependencyLinkedListResponse{
+		Successful: true,
+		FileURI:    string(uri),
+		List:       l,
+	}, nil
 }

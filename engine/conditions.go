@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/hubapi"
-	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
 )
@@ -24,8 +23,8 @@ type ConditionResponse struct {
 }
 
 type ConditionContext struct {
-	Tags     map[string]interface{}       `yaml:"tags"`
-	Template map[string]lib.ChainTemplate `yaml:"template"`
+	Tags     map[string]interface{}   `yaml:"tags"`
+	Template map[string]ChainTemplate `yaml:"template"`
 }
 
 type ConditionEntry struct {
@@ -156,7 +155,7 @@ func (a AndCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Con
 			return ConditionResponse{}, err
 		}
 		if c.As != "" {
-			condCtx.Template[c.As] = lib.ChainTemplate{
+			condCtx.Template[c.As] = ChainTemplate{
 				Filepaths: incidentsToFilepaths(response.Incidents),
 				Extras:    response.TemplateContext,
 			}
@@ -214,7 +213,7 @@ func (o OrCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Cond
 		}
 
 		if c.As != "" {
-			condCtx.Template[c.As] = lib.ChainTemplate{
+			condCtx.Template[c.As] = ChainTemplate{
 				Filepaths: incidentsToFilepaths(response.Incidents),
 				Extras:    response.TemplateContext,
 			}
@@ -261,4 +260,10 @@ func incidentsToFilepaths(incident []IncidentContext) []string {
 		filepaths = append(filepaths, ic.FileURI.Filename())
 	}
 	return filepaths
+}
+
+// Chain Templates are used by rules and providers to pass context around during rule execution.
+type ChainTemplate struct {
+	Filepaths []string               `yaml:"filepaths"`
+	Extras    map[string]interface{} `yaml:"extras"`
 }

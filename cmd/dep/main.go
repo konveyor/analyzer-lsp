@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
-	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
@@ -36,14 +35,14 @@ func main() {
 	providers := map[string]provider.Client{}
 
 	// Get the configs
-	configs, err := lib.GetConfig(*providerSettings)
+	configs, err := provider.GetConfig(*providerSettings)
 	if err != nil {
 		log.Error(err, "unable to get configuration")
 		os.Exit(1)
 	}
 
 	for _, config := range configs {
-		provider, err := provider.GetProviderClient(config)
+		provider, err := lib.GetProviderClient(config)
 		if err != nil {
 			log.Error(err, "unable to create provider client")
 			os.Exit(1)
@@ -51,34 +50,34 @@ func main() {
 		providers[config.Name] = provider
 	}
 
-	var depsFlat []dependency.Dep
-	var depsTree map[dependency.Dep][]dependency.Dep
-	for name, provider := range providers {
-		if !provider.HasCapability("dependency") {
+	var depsFlat []provider.Dep
+	var depsTree map[provider.Dep][]provider.Dep
+	for name, prov := range providers {
+		if !prov.HasCapability("dependency") {
 			log.Info("provider does not have dependency capability", "provider", name)
 			continue
 		}
 
 		if *treeOutput {
-			deps, _, err := provider.GetDependenciesLinkedList()
+			deps, _, err := prov.GetDependenciesLinkedList()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
 			if depsTree == nil {
-				depsTree = make(map[dependency.Dep][]dependency.Dep)
+				depsTree = make(map[provider.Dep][]provider.Dep)
 			}
 			for parentDep, transitiveDeps := range deps {
 				depsTree[parentDep] = transitiveDeps
 			}
 		} else {
-			deps, _, err := provider.GetDependencies()
+			deps, _, err := prov.GetDependencies()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
 			if depsFlat == nil {
-				depsFlat = make([]dependency.Dep, 0)
+				depsFlat = make([]provider.Dep, 0)
 			}
 			depsFlat = append(depsFlat, deps...)
 		}
