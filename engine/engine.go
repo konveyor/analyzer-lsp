@@ -359,6 +359,7 @@ func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log l
 func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule Rule) (hubapi.Violation, error) {
 	incidents := []hubapi.Incident{}
 	fileCodeSnipCount := map[string]int{}
+	incidentsSet := map[string]struct{}{} // Set of incidents
 	for _, m := range conditionResponse.Incidents {
 		// Exit loop, we don't care about any incidents past the filter.
 		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
@@ -442,7 +443,19 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			incident.Message = templateString
 		}
 
-		incidents = append(incidents, incident)
+		lineNumberString := "-1" // Default lineNumber
+
+		if lineNumber, hasLineNumber := incident.Variables["lineNumber"]; hasLineNumber {
+			lineNumberString = fmt.Sprint(lineNumber) // Updating the line number if the incident has a line number
+		}
+
+		incidentString := fmt.Sprintf("%s-%s-%s", incident.URI, incident.Message, lineNumberString) // Formating a unique string for an incident
+
+		// Adding it to list  and set if no duplicates found
+		if _, isDuplicate := incidentsSet[incidentString]; !isDuplicate {
+			incidents = append(incidents, incident)
+			incidentsSet[incidentString] = struct{}{}
+		}
 	}
 
 	return hubapi.Violation{
