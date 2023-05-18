@@ -59,7 +59,7 @@ func NewRuleSelector(expr string) (engine.RuleSelector, error) {
 		gval.InfixBoolOperator("||", func(a, b bool) (interface{}, error) { return a || b, nil }),
 	)
 	// we need this hack to force validation
-	_, err := gval.Evaluate(getBooleanExpression(expr, map[string]string{}), nil)
+	_, err := gval.Evaluate(getBooleanExpression(expr, map[string][]string{}), nil)
 	if err != nil {
 		return nil, fmt.Errorf("invalid expression '%s'", expr)
 	}
@@ -69,9 +69,10 @@ func NewRuleSelector(expr string) (engine.RuleSelector, error) {
 	}, nil
 }
 
-// ParseLabels given a list of string labels, returns them as key=val map
-func ParseLabels(labels []string) (map[string]string, error) {
-	keyVal := map[string]string{}
+// ParseLabels given a list of string labels, returns them as key=[val] map
+// a list of values is needed because keys can be duplicate
+func ParseLabels(labels []string) (map[string][]string, error) {
+	keyVal := map[string][]string{}
 	errors := []string{}
 	for _, label := range labels {
 		key, val, err := ParseLabel(label)
@@ -79,7 +80,10 @@ func ParseLabels(labels []string) (map[string]string, error) {
 			errors = append(errors, err.Error())
 			continue
 		}
-		keyVal[key] = val
+		if _, ok := keyVal[key]; !ok {
+			keyVal[key] = []string{}
+		}
+		keyVal[key] = append(keyVal[key], val)
 	}
 	if len(errors) > 0 {
 		return keyVal, fmt.Errorf("failed parsing, errors %v", errors)
@@ -137,7 +141,7 @@ func convertToBool(o interface{}) (bool, bool) {
 }
 
 // getLabelsFromExpression parses only the labels from an expression
-func getLabelsFromExpression(expr string) (map[string]string, error) {
+func getLabelsFromExpression(expr string) (map[string][]string, error) {
 	labelsList := strings.FieldsFunc(expr, func(r rune) bool {
 		return r == ' ' || r == '&' || r == '|' || r == '!' || r == '(' || r == ')'
 	})
@@ -154,23 +158,25 @@ func getLabelsFromExpression(expr string) (map[string]string, error) {
 // does not understand labels as operands. "konveyor.io/k1=v1 && v2" will look
 // something like "true && false" as a boolean expression depending on passed labels
 // we wouldn't need this if gval supported writing custom operands
-func getBooleanExpression(expr string, labels map[string]string) string {
+func getBooleanExpression(expr string, compareLabels map[string][]string) string {
 	exprLabels, err := getLabelsFromExpression(expr)
 	if err != nil {
 		return expr
 	}
 	replaceMap := map[string]string{}
-	for exprLabelKey, exprLabelVal := range exprLabels {
-		toReplace := exprLabelKey
-		if exprLabelVal != "" {
-			toReplace = fmt.Sprintf("%s=%s", toReplace, exprLabelVal)
-		}
-		if labelVal, ok := labels[exprLabelKey]; !ok {
-			replaceMap[toReplace] = "false"
-		} else if exprLabelVal != "" && labelVal != exprLabelVal {
-			replaceMap[toReplace] = "false"
-		} else {
-			replaceMap[toReplace] = "true"
+	for exprLabelKey, exprLabelVals := range exprLabels {
+		for _, exprLabelVal := range exprLabelVals {
+			toReplace := exprLabelKey
+			if exprLabelVal != "" {
+				toReplace = fmt.Sprintf("%s=%s", toReplace, exprLabelVal)
+			}
+			if labelVals, ok := compareLabels[exprLabelKey]; !ok {
+				replaceMap[toReplace] = "false"
+			} else if exprLabelVal != "" && !contains(exprLabelVal, labelVals) {
+				replaceMap[toReplace] = "false"
+			} else {
+				replaceMap[toReplace] = "true"
+			}
 		}
 	}
 	expr = strings.ReplaceAll(expr, " ", "")
@@ -186,4 +192,13 @@ func getBooleanExpression(expr string, labels map[string]string) string {
 	}
 	expr = strings.Trim(expr, " ")
 	return expr
+}
+
+func contains(elem string, items []string) bool {
+	for _, item := range items {
+		if item == elem {
+			return true
+		}
+	}
+	return false
 }
