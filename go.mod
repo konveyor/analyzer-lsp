@@ -3,22 +3,19 @@ module github.com/konveyor/analyzer-lsp
 go 1.18
 
 require (
+	github.com/PaesslerAG/gval v1.2.2
 	github.com/antchfx/jsonquery v1.3.0
 	github.com/antchfx/xmlquery v1.3.12
 	github.com/bombsimon/logrusr/v3 v3.0.0
 	github.com/getkin/kin-openapi v0.108.0
 	github.com/go-logr/logr v1.2.3
+	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/pflag v1.0.5
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel/trace v1.11.2
 	gopkg.in/yaml.v2 v2.4.0
-)
-
-require (
-	github.com/PaesslerAG/gval v1.2.2 // indirect
-	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
 )
 
 require (
