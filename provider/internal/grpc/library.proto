@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/konveyor/analyzer-lsp/provider/lib/grpc";
+
+
+package provider;
+
+
+message Capability {
+  string name = 1;
+  google.protobuf.Struct templateContext = 2;
+}
+
+message Config {
+  string location = 1;
+  string dependencyPath = 2;
+  string lspServerPath= 3;
+  google.protobuf.Struct providerSpecificConfig= 4;
+}
+
+message InitResponse {
+  string error = 1 ;
+  bool successful = 2;
+  int64 id = 3;
+}
+
+message ExternalLink {
+  string url = 1;
+  string title = 2;
+}
+
+message Position {
+  double line = 1;
+  double character = 2;
+}
+
+message Location {
+  Position startPosition = 1;
+  Position endPosition = 2;
+}
+
+message IncidentContext {
+  string fileURI = 1;
+  optional int64 Effort = 2;
+  Location codeLocation = 3;
+  google.protobuf.Struct variables = 5;
+  repeated ExternalLink links = 4;
+}
+
+message ProviderEvaluateResponse {
+  bool matched = 1;
+  repeated IncidentContext incidentContexts = 2;
+  google.protobuf.Struct templateContext = 3;
+}
+
+message HasCapabilityRequest {
+  string capability = 1;
+}
+
+message HasCapabilityResponse {
+  bool hasCap = 1;
+}
+
+message BasicResponse {
+  string error = 1 ;
+  bool successful = 2;
+}
+
+message EvaluateRequest {
+  string cap = 1;
+  string conditionInfo = 2;
+}
+
+message EvaluateResponse {
+  string error = 1;
+  bool successful = 2;
+  ProviderEvaluateResponse response = 3;
+}
+
+message CapabilitiesResponse {
+  repeated Capability capabilities = 1;
+}
+
+service ProviderService {
+  rpc Capabilities (google.protobuf.Empty) returns (CapabilitiesResponse) {};
+  rpc HasCapability (HasCapabilityRequest) returns (HasCapabilityResponse) {};
+  rpc Init (Config) returns (InitResponse) {};
+  rpc Evaluate (EvaluateRequest) returns (EvaluateResponse) {};
+  rpc Stop (google.protobuf.Empty) returns (google.protobuf.Empty) {};
+  rpc GetDependencies (google.protobuf.Empty) returns (DependencyResponse) {};
+  rpc GetDependenciesLinkedList(google.protobuf.Empty) returns (DependencyLinkedListResponse) {};
+}
+
+message Dependency {
+  string name = 1;
+  string version = 2;
+  string type = 3;
+  string sha = 4;
+  bool indirect = 5;
+}
+
+message DependencyList {
+  repeated Dependency deps = 1;
+}
+
+message DependencyResponse{
+  bool successful  = 1;
+  string error  = 2;
+  string fileURI = 3;
+  DependencyList list = 4;
+}
+
+message DependencyLinkedListItem {
+  Dependency key = 1;
+  DependencyList value = 2;
+}
+
+message DependencyLinkedListResponse {
+  bool successful  = 1;
+  string error  = 2;
+  string fileURI = 3;
+  repeated DependencyLinkedListItem list = 4;
+}

@@ -1,15 +1,21 @@
 [
     {
         "name": "go",
-        "location": "examples/golang",
-        "binaryLocation": "/usr/bin/gopls"
+        "address": "localhost:17902",
+        "initConfig": {
+            "location": "/analyzer-lsp/examples/golang",
+            "lspServerPath": "/root/go/bin/gopls"
+        }
     },
     {
         "name": "java",
-        "location": "examples/java",
-        "binaryLocation": "java-lang-server/org.eclipse.jdt.ls.product/target/repository/bin/jdtls",
-        "providerSpecificConfig": {
-            "bundles": "java-rule-addon/java-rule-addon.core/target/java-rule-addon.core-1.0.0-SNAPSHOT.jar"
+        "binaryPath": "/jdtls/bin/jdtls",
+        "initConfig": {
+            "location": "examples/java",
+            "lspServerPath": "/jdtls/bin/jdtls",
+            "providerSpecificConfig": {
+                "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
+            }
         }
     }
 ]

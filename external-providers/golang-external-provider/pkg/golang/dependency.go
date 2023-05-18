@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/konveyor/analyzer-lsp/dependency/dependency"
+	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 )
 
@@ -26,7 +26,7 @@ func (g *golangProvider) findGoMod() string {
 	return f
 }
 
-func (g *golangProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
+func (g *golangProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	ll, f, err := g.GetDependenciesLinkedList()
 	if err != nil {
 		return nil, f, err
@@ -34,7 +34,7 @@ func (g *golangProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
 	if len(ll) == 0 {
 		return nil, f, nil
 	}
-	deps := []dependency.Dep{}
+	deps := []provider.Dep{}
 	for topLevel, transitives := range ll {
 		deps = append(deps, topLevel)
 		deps = append(deps, transitives...)
@@ -42,7 +42,7 @@ func (g *golangProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
 	return deps, f, err
 }
 
-func (g *golangProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, uri.URI, error) {
+func (g *golangProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 
@@ -75,8 +75,8 @@ func (g *golangProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depen
 
 // parseGoDepString parses a golang dependency string
 // assumes format <dependency_name>@<version>
-func parseGoDepString(dep string) (dependency.Dep, error) {
-	d := dependency.Dep{}
+func parseGoDepString(dep string) (provider.Dep, error) {
+	d := provider.Dep{}
 	v := strings.Split(dep, "@")
 	if len(v) != 2 {
 		return d, fmt.Errorf("failed to parse dependency string %s", dep)
@@ -87,10 +87,10 @@ func parseGoDepString(dep string) (dependency.Dep, error) {
 }
 
 // parseGoDepLines parses go mod graph output
-func parseGoDepLines(lines []string) (map[dependency.Dep][]dependency.Dep, error) {
+func parseGoDepLines(lines []string) (map[provider.Dep][]provider.Dep, error) {
 	depsListed := map[string][]string{}
 	var root *string
-	deps := map[dependency.Dep][]dependency.Dep{}
+	deps := map[provider.Dep][]provider.Dep{}
 
 	for _, l := range lines {
 		// get all base mod deps.
@@ -130,7 +130,7 @@ func parseGoDepLines(lines []string) (map[dependency.Dep][]dependency.Dep, error
 			return deps, err
 		}
 		if _, ok := deps[directDep]; !ok {
-			deps[directDep] = make([]dependency.Dep, 0)
+			deps[directDep] = make([]provider.Dep, 0)
 		}
 
 		// traverse the list to find all indirect deps for current dep

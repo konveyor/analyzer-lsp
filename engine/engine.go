@@ -16,7 +16,6 @@ import (
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/hubapi"
-	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
@@ -108,7 +107,7 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 		select {
 		case m := <-ruleMessages:
 			logger.V(5).Info("taking rule")
-			m.ctx.Template = make(map[string]lib.ChainTemplate)
+			m.ctx.Template = make(map[string]ChainTemplate)
 			bo, err := processRule(ctx, m.rule, m.ctx, logger)
 			logger.V(5).Info("finished rule", "response", bo, "error", err)
 			m.returnChan <- response{
@@ -282,7 +281,7 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*hubapi.RuleSet) ConditionContext {
 	context := ConditionContext{
 		Tags:     make(map[string]interface{}),
-		Template: make(map[string]lib.ChainTemplate),
+		Template: make(map[string]ChainTemplate),
 	}
 	// track unique tags per ruleset
 	rulesetTagsCache := map[string]map[string]bool{}

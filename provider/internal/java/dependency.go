@@ -11,26 +11,26 @@ import (
 	"strings"
 
 	"github.com/antchfx/xmlquery"
-	"github.com/konveyor/analyzer-lsp/dependency/dependency"
+	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 )
 
 // TODO implement this for real
 func (p *javaProvider) findPom() string {
 	var depPath string
-	if p.config.DependencyPath == "" {
+	if p.config.InitConfig.DependencyPath == "" {
 		depPath = "pom.xml"
 	} else {
-		depPath = p.config.DependencyPath
+		depPath = p.config.InitConfig.DependencyPath
 	}
-	f, err := filepath.Abs(filepath.Join(p.config.Location, depPath))
+	f, err := filepath.Abs(filepath.Join(p.config.InitConfig.Location, depPath))
 	if err != nil {
 		return ""
 	}
 	return f
 }
 
-func (p *javaProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
+func (p *javaProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	ll, file, err := p.GetDependenciesLinkedList()
 	if err != nil {
 		return p.GetDependencyFallback()
@@ -38,7 +38,7 @@ func (p *javaProvider) GetDependencies() ([]dependency.Dep, uri.URI, error) {
 	if len(ll) == 0 {
 		return p.GetDependencyFallback()
 	}
-	deps := []dependency.Dep{}
+	deps := []provider.Dep{}
 	for topLevel, transitives := range ll {
 		deps = append(deps, topLevel)
 		deps = append(deps, transitives...)
@@ -59,7 +59,7 @@ func (p *javaProvider) getLocalRepoPath() string {
 	return string(outb.String())
 }
 
-func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, uri.URI, error) {
+func (p *javaProvider) GetDependencyFallback() ([]provider.Dep, uri.URI, error) {
 	pomDependencyQuery := "//dependencies/dependency/*"
 	path := p.findPom()
 	file := uri.File(path)
@@ -81,14 +81,14 @@ func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, uri.URI, error
 	if err != nil {
 		return nil, file, err
 	}
-	deps := []dependency.Dep{}
-	dep := dependency.Dep{}
+	deps := []provider.Dep{}
+	dep := provider.Dep{}
 	// TODO this is comedically janky
 	for _, node := range list {
 		if node.Data == "groupId" {
 			if dep.Name != "" {
 				deps = append(deps, dep)
-				dep = dependency.Dep{}
+				dep = provider.Dep{}
 			}
 			dep.Name = node.InnerText()
 		} else if node.Data == "artifactId" {
@@ -98,13 +98,13 @@ func (p *javaProvider) GetDependencyFallback() ([]dependency.Dep, uri.URI, error
 		}
 		// Ignore the others
 	}
-	if !reflect.DeepEqual(dep, dependency.Dep{}) {
+	if !reflect.DeepEqual(dep, provider.Dep{}) {
 		deps = append(deps, dep)
 	}
 	return deps, file, nil
 }
 
-func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, uri.URI, error) {
+func (p *javaProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
 	localRepoPath := p.getLocalRepoPath()
 
 	path := p.findPom()
@@ -139,7 +139,7 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depende
 		lines = lines[1 : len(lines)-2]
 	}
 
-	deps := map[dependency.Dep][]dependency.Dep{}
+	deps := map[provider.Dep][]provider.Dep{}
 
 	err = parseMavenDepLines(lines, deps, localRepoPath)
 	if err != nil {
@@ -156,7 +156,7 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[dependency.Dep][]depende
 }
 
 type walker struct {
-	deps map[dependency.Dep][]dependency.Dep
+	deps map[provider.Dep][]provider.Dep
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -167,18 +167,18 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		return filepath.WalkDir(filepath.Join(path, info.Name()), w.walkDirForJar)
 	}
 	if strings.HasSuffix(info.Name(), ".jar") {
-		d := dependency.Dep{
+		d := provider.Dep{
 			Name: info.Name(),
 		}
-		w.deps[d] = []dependency.Dep{}
+		w.deps[d] = []provider.Dep{}
 	}
 	return nil
 }
 
 // parseDepString parses a java dependency string
 // assumes format <group>:<name>:<type>:<version>:<scope>
-func parseDepString(dep, localRepoPath string) (dependency.Dep, error) {
-	d := dependency.Dep{}
+func parseDepString(dep, localRepoPath string) (provider.Dep, error) {
+	d := provider.Dep{}
 	// remove all the pretty print characters.
 	dep = strings.TrimFunc(dep, func(r rune) bool {
 		if r == '+' || r == '-' || r == '\\' || r == '|' || r == ' ' || r == '"' || r == '\t' {
@@ -208,7 +208,7 @@ func parseDepString(dep, localRepoPath string) (dependency.Dep, error) {
 }
 
 // parseMavenDepLines recursively parses output lines from maven dependency tree
-func parseMavenDepLines(lines []string, deps map[dependency.Dep][]dependency.Dep, localRepoPath string) error {
+func parseMavenDepLines(lines []string, deps map[provider.Dep][]provider.Dep, localRepoPath string) error {
 	if len(lines) > 0 {
 		baseDepString := lines[0]
 		baseDep, err := parseDepString(baseDepString, localRepoPath)
@@ -216,7 +216,7 @@ func parseMavenDepLines(lines []string, deps map[dependency.Dep][]dependency.Dep
 			return err
 		}
 		if _, ok := deps[baseDep]; !ok {
-			deps[baseDep] = make([]dependency.Dep, 0)
+			deps[baseDep] = make([]provider.Dep, 0)
 		}
 		idx := 1
 		// indirect deps are separated by 3 or more spaces after the direct dep

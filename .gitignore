@@ -10,3 +10,6 @@ org.eclipse.core*
 org.eclipse.osgi*
 org.eclipse.equinox*
 provider_settings.json
+konveyor-analyzer
+konveyor-analyzer-dep
+go.work

@@ -5,31 +5,29 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/dependency/dependency"
 	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"go.lsp.dev/uri"
 )
 
 var _ Client = &fakeClient{}
 
 type fakeClient struct {
-	dependencies []dependency.Dep
+	dependencies []Dep
 }
 
-func (c *fakeClient) Capabilities() []lib.Capability { return nil }
-func (c *fakeClient) HasCapability(string) bool      { return true }
-func (c *fakeClient) Evaluate(string, []byte) (lib.ProviderEvaluateResponse, error) {
-	return lib.ProviderEvaluateResponse{}, nil
+func (c *fakeClient) Capabilities() []Capability { return nil }
+func (c *fakeClient) HasCapability(string) bool  { return true }
+func (c *fakeClient) Evaluate(string, []byte) (ProviderEvaluateResponse, error) {
+	return ProviderEvaluateResponse{}, nil
 }
-func (c *fakeClient) Init(context.Context, logr.Logger) error { return nil }
-func (c *fakeClient) Stop()                                   {}
+func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (int, error) { return 0, nil }
+func (c *fakeClient) Stop()                                                      {}
 
-func (c *fakeClient) GetDependencies() ([]dependency.Dep, uri.URI, error) {
+func (c *fakeClient) GetDependencies() ([]Dep, uri.URI, error) {
 	return c.dependencies, uri.File("test"), nil
 }
 
-func (c *fakeClient) GetDependenciesLinkedList() (map[dependency.Dep][]dependency.Dep, uri.URI, error) {
+func (c *fakeClient) GetDependenciesLinkedList() (map[Dep][]Dep, uri.URI, error) {
 	return nil, uri.File("test"), nil
 }
 
@@ -39,7 +37,7 @@ func Test_dependencyConditionEvaluation(t *testing.T) {
 		name         string
 		upperbound   string
 		lowerbound   string
-		dependencies []dependency.Dep
+		dependencies []Dep
 		shouldMatch  bool
 		shouldErr    bool
 	}{
@@ -47,28 +45,28 @@ func Test_dependencyConditionEvaluation(t *testing.T) {
 			title:        "no matching dependency should return no match",
 			name:         "DNE",
 			upperbound:   "10.0",
-			dependencies: []dependency.Dep{{Name: "DE", Version: "v4.0.0"}},
+			dependencies: []Dep{{Name: "DE", Version: "v4.0.0"}},
 		},
 		{
 			title:        "A existing dependency that falls within the bounds should match",
 			name:         "DE",
 			upperbound:   "4.0.2",
 			lowerbound:   "4.0.0",
-			dependencies: []dependency.Dep{{Name: "DE", Version: "v4.0.1"}},
+			dependencies: []Dep{{Name: "DE", Version: "v4.0.1"}},
 			shouldMatch:  true,
 		},
 		{
 			title:        "A existing dependency that falls above the lowerbound should match",
 			name:         "DE",
 			lowerbound:   "3.0.1",
-			dependencies: []dependency.Dep{{Name: "DE", Version: "v4.0.0"}},
+			dependencies: []Dep{{Name: "DE", Version: "v4.0.0"}},
 			shouldMatch:  true,
 		},
 		{
 			title:        "A existing dependency that falls below the upperbound should match",
 			name:         "DE",
 			upperbound:   "4.2.1",
-			dependencies: []dependency.Dep{{Name: "DE", Version: "v4.0.0"}},
+			dependencies: []Dep{{Name: "DE", Version: "v4.0.0"}},
 			shouldMatch:  true,
 		},
 		{
@@ -76,21 +74,21 @@ func Test_dependencyConditionEvaluation(t *testing.T) {
 			name:         "DE",
 			upperbound:   "3.0",
 			lowerbound:   "0",
-			dependencies: []dependency.Dep{{Name: "DE", Version: "v4.0.0"}},
+			dependencies: []Dep{{Name: "DE", Version: "v4.0.0"}},
 			shouldMatch:  false,
 		},
 		{
 			title:        "A existing dependency that falls below the lowerbound should not match",
 			name:         "DE",
 			lowerbound:   "v5.10.7",
-			dependencies: []dependency.Dep{{Name: "DE", Version: "v4.0.0"}},
+			dependencies: []Dep{{Name: "DE", Version: "v4.0.0"}},
 			shouldMatch:  false,
 		},
 		{
 			title:        "A existing dependency that falls above the upperbound should not match",
 			name:         "DE",
 			upperbound:   "v5.10.7",
-			dependencies: []dependency.Dep{{Name: "DE", Version: "72.13.4788"}},
+			dependencies: []Dep{{Name: "DE", Version: "72.13.4788"}},
 			shouldMatch:  false,
 		},
 		{
@@ -98,7 +96,7 @@ func Test_dependencyConditionEvaluation(t *testing.T) {
 			name:         "DE",
 			upperbound:   "3.0",
 			lowerbound:   "0",
-			dependencies: []dependency.Dep{{Name: "DE", Version: "seventeen point six"}},
+			dependencies: []Dep{{Name: "DE", Version: "seventeen point six"}},
 			shouldErr:    true,
 		},
 		{
@@ -106,7 +104,7 @@ func Test_dependencyConditionEvaluation(t *testing.T) {
 			name:         "DE",
 			upperbound:   "3.0",
 			lowerbound:   "zero point 10",
-			dependencies: []dependency.Dep{{Name: "DE", Version: "10.0.0"}},
+			dependencies: []Dep{{Name: "DE", Version: "10.0.0"}},
 			shouldErr:    true,
 		},
 	}

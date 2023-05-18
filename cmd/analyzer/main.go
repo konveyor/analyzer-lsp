@@ -81,7 +81,7 @@ func main() {
 	defer span.End()
 
 	// Get the configs
-	configs, err := lib.GetConfig(*settingsFile)
+	configs, err := provider.GetConfig(*settingsFile)
 	if err != nil {
 		log.Error(err, "unable to get configuration")
 		os.Exit(1)
@@ -96,14 +96,22 @@ func main() {
 	)
 
 	providers := map[string]provider.Client{}
+	providerInitConfig := map[provider.Client]provider.InitConfig{}
 
 	for _, config := range configs {
-		provider, err := provider.GetProviderClient(config)
+		prov, err := lib.GetProviderClient(config)
 		if err != nil {
 			log.Error(err, "unable to create provider client")
 			os.Exit(1)
 		}
-		providers[config.Name] = provider
+		providers[config.Name] = prov
+		if s, ok := prov.(provider.Startable); ok {
+			if err := s.Start(ctx); err != nil {
+				log.Error(err, "unable to create provider client")
+				os.Exit(1)
+			}
+		}
+		providerInitConfig[prov] = config.InitConfig
 	}
 
 	parser := parser.RuleParser{
@@ -124,7 +132,8 @@ func main() {
 	}
 	// Now that we have all the providers, we need to start them.
 	for _, provider := range needProviders {
-		err := provider.Init(ctx, log)
+		c := providerInitConfig[provider]
+		_, err := provider.Init(ctx, log, c)
 		if err != nil {
 			log.Error(err, "unable to init the providers")
 			os.Exit(1)
