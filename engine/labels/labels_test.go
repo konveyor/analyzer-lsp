@@ -8,45 +8,74 @@ import (
 
 func Test_getBooleanExpression(t *testing.T) {
 	tests := []struct {
-		name   string
-		expr   string
-		labels map[string]string
-		want   string
+		name          string
+		expr          string
+		compareLabels map[string][]string
+		want          string
 	}{
 		{
 			name: "complex expression 001",
 			expr: "val && (konveyor.io/k1=20 && !konveyor.io/k2=30)",
-			labels: map[string]string{
-				"konveyor.io/k1": "20",
+			compareLabels: map[string][]string{
+				"konveyor.io/k1": {"20"},
 			},
 			want: "false && ( true && ! false )",
 		},
 		{
 			name: "complex expression 002",
 			expr: "val && (konveyor.io/k1=20 && !konveyor.io/k2=30) || !val2",
-			labels: map[string]string{
-				"konveyor.io/k1": "20",
-				"konveyor.io/k2": "40",
-				"val2":           "",
-				"val":            "",
+			compareLabels: map[string][]string{
+				"konveyor.io/k1": {"20"},
+				"konveyor.io/k2": {"40"},
+				"val2":           {""},
+				"val":            {""},
 			},
 			want: "true && ( true && ! false ) || ! true",
 		},
 		{
 			name: "complex expression 003",
 			expr: "val && ((((((konveyor.io/k2=40)))))) || !val2",
-			labels: map[string]string{
-				"konveyor.io/k1": "20",
-				"konveyor.io/k2": "40",
-				"val2":           "",
-				"val":            "",
+			compareLabels: map[string][]string{
+				"konveyor.io/k1": {"20"},
+				"konveyor.io/k2": {"40"},
+				"val2":           {""},
+				"val":            {""},
 			},
 			want: "true && ( ( ( ( ( ( true ) ) ) ) ) ) || ! true",
+		},
+		{
+			name: "duplicate keys 001",
+			expr: "val && (konveyor.io/k2=40 || konveyor.io/k2=20)",
+			compareLabels: map[string][]string{
+				"konveyor.io/k1": {"20"},
+				"konveyor.io/k2": {"40"},
+				"val2":           {""},
+				"val":            {""},
+			},
+			want: "true && ( true || false )",
+		},
+		{
+			name: "duplicate keys 002",
+			expr: "konveyor.io/k1=40 || (konveyor.io/k2=30 && konveyor.io/k2=40)",
+			compareLabels: map[string][]string{
+				"konveyor.io/k1": {"20"},
+				"konveyor.io/k2": {"40", "30"},
+			},
+			want: "false || ( true && true )",
+		},
+		{
+			name: "duplicate keys 003",
+			expr: "(konveyor.io/k1=40 || konveyor.io/k1=10) || (konveyor.io/k2=30 && konveyor.io/k2=40)",
+			compareLabels: map[string][]string{
+				"konveyor.io/k1": {"20"},
+				"konveyor.io/k2": {"40", "30"},
+			},
+			want: "( false || false ) || ( true && true )",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getBooleanExpression(tt.expr, tt.labels); got != tt.want {
+			if got := getBooleanExpression(tt.expr, tt.compareLabels); got != tt.want {
 				t.Errorf("getBooleanExpression() = %v, want %v", got, tt.want)
 			}
 		})
@@ -158,6 +187,15 @@ func TestNewRuleSelector(t *testing.T) {
 			name:    "invalid expression 003",
 			expr:    "k1=v1 || k2$$",
 			wantErr: true,
+		},
+		{
+			name:    "duplicate keys 001",
+			expr:    "konveyor.io/source=go && konveyor.io/source=java",
+			wantErr: false,
+		},
+		{
+			name: "duplicate keys 002",
+			expr: "(konveyor.io/source=java && konveyor.io/source=go) || (konveyor.io/target=java && konveyor.io/target=java)",
 		},
 	}
 	for _, tt := range tests {
