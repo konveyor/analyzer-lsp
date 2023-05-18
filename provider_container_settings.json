@@ -1,7 +1,7 @@
 [
     {
         "name": "go",
-        "address": "localhost:17902",
+        "binaryPath": "/usr/bin/golang-external-provider",
         "initConfig": {
             "location": "/analyzer-lsp/examples/golang",
             "lspServerPath": "/root/go/bin/gopls"

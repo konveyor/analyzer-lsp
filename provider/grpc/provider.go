@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -28,9 +29,10 @@ type grpcProvider struct {
 var _ provider.Client = &grpcProvider{}
 var _ provider.Startable = &grpcProvider{}
 
-func NewGRPCClient(config provider.Config) *grpcProvider {
+func NewGRPCClient(config provider.Config, log logr.Logger) *grpcProvider {
 	return &grpcProvider{
 		config: config,
+		log:    log,
 	}
 }
 
@@ -255,7 +257,19 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 		g.conn = conn
 		g.Client = c
 
-		return nil
+		// Give the server some time to start up, assume that a server MUST provide 1 cap
+		for {
+			select {
+			default:
+				caps := g.Capabilities()
+				if len(caps) != 0 {
+					return nil
+				}
+				time.Sleep(3 * time.Second)
+			case <-time.After(time.Second * 30):
+				return fmt.Errorf("no Capabilities for provider: %v", g.config.Name)
+			}
+		}
 	}
 	if g.config.Address != "" {
 		conn, err := grpc.Dial(fmt.Sprintf(g.config.Address), grpc.WithTransportCredentials(insecure.NewCredentials()))
