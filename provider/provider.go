@@ -39,25 +39,25 @@ type Capability struct {
 }
 
 type Config struct {
-	Name       string     `yaml:"name,omitempty"`
-	BinaryPath string     `yaml:"binaryPath,omitempty"`
-	Address    string     `yaml:"address,omitempty"`
-	InitConfig InitConfig `yaml:"initConfig,omitempty"`
+	Name       string     `yaml:"name,omitempty" json:"name,omitempty"`
+	BinaryPath string     `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
+	Address    string     `yaml:"address,omitempty" json:"address,omitempty"`
+	InitConfig InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
 }
 
 type InitConfig struct {
 	// This is the location of the code base that the
 	// Provider will be responisble for parsing
-	Location string `yaml:"location,omitempty"`
+	Location string `yaml:"location,omitempty" json:"location,omitempty"`
 
 	// This is the path to look for the dependencies for the project.
 	// It is relative to the Location
-	DependencyPath string `yaml:"dependencyPath,omitempty"`
+	DependencyPath string `yaml:"dependencyPath,omitempty" json:"dependencyPath,omitempty"`
 
-	LSPServerPath string `yaml:"lspServerPath,omitempty"`
+	LSPServerPath string `yaml:"lspServerPath,omitempty" json:"lspServerPath,omitempty"`
 
 	// This will have to be defined for each provider
-	ProviderSpecificConfig map[string]interface{} `yaml:"providerSpecificConfig,omitempty"`
+	ProviderSpecificConfig map[string]interface{} `yaml:"providerSpecificConfig,omitempty" json:"providerSpecificConfig,omitempty"`
 }
 
 func GetConfig(filepath string) ([]Config, error) {
