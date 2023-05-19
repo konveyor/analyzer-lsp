@@ -16,8 +16,6 @@ type RuleSet struct {
 	Name string `yaml:"name,omitempty"`
 	// Description text description for the ruleset.
 	Description string `yaml:"description,omitempty"`
-	// Labels are list of labels for the ruleset.
-	Labels []string `yaml:"labels,omitempty"`
 	// Tags list of generated tags from the rules in this ruleset.
 	Tags []string `yaml:"tags,omitempty"`
 	// Violations is a map containing violations generated for the
@@ -32,11 +30,6 @@ type RuleSet struct {
 	Unmatched []string `yaml:"unmatched,omitempty"`
 	// Skipped is a list of rule IDs that were skipped
 	Skipped []string `yaml:"skipped,omitempty"`
-}
-
-type RuleSetTechnology struct {
-	ID           string `json:"id,omitempty"`
-	VersionRange string `json:"version_range,omitempty"`
 }
 
 type Category string
@@ -57,10 +50,6 @@ var (
 )
 
 type Violation struct {
-	// AnalysisID id of the analysis that generated this output
-	// TODO: we don't know exactly what this looks like yet but that is ok.
-	//AnalysisID     string     `json:"analysisID"`
-
 	// Description text description about the violation
 	// TODO: we don't have this in the rule as of today.
 	Description string `yaml:"description"`
@@ -70,9 +59,6 @@ type Violation struct {
 	Category *Category `yaml:"category,omitempty"`
 
 	Labels []string `yaml:"labels,omitempty"`
-
-	// Tags list of tags generated for the applications
-	Tags []string `yaml:"tags,omitempty"`
 
 	// Incidents list of instances of violation found
 	Incidents []Incident `yaml:"incidents"`

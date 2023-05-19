@@ -128,7 +128,6 @@ func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *hubapi.RuleSet {
 	rs := &hubapi.RuleSet{
 		Name:        ruleSet.Name,
 		Description: ruleSet.Description,
-		Labels:      ruleSet.Labels,
 		Tags:        []string{},
 		Violations:  map[string]hubapi.Violation{},
 		Errors:      map[string]string{},
@@ -260,7 +259,7 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 				})
 				// if both message and tag are set
 				// split message part into a new rule
-				if rule.Perform.Message != nil {
+				if rule.Perform.Message.Text != nil {
 					rule.Perform.Tag = nil
 					otherRules = append(
 						otherRules,
@@ -435,8 +434,8 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			}
 		}
 
-		if rule.Perform.Message != nil {
-			templateString, err := r.createPerformString(*rule.Perform.Message, m.Variables)
+		if rule.Perform.Message.Text != nil {
+			templateString, err := r.createPerformString(*rule.Perform.Message.Text, m.Variables)
 			if err != nil {
 				r.logger.Error(err, "unable to create template string")
 			}
@@ -464,7 +463,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		Incidents:   incidents,
 		Extras:      []byte{},
 		Effort:      rule.Effort,
-		Links:       rule.Links,
+		Links:       rule.Perform.Message.Links,
 	}, nil
 }
 

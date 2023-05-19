@@ -155,10 +155,6 @@ type Client interface {
 
 	Stop()
 
-	DependencyProvider
-}
-
-type DependencyProvider interface {
 	// GetDependencies will get the dependencies
 	// It is the responsibility of the provider to determine how that is done
 	GetDependencies() ([]Dep, uri.URI, error)
@@ -232,7 +228,7 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 			FileURI:   inc.FileURI,
 			Effort:    inc.Effort,
 			Variables: inc.Variables,
-			Links:     p.Rule.Links,
+			Links:     p.Rule.Perform.Message.Links,
 		}
 
 		if inc.CodeLocation != nil {

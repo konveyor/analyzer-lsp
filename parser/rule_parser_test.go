@@ -60,6 +60,50 @@ func TestLoadRules(t *testing.T) {
 		ErrorMessage       string
 	}{
 		{
+			Name:         "test rule invalidID newline",
+			testFileName: "rule-invalid-newline-ruleID.yaml",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []provider.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{},
+				},
+			},
+			ExpectedProvider: map[string]provider.Client{},
+		},
+		{
+			Name:         "test rule invalidID semi-colon",
+			testFileName: "rule-invalid-semicolon-ruleID.yaml",
+			providerNameClient: map[string]provider.Client{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []provider.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{},
+				},
+			},
+			ExpectedProvider: map[string]provider.Client{},
+		},
+		{
 			Name:         "basic single condition",
 			testFileName: "rule-simple-default.yaml",
 			providerNameClient: map[string]provider.Client{
@@ -80,12 +124,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleMeta: engine.RuleMeta{
 								RuleID: "file-001",
-								Links: []hubapi.Link{
-									{
-										URL:   "https://go.dev",
-										Title: "Golang",
-									},
-								},
 								Labels: []string{
 									"testing",
 									"test",
@@ -94,7 +132,17 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text: &allGoFiles,
+									Links: []hubapi.Link{
+										{
+											URL:   "https://go.dev",
+											Title: "Golang",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -131,7 +179,7 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
@@ -204,7 +252,7 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoAndJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoAndJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
@@ -241,7 +289,7 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoOrJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
@@ -278,7 +326,7 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoOrJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
@@ -354,7 +402,7 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoOrJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
@@ -409,7 +457,7 @@ func TestLoadRules(t *testing.T) {
 								Category:    &hubapi.Potential,
 								Description: "",
 							},
-							Perform: engine.Perform{Message: &allGoOrJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
@@ -449,8 +497,11 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 							},
 							Perform: engine.Perform{
-								Message: &allGoFiles,
-								Tag:     []string{"test"},
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []hubapi.Link{},
+								},
+								Tag: []string{"test"},
 							},
 						},
 					},
@@ -532,7 +583,7 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
@@ -543,7 +594,7 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
@@ -595,12 +646,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleMeta: engine.RuleMeta{
 								RuleID: "file-001",
-								Links: []hubapi.Link{
-									{
-										URL:   "https://go.dev",
-										Title: "Golang",
-									},
-								},
 								Labels: []string{
 									"testing",
 									"test",
@@ -609,7 +654,17 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text: &allGoFiles,
+									Links: []hubapi.Link{
+										{
+											URL:   "https://go.dev",
+											Title: "Golang",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
