@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
@@ -10,7 +12,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	port = flag.Int("port", 0, "Port must be set")
+)
+
 func main() {
+	flag.Parse()
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
@@ -21,7 +28,11 @@ func main() {
 
 	client := golang.NewGolangProvider()
 
-	s := provider.NewServer(client, 17902, log)
+	if port == nil || *port == 0 {
+		panic(fmt.Errorf("must pass in the port for the external provider"))
+	}
+
+	s := provider.NewServer(client, *port, log)
 	ctx := context.TODO()
 	s.Start(ctx)
 }

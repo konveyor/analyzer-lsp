@@ -42,7 +42,7 @@ func main() {
 	}
 
 	for _, config := range configs {
-		provider, err := lib.GetProviderClient(config)
+		provider, err := lib.GetProviderClient(config, log)
 		if err != nil {
 			log.Error(err, "unable to create provider client")
 			os.Exit(1)

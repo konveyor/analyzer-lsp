@@ -99,7 +99,7 @@ func main() {
 	providerInitConfig := map[provider.Client]provider.InitConfig{}
 
 	for _, config := range configs {
-		prov, err := lib.GetProviderClient(config)
+		prov, err := lib.GetProviderClient(config, log)
 		if err != nil {
 			log.Error(err, "unable to create provider client")
 			os.Exit(1)
