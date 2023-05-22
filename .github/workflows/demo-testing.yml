@@ -9,9 +9,24 @@ jobs:
       - uses: actions/checkout@v3
       - name: build image
         run: podman build -f testing.Dockerfile -t localhost/testing:latest
-      - name: run image
-        run: podman run localhost/testing:latest
-      - run: podman build -f Dockerfile -t localhost/demo:latest
-        name: build demo image
-      - name: run demo image
-        run: podman run localhost/demo:latest
+      # - name: run image
+      #   run: podman run localhost/testing:latest
+      # - run: podman build -f Dockerfile -t localhost/demo:latest
+      #   name: build demo image
+      # - name: run demo image
+      #   run: podman run localhost/demo:latest
+      - name: save image
+        run: |
+          podman tag localhost/testing:latest quay.io/konveyor/analyzer-lsp:latest
+          podman save -o /tmp/analyzer-lsp.tar quay.io/konveyor/analyzer-lsp:latest
+      - name: Upload image as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: analyzer-lsp
+          path: /tmp/analyzer-lsp.tar
+
+  global-ci:
+    needs: test
+    uses: ./.github/workflows/global-ci.yml
+    with:
+      component_name: analyzer-lsp
