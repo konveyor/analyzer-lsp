@@ -65,7 +65,7 @@ jobs:
              && sed -i -e "s|https://tackle-konveyor-tackle.apps.mig01.cnv-qe.rhcloud.com/|${UI_URL}|g" cypress.config.ts \
              && cat cypress.config.ts
 
-            ENTRYPOINT ["npx", "cypress", "run"]
+            ENTRYPOINT ["npx", "cypress", "run", "--parallel"]
           EOF
 
           docker build -t tackle-ui-tests tackle-ui-tests
