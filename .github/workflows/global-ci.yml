@@ -18,17 +18,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: konveyor/tackle-ui-tests
-          path: /tackle-ui-tests
+          path: tackle-ui-tests
       - name: Checkout golang api tests repo
         uses: actions/checkout@v3
         with:
           repository: konveyor/go-konveyor-tests
-          path: /go-konveyor-tests
+          path: go-konveyor-tests
       - name: Checkout python api tests repo
         uses: actions/checkout@v3
         with:
           repository: konveyor/tackle-api-tests
-          path: /tackle-api-tests
+          path: tackle-api-tests
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v2
       - name: Download artifact
@@ -54,17 +54,16 @@ jobs:
           export UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)
           export HUB_URL=$(minikube service tackle-hub-nodeport -n konveyor-tackle --url)
 
-          cd /tackle-ui-tests
-          cat <<EOF >Dockerfile
+          cat <<EOF >tackle-ui-tests/Dockerfile
             FROM cypress/base:14
             WORKDIR /tests
             COPY . /tests
-            RUN npm install . \
+            RUN npm install . typescript \
              && sed -i -e "s|https://tackle-konveyor-tackle.apps.mig01.cnv-qe.rhcloud.com/|${UI_URL}|g" cypress.config.ts
             ENTRYPOINT ["npx", "cypress", "run"]
           EOF
-          docker build -t tackle-ui-tests .
-          docker run  -v $(pwd)/cypress:/tests/cypress:Z tackle-ui-tests
+          docker build -t tackle-ui-tests tackle-ui-tests
+          docker run  -v $(pwd)/tackle-ui-tests/cypress:/tests/cypress:Z tackle-ui-tests
 
 
       # - for test in $tests ; do run test ; done
