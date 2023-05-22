@@ -71,6 +71,15 @@ jobs:
           docker build -t tackle-ui-tests tackle-ui-tests
           docker run  -v $(pwd)/tackle-ui-tests/cypress:/tests/cypress:Z tackle-ui-tests
 
+      - name: Upload cypress report  data as artifact
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: tackle-ui-test-reports
+          path: |
+            tackle-ui-tests/cypress/reports
+            tackle-ui-tests/cypress/screenshots
+
       - name: Build and run golang API tests
         run: |
           export UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)
