@@ -4,63 +4,79 @@ on:
   workflow_call:
     inputs:
       component_name:
-        description: | 
+        description: |
           The name of the component being tested, ie konveyor-hub, analyzer-lsp, etc.
           The artifact storing the custom built artifact should be named <component_name>,
           and should contain the file <component_name>.tar inside.
         required: true
         type: string
 jobs:
-  global-ci:
+  tackle-ui-tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tier:
+          - tier1
+          - tier2
+          - tier3
+            # TODO separete the runs into tiers for speed and whatnot
     steps:
       - name: Checkout ui tests repo
         uses: actions/checkout@v3
         with:
           repository: konveyor/tackle-ui-tests
           path: tackle-ui-tests
-      - name: Checkout golang api tests repo
-        uses: actions/checkout@v3
-        with:
-          repository: konveyor/go-konveyor-tests
-          path: go-konveyor-tests
-      - name: Checkout python api tests repo
-        uses: actions/checkout@v3
-        with:
-          repository: konveyor/tackle-api-tests
-          path: tackle-api-tests
+      # - name: Checkout golang api tests repo
+      #   uses: actions/checkout@v3
+      #   with:
+      #     repository: konveyor/go-konveyor-tests
+      #     path: go-konveyor-tests
+      # - name: Checkout python api tests repo
+      #   uses: actions/checkout@v3
+      #   with:
+      #     repository: konveyor/tackle-api-tests
+      #     path: tackle-api-tests
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v2
+
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.component_name }}
           path: /tmp
+
       - name: start minikube
         uses: konveyor/tackle2-operator/.github/actions/start-minikube@main
+
       - name: Load image
         run: |
           export SHELL=/bin/bash
           eval $(minikube -p minikube docker-env)
           docker load --input /tmp/${{ inputs.component_name }}.tar
+
       - name: install konveyor
         uses: konveyor/tackle2-operator/.github/actions/install-tackle@main
         with:
           tackle-image-pull-policy: IfNotPresent
-      - name: Expose konveyor services
+
+      - name: Expose konveyor UI
         run: |
           kubectl expose deployment tackle-ui --type=NodePort --port=8080 -n konveyor-tackle --name tackle-ui-nodeport
-          kubectl expose deployment tackle-hub --type=NodePort --port=8080 -n konveyor-tackle --name tackle-hub-nodeport
+          echo "CYPRESS_tackleUrl=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)" >>$GITHUB_ENV
 
-      - name: edit config
-        run: |
-          export UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)
-          sed -i -e "s|https://tackle-konveyor-tackle.apps.mig01.cnv-qe.rhcloud.com/|${UI_URL}|g" tackle-ui-tests/cypress.config.ts
+      - name: Run login tests
+        uses: cypress-io/github-action@v5
+        with:
+          working-directory: tackle-ui-tests
+          env: user=admin,pass=password,tackleUrl=${{ env.CYPRESS_tackleUrl }},grepTags=${{ matrix.tier }}
+          spec: "cypress/e2e/tests/login.test.ts"
 
       - name: Run UI tests
         uses: cypress-io/github-action@v5
         with:
           working-directory: tackle-ui-tests
+          env: user=admin,pass=Dog8code,tackleUrl=${{ env.CYPRESS_tackleUrl }},grepTags=@${{ matrix.tier }}
+          spec: "**/*.test.ts"
 
       - name: Upload cypress report  data as artifact
         uses: actions/upload-artifact@v3
@@ -71,14 +87,14 @@ jobs:
             tackle-ui-tests/cypress/reports
             tackle-ui-tests/cypress/screenshots
 
-      - name: Build and run golang API tests
-        run: |
-          export UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)
-          export HUB_URL=$(minikube service tackle-hub-nodeport -n konveyor-tackle --url)
+      # - name: Build and run golang API tests
+      #   run: |
+      #     export UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)
+      #     export HUB_URL=$(minikube service tackle-hub-nodeport -n konveyor-tackle --url)
 
-      - name: Build and run python API tests
-        run: |
-          export UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)
-          export HUB_URL=$(minikube service tackle-hub-nodeport -n konveyor-tackle --url)
+      # - name: Build and run python API tests
+      #   run: |
+      #     export UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)
+      #     export HUB_URL=$(minikube service tackle-hub-nodeport -n konveyor-tackle --url)
 
       # - for test in $tests ; do run test ; done
