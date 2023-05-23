@@ -52,24 +52,15 @@ jobs:
           kubectl expose deployment tackle-ui --type=NodePort --port=8080 -n konveyor-tackle --name tackle-ui-nodeport
           kubectl expose deployment tackle-hub --type=NodePort --port=8080 -n konveyor-tackle --name tackle-hub-nodeport
 
-      - name: Build and run UI tests
+      - name: edit config
         run: |
           export UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)
-          export HUB_URL=$(minikube service tackle-hub-nodeport -n konveyor-tackle --url)
+          sed -i -e "s|https://tackle-konveyor-tackle.apps.mig01.cnv-qe.rhcloud.com/|${UI_URL}|g" tackle-ui-tests/cypress.config.ts
 
-          cat <<EOF >tackle-ui-tests/Dockerfile
-            FROM cypress/base:14
-            WORKDIR /tests
-            COPY . /tests
-            RUN npm install . typescript \
-             && sed -i -e "s|https://tackle-konveyor-tackle.apps.mig01.cnv-qe.rhcloud.com/|${UI_URL}|g" cypress.config.ts \
-             && cat cypress.config.ts
-
-            ENTRYPOINT ["npx", "cypress", "run", "--parallel"]
-          EOF
-
-          docker build -t tackle-ui-tests tackle-ui-tests
-          docker run  -v $(pwd)/tackle-ui-tests/cypress:/tests/cypress:Z tackle-ui-tests
+      - name: Run UI tests
+        uses: cypress-io/github-action@v5
+        with:
+          working-directory: tackle-ui-tests
 
       - name: Upload cypress report  data as artifact
         uses: actions/upload-artifact@v3
