@@ -158,15 +158,21 @@ type Client interface {
 	GetDependencies() ([]Dep, uri.URI, error)
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
-	GetDependenciesLinkedList() (map[Dep][]Dep, uri.URI, error)
+	GetDependenciesDAG() ([]DepDAGItem, uri.URI, error)
 }
 
 type Dep struct {
-	Name     string `json:"name,omitempty"`
-	Version  string `json:"version,omitempty"`
-	Type     string `json:"type,omitempty"`
-	Indirect bool   `json:"indirect,omitempty"`
-	SHA      string `json:"sha,omitempty"`
+	Name               string                 `json:"name,omitempty"`
+	Version            string                 `json:"version,omitempty"`
+	Type               string                 `json:"type,omitempty"`
+	Indirect           bool                   `json:"indirect,omitempty"`
+	ResolvedIdentifier string                 `json:"sha,omitempty"`
+	Extras             map[string]interface{} `json:"extras,omitempty"`
+}
+
+type DepDAGItem struct {
+	Dep       Dep          `json:"dep,omitempty"`
+	AddedDeps []DepDAGItem `json:"addedDep,omitempty"`
 }
 
 type Startable interface {
@@ -309,6 +315,7 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			matchedDeps = append(matchedDeps, &dep)
 		}
 	}
+
 	if len(matchedDeps) == 0 {
 		return resp, nil
 	}
@@ -402,4 +409,14 @@ func getVersion(depVersion string) (*version.Version, error) {
 		return nil, err
 	}
 	return version.NewVersion(matches[0])
+}
+
+// Convert Dag Item List to flat list.
+func ConvertDagItemsToList(items []DepDAGItem) []Dep {
+	deps := []Dep{}
+	for _, i := range items {
+		deps = append(deps, i.Dep)
+		deps = append(deps, ConvertDagItemsToList(i.AddedDeps)...)
+	}
+	return deps
 }

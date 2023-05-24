@@ -27,6 +27,7 @@ type server struct {
 }
 
 // Provider GRPC Service
+// TOOD: HANDLE INIT CONFIG CHANGES
 func NewServer(client Client, port int, logger logr.Logger) Server {
 	return &server{
 		Client:                             client,
@@ -65,21 +66,6 @@ func (s *server) Capabilities(ctx context.Context, _ *emptypb.Empty) (*libgrpc.C
 
 	return &libgrpc.CapabilitiesResponse{
 		Capabilities: pbCaps,
-	}, nil
-}
-
-func (s *server) HasCapability(ctx context.Context, hcr *libgrpc.HasCapabilityRequest) (*libgrpc.HasCapabilityResponse, error) {
-	caps := s.Client.Capabilities()
-
-	for _, c := range caps {
-		if c.Name == hcr.Capability {
-			return &libgrpc.HasCapabilityResponse{
-				HasCap: true,
-			}, nil
-		}
-	}
-	return &libgrpc.HasCapabilityResponse{
-		HasCap: false,
 	}, nil
 }
 
@@ -195,17 +181,24 @@ func (s *server) GetDependencies(ctx context.Context, in *emptypb.Empty) (*libgr
 	}
 	ds := []*libgrpc.Dependency{}
 	for _, d := range deps {
+		extras, err := structpb.NewStruct(d.Extras)
+		if err != nil {
+			return nil, err
+		}
 		ds = append(ds, &libgrpc.Dependency{
-			Name:     d.Name,
-			Version:  d.Version,
-			Type:     d.Type,
-			Sha:      d.SHA,
-			Indirect: d.Indirect,
+			Name:               d.Name,
+			Version:            d.Version,
+			Type:               d.Type,
+			ResolvedIdentifier: d.ResolvedIdentifier,
+			Extras:             extras,
+			Indirect:           d.Indirect,
 		})
 	}
+
 	return &libgrpc.DependencyResponse{
 		Successful: true,
-		FileURI:    string(uri),
+		//TODO FIX
+		FileURI: string(uri),
 		List: &libgrpc.DependencyList{
 			Deps: ds,
 		},
@@ -213,40 +206,39 @@ func (s *server) GetDependencies(ctx context.Context, in *emptypb.Empty) (*libgr
 
 }
 
-func (s *server) GetDependenciesLinkedList(ctx context.Context, in *emptypb.Empty) (*libgrpc.DependencyLinkedListResponse, error) {
-	deps, uri, err := s.Client.GetDependenciesLinkedList()
+func recreateDAGAddedItems(items []DepDAGItem) []*libgrpc.DependencyDAGItem {
+	deps := []*libgrpc.DependencyDAGItem{}
+	for _, i := range items {
+		extras, err := structpb.NewStruct(i.Dep.Extras)
+		if err != nil {
+			panic(err)
+		}
+		deps = append(deps, &libgrpc.DependencyDAGItem{
+			Key: &libgrpc.Dependency{
+				Name:               i.Dep.Name,
+				Version:            i.Dep.Version,
+				Type:               i.Dep.Type,
+				ResolvedIdentifier: i.Dep.ResolvedIdentifier,
+				Extras:             extras,
+				Indirect:           false,
+			},
+			AddedDeps: recreateDAGAddedItems(i.AddedDeps),
+		})
+	}
+	return deps
+}
+
+func (s *server) GetDependenciesLinkedList(ctx context.Context, in *emptypb.Empty) (*libgrpc.DependencyDAGResponse, error) {
+	deps, uri, err := s.Client.GetDependenciesDAG()
 	if err != nil {
-		return &libgrpc.DependencyLinkedListResponse{
+		return &libgrpc.DependencyDAGResponse{
 			Successful: false,
 			Error:      err.Error(),
 		}, nil
 	}
-	l := []*libgrpc.DependencyLinkedListItem{}
-	for k, v := range deps {
-		d := []*libgrpc.Dependency{}
-		for _, x := range v {
-			d = append(d, &libgrpc.Dependency{
-				Name:     x.Name,
-				Version:  x.Version,
-				Type:     x.Type,
-				Sha:      x.SHA,
-				Indirect: x.Indirect,
-			})
-		}
-		l = append(l, &libgrpc.DependencyLinkedListItem{
-			Key: &libgrpc.Dependency{
-				Name:     k.Name,
-				Version:  k.Version,
-				Type:     k.Type,
-				Sha:      k.SHA,
-				Indirect: k.Indirect,
-			},
-			Value: &libgrpc.DependencyList{
-				Deps: d,
-			},
-		})
-	}
-	return &libgrpc.DependencyLinkedListResponse{
+	l := recreateDAGAddedItems(deps)
+
+	return &libgrpc.DependencyDAGResponse{
 		Successful: true,
 		FileURI:    string(uri),
 		List:       l,

@@ -27,7 +27,7 @@ func (c *fakeClient) GetDependencies() ([]Dep, uri.URI, error) {
 	return c.dependencies, uri.File("test"), nil
 }
 
-func (c *fakeClient) GetDependenciesLinkedList() (map[Dep][]Dep, uri.URI, error) {
+func (c *fakeClient) GetDependenciesDAG() ([]DepDAGItem, uri.URI, error) {
 	return nil, uri.File("test"), nil
 }
 

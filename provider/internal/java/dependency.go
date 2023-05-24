@@ -31,7 +31,7 @@ func (p *javaProvider) findPom() string {
 }
 
 func (p *javaProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
-	ll, file, err := p.GetDependenciesLinkedList()
+	ll, file, err := p.GetDependenciesDAG()
 	if err != nil {
 		return p.GetDependencyFallback()
 	}
@@ -39,9 +39,9 @@ func (p *javaProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 		return p.GetDependencyFallback()
 	}
 	deps := []provider.Dep{}
-	for topLevel, transitives := range ll {
-		deps = append(deps, topLevel)
-		deps = append(deps, transitives...)
+	for _, transitives := range ll {
+		deps = append(deps, transitives.Dep)
+		deps = append(deps, provider.ConvertDagItemsToList(transitives.AddedDeps)...)
 	}
 	return deps, file, err
 }
@@ -104,7 +104,7 @@ func (p *javaProvider) GetDependencyFallback() ([]provider.Dep, uri.URI, error) 
 	return deps, file, nil
 }
 
-func (p *javaProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
+func (p *javaProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
 	localRepoPath := p.getLocalRepoPath()
 
 	path := p.findPom()
@@ -139,9 +139,9 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.
 		lines = lines[1 : len(lines)-2]
 	}
 
-	deps := map[provider.Dep][]provider.Dep{}
+	deps := []provider.DepDAGItem{}
 
-	err = parseMavenDepLines(lines, deps, localRepoPath)
+	deps, err = parseMavenDepLines(lines, localRepoPath)
 	if err != nil {
 		return nil, file, err
 	}
@@ -156,7 +156,7 @@ func (p *javaProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.
 }
 
 type walker struct {
-	deps map[provider.Dep][]provider.Dep
+	deps []provider.DepDAGItem
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -170,7 +170,9 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		w.deps[d] = []provider.Dep{}
+		w.deps = append(w.deps, provider.DepDAGItem{
+			Dep: d,
+		})
 	}
 	return nil
 }
@@ -202,37 +204,39 @@ func parseDepString(dep, localRepoPath string) (provider.Dep, error) {
 	if err != nil {
 		return d, err
 	}
-	d.SHA = string(b)
+	d.ResolvedIdentifier = string(b)
 
 	return d, nil
 }
 
 // parseMavenDepLines recursively parses output lines from maven dependency tree
-func parseMavenDepLines(lines []string, deps map[provider.Dep][]provider.Dep, localRepoPath string) error {
+func parseMavenDepLines(lines []string, localRepoPath string) ([]provider.DepDAGItem, error) {
 	if len(lines) > 0 {
 		baseDepString := lines[0]
 		baseDep, err := parseDepString(baseDepString, localRepoPath)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if _, ok := deps[baseDep]; !ok {
-			deps[baseDep] = make([]provider.Dep, 0)
-		}
+		item := provider.DepDAGItem{}
+		item.Dep = baseDep
+		item.AddedDeps = []provider.DepDAGItem{}
 		idx := 1
 		// indirect deps are separated by 3 or more spaces after the direct dep
 		for idx < len(lines) && strings.Count(lines[idx], " ") > 2 {
 			transitiveDep, err := parseDepString(lines[idx], localRepoPath)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			transitiveDep.Indirect = true
-			deps[baseDep] = append(deps[baseDep], transitiveDep)
+			item.AddedDeps = append(item.AddedDeps, provider.DepDAGItem{Dep: transitiveDep})
 			idx += 1
 		}
-		err = parseMavenDepLines(lines[idx:], deps, localRepoPath)
+		ds, err := parseMavenDepLines(lines[idx:], localRepoPath)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		ds = append(ds, item)
+		return ds, nil
 	}
-	return nil
+	return []provider.DepDAGItem{}, nil
 }

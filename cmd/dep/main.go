@@ -51,7 +51,7 @@ func main() {
 	}
 
 	var depsFlat []provider.Dep
-	var depsTree map[provider.Dep][]provider.Dep
+	var depsTree []provider.DepDAGItem
 	for name, prov := range providers {
 		if !provider.HasCapability(prov.Capabilities(), "dependency") {
 			log.Info("provider does not have dependency capability", "provider", name)
@@ -59,17 +59,12 @@ func main() {
 		}
 
 		if *treeOutput {
-			deps, _, err := prov.GetDependenciesLinkedList()
+			deps, _, err := prov.GetDependenciesDAG()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			if depsTree == nil {
-				depsTree = make(map[provider.Dep][]provider.Dep)
-			}
-			for parentDep, transitiveDeps := range deps {
-				depsTree[parentDep] = transitiveDeps
-			}
+			depsTree = append(depsTree, deps...)
 		} else {
 			deps, _, err := prov.GetDependencies()
 			if err != nil {

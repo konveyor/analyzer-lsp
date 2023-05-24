@@ -163,54 +163,53 @@ func (g *grpcProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	provs := []provider.Dep{}
 	for _, x := range d.List.Deps {
 		provs = append(provs, provider.Dep{
-			Name:     x.Name,
-			Version:  x.Version,
-			Type:     x.Type,
-			Indirect: x.Indirect,
-			SHA:      x.Sha,
+			Name:               x.Name,
+			Version:            x.Version,
+			Type:               x.Type,
+			Indirect:           x.Indirect,
+			ResolvedIdentifier: x.ResolvedIdentifier,
+			Extras:             x.Extras.AsMap(),
 		})
 	}
 
 	u, err := uri.Parse(d.FileURI)
 	if err != nil {
-		return nil, uri.URI(""), fmt.Errorf(d.Error)
+		u = uri.URI(d.FileURI)
 	}
 
 	return provs, u, nil
 
 }
 
+func recreateDAGAddedItems(items []*pb.DependencyDAGItem) []provider.DepDAGItem {
+
+	deps := []provider.DepDAGItem{}
+	for _, x := range items {
+		deps = append(deps, provider.DepDAGItem{
+			Dep: provider.Dep{
+				Name:               x.Key.Name,
+				Version:            x.Key.Version,
+				Type:               x.Key.Type,
+				Indirect:           x.Key.Indirect,
+				ResolvedIdentifier: x.Key.ResolvedIdentifier,
+				Extras:             x.Key.Extras.AsMap(),
+			},
+			AddedDeps: recreateDAGAddedItems(x.AddedDeps),
+		})
+	}
+	return deps
+}
+
 // We don't have dependencies
-func (g *grpcProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
-	d, err := g.Client.GetDependenciesLinkedList(g.ctx, &emptypb.Empty{})
+func (g *grpcProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+	d, err := g.Client.GetDependenciesDAG(g.ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, uri.URI(""), err
 	}
 	if !d.Successful {
 		return nil, uri.URI(""), fmt.Errorf(d.Error)
 	}
-
-	m := map[provider.Dep][]provider.Dep{}
-	for _, v := range d.List {
-		keyDep := provider.Dep{
-			Name:     v.Key.Name,
-			Version:  v.Key.Version,
-			Type:     v.Key.Type,
-			Indirect: v.Key.Indirect,
-			SHA:      v.Key.Sha,
-		}
-		values := []provider.Dep{}
-		for _, x := range v.Value.Deps {
-			values = append(values, provider.Dep{
-				Name:     x.Name,
-				Version:  x.Version,
-				Type:     x.Type,
-				Indirect: x.Indirect,
-				SHA:      x.Sha,
-			})
-		}
-		m[keyDep] = values
-	}
+	m := recreateDAGAddedItems(d.List)
 
 	u, err := uri.Parse(d.FileURI)
 	if err != nil {

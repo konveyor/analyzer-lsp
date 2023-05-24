@@ -37,7 +37,7 @@ func (t testProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	return nil, uri.File("test"), nil
 }
 
-func (t testProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
+func (t testProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
 	return nil, uri.File("test"), nil
 }
 

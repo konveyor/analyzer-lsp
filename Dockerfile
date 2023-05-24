@@ -1,7 +1,17 @@
 FROM golang:1.18 as builder
 WORKDIR /analyzer-lsp
-# TODO limit to prevent unnecessary rebuilds
-COPY  . /analyzer-lsp
+COPY  cmd /analyzer-lsp/cmd
+COPY  engine /analyzer-lsp/engine
+COPY  hubapi /analyzer-lsp/hubapi
+COPY  jsonrpc2 /analyzer-lsp/jsonrpc2
+COPY  lsp /analyzer-lsp/lsp
+COPY  parser /analyzer-lsp/parser
+COPY  provider /analyzer-lsp/provider
+COPY  tracing /analyzer-lsp/tracing
+COPY  external-providers /analyzer-lsp/external-providers
+COPY  go.mod /analyzer-lsp/go.mod
+COPY  go.sum /analyzer-lsp/go.sum
+COPY  Makefile /analyzer-lsp/Makefile
 RUN make build
 
 # The unofficial base image w/ jdtls and gopls installed

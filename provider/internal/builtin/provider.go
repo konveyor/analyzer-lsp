@@ -412,6 +412,6 @@ func (p *builtinProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 }
 
 // We don't have dependencies
-func (p *builtinProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
+func (p *builtinProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
 	return nil, "", nil
 }

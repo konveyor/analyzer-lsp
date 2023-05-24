@@ -27,27 +27,24 @@ func (g *golangProvider) findGoMod() string {
 }
 
 func (g *golangProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
-	ll, f, err := g.GetDependenciesLinkedList()
+	ll, f, err := g.GetDependenciesDAG()
 	if err != nil {
 		return nil, f, err
 	}
 	if len(ll) == 0 {
 		return nil, f, nil
 	}
-	deps := []provider.Dep{}
-	for topLevel, transitives := range ll {
-		deps = append(deps, topLevel)
-		deps = append(deps, transitives...)
-	}
-	return deps, f, err
+
+	return provider.ConvertDagItemsToList(ll), f, err
 }
 
-func (g *golangProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
+func (g *golangProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 
 	path := g.findGoMod()
 	file := uri.File(path)
+	fmt.Printf("%#v", file)
 
 	moddir := filepath.Dir(path)
 	// get the graph output
@@ -87,10 +84,10 @@ func parseGoDepString(dep string) (provider.Dep, error) {
 }
 
 // parseGoDepLines parses go mod graph output
-func parseGoDepLines(lines []string) (map[provider.Dep][]provider.Dep, error) {
+func parseGoDepLines(lines []string) ([]provider.DepDAGItem, error) {
 	depsListed := map[string][]string{}
 	var root *string
-	deps := map[provider.Dep][]provider.Dep{}
+	deps := []provider.DepDAGItem{}
 
 	for _, l := range lines {
 		// get all base mod deps.
@@ -129,9 +126,11 @@ func parseGoDepLines(lines []string) (map[provider.Dep][]provider.Dep, error) {
 			fmt.Println(err.Error())
 			return deps, err
 		}
-		if _, ok := deps[directDep]; !ok {
-			deps[directDep] = make([]provider.Dep, 0)
+		d := provider.DepDAGItem{
+			Dep: directDep,
 		}
+
+		indirect := []provider.DepDAGItem{}
 
 		// traverse the list to find all indirect deps for current dep
 		for _, indirectDepString := range depsListed[directDepString] {
@@ -141,8 +140,10 @@ func parseGoDepLines(lines []string) (map[provider.Dep][]provider.Dep, error) {
 				fmt.Println(err.Error())
 				return deps, err
 			}
-			deps[directDep] = append(deps[directDep], indirectDep)
+			indirect = append(indirect, provider.DepDAGItem{Dep: indirectDep})
 		}
+		d.AddedDeps = indirect
+		deps = append(deps, d)
 	}
 	return deps, nil
 }

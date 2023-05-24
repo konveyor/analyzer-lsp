@@ -56,14 +56,6 @@ message ProviderEvaluateResponse {
   google.protobuf.Struct templateContext = 3;
 }
 
-message HasCapabilityRequest {
-  string capability = 1;
-}
-
-message HasCapabilityResponse {
-  bool hasCap = 1;
-}
-
 message BasicResponse {
   string error = 1 ;
   bool successful = 2;
@@ -86,20 +78,20 @@ message CapabilitiesResponse {
 
 service ProviderService {
   rpc Capabilities (google.protobuf.Empty) returns (CapabilitiesResponse) {};
-  rpc HasCapability (HasCapabilityRequest) returns (HasCapabilityResponse) {};
   rpc Init (Config) returns (InitResponse) {};
   rpc Evaluate (EvaluateRequest) returns (EvaluateResponse) {};
   rpc Stop (google.protobuf.Empty) returns (google.protobuf.Empty) {};
   rpc GetDependencies (google.protobuf.Empty) returns (DependencyResponse) {};
-  rpc GetDependenciesLinkedList(google.protobuf.Empty) returns (DependencyLinkedListResponse) {};
+  rpc GetDependenciesDAG(google.protobuf.Empty) returns (DependencyDAGResponse) {};
 }
 
 message Dependency {
   string name = 1;
   string version = 2;
   string type = 3;
-  string sha = 4;
+  string resolvedIdentifier = 4;
   bool indirect = 5;
+  google.protobuf.Struct extras = 6;
 }
 
 message DependencyList {
@@ -113,14 +105,14 @@ message DependencyResponse{
   DependencyList list = 4;
 }
 
-message DependencyLinkedListItem {
+message DependencyDAGItem {
   Dependency key = 1;
-  DependencyList value = 2;
+  repeated DependencyDAGItem addedDeps = 2;
 }
 
-message DependencyLinkedListResponse {
+message DependencyDAGResponse{
   bool successful  = 1;
   string error  = 2;
   string fileURI = 3;
-  repeated DependencyLinkedListItem list = 4;
+  repeated DependencyDAGItem list = 4;
 }
