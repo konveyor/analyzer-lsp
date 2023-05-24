@@ -443,13 +443,12 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			incident.Message = templateString
 		}
 
-		lineNumberString := "-1" // Default lineNumber
-
-		if lineNumber, hasLineNumber := incident.Variables["lineNumber"]; hasLineNumber {
-			lineNumberString = fmt.Sprint(lineNumber) // Updating the line number if the incident has a line number
+		lineNumber, hasLineNumber := incident.Variables["lineNumber"]
+		if !hasLineNumber {
+			lineNumber = -1
 		}
 
-		incidentString := fmt.Sprintf("%s-%s-%s", incident.URI, incident.Message, lineNumberString) // Formating a unique string for an incident
+		incidentString := fmt.Sprintf("%s-%s-%d", incident.URI, incident.Message, lineNumber) // Formating a unique string for an incident
 
 		// Adding it to list  and set if no duplicates found
 		if _, isDuplicate := incidentsSet[incidentString]; !isDuplicate {
