@@ -67,7 +67,7 @@ jobs:
         uses: cypress-io/github-action@v5
         with:
           working-directory: tackle-ui-tests
-          env: user=admin,pass=password,tackleUrl=${{ env.CYPRESS_tackleUrl }},split=${{ strategy.job-total }},splitIndex=${{ strategy.job-index }}
+          env: user=admin,pass=password,tackleUrl=${{ env.CYPRESS_tackleUrl }}
           spec: "cypress/e2e/tests/login.test.ts"
 
       - name: Run UI tests
