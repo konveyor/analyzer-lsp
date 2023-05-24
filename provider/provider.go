@@ -146,8 +146,6 @@ func HasCapability(caps []Capability, name string) bool {
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
 type Client interface {
 	Capabilities() []Capability
-	HasCapability(name string) bool
-
 	// Block until initialized
 	Init(context.Context, logr.Logger, InitConfig) (int, error)
 

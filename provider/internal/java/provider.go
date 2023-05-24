@@ -119,10 +119,6 @@ func (p *javaProvider) Capabilities() []provider.Capability {
 	return caps
 }
 
-func (p *javaProvider) HasCapability(name string) bool {
-	return provider.HasCapability(p.Capabilities(), name)
-}
-
 func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	cond := &javaCondition{}
 	err := yaml.Unmarshal(conditionInfo, &cond)

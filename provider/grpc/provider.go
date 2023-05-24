@@ -41,20 +41,6 @@ func (g *grpcProvider) Stop() {
 	g.conn.Close()
 }
 
-func (g *grpcProvider) HasCapability(name string) bool {
-	m := pb.HasCapabilityRequest{
-		Capability: name,
-	}
-
-	r, err := g.Client.HasCapability(context.TODO(), &m)
-	if err != nil {
-		// Handle this smarter in the future, for now log and return empty
-		g.log.V(5).Error(err, "grpc unable to get info")
-		return false
-	}
-	return r.HasCap
-}
-
 func (g *grpcProvider) Capabilities() []provider.Capability {
 	r, err := g.Client.Capabilities(context.TODO(), &emptypb.Empty{})
 	if err != nil {

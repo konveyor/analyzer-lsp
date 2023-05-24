@@ -104,10 +104,6 @@ func (p *builtinProvider) Capabilities() []provider.Capability {
 	return capabilities
 }
 
-func (p *builtinProvider) HasCapability(name string) bool {
-	return provider.HasCapability(p.Capabilities(), name)
-}
-
 func (p *builtinProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond builtinCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)

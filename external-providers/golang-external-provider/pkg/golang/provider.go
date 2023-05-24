@@ -56,12 +56,8 @@ func (p *golangProvider) Capabilities() []provider.Capability {
 	}
 }
 
-func (p *golangProvider) HasCapability(name string) bool {
-	return provider.HasCapability(p.Capabilities(), name)
-}
-
 type golangCondition struct {
-	Referenced string `yaml:'referenced'`
+	Referenced string `yaml:"referenced"`
 }
 
 func (p *golangProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {

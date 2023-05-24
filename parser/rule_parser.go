@@ -654,7 +654,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 		return nil, nil, fmt.Errorf("unable to find provider for :%v", langProvider)
 	}
 
-	if !client.HasCapability(capability) {
+	if !provider.HasCapability(client.Capabilities(), capability) {
 		return nil, nil, fmt.Errorf("unable to find cap: %v from provider: %v", capability, langProvider)
 	}
 

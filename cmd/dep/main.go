@@ -53,7 +53,7 @@ func main() {
 	var depsFlat []provider.Dep
 	var depsTree map[provider.Dep][]provider.Dep
 	for name, prov := range providers {
-		if !prov.HasCapability("dependency") {
+		if !provider.HasCapability(prov.Capabilities(), "dependency") {
 			log.Info("provider does not have dependency capability", "provider", name)
 			continue
 		}
