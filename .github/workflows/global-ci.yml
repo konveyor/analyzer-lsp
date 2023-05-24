@@ -16,17 +16,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tier:
-          - tier1
-          - tier2
-          - tier3
-            # TODO separete the runs into tiers for speed and whatnot
+        split: [0, 1, 2, 3, 4, 5]
     steps:
       - name: Checkout ui tests repo
         uses: actions/checkout@v3
         with:
-          repository: konveyor/tackle-ui-tests
+          # repository: konveyor/tackle-ui-tests
+          repository: fabianvf/tackle-ui-tests
           path: tackle-ui-tests
+          ref: support-split
       # - name: Checkout golang api tests repo
       #   uses: actions/checkout@v3
       #   with:
@@ -69,21 +67,21 @@ jobs:
         uses: cypress-io/github-action@v5
         with:
           working-directory: tackle-ui-tests
-          env: user=admin,pass=password,tackleUrl=${{ env.CYPRESS_tackleUrl }},grepTags=${{ matrix.tier }}
+          env: user=admin,pass=password,tackleUrl=${{ env.CYPRESS_tackleUrl }},split=${{ strategy.job-total }},splitIndex=${{ strategy.job-index }}
           spec: "cypress/e2e/tests/login.test.ts"
 
       - name: Run UI tests
         uses: cypress-io/github-action@v5
         with:
           working-directory: tackle-ui-tests
-          env: user=admin,git_user=fakeuser,pass=Dog8code,git_password=${{ secrets.GITHUB_TOKEN }},git_key=${{ secrets.GITHUB_TOKEN }},tackleUrl=${{ env.CYPRESS_tackleUrl }},grepTags=@${{ matrix.tier }}
+          env: user=admin,pass=Dog8code,tackleUrl=${{ env.CYPRESS_tackleUrl }},git_user=fakeuser,git_password=${{ secrets.GITHUB_TOKEN }},git_key=${{ secrets.GITHUB_TOKEN }},split=${{ strategy.job-total }},splitIndex=${{ strategy.job-index }}
           spec: "**/*.test.ts"
 
       - name: Upload cypress report  data as artifact
         uses: actions/upload-artifact@v3
         if: always()
         with:
-          name: tackle-ui-test-reports-${{ matrix.tier }}
+          name: tackle-ui-test-reports-${{ matrix.job-index }}
           path: |
             tackle-ui-tests/cypress/reports
             tackle-ui-tests/cypress/screenshots
