@@ -76,7 +76,7 @@ jobs:
         uses: cypress-io/github-action@v5
         with:
           working-directory: tackle-ui-tests
-          env: user=admin,pass=Dog8code,tackleUrl=${{ env.CYPRESS_tackleUrl }},grepTags=@${{ matrix.tier }}
+          env: user=admin,pass=Dog8code,git_password=${{ secrets.GITHUB_TOKEN }},tackleUrl=${{ env.CYPRESS_tackleUrl }},grepTags=@${{ matrix.tier }}
           spec: "**/*.test.ts"
 
       - name: Upload cypress report  data as artifact
