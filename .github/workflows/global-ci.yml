@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: always()
         with:
-          name: tackle-ui-test-reports
+          name: tackle-ui-test-reports-${{ matrix.tier }}
           path: |
             tackle-ui-tests/cypress/reports
             tackle-ui-tests/cypress/screenshots
