@@ -74,7 +74,11 @@
     - Java
   ruleID: tag-java-000
   when:
-    builtin.file: "pom.xml"
+    or:
+      - builtin.file: "pom.xml"
+      - builtin.file: "*.ear"
+      - builtin.file: "*.jar"
+      - builtin.file: "*.war"
 - message: "Tags {{tags}} found"
   ruleID: tech-tag-001
   when:

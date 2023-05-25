@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -14,6 +15,12 @@ import (
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"gopkg.in/yaml.v2"
+)
+
+const (
+	JavaArchive       = ".jar"
+	WebArchive        = ".war"
+	EnterpriseArchive = ".ear"
 )
 
 // Rule Location to location that the bundle understands
@@ -234,6 +241,16 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	var returnErr error
 	ctx, cancelFunc := context.WithCancel(ctx)
 	p.once.Do(func() {
+		extension := strings.ToLower(path.Ext(config.Location))
+		switch extension {
+		case JavaArchive, WebArchive, EnterpriseArchive:
+			newLocation, err := decompileJava(ctx, log, config.Location)
+			if err != nil {
+				returnErr = err
+				return
+			}
+			config.Location = newLocation
+		}
 
 		cmd := exec.CommandContext(ctx, config.LSPServerPath,
 			"-configuration",
