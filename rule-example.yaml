@@ -16,7 +16,7 @@
   when:
     builtin.file: "*.go"
     not: true
-- message: POM XML dependencies
+- message: POM XML dependencies - '{{{matchingXML}}}'
   ruleID: xml-pom-001
   when:
     builtin.xml: 
