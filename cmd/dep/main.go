@@ -18,6 +18,16 @@ var (
 	outputFile       = flag.String("output-file", "output.yaml", "path to output file")
 )
 
+type DepsFlatItem struct {
+	Provider     string         `yaml:"Provider"`
+	Dependencies []provider.Dep `yaml:"Dependencies"`
+}
+
+type DepsTreeItem struct {
+	Provider     string                          `yaml:"Provider"`
+	Dependencies map[provider.Dep][]provider.Dep `yaml:"Dependencies"`
+}
+
 func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
@@ -50,8 +60,8 @@ func main() {
 		providers[config.Name] = provider
 	}
 
-	var depsFlat []provider.Dep
-	var depsTree map[provider.Dep][]provider.Dep
+	var depsFlat []DepsFlatItem
+	var depsTree []DepsTreeItem
 	for name, prov := range providers {
 		if !prov.HasCapability("dependency") {
 			log.Info("provider does not have dependency capability", "provider", name)
@@ -59,28 +69,33 @@ func main() {
 		}
 
 		if *treeOutput {
+			providerDeps := DepsTreeItem{
+				Provider:     name,
+				Dependencies: make(map[provider.Dep][]provider.Dep),
+			}
 			deps, _, err := prov.GetDependenciesLinkedList()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			if depsTree == nil {
-				depsTree = make(map[provider.Dep][]provider.Dep)
-			}
 			for parentDep, transitiveDeps := range deps {
-				depsTree[parentDep] = transitiveDeps
+				providerDeps.Dependencies[parentDep] = transitiveDeps
 			}
+			depsTree = append(depsTree, providerDeps)
 		} else {
+			providerDeps := DepsFlatItem{
+				Provider:     name,
+				Dependencies: make([]provider.Dep, 0),
+			}
 			deps, _, err := prov.GetDependencies()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			if depsFlat == nil {
-				depsFlat = make([]provider.Dep, 0)
-			}
-			depsFlat = append(depsFlat, deps...)
+			providerDeps.Dependencies = append(providerDeps.Dependencies, deps...)
+			depsFlat = append(depsFlat, providerDeps)
 		}
+
 	}
 
 	if depsFlat == nil && depsTree == nil {
