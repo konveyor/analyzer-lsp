@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: always()
         with:
-          name: tackle-ui-test-reports-${{ matrix.job-index }}
+          name: tackle-ui-test-reports-${{ matrix.split }}
           path: |
             tackle-ui-tests/cypress/reports
             tackle-ui-tests/cypress/screenshots
