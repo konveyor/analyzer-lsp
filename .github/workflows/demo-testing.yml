@@ -20,7 +20,7 @@ jobs:
           podman tag localhost/testing:latest quay.io/konveyor/analyzer-lsp:latest
           podman save -o /tmp/analyzer-lsp.tar quay.io/konveyor/analyzer-lsp:latest
       - name: Upload image as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: analyzer-lsp
           path: /tmp/analyzer-lsp.tar
