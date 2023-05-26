@@ -69,10 +69,6 @@ jobs:
           go test -v ./analysis/...
         working-directory: go-konveyor-tests
 
-      # - name: Build and run python API tests
-      #   run: |
-      #     export UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)
-      #     export HUB_URL=$(minikube service tackle-hub-nodeport -n konveyor-tackle --url)
 
   tackle-python-api-tests:
     runs-on: ubuntu-latest
@@ -131,7 +127,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        split: [1, 2, 3, 4, 5, 6]
+        split: [0, 1, 2, 3, 4, 5, 6, 7]
     steps:
       - name: Checkout ui tests repo
         uses: actions/checkout@v3
@@ -185,7 +181,7 @@ jobs:
         uses: cypress-io/github-action@v5
         with:
           working-directory: tackle-ui-tests
-          env: user=admin,pass=Dog8code,tackleUrl=${{ env.CYPRESS_tackleUrl }},git_user=fakeuser,git_password=${{ secrets.GITHUB_TOKEN }},git_key=${{ secrets.GITHUB_TOKEN }},split=${{ strategy.job-total }},splitIndex=${{ strategy.job-index }}
+          env: user=admin,pass=Dog8code,tackleUrl="${{ env.CYPRESS_tackleUrl }}",git_user="fakeuser",git_password="${{ secrets.GITHUB_TOKEN }}",git_key="${{ secrets.GITHUB_TOKEN }}",split="${{ strategy.job-total }}",splitIndex="${{ strategy.job-index }}"
           spec: "**/*.test.ts"
 
       - name: Upload cypress report  data as artifact
