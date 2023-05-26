@@ -11,7 +11,7 @@ The config file for providers contains an array of JSON objects with each object
 Provider configuration fields are:
 
 * `name`: Name of the provider.
-* `location`: Path to the source code of tha application to analyze.
+* `location`: Path to the source code of the application to analyze.
 * `dependencyPath`: Path to look for dependencies of the application.
 * `binaryLocation`: Path to language server binary used by the provider. Note that a language server may or may not be used by a provider. For instance, the `builtin` provider does not use a language server.
 * `providerSpecificConfig`: Reserved for additional configuration options specific to a provider.
@@ -38,10 +38,26 @@ The `java` provider takes following additional configuration options:
 
 * `bundles`: Path to extension bundles to enhance default Java language server's capabilities. See the [bundle](https://github.com/konveyor/java-analyzer-bundle) Konveyor uses.
 * `workspace`: Path to directory where the provider generates debug information such as logs.
+* `location`: Path to the source code of the application to analyze. The location can be a binary jar, war, or ear file.
+
+Here's an updated example config for the Java provider in `provider_settings.json`:
+
+```json
+[
+    {
+        "name": "java",
+        "location": "path/to/application.jar",
+        "binaryLocation": "/path/to/language/server/binary",
+        "bundles": "path/to/extension/bundles",
+        "workspace": "path/to/workspace"
+    }
+]
+```
+
+Please make sure to replace `"path/to/application.jar"` with the actual path to the binary jar, war, or ear file you want to use as the location for analysis when using the Java provider.
 
 #### Builtin
 
 The `builtin` provider takes following additional configuration options:
 
 * `tagsFile`: Path to YAML file that contains a list of tags for the application being analyzed
-
