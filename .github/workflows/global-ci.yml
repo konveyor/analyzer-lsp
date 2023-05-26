@@ -20,12 +20,6 @@ jobs:
           repository: konveyor/go-konveyor-tests
           path: go-konveyor-tests
 
-      - name: Checkout python api tests repo
-        uses: actions/checkout@v3
-        with:
-          repository: konveyor/tackle-api-tests
-          path: tackle-api-tests
-
       # TODO Should DRY this
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v2
@@ -65,10 +59,9 @@ jobs:
 
       - name: Build and run golang API tests
         run: |
-          export HUB_BASE_URL=${{ env.HUB_URL }}
+          export HUB_BASE_URL="http://$(minikube ip)/hub"
           go test -v ./analysis/...
         working-directory: go-konveyor-tests
-
 
   tackle-python-api-tests:
     runs-on: ubuntu-latest
