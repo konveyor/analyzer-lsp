@@ -16,21 +16,21 @@ import (
 )
 
 // TODO implement this for real
-func (p *javaProvider) findPom() string {
+func (p *javaServiceClient) findPom() string {
 	var depPath string
-	if p.config.InitConfig.DependencyPath == "" {
+	if p.config.DependencyPath == "" {
 		depPath = "pom.xml"
 	} else {
-		depPath = p.config.InitConfig.DependencyPath
+		depPath = p.config.DependencyPath
 	}
-	f, err := filepath.Abs(filepath.Join(p.config.InitConfig.Location, depPath))
+	f, err := filepath.Abs(filepath.Join(p.config.Location, depPath))
 	if err != nil {
 		return ""
 	}
 	return f
 }
 
-func (p *javaProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
+func (p *javaServiceClient) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	ll, file, err := p.GetDependenciesDAG()
 	if err != nil {
 		return p.GetDependencyFallback()
@@ -46,7 +46,7 @@ func (p *javaProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	return deps, file, err
 }
 
-func (p *javaProvider) getLocalRepoPath() string {
+func (p *javaServiceClient) getLocalRepoPath() string {
 	cmd := exec.Command("mvn", "help:evaluate", "-Dexpression=settings.localRepository", "-q", "-DforceStdout")
 	var outb bytes.Buffer
 	cmd.Stdout = &outb
@@ -59,7 +59,7 @@ func (p *javaProvider) getLocalRepoPath() string {
 	return string(outb.String())
 }
 
-func (p *javaProvider) GetDependencyFallback() ([]provider.Dep, uri.URI, error) {
+func (p *javaServiceClient) GetDependencyFallback() ([]provider.Dep, uri.URI, error) {
 	pomDependencyQuery := "//dependencies/dependency/*"
 	path := p.findPom()
 	file := uri.File(path)
@@ -104,7 +104,7 @@ func (p *javaProvider) GetDependencyFallback() ([]provider.Dep, uri.URI, error) 
 	return deps, file, nil
 }
 
-func (p *javaProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+func (p *javaServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
 	localRepoPath := p.getLocalRepoPath()
 
 	path := p.findPom()

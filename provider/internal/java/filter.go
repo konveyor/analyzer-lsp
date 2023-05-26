@@ -15,7 +15,7 @@ const (
 	FILE_KEY              = "file"
 )
 
-func (p *javaProvider) filterVariableDeclaration(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterVariableDeclaration(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 	incidents := []provider.IncidentContext{}
 	for _, ref := range symbols {
 		incident, err := p.convertToIncidentContext(ref)
@@ -27,7 +27,7 @@ func (p *javaProvider) filterVariableDeclaration(symbols []protocol.WorkspaceSym
 	return incidents, nil
 }
 
-func (p *javaProvider) filterModulesImports(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterModulesImports(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
 		if symbol.Kind != protocol.Module {
@@ -42,7 +42,7 @@ func (p *javaProvider) filterModulesImports(symbols []protocol.WorkspaceSymbol) 
 	return incidents, nil
 }
 
-func (p *javaProvider) filterTypesInheritance(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterTypesInheritance(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
 		incident, err := p.convertToIncidentContext(symbol)
@@ -55,7 +55,7 @@ func (p *javaProvider) filterTypesInheritance(symbols []protocol.WorkspaceSymbol
 	return incidents, nil
 }
 
-func (p *javaProvider) filterTypeReferences(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterTypeReferences(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
 		references := p.GetAllReferences(symbol)
@@ -71,7 +71,7 @@ func (p *javaProvider) filterTypeReferences(symbols []protocol.WorkspaceSymbol) 
 	return incidents, nil
 }
 
-func (p *javaProvider) filterDefault(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterDefault(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
 		incident, err := p.convertToIncidentContext(symbol)
@@ -86,7 +86,7 @@ func (p *javaProvider) filterDefault(symbols []protocol.WorkspaceSymbol) ([]prov
 // TODO: we will probably want to filter symbols bassed on if in any way the method is being used in the code directly.
 // This will need to be part of a "filtration" concept that windup has. Searching partiular subsets of things (just the application, applicatoin + corp libraries and the everything.)
 // Today this is just giving everything.
-func (p *javaProvider) filterMethodSymbols(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterMethodSymbols(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
 		incident, err := p.convertToIncidentContext(symbol)
@@ -100,7 +100,7 @@ func (p *javaProvider) filterMethodSymbols(symbols []protocol.WorkspaceSymbol) (
 
 }
 
-func (p *javaProvider) filterConstructorSymbols(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterConstructorSymbols(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
@@ -116,7 +116,7 @@ func (p *javaProvider) filterConstructorSymbols(symbols []protocol.WorkspaceSymb
 	return incidents, nil
 }
 
-func (p *javaProvider) convertToIncidentContext(symbol protocol.WorkspaceSymbol) (provider.IncidentContext, error) {
+func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSymbol) (provider.IncidentContext, error) {
 	var u uri.URI
 	var err error
 
@@ -156,7 +156,7 @@ func (p *javaProvider) convertToIncidentContext(symbol protocol.WorkspaceSymbol)
 	return incident, nil
 }
 
-func (p *javaProvider) convertSymbolRefToIncidentContext(symbol protocol.WorkspaceSymbol, ref protocol.Location) (provider.IncidentContext, error) {
+func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.WorkspaceSymbol, ref protocol.Location) (provider.IncidentContext, error) {
 	var u uri.URI
 	var err error
 

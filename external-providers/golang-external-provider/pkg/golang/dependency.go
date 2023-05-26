@@ -12,7 +12,7 @@ import (
 )
 
 // TODO implement this for real
-func (g *golangProvider) findGoMod() string {
+func (g *golangServiceClient) findGoMod() string {
 	var depPath string
 	if g.config.DependencyPath == "" {
 		depPath = "go.mod"
@@ -26,7 +26,7 @@ func (g *golangProvider) findGoMod() string {
 	return f
 }
 
-func (g *golangProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
+func (g *golangServiceClient) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	ll, f, err := g.GetDependenciesDAG()
 	if err != nil {
 		return nil, f, err
@@ -38,7 +38,7 @@ func (g *golangProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	return provider.ConvertDagItemsToList(ll), f, err
 }
 
-func (g *golangProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+func (g *golangServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 

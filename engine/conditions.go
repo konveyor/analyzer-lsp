@@ -121,7 +121,7 @@ type Perform struct {
 
 type Message struct {
 	Text  *string       `yaml:"message,omitempty"`
-	Links []hubapi.Link `yaml:"links,omitempty" json:"links,omitempty"`
+	Links []hubapi.Link `yaml:"links,omitempty"`
 }
 
 func (p *Perform) Validate() error {

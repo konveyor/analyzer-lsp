@@ -35,9 +35,9 @@ type ProviderServiceClient interface {
 	Capabilities(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CapabilitiesResponse, error)
 	Init(ctx context.Context, in *Config, opts ...grpc.CallOption) (*InitResponse, error)
 	Evaluate(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error)
-	Stop(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	GetDependencies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DependencyResponse, error)
-	GetDependenciesDAG(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DependencyDAGResponse, error)
+	Stop(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetDependencies(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*DependencyResponse, error)
+	GetDependenciesDAG(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*DependencyDAGResponse, error)
 }
 
 type providerServiceClient struct {
@@ -75,7 +75,7 @@ func (c *providerServiceClient) Evaluate(ctx context.Context, in *EvaluateReques
 	return out, nil
 }
 
-func (c *providerServiceClient) Stop(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *providerServiceClient) Stop(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, ProviderService_Stop_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -84,7 +84,7 @@ func (c *providerServiceClient) Stop(ctx context.Context, in *emptypb.Empty, opt
 	return out, nil
 }
 
-func (c *providerServiceClient) GetDependencies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DependencyResponse, error) {
+func (c *providerServiceClient) GetDependencies(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*DependencyResponse, error) {
 	out := new(DependencyResponse)
 	err := c.cc.Invoke(ctx, ProviderService_GetDependencies_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -93,7 +93,7 @@ func (c *providerServiceClient) GetDependencies(ctx context.Context, in *emptypb
 	return out, nil
 }
 
-func (c *providerServiceClient) GetDependenciesDAG(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DependencyDAGResponse, error) {
+func (c *providerServiceClient) GetDependenciesDAG(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*DependencyDAGResponse, error) {
 	out := new(DependencyDAGResponse)
 	err := c.cc.Invoke(ctx, ProviderService_GetDependenciesDAG_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -109,9 +109,9 @@ type ProviderServiceServer interface {
 	Capabilities(context.Context, *emptypb.Empty) (*CapabilitiesResponse, error)
 	Init(context.Context, *Config) (*InitResponse, error)
 	Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error)
-	Stop(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
-	GetDependencies(context.Context, *emptypb.Empty) (*DependencyResponse, error)
-	GetDependenciesDAG(context.Context, *emptypb.Empty) (*DependencyDAGResponse, error)
+	Stop(context.Context, *ServiceRequest) (*emptypb.Empty, error)
+	GetDependencies(context.Context, *ServiceRequest) (*DependencyResponse, error)
+	GetDependenciesDAG(context.Context, *ServiceRequest) (*DependencyDAGResponse, error)
 	mustEmbedUnimplementedProviderServiceServer()
 }
 
@@ -128,13 +128,13 @@ func (UnimplementedProviderServiceServer) Init(context.Context, *Config) (*InitR
 func (UnimplementedProviderServiceServer) Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Evaluate not implemented")
 }
-func (UnimplementedProviderServiceServer) Stop(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+func (UnimplementedProviderServiceServer) Stop(context.Context, *ServiceRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
 }
-func (UnimplementedProviderServiceServer) GetDependencies(context.Context, *emptypb.Empty) (*DependencyResponse, error) {
+func (UnimplementedProviderServiceServer) GetDependencies(context.Context, *ServiceRequest) (*DependencyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDependencies not implemented")
 }
-func (UnimplementedProviderServiceServer) GetDependenciesDAG(context.Context, *emptypb.Empty) (*DependencyDAGResponse, error) {
+func (UnimplementedProviderServiceServer) GetDependenciesDAG(context.Context, *ServiceRequest) (*DependencyDAGResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDependenciesDAG not implemented")
 }
 func (UnimplementedProviderServiceServer) mustEmbedUnimplementedProviderServiceServer() {}
@@ -205,7 +205,7 @@ func _ProviderService_Evaluate_Handler(srv interface{}, ctx context.Context, dec
 }
 
 func _ProviderService_Stop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -217,13 +217,13 @@ func _ProviderService_Stop_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: ProviderService_Stop_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProviderServiceServer).Stop(ctx, req.(*emptypb.Empty))
+		return srv.(ProviderServiceServer).Stop(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ProviderService_GetDependencies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -235,13 +235,13 @@ func _ProviderService_GetDependencies_Handler(srv interface{}, ctx context.Conte
 		FullMethod: ProviderService_GetDependencies_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProviderServiceServer).GetDependencies(ctx, req.(*emptypb.Empty))
+		return srv.(ProviderServiceServer).GetDependencies(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ProviderService_GetDependenciesDAG_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(ServiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func _ProviderService_GetDependenciesDAG_Handler(srv interface{}, ctx context.Co
 		FullMethod: ProviderService_GetDependenciesDAG_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProviderServiceServer).GetDependenciesDAG(ctx, req.(*emptypb.Empty))
+		return srv.(ProviderServiceServer).GetDependenciesDAG(ctx, req.(*ServiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

@@ -5,16 +5,14 @@ import (
 	"fmt"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"gopkg.in/yaml.v2"
+	"go.lsp.dev/uri"
 )
 
 const (
@@ -41,21 +39,17 @@ var locationToCode = map[string]int{
 }
 
 type javaProvider struct {
-	config provider.Config
-
-	bundles   []string
-	workspace string
-
-	rpc        *jsonrpc2.Conn
+	config     provider.Config
+	Log        logr.Logger
 	ctx        context.Context
 	cancelFunc context.CancelFunc
-	cmd        *exec.Cmd
-	once       sync.Once
+
+	clients []provider.ServiceClient
 
 	hasMaven bool
 }
 
-var _ provider.Client = &javaProvider{}
+var _ provider.InternalProviderClient = &javaProvider{}
 
 type javaCondition struct {
 	Referenced referenceCondition `yaml:'referenced'`
@@ -69,38 +63,23 @@ type referenceCondition struct {
 const BUNDLES_INIT_OPTION = "bundles"
 const WORKSPACE_INIT_OPTION = "workspace"
 
-func NewJavaProvider(config provider.Config) *javaProvider {
-
-	// Get the provider config out for this config.
-
-	// Getting values out of provider config
-	// TODO: Eventually we will want to make this a helper so that external providers can easily ask and get config.
-	bundlesString, ok := config.InitConfig.ProviderSpecificConfig[BUNDLES_INIT_OPTION].(string)
-	if !ok {
-		bundlesString = ""
-	}
-	bundles := strings.Split(bundlesString, ",")
+func NewJavaProvider(config provider.Config, log logr.Logger) *javaProvider {
 
 	_, mvnBinaryError := exec.LookPath("mvn")
 
-	workspace, ok := config.InitConfig.ProviderSpecificConfig[WORKSPACE_INIT_OPTION].(string)
-	if !ok {
-		workspace = ""
-	}
-
 	return &javaProvider{
-		config:    config,
-		bundles:   bundles,
-		workspace: workspace,
-		once:      sync.Once{},
-		hasMaven:  mvnBinaryError == nil,
+		config:   config,
+		hasMaven: mvnBinaryError == nil,
+		Log:      log,
+		clients:  []provider.ServiceClient{},
 	}
 }
 
 func (p *javaProvider) Stop() {
-	p.cancelFunc()
 	// Ignore the error here, it stopped and we wanted it to.
-	p.cmd.Wait()
+	for _, c := range p.clients {
+		c.Stop()
+	}
 }
 
 func (p *javaProvider) Capabilities() []provider.Capability {
@@ -120,57 +99,7 @@ func (p *javaProvider) Capabilities() []provider.Capability {
 }
 
 func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	cond := &javaCondition{}
-	err := yaml.Unmarshal(conditionInfo, &cond)
-	if err != nil {
-		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
-	}
-
-	if cond.Referenced.Pattern == "" {
-		return provider.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
-	}
-
-	symbols := p.GetAllSymbols(cond.Referenced.Pattern, cond.Referenced.Location)
-
-	incidents := []provider.IncidentContext{}
-	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
-	case 0:
-		// Filter handle for type, find all the referneces to this type.
-		incidents, err = p.filterDefault(symbols)
-	case 1, 5:
-		incidents, err = p.filterTypesInheritance(symbols)
-	case 2:
-		incidents, err = p.filterMethodSymbols(symbols)
-	case 3:
-		incidents, err = p.filterConstructorSymbols(symbols)
-	case 4:
-		incidents, err = p.filterDefault(symbols)
-	case 7:
-		incidents, err = p.filterMethodSymbols(symbols)
-	case 8:
-		incidents, err = p.filterModulesImports(symbols)
-	case 9:
-		incidents, err = p.filterVariableDeclaration(symbols)
-	case 10:
-		incidents, err = p.filterTypeReferences(symbols)
-	default:
-
-	}
-
-	// push error up for easier printing.
-	if err != nil {
-		return provider.ProviderEvaluateResponse{}, err
-	}
-
-	if len(incidents) == 0 {
-		return provider.ProviderEvaluateResponse{
-			Matched: false,
-		}, nil
-	}
-	return provider.ProviderEvaluateResponse{
-		Matched:   true,
-		Incidents: incidents,
-	}, nil
+	return provider.FullResponseFromServiceClients(p.clients, cap, conditionInfo)
 }
 
 func symbolKindToString(symbolKind protocol.SymbolKind) string {
@@ -231,159 +160,99 @@ func symbolKindToString(symbolKind protocol.SymbolKind) string {
 	return ""
 }
 
-func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (int, error) {
+func (p *javaProvider) ProviderInit(ctx context.Context) error {
+
+	for _, c := range p.config.InitConfig {
+		client, err := p.Init(ctx, p.Log, c)
+		if err != nil {
+			return err
+		}
+		p.clients = append(p.clients, client)
+	}
+	return nil
+}
+
+func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
 	log = log.WithValues("provider", "java")
 
 	var returnErr error
+	// each service client should have their own context
 	ctx, cancelFunc := context.WithCancel(ctx)
-	p.once.Do(func() {
-		extension := strings.ToLower(path.Ext(config.Location))
-		switch extension {
-		case JavaArchive, WebArchive, EnterpriseArchive:
-			newLocation, err := decompileJava(ctx, log, config.Location)
-			if err != nil {
-				returnErr = err
-				return
-			}
-			config.Location = newLocation
-		}
-
-		cmd := exec.CommandContext(ctx, config.LSPServerPath,
-			"-configuration",
-			"./",
-			"-data",
-			p.workspace,
-		)
-		stdin, err := cmd.StdinPipe()
+	extension := strings.ToLower(path.Ext(config.Location))
+	switch extension {
+	case JavaArchive, WebArchive, EnterpriseArchive:
+		newLocation, err := decompileJava(ctx, log, config.Location)
 		if err != nil {
-			returnErr = err
+			cancelFunc()
+			return nil, err
+		}
+		config.Location = newLocation
+	}
+	bundlesString, ok := config.ProviderSpecificConfig[BUNDLES_INIT_OPTION].(string)
+	if !ok {
+		bundlesString = ""
+	}
+	bundles := strings.Split(bundlesString, ",")
+
+	workspace, ok := config.ProviderSpecificConfig[WORKSPACE_INIT_OPTION].(string)
+	if !ok {
+		workspace = ""
+	}
+
+	cmd := exec.CommandContext(ctx, config.LSPServerPath,
+		"-configuration",
+		"./",
+		"-data",
+		workspace,
+	)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		cancelFunc()
+		return nil, err
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		cancelFunc()
+		return nil, err
+	}
+
+	go func() {
+		err := cmd.Start()
+		if err != nil {
+			fmt.Printf("here cmd failed- %v", err)
+		}
+	}()
+	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
+
+	go func() {
+		err := rpc.Run(ctx)
+		if err != nil {
+			//TODO: we need to pipe the ctx further into the stream header and run.
+			// basically it is checking if done, then reading. When it gets EOF it errors.
+			// We need the read to be at the same level of selection to fully implment graceful shutdown
 			return
 		}
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			returnErr = err
-			return
-		}
+	}()
 
-		p.cancelFunc = cancelFunc
-		p.cmd = cmd
-		go func() {
-			err := cmd.Start()
-			if err != nil {
-				fmt.Printf("here cmd failed- %v", err)
-			}
-		}()
-		rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
+	svcClient := javaServiceClient{
+		rpc:        rpc,
+		ctx:        ctx,
+		cancelFunc: cancelFunc,
+		config:     config,
+		cmd:        cmd,
+		bundles:    bundles,
+		workspace:  workspace,
+		log:        log,
+	}
 
-		go func() {
-			err := rpc.Run(ctx)
-			if err != nil {
-				//TODO: we need to pipe the ctx further into the stream header and run.
-				// basically it is checking if done, then reading. When it gets EOF it errors.
-				// We need the read to be at the same level of selection to fully implment graceful shutdown
-				return
-			}
-		}()
-
-		p.rpc = rpc
-		p.ctx = ctx
-		p.initialization(ctx, log)
-	})
-	return 0, returnErr
+	svcClient.initialization()
+	return &svcClient, returnErr
 }
 
-func (p *javaProvider) initialization(ctx context.Context, log logr.Logger) {
-
-	absLocation, err := filepath.Abs(p.config.InitConfig.Location)
-	if err != nil {
-		log.Error(err, "unable to get path to analyize")
-		panic(1)
-	}
-
-	var absBundles []string
-	for _, bundle := range p.bundles {
-		abs, err := filepath.Abs(bundle)
-		if err != nil {
-			log.Error(err, "unable to get path to bundles")
-			panic(1)
-		}
-		absBundles = append(absBundles, abs)
-
-	}
-
-	params := &protocol.InitializeParams{
-		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
-		RootURI:      fmt.Sprintf("file://%v", absLocation),
-		Capabilities: protocol.ClientCapabilities{},
-		ExtendedClientCapilities: map[string]interface{}{
-			"classFileContentsSupport": true,
-		},
-		InitializationOptions: map[string]interface{}{
-			"bundles":          absBundles,
-			"workspaceFolders": []string{fmt.Sprintf("file://%v", absLocation)},
-			"settings": map[string]interface{}{
-				"java": map[string]interface{}{
-					"maven": map[string]interface{}{
-						"downloadSources": true,
-					},
-				},
-			},
-		},
-	}
-
-	var result protocol.InitializeResult
-	for {
-		if err := p.rpc.Call(ctx, "initialize", params, &result); err != nil {
-			log.Error(err, "initialize failed")
-			continue
-		}
-		break
-	}
-	if err := p.rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
-		fmt.Printf("initialized failed: %v", err)
-		log.Error(err, "initialize failed")
-	}
-	log.V(2).Info("java connection initialized")
+func (p *javaProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
+	return provider.FullDepsResponse(p.clients)
 }
 
-func (p *javaProvider) GetAllSymbols(query, location string) []protocol.WorkspaceSymbol {
-	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
-	// in this case the project is hardcoded in the init of the Langauge Server above
-	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
-	arguments := map[string]string{
-		"query":    query,
-		"project":  "java",
-		"location": fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
-	}
-
-	wsp := &protocol.ExecuteCommandParams{
-		Command:   "io.konveyor.tackle.ruleEntry",
-		Arguments: []interface{}{arguments},
-	}
-
-	var refs []protocol.WorkspaceSymbol
-	err := p.rpc.Call(p.ctx, "workspace/executeCommand", wsp, &refs)
-	if err != nil {
-		fmt.Printf("error: %v", err)
-	}
-
-	return refs
-}
-
-func (p *javaProvider) GetAllReferences(symbol protocol.WorkspaceSymbol) []protocol.Location {
-	params := &protocol.ReferenceParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: symbol.Location.URI,
-			},
-			Position: symbol.Location.Range.Start,
-		},
-	}
-
-	res := []protocol.Location{}
-	err := p.rpc.Call(p.ctx, "textDocument/references", params, &res)
-	if err != nil {
-		fmt.Printf("Error rpc: %v", err)
-	}
-	return res
+func (p *javaProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+	return provider.FullDepDAGResponse(p.clients)
 }

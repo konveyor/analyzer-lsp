@@ -11,7 +11,6 @@ import (
 
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
-	"gopkg.in/yaml.v2"
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
@@ -106,10 +105,10 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 	for {
 		select {
 		case m := <-ruleMessages:
-			logger.V(5).Info("taking rule")
+			logger.V(5).Info("taking rule", "ruleset", m.ruleSetName, "rule", m.rule.RuleID)
 			m.ctx.Template = make(map[string]ChainTemplate)
 			bo, err := processRule(ctx, m.rule, m.ctx, logger)
-			logger.V(5).Info("finished rule", "response", bo, "error", err)
+			logger.V(5).Info("finished rule", "found", len(bo.Incidents), "error", err, "rule", m.rule.RuleID)
 			m.returnChan <- response{
 				ConditionResponse: bo,
 				Err:               err,
@@ -158,7 +157,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 			select {
 			case response := <-ret:
 				func() {
-					r.logger.Info("rule returned", "rule", response)
+					r.logger.Info("rule returned", "rule", response.Rule.RuleID)
 					defer wg.Done()
 					if response.Err != nil {
 						r.logger.Error(response.Err, "failed to evaluate rule", "ruleID", response.Rule.RuleID)
@@ -177,7 +176,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 						rs.Violations[response.Rule.RuleID] = violation
 					} else {
 						// Log that rule did not pass
-						r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "response", response)
+						r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "rule", response.Rule.RuleID)
 						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 							rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
 						}
@@ -196,7 +195,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 		rule.ctx = ruleContext
 		r.ruleProcessing <- rule
 	}
-	r.logger.V(5).Info("All rules added buffer, waiting for engine to complete")
+	r.logger.V(5).Info("All rules added buffer, waiting for engine to complete", "size", len(otherRules))
 
 	done := make(chan struct{})
 	go func() {
@@ -219,12 +218,6 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 	}
 	// Cannel running go-routine
 	cancelFunc()
-	b, err := yaml.Marshal(responses)
-	if err != nil {
-		r.logger.Error(err, "unable to marshal responses")
-	}
-	// TODO: Here we need to process the rule reponses.
-	r.logger.V(5).Info(string(b))
 	return responses
 }
 

@@ -20,8 +20,10 @@ func (c *fakeClient) HasCapability(string) bool  { return true }
 func (c *fakeClient) Evaluate(string, []byte) (ProviderEvaluateResponse, error) {
 	return ProviderEvaluateResponse{}, nil
 }
-func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (int, error) { return 0, nil }
-func (c *fakeClient) Stop()                                                      {}
+func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClient, error) {
+	return nil, nil
+}
+func (c *fakeClient) Stop() {}
 
 func (c *fakeClient) GetDependencies() ([]Dep, uri.URI, error) {
 	return c.dependencies, uri.File("test"), nil

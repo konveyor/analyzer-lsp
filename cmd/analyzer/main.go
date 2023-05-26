@@ -95,8 +95,7 @@ func main() {
 		engine.WithCodeSnipLimit(*limitCodeSnips),
 	)
 
-	providers := map[string]provider.Client{}
-	providerInitConfig := map[provider.Client]provider.InitConfig{}
+	providers := map[string]provider.InternalProviderClient{}
 
 	for _, config := range configs {
 		prov, err := lib.GetProviderClient(config, log)
@@ -111,7 +110,6 @@ func main() {
 				os.Exit(1)
 			}
 		}
-		providerInitConfig[prov] = config.InitConfig
 	}
 
 	parser := parser.RuleParser{
@@ -119,7 +117,7 @@ func main() {
 		Log:                  log.WithName("parser"),
 	}
 	ruleSets := []engine.RuleSet{}
-	needProviders := map[string]provider.Client{}
+	needProviders := map[string]provider.InternalProviderClient{}
 	for _, f := range *rulesFile {
 		internRuleSet, internNeedProviders, err := parser.LoadRules(f)
 		if err != nil {
@@ -132,8 +130,7 @@ func main() {
 	}
 	// Now that we have all the providers, we need to start them.
 	for _, provider := range needProviders {
-		c := providerInitConfig[provider]
-		_, err := provider.Init(ctx, log, c)
+		err := provider.ProviderInit(ctx)
 		if err != nil {
 			log.Error(err, "unable to init the providers")
 			os.Exit(1)

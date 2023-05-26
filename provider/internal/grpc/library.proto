@@ -64,6 +64,7 @@ message BasicResponse {
 message EvaluateRequest {
   string cap = 1;
   string conditionInfo = 2;
+  int64 id = 3;
 }
 
 message EvaluateResponse {
@@ -76,13 +77,17 @@ message CapabilitiesResponse {
   repeated Capability capabilities = 1;
 }
 
+message ServiceRequest {
+  int64 id = 1;
+}
+
 service ProviderService {
   rpc Capabilities (google.protobuf.Empty) returns (CapabilitiesResponse) {};
   rpc Init (Config) returns (InitResponse) {};
   rpc Evaluate (EvaluateRequest) returns (EvaluateResponse) {};
-  rpc Stop (google.protobuf.Empty) returns (google.protobuf.Empty) {};
-  rpc GetDependencies (google.protobuf.Empty) returns (DependencyResponse) {};
-  rpc GetDependenciesDAG(google.protobuf.Empty) returns (DependencyDAGResponse) {};
+  rpc Stop (ServiceRequest) returns (google.protobuf.Empty) {};
+  rpc GetDependencies (ServiceRequest) returns (DependencyResponse) {};
+  rpc GetDependenciesDAG(ServiceRequest) returns (DependencyDAGResponse) {};
 }
 
 message Dependency {

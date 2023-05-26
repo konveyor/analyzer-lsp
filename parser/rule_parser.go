@@ -39,7 +39,7 @@ func (e parserErrors) Error() string {
 }
 
 type RuleParser struct {
-	ProviderNameToClient map[string]provider.Client
+	ProviderNameToClient map[string]provider.InternalProviderClient
 	Log                  logr.Logger
 }
 
@@ -77,7 +77,7 @@ func (r *RuleParser) loadRuleSet(dir string) *engine.RuleSet {
 }
 
 // This will load the rules from the filestytem, using the provided provider clients
-func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]provider.Client, error) {
+func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]provider.InternalProviderClient, error) {
 	// Load Rules from file containing rules.
 	info, err := os.Stat(filepath)
 	if err != nil {
@@ -102,7 +102,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	}
 
 	var ruleSets []engine.RuleSet
-	clientMap := map[string]provider.Client{}
+	clientMap := map[string]provider.InternalProviderClient{}
 	// If this takes too long, we should consider moving this to async.
 	files, err := os.ReadDir(filepath)
 	if err != nil {
@@ -165,7 +165,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	return ruleSets, clientMap, parserErr
 }
 
-func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provider.Client, error) {
+func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provider.InternalProviderClient, error) {
 	content, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, nil, err
@@ -185,7 +185,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	// all rules
 	rules := []engine.Rule{}
 	ruleIDMap := map[string]*struct{}{}
-	providers := map[string]provider.Client{}
+	providers := map[string]provider.InternalProviderClient{}
 	for _, ruleMap := range ruleMap {
 		ruleID, ok := ruleMap["ruleID"].(string)
 		if !ok {
@@ -506,9 +506,9 @@ func (r *RuleParser) addCustomVarFields(m map[interface{}]interface{}, customVar
 	return nil
 }
 
-func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.ConditionEntry, map[string]provider.Client, error) {
+func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.ConditionEntry, map[string]provider.InternalProviderClient, error) {
 	conditions := []engine.ConditionEntry{}
-	providers := map[string]provider.Client{}
+	providers := map[string]provider.InternalProviderClient{}
 	chainNameToIndex := map[string]int{}
 	for _, conditionInterface := range conditionsInterface {
 		// get map from interface
@@ -647,7 +647,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 	return conditions, providers, nil
 }
 
-func (r *RuleParser) getConditionForProvider(langProvider, capability string, value interface{}) (engine.Conditional, provider.Client, error) {
+func (r *RuleParser) getConditionForProvider(langProvider, capability string, value interface{}) (engine.Conditional, provider.InternalProviderClient, error) {
 	// Here there can only be a single provider.
 	client, ok := r.ProviderNameToClient[langProvider]
 	if !ok {
