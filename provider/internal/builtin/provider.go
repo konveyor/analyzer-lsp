@@ -51,12 +51,21 @@ var capabilities = []provider.Capability{
 }
 
 type builtinCondition struct {
-	Filecontent              string        `yaml:"filecontent"`
-	File                     string        `yaml:"file"`
-	XML                      xmlCondition  `yaml:"xml"`
-	JSON                     jsonCondition `yaml:"json"`
-	HasTags                  []string      `yaml:"hasTags"`
+	Filecontent              fileContentCondition `yaml:"filecontent"`
+	File                     fileCondition        `yaml:"file"`
+	XML                      xmlCondition         `yaml:"xml"`
+	JSON                     jsonCondition        `yaml:"json"`
+	HasTags                  []string             `yaml:"hasTags"`
 	provider.ProviderContext `yaml:",inline"`
+}
+
+type fileContentCondition struct {
+	FilePattern string `yaml:"filePattern"`
+	Pattern     string `yaml:"pattern`
+}
+
+type fileCondition struct {
+	Pattern string `yaml:"pattern"`
 }
 
 var _ provider.InternalProviderClient = &builtinProvider{}
