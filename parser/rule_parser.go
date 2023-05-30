@@ -88,7 +88,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	if info.Mode().IsRegular() {
 		rules, m, err := r.LoadRule(filepath)
 		if err != nil {
-
+			return nil, nil, err
 		}
 
 		ruleSet := r.loadRuleSet(path.Dir(filepath))

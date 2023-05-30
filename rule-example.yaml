@@ -10,11 +10,13 @@
   category: potential
   effort: 3
   when:
-    builtin.file: "*.go"
+    builtin.file:
+      pattern: "*.go"
 - message: not any go files
   ruleID: file-002
   when:
-    builtin.file: "*.go"
+    builtin.file:
+      pattern:  "*.go"
     not: true
 - message: POM XML dependencies - '{{{matchingXML}}}'
   ruleID: xml-pom-001
@@ -29,7 +31,8 @@
         xpath: "//dependencies/dependency"
         filepaths: "{{poms.filepaths}}"
       from: poms
-    - builtin.file: pom.xml
+    - builtin.file:
+        pattern: pom.xml
       as: poms
       ignore: true
 - message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
@@ -64,21 +67,28 @@
     - Language=Golang
   ruleID: tag-go-000
   when:
-    builtin.file: "go.mod"
+    builtin.file:
+      pattern: "go.mod"
 - tag:
     - Infra=Kubernetes
   ruleID: tag-k8s-000
   when:
-    builtin.filecontent: "require.*sigs.k8s.io/.*"
+    builtin.filecontent: 
+      pattern: ".*k8s.io/.*"
+      filePattern: ".*go.mod"
 - tag:
     - Java
   ruleID: tag-java-000
   when:
     or:
-      - builtin.file: "pom.xml"
-      - builtin.file: "*.ear"
-      - builtin.file: "*.jar"
-      - builtin.file: "*.war"
+      - builtin.file:
+          pattern: "pom.xml"
+      - builtin.file: 
+          pattern: "*.ear"
+      - builtin.file:
+          pattern: "*.jar"
+      - builtin.file:
+          pattern: "*.war"
 - message: "Tags {{tags}} found"
   ruleID: tech-tag-001
   when:

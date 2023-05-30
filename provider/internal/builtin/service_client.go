@@ -38,13 +38,13 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 	response := provider.ProviderEvaluateResponse{Matched: false}
 	switch cap {
 	case "file":
-		pattern := cond.File
-		if pattern == "" {
+		c := cond.File
+		if c.Pattern == "" {
 			return response, fmt.Errorf("could not parse provided file pattern as string: %v", conditionInfo)
 		}
-		matchingFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
+		matchingFiles, err := findFilesMatchingPattern(p.config.Location, c.Pattern)
 		if err != nil {
-			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
+			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
 		}
 
 		if len(matchingFiles) != 0 {
@@ -73,12 +73,12 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		}
 		return response, nil
 	case "filecontent":
-		pattern := cond.Filecontent
-		if pattern == "" {
+		c := cond.Filecontent
+		if c.Pattern == "" {
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 		var outputBytes []byte
-		grep := exec.Command("grep", "-o", "-n", "-R", "-E", pattern, p.config.Location)
+		grep := exec.Command("grep", "-o", "-n", "-R", "-E", c.Pattern, p.config.Location)
 		outputBytes, err := grep.Output()
 		if err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
@@ -87,8 +87,13 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			return response, fmt.Errorf("could not run grep with provided pattern %+v", err)
 		}
 		matches := strings.Split(strings.TrimSpace(string(outputBytes)), "\n")
-		if len(matches) != 0 {
-			response.Matched = true
+
+		var r *regexp.Regexp
+		if c.FilePattern != "" {
+			r, err = regexp.Compile(c.FilePattern)
+			if err != nil {
+				return provider.ProviderEvaluateResponse{}, err
+			}
 		}
 
 		for _, match := range matches {
@@ -96,8 +101,14 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			pieces := strings.SplitN(match, ":", 3)
 			if len(pieces) != 3 {
 				//TODO(fabianvf): Just log or return?
+				//(shawn-hurley): I think the return is good personally
 				return response, fmt.Errorf("Malformed response from grep, cannot parse %s with pattern {filepath}:{lineNumber}:{matchingText}", match)
 			}
+
+			if r != nil && !r.Match([]byte(pieces[0])) {
+				continue
+			}
+
 			ab, err := filepath.Abs(pieces[0])
 			if err != nil {
 				ab = pieces[0]
@@ -109,6 +120,9 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 					"matchingText": pieces[2],
 				},
 			})
+		}
+		if len(response.Incidents) != 0 {
+			response.Matched = true
 		}
 		return response, nil
 	case "xml":
