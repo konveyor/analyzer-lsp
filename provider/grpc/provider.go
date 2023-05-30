@@ -24,35 +24,32 @@ type grpcProvider struct {
 	ctx    context.Context
 	conn   *grpc.ClientConn
 	config provider.Config
+
+	serviceClients []provider.ServiceClient
 }
 
-var _ provider.Client = &grpcProvider{}
+var _ provider.InternalProviderClient = &grpcProvider{}
 var _ provider.Startable = &grpcProvider{}
 
 func NewGRPCClient(config provider.Config, log logr.Logger) *grpcProvider {
+	log = log.WithValues("provider", "grpc")
 	return &grpcProvider{
-		config: config,
-		log:    log,
+		config:         config,
+		log:            log,
+		serviceClients: []provider.ServiceClient{},
 	}
 }
 
-func (g *grpcProvider) Stop() {
-	g.Client.Stop(context.TODO(), &emptypb.Empty{})
-	g.conn.Close()
-}
-
-func (g *grpcProvider) HasCapability(name string) bool {
-	m := pb.HasCapabilityRequest{
-		Capability: name,
+func (g *grpcProvider) ProviderInit(ctx context.Context) error {
+	g.ctx = ctx
+	for _, c := range g.config.InitConfig {
+		s, err := g.Init(ctx, g.log, c)
+		if err != nil {
+			return err
+		}
+		g.serviceClients = append(g.serviceClients, s)
 	}
-
-	r, err := g.Client.HasCapability(context.TODO(), &m)
-	if err != nil {
-		// Handle this smarter in the future, for now log and return empty
-		g.log.V(5).Error(err, "grpc unable to get info")
-		return false
-	}
-	return r.HasCap
+	return nil
 }
 
 func (g *grpcProvider) Capabilities() []provider.Capability {
@@ -74,16 +71,11 @@ func (g *grpcProvider) Capabilities() []provider.Capability {
 	return c
 }
 
-func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (int, error) {
-	g.log = log.WithValues("provider", "grpc")
-	g.ctx = ctx
-
-	m := map[string]interface{}{}
-	for k, v := range config.ProviderSpecificConfig {
-		m[k] = v
+func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
+	s, err := structpb.NewStruct(config.ProviderSpecificConfig)
+	if err != nil {
+		return nil, err
 	}
-
-	s, err := structpb.NewStruct(m)
 
 	c := pb.Config{
 		Location:               config.Location,
@@ -95,144 +87,38 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	r, err := g.Client.Init(ctx, &c)
 
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	if !r.Successful {
-		return 0, fmt.Errorf(r.Error)
+		return nil, fmt.Errorf(r.Error)
 	}
-	return int(r.Id), nil
-}
-
-func (g *grpcProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	m := pb.EvaluateRequest{
-		Cap:           cap,
-		ConditionInfo: string(conditionInfo),
-	}
-	r, err := g.Client.Evaluate(g.ctx, &m)
-	if err != nil {
-		return provider.ProviderEvaluateResponse{}, err
-	}
-
-	if !r.Successful {
-		return provider.ProviderEvaluateResponse{}, fmt.Errorf(r.Error)
-	}
-
-	if !r.Response.Matched {
-		return provider.ProviderEvaluateResponse{
-			Matched:         false,
-			TemplateContext: r.Response.TemplateContext.AsMap(),
-		}, nil
-	}
-
-	incs := []provider.IncidentContext{}
-	for _, i := range r.Response.IncidentContexts {
-		inc := provider.IncidentContext{
-			FileURI:   uri.URI(i.FileURI),
-			Variables: i.GetVariables().AsMap(),
-		}
-		if i.Effort != nil {
-			num := int(*i.Effort)
-			inc.Effort = &num
-		}
-		links := []provider.ExternalLinks{}
-		for _, l := range i.Links {
-			links = append(links, provider.ExternalLinks{
-				URL:   l.Url,
-				Title: l.Title,
-			})
-		}
-		inc.Links = links
-		if i.CodeLocation != nil {
-			inc.CodeLocation = &provider.Location{
-				StartPosition: provider.Position{
-					Line:      i.CodeLocation.StartPosition.Line,
-					Character: i.CodeLocation.StartPosition.Character,
-				},
-				EndPosition: provider.Position{
-					Line:      i.CodeLocation.EndPosition.Line,
-					Character: i.CodeLocation.EndPosition.Character,
-				},
-			}
-		}
-		incs = append(incs, inc)
-	}
-
-	return provider.ProviderEvaluateResponse{
-		Matched:         true,
-		Incidents:       incs,
-		TemplateContext: r.Response.TemplateContext.AsMap(),
+	return &grpcServiceClient{
+		id:     r.Id,
+		ctx:    ctx,
+		config: config,
+		client: g.Client,
 	}, nil
 }
 
-// We don't have dependencies
-func (g *grpcProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
-	d, err := g.Client.GetDependencies(g.ctx, &emptypb.Empty{})
-	if err != nil {
-		return nil, uri.URI(""), err
-	}
-	if !d.Successful {
-		return nil, uri.URI(""), fmt.Errorf(d.Error)
-	}
-
-	provs := []provider.Dep{}
-	for _, x := range d.List.Deps {
-		provs = append(provs, provider.Dep{
-			Name:     x.Name,
-			Version:  x.Version,
-			Type:     x.Type,
-			Indirect: x.Indirect,
-			SHA:      x.Sha,
-		})
-	}
-
-	u, err := uri.Parse(d.FileURI)
-	if err != nil {
-		return nil, uri.URI(""), fmt.Errorf(d.Error)
-	}
-
-	return provs, u, nil
-
+func (g *grpcProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	return provider.FullResponseFromServiceClients(g.serviceClients, cap, conditionInfo)
 }
 
-// We don't have dependencies
-func (g *grpcProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
-	d, err := g.Client.GetDependenciesLinkedList(g.ctx, &emptypb.Empty{})
-	if err != nil {
-		return nil, uri.URI(""), err
-	}
-	if !d.Successful {
-		return nil, uri.URI(""), fmt.Errorf(d.Error)
-	}
+// TODO: Come back through and re-desing output to handle File A get X-Z deps and File B gets C-E
+func (g *grpcProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
+	return provider.FullDepsResponse(g.serviceClients)
+}
 
-	m := map[provider.Dep][]provider.Dep{}
-	for _, v := range d.List {
-		keyDep := provider.Dep{
-			Name:     v.Key.Name,
-			Version:  v.Key.Version,
-			Type:     v.Key.Type,
-			Indirect: v.Key.Indirect,
-			SHA:      v.Key.Sha,
-		}
-		values := []provider.Dep{}
-		for _, x := range v.Value.Deps {
-			values = append(values, provider.Dep{
-				Name:     x.Name,
-				Version:  x.Version,
-				Type:     x.Type,
-				Indirect: x.Indirect,
-				SHA:      x.Sha,
-			})
-		}
-		m[keyDep] = values
+// TODO: Come back through and re-desing output to handle File A get X-Z deps and File B gets C-E
+func (g *grpcProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+	return provider.FullDepDAGResponse(g.serviceClients)
+}
+
+func (g *grpcProvider) Stop() {
+	for _, c := range g.serviceClients {
+		c.Stop()
 	}
-
-	u, err := uri.Parse(d.FileURI)
-	if err != nil {
-		return nil, uri.URI(""), fmt.Errorf(d.Error)
-	}
-
-	return m, u, nil
-
+	g.conn.Close()
 }
 
 func (g *grpcProvider) Start(ctx context.Context) error {

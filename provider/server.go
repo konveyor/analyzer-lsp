@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
+	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
@@ -20,19 +23,33 @@ type Server interface {
 }
 
 type server struct {
-	Client Client
+	Client BaseClient
 	Log    logr.Logger
 	Port   int
 	libgrpc.UnimplementedProviderServiceServer
+
+	mutex   sync.RWMutex
+	clients map[int64]clientMapItem
+	rand    rand.Rand
+}
+
+type clientMapItem struct {
+	ctx    context.Context
+	client ServiceClient
 }
 
 // Provider GRPC Service
-func NewServer(client Client, port int, logger logr.Logger) Server {
+// TOOD: HANDLE INIT CONFIG CHANGES
+func NewServer(client BaseClient, port int, logger logr.Logger) Server {
+	s := rand.NewSource(time.Now().Unix())
 	return &server{
 		Client:                             client,
 		Port:                               port,
 		Log:                                logger,
 		UnimplementedProviderServiceServer: libgrpc.UnimplementedProviderServiceServer{},
+		mutex:                              sync.RWMutex{},
+		clients:                            make(map[int64]clientMapItem),
+		rand:                               *rand.New(s),
 	}
 }
 
@@ -68,47 +85,49 @@ func (s *server) Capabilities(ctx context.Context, _ *emptypb.Empty) (*libgrpc.C
 	}, nil
 }
 
-func (s *server) HasCapability(ctx context.Context, hcr *libgrpc.HasCapabilityRequest) (*libgrpc.HasCapabilityResponse, error) {
-	caps := s.Client.Capabilities()
-
-	for _, c := range caps {
-		if c.Name == hcr.Capability {
-			return &libgrpc.HasCapabilityResponse{
-				HasCap: true,
-			}, nil
-		}
-	}
-	return &libgrpc.HasCapabilityResponse{
-		HasCap: false,
-	}, nil
-}
-
 func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.InitResponse, error) {
 	c := InitConfig{
 		Location:       config.Location,
 		DependencyPath: config.DependencyPath,
 		LSPServerPath:  config.LspServerPath,
-		//	ProviderSpecificConfig: config.ProviderSpecificConfig.AsMap(),
 	}
 
-	c.ProviderSpecificConfig = config.ProviderSpecificConfig.AsMap()
+	if config.ProviderSpecificConfig != nil {
+		c.ProviderSpecificConfig = config.ProviderSpecificConfig.AsMap()
+	}
 
-	i, err := s.Client.Init(ctx, s.Log, c)
+	id := rand.Int63()
+	log := s.Log.WithValues("client", id)
+	newCtx := context.Background()
+
+	client, err := s.Client.Init(newCtx, log, c)
 	if err != nil {
 		return &libgrpc.InitResponse{
 			Error:      err.Error(),
 			Successful: false,
 		}, nil
 	}
+	s.mutex.Lock()
+	s.clients[id] = clientMapItem{
+		client: client,
+		ctx:    ctx,
+	}
+	s.mutex.Unlock()
 
 	return &libgrpc.InitResponse{
-		Id:         int64(i),
+		Id:         id,
 		Successful: true,
 	}, nil
 }
 
 func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*libgrpc.EvaluateResponse, error) {
-	r, err := s.Client.Evaluate(req.Cap, []byte(req.ConditionInfo))
+
+	s.mutex.RLock()
+	client := s.clients[req.Id]
+	s.mutex.RUnlock()
+
+	r, err := client.client.Evaluate(req.Cap, []byte(req.ConditionInfo))
+
 	if err != nil {
 		return &libgrpc.EvaluateResponse{
 			Error:      err.Error(),
@@ -173,6 +192,7 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 	}
 
 	resp.IncidentContexts = incs
+	fmt.Printf("HERE: end: %#v", resp)
 
 	return &libgrpc.EvaluateResponse{
 		Response:   &resp,
@@ -180,13 +200,20 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 	}, nil
 }
 
-func (s *server) Stop(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
-	s.Client.Stop()
+func (s *server) Stop(ctx context.Context, in *libgrpc.ServiceRequest) (*emptypb.Empty, error) {
+	s.mutex.Lock()
+	client := s.clients[in.Id]
+	delete(s.clients, in.Id)
+	s.mutex.Unlock()
+	client.client.Stop()
 	return &emptypb.Empty{}, nil
 }
 
-func (s *server) GetDependencies(ctx context.Context, in *emptypb.Empty) (*libgrpc.DependencyResponse, error) {
-	deps, uri, err := s.Client.GetDependencies()
+func (s *server) GetDependencies(ctx context.Context, in *libgrpc.ServiceRequest) (*libgrpc.DependencyResponse, error) {
+	s.mutex.RLock()
+	client := s.clients[in.Id]
+	s.mutex.RUnlock()
+	deps, uri, err := client.client.GetDependencies()
 	if err != nil {
 		return &libgrpc.DependencyResponse{
 			Successful: false,
@@ -195,17 +222,24 @@ func (s *server) GetDependencies(ctx context.Context, in *emptypb.Empty) (*libgr
 	}
 	ds := []*libgrpc.Dependency{}
 	for _, d := range deps {
+		extras, err := structpb.NewStruct(d.Extras)
+		if err != nil {
+			return nil, err
+		}
 		ds = append(ds, &libgrpc.Dependency{
-			Name:     d.Name,
-			Version:  d.Version,
-			Type:     d.Type,
-			Sha:      d.SHA,
-			Indirect: d.Indirect,
+			Name:               d.Name,
+			Version:            d.Version,
+			Type:               d.Type,
+			ResolvedIdentifier: d.ResolvedIdentifier,
+			Extras:             extras,
+			Indirect:           d.Indirect,
 		})
 	}
+
 	return &libgrpc.DependencyResponse{
 		Successful: true,
-		FileURI:    string(uri),
+		//TODO FIX
+		FileURI: string(uri),
 		List: &libgrpc.DependencyList{
 			Deps: ds,
 		},
@@ -213,40 +247,42 @@ func (s *server) GetDependencies(ctx context.Context, in *emptypb.Empty) (*libgr
 
 }
 
-func (s *server) GetDependenciesLinkedList(ctx context.Context, in *emptypb.Empty) (*libgrpc.DependencyLinkedListResponse, error) {
-	deps, uri, err := s.Client.GetDependenciesLinkedList()
+func recreateDAGAddedItems(items []DepDAGItem) []*libgrpc.DependencyDAGItem {
+	deps := []*libgrpc.DependencyDAGItem{}
+	for _, i := range items {
+		extras, err := structpb.NewStruct(i.Dep.Extras)
+		if err != nil {
+			panic(err)
+		}
+		deps = append(deps, &libgrpc.DependencyDAGItem{
+			Key: &libgrpc.Dependency{
+				Name:               i.Dep.Name,
+				Version:            i.Dep.Version,
+				Type:               i.Dep.Type,
+				ResolvedIdentifier: i.Dep.ResolvedIdentifier,
+				Extras:             extras,
+				Indirect:           false,
+			},
+			AddedDeps: recreateDAGAddedItems(i.AddedDeps),
+		})
+	}
+	return deps
+}
+
+func (s *server) GetDependenciesLinkedList(ctx context.Context, in *libgrpc.ServiceRequest) (*libgrpc.DependencyDAGResponse, error) {
+	s.mutex.RLock()
+	client := s.clients[in.Id]
+	s.mutex.RUnlock()
+	deps, uri, err := client.client.GetDependenciesDAG()
 	if err != nil {
-		return &libgrpc.DependencyLinkedListResponse{
+		return &libgrpc.DependencyDAGResponse{
 			Successful: false,
 			Error:      err.Error(),
 		}, nil
 	}
-	l := []*libgrpc.DependencyLinkedListItem{}
-	for k, v := range deps {
-		d := []*libgrpc.Dependency{}
-		for _, x := range v {
-			d = append(d, &libgrpc.Dependency{
-				Name:     x.Name,
-				Version:  x.Version,
-				Type:     x.Type,
-				Sha:      x.SHA,
-				Indirect: x.Indirect,
-			})
-		}
-		l = append(l, &libgrpc.DependencyLinkedListItem{
-			Key: &libgrpc.Dependency{
-				Name:     k.Name,
-				Version:  k.Version,
-				Type:     k.Type,
-				Sha:      k.SHA,
-				Indirect: k.Indirect,
-			},
-			Value: &libgrpc.DependencyList{
-				Deps: d,
-			},
-		})
-	}
-	return &libgrpc.DependencyLinkedListResponse{
+	l := recreateDAGAddedItems(deps)
+
+	return &libgrpc.DependencyDAGResponse{
 		Successful: true,
 		FileURI:    string(uri),
 		List:       l,

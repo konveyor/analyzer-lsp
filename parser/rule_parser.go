@@ -39,7 +39,7 @@ func (e parserErrors) Error() string {
 }
 
 type RuleParser struct {
-	ProviderNameToClient map[string]provider.Client
+	ProviderNameToClient map[string]provider.InternalProviderClient
 	Log                  logr.Logger
 }
 
@@ -77,7 +77,7 @@ func (r *RuleParser) loadRuleSet(dir string) *engine.RuleSet {
 }
 
 // This will load the rules from the filestytem, using the provided provider clients
-func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]provider.Client, error) {
+func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]provider.InternalProviderClient, error) {
 	// Load Rules from file containing rules.
 	info, err := os.Stat(filepath)
 	if err != nil {
@@ -102,7 +102,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	}
 
 	var ruleSets []engine.RuleSet
-	clientMap := map[string]provider.Client{}
+	clientMap := map[string]provider.InternalProviderClient{}
 	// If this takes too long, we should consider moving this to async.
 	files, err := os.ReadDir(filepath)
 	if err != nil {
@@ -165,7 +165,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	return ruleSets, clientMap, parserErr
 }
 
-func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provider.Client, error) {
+func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provider.InternalProviderClient, error) {
 	content, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, nil, err
@@ -185,8 +185,21 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	// all rules
 	rules := []engine.Rule{}
 	ruleIDMap := map[string]*struct{}{}
-	providers := map[string]provider.Client{}
+	providers := map[string]provider.InternalProviderClient{}
 	for _, ruleMap := range ruleMap {
+		ruleID, ok := ruleMap["ruleID"].(string)
+		if !ok {
+			return nil, nil, fmt.Errorf("unable to find ruleID in rule")
+		}
+
+		if _, ok := ruleIDMap[ruleID]; ok {
+			return nil, nil, fmt.Errorf("duplicated rule id: %v", ruleID)
+		}
+		if e, ok := validateRuleID(ruleID); !ok {
+			r.Log.Info("invalid rule", "reason", e)
+			continue
+		}
+
 		// Rules contain When blocks and actions
 		// When is where we need to handle conditions
 		actions := []string{"message", "tag"}
@@ -200,7 +213,32 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					if !ok {
 						return nil, nil, fmt.Errorf("message must be a string")
 					}
-					perform.Message = &message
+
+					linkArray, ok := ruleMap["links"].([]interface{})
+					if !ok {
+						r.Log.V(8).WithValues("ruleID", ruleID).Info("unable to find linkArray")
+					}
+
+					links := []hubapi.Link{}
+					for _, linkMap := range linkArray {
+						m, ok := linkMap.(map[interface{}]interface{})
+						if !ok {
+							r.Log.V(8).WithValues("ruleID", ruleID).Info("unable to find link url")
+						}
+						link := hubapi.Link{}
+						link.URL, ok = m["url"].(string)
+						if !ok {
+							r.Log.V(8).WithValues("ruleID", ruleID).Info("unable to find link url")
+						}
+						link.Title, ok = m["title"].(string)
+						if !ok {
+							r.Log.V(8).WithValues("ruleID", ruleID).Info("unable to find link title")
+						}
+
+						links = append(links, link)
+					}
+					perform.Message.Links = links
+					perform.Message.Text = &message
 				case "tag":
 					tagList, ok := val.([]interface{})
 					if !ok {
@@ -219,15 +257,6 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 
 		if err := perform.Validate(); err != nil {
 			return nil, nil, err
-		}
-
-		ruleID, ok := ruleMap["ruleID"].(string)
-		if !ok {
-			return nil, nil, fmt.Errorf("unable to find ruleID in rule")
-		}
-
-		if _, ok := ruleIDMap[ruleID]; ok {
-			return nil, nil, fmt.Errorf("duplicated rule id: %v", ruleID)
 		}
 
 		rule := engine.Rule{
@@ -356,6 +385,17 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	return append(infoRules, rules...), providers, nil
 }
 
+func validateRuleID(ruleID string) (string, bool) {
+	if strings.Contains(ruleID, "\n") {
+		return "rule id can not contain string", false
+
+	}
+	if strings.Contains(ruleID, ";") {
+		return "rule id can not contain semi-colon", false
+	}
+	return "", true
+}
+
 func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interface{}) {
 	labels, ok := ruleMap["labels"].([]interface{})
 	if !ok {
@@ -378,7 +418,7 @@ func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interfa
 	}
 	rule.Description = description
 
-	if rule.Perform.Message != nil {
+	if rule.Perform.Message.Text != nil {
 		category, ok := ruleMap["category"].(string)
 		if !ok {
 			r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find category")
@@ -399,31 +439,6 @@ func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interfa
 	} else {
 		rule.Effort = &effort
 	}
-
-	linkArray, ok := ruleMap["links"].([]interface{})
-	if !ok {
-		r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find linkArray")
-	}
-
-	links := []hubapi.Link{}
-	for _, linkMap := range linkArray {
-		m, ok := linkMap.(map[interface{}]interface{})
-		if !ok {
-			r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find link url")
-		}
-		link := hubapi.Link{}
-		link.URL, ok = m["url"].(string)
-		if !ok {
-			r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find link url")
-		}
-		link.Title, ok = m["title"].(string)
-		if !ok {
-			r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find link title")
-		}
-
-		links = append(links, link)
-	}
-	rule.Links = links
 
 	if customVars, ok := ruleMap["customVariables"]; ok {
 		var customVarsList []interface{}
@@ -491,9 +506,9 @@ func (r *RuleParser) addCustomVarFields(m map[interface{}]interface{}, customVar
 	return nil
 }
 
-func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.ConditionEntry, map[string]provider.Client, error) {
+func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.ConditionEntry, map[string]provider.InternalProviderClient, error) {
 	conditions := []engine.ConditionEntry{}
-	providers := map[string]provider.Client{}
+	providers := map[string]provider.InternalProviderClient{}
 	chainNameToIndex := map[string]int{}
 	for _, conditionInterface := range conditionsInterface {
 		// get map from interface
@@ -632,14 +647,14 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 	return conditions, providers, nil
 }
 
-func (r *RuleParser) getConditionForProvider(langProvider, capability string, value interface{}) (engine.Conditional, provider.Client, error) {
+func (r *RuleParser) getConditionForProvider(langProvider, capability string, value interface{}) (engine.Conditional, provider.InternalProviderClient, error) {
 	// Here there can only be a single provider.
 	client, ok := r.ProviderNameToClient[langProvider]
 	if !ok {
 		return nil, nil, fmt.Errorf("unable to find provider for :%v", langProvider)
 	}
 
-	if !client.HasCapability(capability) {
+	if !provider.HasCapability(client.Capabilities(), capability) {
 		return nil, nil, fmt.Errorf("unable to find cap: %v from provider: %v", capability, langProvider)
 	}
 

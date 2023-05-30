@@ -23,10 +23,9 @@ type testProvider struct {
 func (t testProvider) Capabilities() []provider.Capability {
 	return t.caps
 }
-func (t testProvider) HasCapability(string) bool { return true }
 
-func (t testProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (int, error) {
-	return 0, nil
+func (t testProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
+	return nil, nil
 }
 
 func (t testProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
@@ -37,13 +36,17 @@ func (t testProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
 	return nil, uri.File("test"), nil
 }
 
-func (t testProvider) GetDependenciesLinkedList() (map[provider.Dep][]provider.Dep, uri.URI, error) {
+func (t testProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
 	return nil, uri.File("test"), nil
+}
+
+func (t testProvider) ProviderInit(context.Context) error {
+	return nil
 }
 
 func (t testProvider) Stop() {}
 
-var _ provider.Client = &testProvider{}
+var _ provider.InternalProviderClient = &testProvider{}
 
 func TestLoadRules(t *testing.T) {
 	allGoFiles := "all go files"
@@ -53,16 +56,60 @@ func TestLoadRules(t *testing.T) {
 	testCases := []struct {
 		Name               string
 		testFileName       string
-		providerNameClient map[string]provider.Client
+		providerNameClient map[string]provider.InternalProviderClient
 		ExpectedRuleSet    map[string]engine.RuleSet
-		ExpectedProvider   map[string]provider.Client
+		ExpectedProvider   map[string]provider.InternalProviderClient
 		ShouldErr          bool
 		ErrorMessage       string
 	}{
 		{
+			Name:         "test rule invalidID newline",
+			testFileName: "rule-invalid-newline-ruleID.yaml",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []provider.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{},
+		},
+		{
+			Name:         "test rule invalidID semi-colon",
+			testFileName: "rule-invalid-semicolon-ruleID.yaml",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []provider.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{},
+		},
+		{
 			Name:         "basic single condition",
 			testFileName: "rule-simple-default.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -80,12 +127,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleMeta: engine.RuleMeta{
 								RuleID: "file-001",
-								Links: []hubapi.Link{
-									{
-										URL:   "https://go.dev",
-										Title: "Golang",
-									},
-								},
 								Labels: []string{
 									"testing",
 									"test",
@@ -94,12 +135,22 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text: &allGoFiles,
+									Links: []hubapi.Link{
+										{
+											URL:   "https://go.dev",
+											Title: "Golang",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -110,7 +161,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "basic rule from dir",
 			testFileName: "test-folder",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -131,12 +182,12 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -147,7 +198,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "rule invalid message",
 			testFileName: "invalid-message.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -165,7 +216,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "rule invalid ruleID",
 			testFileName: "invalid-rule-id.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -183,7 +234,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "test-and-rule",
 			testFileName: "rule-and.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -204,12 +255,12 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoAndJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoAndJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -220,7 +271,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "test-or-rule",
 			testFileName: "rule-or.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -241,12 +292,12 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoOrJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -257,7 +308,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "test-or-rule",
 			testFileName: "rule-chain.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -278,12 +329,12 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoOrJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -294,7 +345,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "rule no provider",
 			testFileName: "rule-simple-default.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"notadded": testProvider{
 					caps: []provider.Capability{{
 						Name: "fake",
@@ -307,7 +358,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "rule no conditions",
 			testFileName: "invalid-rule-no-conditions.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"notadded": testProvider{
 					caps: []provider.Capability{{
 						Name: "fake",
@@ -320,7 +371,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "rule invalid conditions",
 			testFileName: "invalid-rule-invalid-conditions.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"notadded": testProvider{
 					caps: []provider.Capability{{
 						Name: "fake",
@@ -333,7 +384,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "rule not simple",
 			testFileName: "rule-not-simple.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -354,12 +405,12 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoOrJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -370,7 +421,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "rule duplicate id",
 			testFileName: "invalid-dup-rule-id.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -388,7 +439,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "rule or/and/chain layer",
 			testFileName: "or-and-chain-layer.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -409,12 +460,12 @@ func TestLoadRules(t *testing.T) {
 								Category:    &hubapi.Potential,
 								Description: "",
 							},
-							Perform: engine.Perform{Message: &allGoOrJsonFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -425,14 +476,14 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "test multiple actions, can set message and tag both",
 			testFileName: "multiple-actions.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
 					}},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -449,8 +500,11 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 							},
 							Perform: engine.Perform{
-								Message: &allGoFiles,
-								Tag:     []string{"test"},
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []hubapi.Link{},
+								},
+								Tag: []string{"test"},
 							},
 						},
 					},
@@ -461,7 +515,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "no actions, at least one action must be set",
 			testFileName: "no-actions.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -479,14 +533,14 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "test valid tag action",
 			testFileName: "valid-tag-rule.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
 					}},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -511,7 +565,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "multiple-rulesets",
 			testFileName: "folder-of-rulesets",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -532,7 +586,7 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
@@ -543,12 +597,12 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []hubapi.Link{}}},
 						},
 					},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -561,7 +615,7 @@ func TestLoadRules(t *testing.T) {
 			testFileName: "no-ruleset",
 			ShouldErr:    true,
 			ErrorMessage: "unable to find ruleset.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -577,7 +631,7 @@ func TestLoadRules(t *testing.T) {
 		{
 			Name:         "handle not-valid category",
 			testFileName: "invalid-category.yaml",
-			providerNameClient: map[string]provider.Client{
+			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",
@@ -595,12 +649,6 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleMeta: engine.RuleMeta{
 								RuleID: "file-001",
-								Links: []hubapi.Link{
-									{
-										URL:   "https://go.dev",
-										Title: "Golang",
-									},
-								},
 								Labels: []string{
 									"testing",
 									"test",
@@ -609,12 +657,22 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 								Category:    &hubapi.Potential,
 							},
-							Perform: engine.Perform{Message: &allGoFiles},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text: &allGoFiles,
+									Links: []hubapi.Link{
+										{
+											URL:   "https://go.dev",
+											Title: "Golang",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
 			},
-			ExpectedProvider: map[string]provider.Client{
+			ExpectedProvider: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
 					caps: []provider.Capability{{
 						Name: "file",

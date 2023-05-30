@@ -28,9 +28,23 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	builtinConfig.InitConfig = InitConfig{
-		Location: c,
+	builtinConfig.InitConfig = []InitConfig{
+		{
+			Location: c,
+		},
 	}
+}
+
+type UnimplementedDependenciesComponent struct{}
+
+// We don't have dependencies
+func (p *UnimplementedDependenciesComponent) GetDependencies() ([]Dep, uri.URI, error) {
+	return nil, "", nil
+}
+
+// We don't have dependencies
+func (p *UnimplementedDependenciesComponent) GetDependenciesDAG() ([]DepDAGItem, uri.URI, error) {
+	return nil, "", nil
 }
 
 type Capability struct {
@@ -39,10 +53,10 @@ type Capability struct {
 }
 
 type Config struct {
-	Name       string     `yaml:"name,omitempty" json:"name,omitempty"`
-	BinaryPath string     `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
-	Address    string     `yaml:"address,omitempty" json:"address,omitempty"`
-	InitConfig InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
+	Name       string       `yaml:"name,omitempty" json:"name,omitempty"`
+	BinaryPath string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
+	Address    string       `yaml:"address,omitempty" json:"address,omitempty"`
+	InitConfig []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
 }
 
 type InitConfig struct {
@@ -143,36 +157,103 @@ func HasCapability(caps []Capability, name string) bool {
 	return false
 }
 
-// For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
+func FullResponseFromServiceClients(clients []ServiceClient, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error) {
+	fullResp := ProviderEvaluateResponse{
+		Matched:         false,
+		Incidents:       []IncidentContext{},
+		TemplateContext: map[string]interface{}{},
+	}
+	for _, c := range clients {
+		r, err := c.Evaluate(cap, conditionInfo)
+		if err != nil {
+			return fullResp, err
+		}
+		if !fullResp.Matched {
+			fullResp.Matched = r.Matched
+		}
+		fullResp.Incidents = append(fullResp.Incidents, r.Incidents...)
+		for k, v := range r.TemplateContext {
+			fullResp.TemplateContext[k] = v
+		}
+	}
+	return fullResp, nil
+}
+
+func FullDepsResponse(clients []ServiceClient) ([]Dep, uri.URI, error) {
+	deps := []Dep{}
+	var uri uri.URI
+	for _, c := range clients {
+		r, u, err := c.GetDependencies()
+		if err != nil {
+			return nil, uri, err
+		}
+		deps = append(deps, r...)
+		uri = u
+	}
+	return deps, uri, nil
+}
+
+func FullDepDAGResponse(clients []ServiceClient) ([]DepDAGItem, uri.URI, error) {
+	deps := []DepDAGItem{}
+	var uri uri.URI
+	for _, c := range clients {
+		r, u, err := c.GetDependenciesDAG()
+		if err != nil {
+			return nil, uri, err
+		}
+		uri = u
+		deps = append(deps, r...)
+	}
+	return deps, uri, nil
+}
+
+// InternalInit interface is going to be used to init the full config of a provider.
+// used by the engine/analyzer to get a provider ready.
+type InternalInit interface {
+	ProviderInit(context.Context) error
+}
+
+type InternalProviderClient interface {
+	InternalInit
+	Client
+}
+
 type Client interface {
+	BaseClient
+	ServiceClient
+}
+
+type BaseClient interface {
 	Capabilities() []Capability
-	HasCapability(name string) bool
+	Init(context.Context, logr.Logger, InitConfig) (ServiceClient, error)
+}
 
-	// Block until initialized
-	Init(context.Context, logr.Logger, InitConfig) (int, error)
-
+// For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
+type ServiceClient interface {
 	Evaluate(cap string, conditionInfo []byte) (ProviderEvaluateResponse, error)
 
 	Stop()
 
-	DependencyProvider
-}
-
-type DependencyProvider interface {
 	// GetDependencies will get the dependencies
 	// It is the responsibility of the provider to determine how that is done
 	GetDependencies() ([]Dep, uri.URI, error)
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
-	GetDependenciesLinkedList() (map[Dep][]Dep, uri.URI, error)
+	GetDependenciesDAG() ([]DepDAGItem, uri.URI, error)
 }
 
 type Dep struct {
-	Name     string `json:"name,omitempty"`
-	Version  string `json:"version,omitempty"`
-	Type     string `json:"type,omitempty"`
-	Indirect bool   `json:"indirect,omitempty"`
-	SHA      string `json:"sha,omitempty"`
+	Name               string                 `json:"name,omitempty"`
+	Version            string                 `json:"version,omitempty"`
+	Type               string                 `json:"type,omitempty"`
+	Indirect           bool                   `json:"indirect,omitempty"`
+	ResolvedIdentifier string                 `json:"sha,omitempty"`
+	Extras             map[string]interface{} `json:"extras,omitempty"`
+}
+
+type DepDAGItem struct {
+	Dep       Dep          `json:"dep,omitempty"`
+	AddedDeps []DepDAGItem `json:"addedDep,omitempty"`
 }
 
 type Startable interface {
@@ -180,7 +261,7 @@ type Startable interface {
 }
 
 type ProviderCondition struct {
-	Client
+	Client        ServiceClient
 	Capability    string
 	ConditionInfo interface{}
 	Rule          engine.Rule
@@ -232,7 +313,7 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 			FileURI:   inc.FileURI,
 			Effort:    inc.Effort,
 			Variables: inc.Variables,
-			Links:     p.Rule.Links,
+			Links:     p.Rule.Perform.Message.Links,
 		}
 
 		if inc.CodeLocation != nil {
@@ -315,6 +396,7 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			matchedDeps = append(matchedDeps, &dep)
 		}
 	}
+
 	if len(matchedDeps) == 0 {
 		return resp, nil
 	}
@@ -408,4 +490,14 @@ func getVersion(depVersion string) (*version.Version, error) {
 		return nil, err
 	}
 	return version.NewVersion(matches[0])
+}
+
+// Convert Dag Item List to flat list.
+func ConvertDagItemsToList(items []DepDAGItem) []Dep {
+	deps := []Dep{}
+	for _, i := range items {
+		deps = append(deps, i.Dep)
+		deps = append(deps, ConvertDagItemsToList(i.AddedDeps)...)
+	}
+	return deps
 }

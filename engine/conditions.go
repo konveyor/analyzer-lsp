@@ -100,7 +100,6 @@ type RuleMeta struct {
 	Category    *hubapi.Category `yaml:"category,omitempty" json:"category,omitempty"`
 	Labels      []string         `yaml:"labels,omitempty" json:"labels,omitempty"`
 	Effort      *int             `json:"effort,omitempty"`
-	Links       []hubapi.Link    `yaml:"links,omitempty" json:"links,omitempty"`
 }
 
 // RuleSelector selects rules based on rule metadata
@@ -116,12 +115,17 @@ type CustomVariable struct {
 }
 
 type Perform struct {
-	Message *string  `yaml:"message,omitempty"`
+	Message Message  `yaml:",inline"`
 	Tag     []string `yaml:"tag,omitempty"`
 }
 
+type Message struct {
+	Text  *string       `yaml:"message,omitempty"`
+	Links []hubapi.Link `yaml:"links,omitempty"`
+}
+
 func (p *Perform) Validate() error {
-	if p.Message == nil && p.Tag == nil {
+	if p.Message.Text == nil && p.Tag == nil {
 		return fmt.Errorf("either message or tag must be set")
 	}
 	return nil

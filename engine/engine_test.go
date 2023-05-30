@@ -169,7 +169,9 @@ func TestEvaluateAndConditions(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			rule := Rule{
 				Perform: Perform{
-					Message: &testString,
+					Message: Message{
+						Text: &testString,
+					},
 				},
 				When: AndCondition{Conditions: tc.Conditions},
 			}
@@ -289,7 +291,9 @@ func TestEvaluateOrConditions(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			rule := Rule{
 				Perform: Perform{
-					Message: &testString,
+					Message: Message{
+						Text: &testString,
+					},
 				},
 				When: OrCondition{tc.Conditions},
 			}
@@ -440,7 +444,9 @@ func TestChainConditions(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			rule := Rule{
 				Perform: Perform{
-					Message: &testString,
+					Message: Message{
+						Text: &testString,
+					},
 				},
 				When: OrCondition{tc.Conditions},
 			}
@@ -470,11 +476,11 @@ func TestRuleEngine(t *testing.T) {
 				{
 					Rules: []Rule{
 						{
-							Perform: Perform{Message: &woo},
+							Perform: Perform{Message: Message{Text: &woo}},
 							When:    createTestConditional(false, nil, true),
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -487,7 +493,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -509,11 +515,11 @@ func TestRuleEngine(t *testing.T) {
 				{
 					Rules: []Rule{
 						{
-							Perform: Perform{Message: &woo},
+							Perform: Perform{Message: Message{Text: &woo}},
 							When:    createTestConditional(false, nil, false),
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -526,7 +532,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -539,7 +545,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -552,7 +558,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -565,7 +571,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -578,7 +584,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -591,7 +597,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -604,7 +610,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -617,7 +623,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
@@ -630,7 +636,7 @@ func TestRuleEngine(t *testing.T) {
 							},
 						},
 						{
-							Perform: Perform{Message: &wooFalse},
+							Perform: Perform{Message: Message{Text: &wooFalse}},
 							When: AndCondition{
 								Conditions: []ConditionEntry{
 									{
