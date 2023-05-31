@@ -86,9 +86,10 @@ func (p *javaServiceClient) GetAllSymbols(query, location string) []protocol.Wor
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
 	arguments := map[string]string{
-		"query":    query,
-		"project":  "java",
-		"location": fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
+		"query":        query,
+		"project":      "java",
+		"location":     fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
+		"analysisMode": string(p.config.AnalysisMode),
 	}
 
 	wsp := &protocol.ExecuteCommandParams{
@@ -162,9 +163,6 @@ func (p *javaServiceClient) initialization() {
 					"maven": map[string]interface{}{
 						"downloadSources": true,
 					},
-				},
-				"konveyor": map[string]interface{}{
-					"mode": p.config.AnalysisMode,
 				},
 			},
 		},
