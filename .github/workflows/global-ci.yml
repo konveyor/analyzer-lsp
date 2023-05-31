@@ -34,7 +34,7 @@ on:
         required: false
         type: string
         default: main
-  workflow_trigger:
+  workflow_dispatch:
     inputs:
       component_name:
         description: |
