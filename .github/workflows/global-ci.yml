@@ -10,15 +10,26 @@ on:
           and should contain the file <component_name>.tar inside.
         required: true
         type: string
+
 jobs:
   tackle-golang-api-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Extract pull request number from PR description
+        run: |
+          PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP '[G|g]o [T|t]ests [P|p][R|r]: \K\d+' || true)
+          if [ -z "$PULL_REQUEST_NUMBER" ]; then
+            echo "GOLANG_TESTS_REF=main" >>$GITHUB_ENV
+          else
+            echo "GOLANG_TESTS_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
+          fi
+
       - name: Checkout golang api tests repo
         uses: actions/checkout@v3
         with:
           repository: konveyor/go-konveyor-tests
           path: go-konveyor-tests
+          ref: "${{ env.GOLANG_TESTS_REF }}"
 
       # TODO Should DRY this
       - name: set up docker buildx
@@ -68,11 +79,21 @@ jobs:
   tackle-python-api-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Extract pull request number from PR description
+        run: |
+          PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP '[P|p]ython [T|t]ests [P|p][R|r]: \K\d+' || true)
+          if [ -z "$PULL_REQUEST_NUMBER" ]; then
+            echo "PYTHON_TESTS_REF=main" >>$GITHUB_ENV
+          else
+            echo "PYTHON_TESTS_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
+          fi
+
       - name: Checkout python api tests repo
         uses: actions/checkout@v3
         with:
           repository: konveyor/tackle-api-tests
           path: tackle-api-tests
+          ref: "${{ env.PYTHON_TESTS_REF }}"
 
       # TODO Should DRY this
       - name: set up docker buildx
@@ -126,13 +147,22 @@ jobs:
       matrix:
         split: [0, 1, 2, 3, 4, 5, 6, 7, 8]
     steps:
+
+      - name: Extract pull request number from PR description
+        run: |
+          PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP '[U|u][I|i] [T|t]ests [P|p][R|r]: \K\d+' || true)
+          if [ -z "$PULL_REQUEST_NUMBER" ]; then
+            echo "UI_TESTS_REF=main" >>$GITHUB_ENV
+          else
+            echo "UI_TESTS_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
+          fi
+
       - name: Checkout ui tests repo
         uses: actions/checkout@v3
         with:
-          # repository: konveyor/tackle-ui-tests
-          repository: fabianvf/tackle-ui-tests
+          repository: konveyor/tackle-ui-tests
           path: tackle-ui-tests
-          ref: support-split
+          ref: "${{ env.UI_TESTS_REF }}"
 
       # TODO Should DRY this
       - name: set up docker buildx
