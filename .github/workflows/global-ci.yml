@@ -44,6 +44,8 @@ jobs:
         uses: konveyor/tackle2-operator/.github/actions/install-tackle@main
         with:
           tackle-image-pull-policy: IfNotPresent
+          tackle-windup-container-memory: 0
+          tackle-windup-container-cpu: 0
 
       - name: Expose konveyor UI
         run: |
@@ -96,6 +98,8 @@ jobs:
         uses: konveyor/tackle2-operator/.github/actions/install-tackle@main
         with:
           tackle-image-pull-policy: IfNotPresent
+          tackle-windup-container-memory: 0
+          tackle-windup-container-cpu: 0
 
       - name: Expose konveyor UI
         run: |
@@ -154,6 +158,8 @@ jobs:
         uses: konveyor/tackle2-operator/.github/actions/install-tackle@main
         with:
           tackle-image-pull-policy: IfNotPresent
+          tackle-windup-container-memory: 0
+          tackle-windup-container-cpu: 0
 
       - name: Expose konveyor URLs
         run: |
