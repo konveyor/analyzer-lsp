@@ -109,7 +109,6 @@ func main() {
 			}
 			config.InitConfig = inits
 		}
-		fmt.Printf("\nconfig: %#v\n\n", config)
 		prov, err := lib.GetProviderClient(config, log)
 		if err != nil {
 			log.Error(err, "unable to create provider client")

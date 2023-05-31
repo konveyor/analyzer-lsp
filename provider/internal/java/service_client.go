@@ -147,6 +147,10 @@ func (p *javaServiceClient) initialization() {
 		absBundles = append(absBundles, abs)
 
 	}
+	downloadSources := true
+	if p.config.AnalysisMode == provider.SourceOnlyAnalysisMode {
+		downloadSources = false
+	}
 
 	params := &protocol.InitializeParams{
 		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
@@ -161,7 +165,7 @@ func (p *javaServiceClient) initialization() {
 			"settings": map[string]interface{}{
 				"java": map[string]interface{}{
 					"maven": map[string]interface{}{
-						"downloadSources": true,
+						"downloadSources": downloadSources,
 					},
 				},
 			},
