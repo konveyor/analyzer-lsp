@@ -2,7 +2,7 @@ name: Run global Konveyor CI tests
 
 on:
   workflow_call:
-    inputs:
+    inputs: &inputs
       component_name:
         description: |
           The name of the component being tested, ie konveyor-hub, analyzer-lsp, etc.
@@ -34,6 +34,9 @@ on:
         required: false
         type: string
         default: main
+  workflow_trigger:
+    inputs:
+      <<: *inputs
 
 jobs:
   tackle-golang-api-tests:
