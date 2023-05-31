@@ -173,6 +173,13 @@ func (p *javaProvider) ProviderInit(ctx context.Context) error {
 }
 
 func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
+	//By default if nothing is set for analysis mode, in the config, we should default to full for external providers
+	var a provider.AnalysisMode = provider.AnalysisMode(config.AnalysisMode)
+	if a == provider.AnalysisMode("") {
+		a = provider.FullAnalysisMode
+	} else if !(a == provider.FullAnalysisMode || a == provider.ParitalAnalysisMode || a == provider.SourceOnlyAnalysisMode) {
+		return nil, fmt.Errorf("invalid Analysis Mode")
+	}
 	log = log.WithValues("provider", "java")
 
 	var returnErr error

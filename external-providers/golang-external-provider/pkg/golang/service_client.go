@@ -31,7 +31,6 @@ func (p *golangServiceClient) Stop() {
 	p.cmd.Wait()
 }
 func (p *golangServiceClient) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	fmt.Printf("\nHERE IN EVALUATE\n")
 	var cond golangCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
@@ -42,9 +41,7 @@ func (p *golangServiceClient) Evaluate(cap string, conditionInfo []byte) (provid
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
 	}
 
-	fmt.Printf("\nHERE IN EVALUATE get all symbols\n")
 	symbols := p.GetAllSymbols(query)
-	fmt.Printf("\nHERE IN EVALUATE got all symbols: %#v\n\n", symbols)
 
 	incidents := []provider.IncidentContext{}
 	for _, s := range symbols {

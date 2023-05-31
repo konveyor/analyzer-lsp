@@ -41,6 +41,9 @@ type golangCondition struct {
 }
 
 func (p *golangProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
+	if c.AnalysisMode != provider.FullAnalysisMode {
+		return nil, fmt.Errorf("only full analysis is supported")
+	}
 	ctx, cancelFunc := context.WithCancel(ctx)
 	log = log.WithValues("provider", "golang")
 	cmd := exec.CommandContext(ctx, c.LSPServerPath)

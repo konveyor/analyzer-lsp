@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/engine"
@@ -33,6 +34,7 @@ var (
 	jaegerEndpoint    = flag.String("jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
 	limitIncidents    = flag.Int("limit-incidents", 1500, "Set this to the limit incidents that a given rule can give, zero means no limit")
 	limitCodeSnips    = flag.Int("limit-code-snips", 20, "limit the number code snippets that are retrieved for a file while evaluating a rule, 0 means no limit")
+	analysisMode      = flag.String("analysis-mode", "", "select one of full, source-only, partial to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
 )
 
 func main() {
@@ -98,6 +100,16 @@ func main() {
 	providers := map[string]provider.InternalProviderClient{}
 
 	for _, config := range configs {
+		// IF analsyis mode is set from the CLI, then we will override this for each init config
+		if *analysisMode != "" {
+			inits := []provider.InitConfig{}
+			for _, i := range config.InitConfig {
+				i.AnalysisMode = provider.AnalysisMode(*analysisMode)
+				inits = append(inits, i)
+			}
+			config.InitConfig = inits
+		}
+		fmt.Printf("\nconfig: %#v\n\n", config)
 		prov, err := lib.GetProviderClient(config, log)
 		if err != nil {
 			log.Error(err, "unable to create provider client")
@@ -129,10 +141,10 @@ func main() {
 		}
 	}
 	// Now that we have all the providers, we need to start them.
-	for _, provider := range needProviders {
+	for name, provider := range needProviders {
 		err := provider.ProviderInit(ctx)
 		if err != nil {
-			log.Error(err, "unable to init the providers")
+			log.Error(err, "unable to init the providers", "provider", name)
 			os.Exit(1)
 		}
 	}
@@ -169,6 +181,10 @@ func validateFlags() error {
 		if err != nil {
 			return fmt.Errorf("unable to find rule path or file")
 		}
+	}
+	m := provider.AnalysisMode(strings.ToLower(*analysisMode))
+	if *analysisMode != "" && !(m == provider.FullAnalysisMode || m == provider.ParitalAnalysisMode || m == provider.SourceOnlyAnalysisMode) {
+		return fmt.Errorf("must select one of %s, %s or %s for analysis mode", provider.FullAnalysisMode, provider.ParitalAnalysisMode, provider.SourceOnlyAnalysisMode)
 	}
 
 	return nil

@@ -163,6 +163,9 @@ func (p *javaServiceClient) initialization() {
 						"downloadSources": true,
 					},
 				},
+				"konveyor": map[string]interface{}{
+					"mode": p.config.AnalysisMode,
+				},
 			},
 		},
 	}
