@@ -63,7 +63,6 @@ type AnalysisMode string
 
 const (
 	FullAnalysisMode       AnalysisMode = "full"
-	ParitalAnalysisMode    AnalysisMode = "partial"
 	SourceOnlyAnalysisMode AnalysisMode = "source-only"
 )
 

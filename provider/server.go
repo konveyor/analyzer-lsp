@@ -90,7 +90,7 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 	var a AnalysisMode = AnalysisMode(config.AnalysisMode)
 	if a == AnalysisMode("") {
 		a = FullAnalysisMode
-	} else if !(a == FullAnalysisMode || a == ParitalAnalysisMode || a == SourceOnlyAnalysisMode) {
+	} else if !(a == FullAnalysisMode || a == SourceOnlyAnalysisMode) {
 		return nil, fmt.Errorf("invalid Analysis Mode")
 	}
 

@@ -34,7 +34,7 @@ var (
 	jaegerEndpoint    = flag.String("jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
 	limitIncidents    = flag.Int("limit-incidents", 1500, "Set this to the limit incidents that a given rule can give, zero means no limit")
 	limitCodeSnips    = flag.Int("limit-code-snips", 20, "limit the number code snippets that are retrieved for a file while evaluating a rule, 0 means no limit")
-	analysisMode      = flag.String("analysis-mode", "", "select one of full, source-only, partial to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
+	analysisMode      = flag.String("analysis-mode", "", "select one of full or source-only to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
 )
 
 func main() {
@@ -183,8 +183,8 @@ func validateFlags() error {
 		}
 	}
 	m := provider.AnalysisMode(strings.ToLower(*analysisMode))
-	if *analysisMode != "" && !(m == provider.FullAnalysisMode || m == provider.ParitalAnalysisMode || m == provider.SourceOnlyAnalysisMode) {
-		return fmt.Errorf("must select one of %s, %s or %s for analysis mode", provider.FullAnalysisMode, provider.ParitalAnalysisMode, provider.SourceOnlyAnalysisMode)
+	if *analysisMode != "" && !(m == provider.FullAnalysisMode || m == provider.SourceOnlyAnalysisMode) {
+		return fmt.Errorf("must select one of %s or %s for analysis mode", provider.FullAnalysisMode, provider.SourceOnlyAnalysisMode)
 	}
 
 	return nil
