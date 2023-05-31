@@ -14,9 +14,8 @@ on:
       component_name:
         description: |
           The name of the component being tested, ie konveyor-hub, analyzer-lsp, etc.
-          The artifact storing the custom built artifact should be named <component_name>,
-          and should contain the file <component_name>.tar inside. This will only be used for
-          runs that are triggered from a Pull Request
+          Must correspond to an artifact storing the custom built image, named <component_name>,
+          and should contain the file <component_name>.tar inside.
         required: false
         type: string
       golang_tests_ref:
@@ -53,6 +52,13 @@ on:
         required: false
         type: string
         default: latest
+      component_name:
+        description: |
+          The name of the component being tested, ie konveyor-hub, analyzer-lsp, etc.
+          Must correspond to an artifact storing the custom built image, named <component_name>,
+          and should contain the file <component_name>.tar inside.
+        required: false
+        type: string
       golang_tests_ref:
         description: |
           The branch or PR of the go-konveyor-tests repository to clone.
@@ -100,11 +106,11 @@ jobs:
 
       # TODO Should DRY this
       - name: set up docker buildx
-        if: "${{ github.event.inputs.component_name != '' }}"
+        if: "${{ inputs.component_name != '' }}"
         uses: docker/setup-buildx-action@v2
 
       - name: Download artifact
-        if: "${{ github.event.inputs.component_name != '' }}"
+        if: "${{ inputs.component_name != '' }}"
         uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.component_name }}
@@ -115,7 +121,7 @@ jobs:
 
       # TODO: Could just load all images found in this artifact so that people can rebuild multiple components if needed
       - name: Load image
-        if: "${{ github.event.inputs.component_name != '' }}"
+        if: "${{ inputs.component_name != '' }}"
         run: |
           export SHELL=/bin/bash
           eval $(minikube -p minikube docker-env)
