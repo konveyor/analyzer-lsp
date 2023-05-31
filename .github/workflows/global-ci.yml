@@ -2,7 +2,7 @@ name: Run global Konveyor CI tests
 
 on:
   workflow_call:
-    inputs: &inputs
+    inputs:
       component_name:
         description: |
           The name of the component being tested, ie konveyor-hub, analyzer-lsp, etc.
@@ -36,7 +36,37 @@ on:
         default: main
   workflow_trigger:
     inputs:
-      <<: *inputs
+      component_name:
+        description: |
+          The name of the component being tested, ie konveyor-hub, analyzer-lsp, etc.
+          The artifact storing the custom built artifact should be named <component_name>,
+          and should contain the file <component_name>.tar inside.
+        required: false
+        type: string
+      golang_tests_ref:
+        description: |
+          The branch or PR of the go-konveyor-tests repository to clone.
+          For a pull request, the reference format would be "refs/pull/${PR_NUMBER}/merge".
+          For a branch, the reference format would just be the branch name.
+          This input can be set automatically on a pull request by adding a string of the format:
+            Go tests PR: 140
+          replacing "140" with the appropriate PR number. This will make it easier to coordinate changes
+          that require updating the global tests as well.
+        required: false
+        type: string
+        default: main
+      ui_tests_ref:
+        description: |
+          The branch or PR of the tackle-ui-tests repository to clone.
+          For a pull request, the reference format would be "refs/pull/${PR_NUMBER}/merge".
+          For a branch, the reference format would just be the branch name.
+          This input can be set automatically on a pull request by adding a string of the format:
+            UI tests PR: 140
+          replacing "140" with the appropriate PR number. This will make it easier to coordinate changes
+          that require updating the global tests as well.
+        required: false
+        type: string
+        default: main
 
 jobs:
   tackle-golang-api-tests:
