@@ -41,6 +41,7 @@ func (e parserErrors) Error() string {
 type RuleParser struct {
 	ProviderNameToClient map[string]provider.InternalProviderClient
 	Log                  logr.Logger
+	NoDependencyRules    bool
 }
 
 func (r *RuleParser) loadRuleSet(dir string) *engine.RuleSet {
@@ -313,6 +314,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			}
 		}
 
+		noConditions := false
 		for k, value := range whenMap {
 			key, ok := k.(string)
 			if !ok {
@@ -329,6 +331,10 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				if err != nil {
 					return nil, nil, err
 				}
+				if len(conditions) == 0 {
+					noConditions = true
+				}
+
 				rule.When = engine.OrCondition{Conditions: conditions}
 				for k, prov := range provs {
 					providers[k] = prov
@@ -342,6 +348,9 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				conditions, provs, err := r.getConditions(m)
 				if err != nil {
 					return nil, nil, err
+				}
+				if len(conditions) == 0 {
+					noConditions = true
 				}
 				rule.When = engine.AndCondition{Conditions: conditions}
 				for k, prov := range provs {
@@ -361,6 +370,9 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				if err != nil {
 					return nil, nil, err
 				}
+				if condition == nil {
+					continue
+				}
 
 				c := engine.ConditionEntry{
 					From:                   from,
@@ -372,6 +384,10 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				rule.When = c
 				providers[providerKey] = provider
 			}
+		}
+		if noConditions || rule.When == nil {
+			r.Log.V(5).Info("skipping rule no conditions found", "rule", rule.RuleID)
+			continue
 		}
 
 		ruleIDMap[rule.RuleID] = nil
@@ -616,6 +632,9 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
+				if condition == nil {
+					continue
+				}
 
 				ce = engine.ConditionEntry{
 					From:                   from,
@@ -667,7 +686,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 		}
 	}
 
-	if capability == "dependency" {
+	if capability == "dependency" && !r.NoDependencyRules {
 		depCondition := provider.DependencyCondition{
 			Client: client,
 		}
@@ -698,7 +717,6 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 				return nil, nil, fmt.Errorf("%s is not a valid argument for a dependency condition", key)
 			}
 		}
-
 		if depCondition.NameRegex != "" {
 			return &depCondition, client, nil
 
@@ -712,6 +730,9 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 		}
 
 		return &depCondition, client, nil
+	} else if capability == "dependency" && r.NoDependencyRules {
+		r.Log.V(5).Info(fmt.Sprintf("not evaluating dependency condition - %s.%s for %#v", langProvider, capability, value))
+		return nil, nil, nil
 	}
 
 	return &provider.ProviderCondition{
