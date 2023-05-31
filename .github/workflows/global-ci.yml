@@ -3,11 +3,20 @@ name: Run global Konveyor CI tests
 on:
   workflow_call:
     inputs:
+      tag:
+        description: |
+          The tag that should be used to pull all konveyor related images.
+          For example, if you wanted to set a nightly build for release-0.2, you would specify
+          "release-0.2".
+        required: false
+        type: string
+        default: latest
       component_name:
         description: |
           The name of the component being tested, ie konveyor-hub, analyzer-lsp, etc.
           The artifact storing the custom built artifact should be named <component_name>,
-          and should contain the file <component_name>.tar inside.
+          and should contain the file <component_name>.tar inside. This will only be used for
+          runs that are triggered from a Pull Request
         required: false
         type: string
       golang_tests_ref:
@@ -36,6 +45,14 @@ on:
         default: main
   workflow_dispatch:
     inputs:
+      tag:
+        description: |
+          The tag that should be used to pull all konveyor related images.
+          For example, if you wanted to set a nightly build for release-0.2, you would specify
+          "release-0.2".
+        required: false
+        type: string
+        default: latest
       golang_tests_ref:
         description: |
           The branch or PR of the go-konveyor-tests repository to clone.
@@ -65,12 +82,6 @@ jobs:
   tackle-golang-api-tests:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo ${{ github }}
-          echo ${{ github.event }}
-          echo ${{ github.event_name }}
-          echo ${{ github.event.pull_request }}
-
       - name: Extract pull request number from inputs or PR description
         run: |
           PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP '[G|g]o [T|t]ests [P|p][R|r]: \K\d+' || true)
@@ -113,6 +124,13 @@ jobs:
       - name: install konveyor
         uses: konveyor/tackle2-operator/.github/actions/install-tackle@main
         with:
+          # TODO need to set the tackle-operator image once supported
+          # tackle-operator-image: quay.io/konveyor/tackle2-operator:${{ inputs.tag }}
+          tackle-hub-image: "quay.io/konveyor/tackle2-hub:${{ inputs.tag }}"
+          tackle-pathfinder-image: "quay.io/konveyor/tackle-pathfinder:${{ inputs.tag }}"
+          tackle-ui-image: "quay.io/konveyor/tackle2-ui:${{ inputs.tag }}"
+          tackle-addon-admin-image: "quay.io/konveyor/tackle2-addon:${{ inputs.tag }}"
+          tackle-addon-windup-image: "quay.io/konveyor/tackle2-addon-windup:${{ inputs.tag }}"
           tackle-image-pull-policy: IfNotPresent
           tackle-windup-container-memory: 0
           tackle-windup-container-cpu: 0
@@ -121,8 +139,6 @@ jobs:
         run: |
           kubectl expose deployment tackle-ui --type=NodePort --port=8080 -n konveyor-tackle --name tackle-ui-nodeport
           kubectl expose deployment tackle-hub --type=NodePort --port=8080 -n konveyor-tackle --name tackle-hub-nodeport
-          echo "UI_URL=$(minikube service tackle-ui-nodeport -n konveyor-tackle --url)" >>$GITHUB_ENV
-          echo "HUB_URL=$(minikube service tackle-hub-nodeport -n konveyor-tackle --url)" >>$GITHUB_ENV
       # end DRY
 
       - uses: actions/setup-go@v4
