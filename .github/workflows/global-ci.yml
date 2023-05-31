@@ -39,6 +39,12 @@ jobs:
   tackle-golang-api-tests:
     runs-on: ubuntu-latest
     steps:
+      - run: |
+          echo ${{ github }}
+          echo ${{ github.event }}
+          echo ${{ github.event_name }}
+          echo ${{ github.event.pull_request }}
+
       - name: Extract pull request number from inputs or PR description
         run: |
           PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP '[G|g]o [T|t]ests [P|p][R|r]: \K\d+' || true)
