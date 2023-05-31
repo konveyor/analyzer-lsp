@@ -36,13 +36,6 @@ on:
         default: main
   workflow_dispatch:
     inputs:
-      component_name:
-        description: |
-          The name of the component being tested, ie konveyor-hub, analyzer-lsp, etc.
-          The artifact storing the custom built artifact should be named <component_name>,
-          and should contain the file <component_name>.tar inside.
-        required: false
-        type: string
       golang_tests_ref:
         description: |
           The branch or PR of the go-konveyor-tests repository to clone.
