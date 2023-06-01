@@ -86,9 +86,10 @@ func (p *javaServiceClient) GetAllSymbols(query, location string) []protocol.Wor
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
 	arguments := map[string]string{
-		"query":    query,
-		"project":  "java",
-		"location": fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
+		"query":        query,
+		"project":      "java",
+		"location":     fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
+		"analysisMode": string(p.config.AnalysisMode),
 	}
 
 	wsp := &protocol.ExecuteCommandParams{
@@ -146,6 +147,10 @@ func (p *javaServiceClient) initialization() {
 		absBundles = append(absBundles, abs)
 
 	}
+	downloadSources := true
+	if p.config.AnalysisMode == provider.SourceOnlyAnalysisMode {
+		downloadSources = false
+	}
 
 	params := &protocol.InitializeParams{
 		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
@@ -160,7 +165,7 @@ func (p *javaServiceClient) initialization() {
 			"settings": map[string]interface{}{
 				"java": map[string]interface{}{
 					"maven": map[string]interface{}{
-						"downloadSources": true,
+						"downloadSources": downloadSources,
 					},
 				},
 			},

@@ -18,7 +18,8 @@ message Config {
   string location = 1;
   string dependencyPath = 2;
   string lspServerPath= 3;
-  google.protobuf.Struct providerSpecificConfig= 4;
+  string analysisMode = 4;
+  google.protobuf.Struct providerSpecificConfig= 5;
 }
 
 message InitResponse {

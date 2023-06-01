@@ -4,7 +4,8 @@
         "binaryPath": "/usr/bin/golang-external-provider",
         "initConfig": [{
             "location": "/analyzer-lsp/examples/golang",
-            "lspServerPath": "/root/go/bin/gopls"
+            "lspServerPath": "/root/go/bin/gopls",
+            "analysisMode": "full"
         }]
     },
     {
@@ -15,7 +16,8 @@
             "lspServerPath": "/jdtls/bin/jdtls",
             "providerSpecificConfig": {
                 "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
-            }
+            },
+            "analysisMode": "full"
         }]
     }
 ]

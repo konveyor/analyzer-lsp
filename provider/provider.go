@@ -59,6 +59,13 @@ type Config struct {
 	InitConfig []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
 }
 
+type AnalysisMode string
+
+const (
+	FullAnalysisMode       AnalysisMode = "full"
+	SourceOnlyAnalysisMode AnalysisMode = "source-only"
+)
+
 type InitConfig struct {
 	// This is the location of the code base that the
 	// Provider will be responisble for parsing
@@ -69,6 +76,8 @@ type InitConfig struct {
 	DependencyPath string `yaml:"dependencyPath,omitempty" json:"dependencyPath,omitempty"`
 
 	LSPServerPath string `yaml:"lspServerPath,omitempty" json:"lspServerPath,omitempty"`
+
+	AnalysisMode AnalysisMode `yaml:"analysisMode" json:"analysisMode"`
 
 	// This will have to be defined for each provider
 	ProviderSpecificConfig map[string]interface{} `yaml:"providerSpecificConfig,omitempty" json:"providerSpecificConfig,omitempty"`

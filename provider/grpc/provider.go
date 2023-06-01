@@ -81,6 +81,7 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 		Location:               config.Location,
 		DependencyPath:         config.DependencyPath,
 		LspServerPath:          config.LSPServerPath,
+		AnalysisMode:           string(config.AnalysisMode),
 		ProviderSpecificConfig: s,
 	}
 

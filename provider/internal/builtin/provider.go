@@ -120,6 +120,9 @@ func (p *builtinProvider) ProviderInit(context.Context) error {
 
 // We don't need to init anything
 func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
+	if config.AnalysisMode != provider.AnalysisMode("") {
+		p.log.V(5).Info("skipping analysis mode setting for builtin")
+	}
 	return &builtintServiceClient{
 		config:                             config,
 		tags:                               p.tags,

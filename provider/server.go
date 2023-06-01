@@ -86,10 +86,19 @@ func (s *server) Capabilities(ctx context.Context, _ *emptypb.Empty) (*libgrpc.C
 }
 
 func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.InitResponse, error) {
+	//By default if nothing is set for analysis mode, in the config, we should default to full for external providers
+	var a AnalysisMode = AnalysisMode(config.AnalysisMode)
+	if a == AnalysisMode("") {
+		a = FullAnalysisMode
+	} else if !(a == FullAnalysisMode || a == SourceOnlyAnalysisMode) {
+		return nil, fmt.Errorf("invalid Analysis Mode")
+	}
+
 	c := InitConfig{
 		Location:       config.Location,
 		DependencyPath: config.DependencyPath,
 		LSPServerPath:  config.LspServerPath,
+		AnalysisMode:   a,
 	}
 
 	if config.ProviderSpecificConfig != nil {
@@ -192,7 +201,6 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 	}
 
 	resp.IncidentContexts = incs
-	fmt.Printf("HERE: end: %#v", resp)
 
 	return &libgrpc.EvaluateResponse{
 		Response:   &resp,
