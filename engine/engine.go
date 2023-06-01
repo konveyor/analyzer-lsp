@@ -340,7 +340,7 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 
 func parseTagsFromPerformString(tagString string) ([]string, error) {
 	tags := []string{}
-	pattern := regexp.MustCompile(`^(?:[\w- ]+=){0,1}([\w- ]+(?:, *[\w- ,]+)*),?$`)
+	pattern := regexp.MustCompile(`^(?:[\w- \(\)]+=){0,1}([\w- \(\)]+(?:, *[\w- \(\),]+)*),?$`)
 	if !pattern.MatchString(tagString) {
 		return nil, fmt.Errorf("unexpected tag string %s", tagString)
 	}

@@ -719,6 +719,18 @@ func Test_parseTagsFromPerformString(t *testing.T) {
 			want:      nil,
 			wantErr:   true,
 		},
+		{
+			name:      "tc8 - spaces in the tag values",
+			tagString: "Category 1=test 1,test 2,test 3,test 4",
+			want:      []string{"test 1", "test 2", "test 3", "test 4"},
+			wantErr:   false,
+		},
+		{
+			name:      "tc9 - parentheses in the tag values",
+			tagString: "Category (1)=test (1),test (2),test (3),",
+			want:      []string{"test (1)", "test (2)", "test (3)"},
+			wantErr:   false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
