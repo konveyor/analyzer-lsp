@@ -1,63 +1,85 @@
 # Providers
 
-The analyzer rule engine uses pluggable providers that enable source code analysis. While the rule engine is responsible for parsing rules, invoking providers and generating output when rules match, the actual job of analyzing the source code is done by the providers. Currently, all the providers are in-tree. In future, we want to have external providers that communicate with the engine over gRPC.
+The analyzer rule engine uses pluggable providers that enable source code analysis. Providers communicate with the engine over gRPC. Currently, some providers are also in-tree.
 
 ## Configuring providers
 
-Currently supported providers are - `builtin`, `java` and `golang`.
-
-The config file for providers contains an array of JSON objects with each object being a configuration for a provider.
+Provider configurations go in a JSON file. It's a list of JSON objects with each object being configuration for a provider.
 
 Provider configuration fields are:
 
 * `name`: Name of the provider.
-* `location`: Path to the source code of the application to analyze.
-* `dependencyPath`: Path to look for dependencies of the application.
-* `binaryLocation`: Path to language server binary used by the provider. Note that a language server may or may not be used by a provider. For instance, the `builtin` provider does not use a language server.
-* `providerSpecificConfig`: Reserved for additional configuration options specific to a provider.
+* `binaryPath`: Path to binary used to initiate a gRPC provider.
+* `address`: Remote address of an already running gRPC provider.
+* `initConfig`: List of init configs for the provider.
+  * `location`: Path to the source code / binary of the application to analyze. Note that only `java` provider supports binary analysis.
+  * `dependencyPath`: Path to look for dependencies of the app.
+  * `lspServerPath`: Path to language server binary used by the provider.
+  * `providerSpecificConfig`: Reserved for additional configuration options specific to a provider.
 
-Here's an example config for Go provider in `provider_settings.json`:
+Currently supported providers are - `builtin`, `java` and `go`.
+
+#### Go provider
+
+Here's an example config for an external `go` provider that is initialized using a binary and works on gRPC:
 
 ```json
-[
-    {
-        "name": "go",
-        "location": "examples/golang",
-        "binaryLocation": "/usr/bin/gopls"
-    },
-]
+{
+    "name": "go",
+    "binaryPath": "/path/to/go/grpc/provider/binary",
+    "initConfig": [
+        {
+            "location": "/path/to/application/source/code",
+            "lspServerPath": "/path/to/language/server/binary",
+        }
+    ]
+}
 ```
 
-### Provider Specific Configs
+#### Java provider
 
-Some providers take additional config options specified via `providerSpecificConfig` field.
+Here's an example config for `java` provider that is currently in-tree and does not use gRPC:
 
-#### Java
+```json
+{
+    "name": "java",
+    "binaryPath": "/path/to/language/server/binary",
+    "initConfig": [
+        {
+            "location": "/path/to/application/source/or/binary",
+            "lspServerPath": "/path/to/language/server/binary",
+            "providerSpecificConfig": {
+                "bundles": "/path/to/extension/bundles",
+                "workspace": "/path/to/workspace",
+            }
+        }
+    ]
+}
+```
 
-The `java` provider takes following additional configuration options:
+The `location` can be a path to the application's source code or to a binary JAR, WAR, or EAR file.
+
+The `java` provider also takes following options in `providerSpecificConfig`:
 
 * `bundles`: Path to extension bundles to enhance default Java language server's capabilities. See the [bundle](https://github.com/konveyor/java-analyzer-bundle) Konveyor uses.
-* `workspace`: Path to directory where the provider generates debug information such as logs.
-* `location`: Path to the source code of the application to analyze. The location can be a binary jar, war, or ear file.
 
-Here's an updated example config for the Java provider in `provider_settings.json`:
+* `workspace`: Path to directory where the provider generates debug information such as logs.
+
+#### Builtin Provider
+
+The `builtin` provider is configured by default. To override the default config, a new config can be added to provider settings file:
 
 ```json
-[
-    {
-        "name": "java",
-        "location": "path/to/application.jar",
-        "binaryLocation": "/path/to/language/server/binary",
-        "bundles": "path/to/extension/bundles",
-        "workspace": "path/to/workspace"
-    }
-]
+{
+    "name": "builtin",
+    "initConfig": [
+        {
+            "location": "/home/pranav/Projects/windup-test-runner/links/apps/example-1/"
+        }
+    ]
+}
 ```
 
-Please make sure to replace `"path/to/application.jar"` with the actual path to the binary jar, war, or ear file you want to use as the location for analysis when using the Java provider.
-
-#### Builtin
-
-The `builtin` provider takes following additional configuration options:
+The `builtin` provider takes following additional configuration options in `providerSpecificConfig`:
 
 * `tagsFile`: Path to YAML file that contains a list of tags for the application being analyzed

@@ -32,7 +32,7 @@ To run the engine from source code, you need to:
 Once the providers are configured, you can run:
 
 ```sh
-go run main.go
+go run cmd/analyzer/main.go
 ```
 
 CLI Options:
