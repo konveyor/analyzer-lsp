@@ -373,9 +373,16 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
 			break
 		}
+		lineNumber, hasLineNumber := m.Variables["lineNumber"]
+		var lineNumberTypeAsserted float64
+		if hasLineNumber {
+			lineNumberTypeAsserted, _ = lineNumber.(float64)
+			delete(m.Variables, "lineNumber")
+		}
 		incident := hubapi.Incident{
-			URI:       m.FileURI,
-			Variables: m.Variables,
+			URI:        m.FileURI,
+			LineNumber: int(lineNumberTypeAsserted),
+			Variables:  m.Variables,
 		}
 		links := []hubapi.Link{}
 		if len(m.Links) > 0 {
@@ -451,12 +458,9 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			incident.Message = templateString
 		}
 
-		lineNumber, hasLineNumber := incident.Variables["lineNumber"]
-		if !hasLineNumber {
-			lineNumber = -1
-		}
+		incidentLineNumber := incident.LineNumber
 
-		incidentString := fmt.Sprintf("%s-%s-%d", incident.URI, incident.Message, lineNumber) // Formating a unique string for an incident
+		incidentString := fmt.Sprintf("%s-%s-%d", incident.URI, incident.Message, incidentLineNumber) // Formating a unique string for an incident
 
 		// Adding it to list  and set if no duplicates found
 		if _, isDuplicate := incidentsSet[incidentString]; !isDuplicate {
