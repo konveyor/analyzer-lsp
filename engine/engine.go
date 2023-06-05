@@ -287,14 +287,30 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 			}
 		} else if response.Matched {
 			r.logger.V(5).Info("info rule was matched", "ruleID", rule.RuleID)
+			tags := map[string]bool{}
 			for _, tagString := range rule.Perform.Tag {
-				tags, err := parseTagsFromPerformString(tagString)
-				if err != nil {
-					r.logger.Error(err, "unable to create tags", "ruleID", rule.RuleID)
-					continue
+				if strings.Contains(tagString, "{{") && strings.Contains(tagString, "}}") {
+					for _, incident := range response.Incidents {
+						// If this is the case then we neeed to use the reponse variables to get the tag
+						templateString, err := r.createPerformString(tagString, incident.Variables)
+						if err != nil {
+							r.logger.Error(err, "unable to create tag string")
+							continue
+						}
+						tags[templateString] = true
+					}
+				} else {
+					tags[tagString] = true
 				}
-				for _, tag := range tags {
-					context.Tags[tag] = true
+				for t := range tags {
+					tags, err := parseTagsFromPerformString(t)
+					if err != nil {
+						r.logger.Error(err, "unable to create tags", "ruleID", rule.RuleID)
+						continue
+					}
+					for _, tag := range tags {
+						context.Tags[tag] = true
+					}
 				}
 			}
 			rs, ok := mapRuleSets[ruleMessage.ruleSetName]
@@ -304,7 +320,7 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 				if _, ok := rulesetTagsCache[rs.Name]; !ok {
 					rulesetTagsCache[rs.Name] = make(map[string]bool)
 				}
-				for _, tag := range rule.Perform.Tag {
+				for tag := range tags {
 					if _, ok := rulesetTagsCache[rs.Name][tag]; !ok {
 						rulesetTagsCache[rs.Name][tag] = true
 						rs.Tags = append(rs.Tags, tag)

@@ -1,5 +1,6 @@
 - name: konveyor-analysis
   tags:
+  - License=Apache
   - Language=Golang
   - Infra=Kubernetes
   - Java
@@ -422,7 +423,7 @@
   errors:
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:
-        line 8: cannot unmarshal !!map into string
+        line 9: cannot unmarshal !!map into string
   unmatched:
   - file-002
   - lang-ref-002

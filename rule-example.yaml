@@ -64,6 +64,12 @@
       pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
       location: TYPE
 - tag:
+    - License={{matchingText}}
+  ruleID: tag-license
+  when:
+    builtin.filecontent:
+      pattern: "Apache"
+- tag:
     - Language=Golang
   ruleID: tag-go-000
   when:
