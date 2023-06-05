@@ -35,6 +35,7 @@ var (
 	limitIncidents    = flag.Int("limit-incidents", 1500, "Set this to the limit incidents that a given rule can give, zero means no limit")
 	limitCodeSnips    = flag.Int("limit-code-snips", 20, "limit the number code snippets that are retrieved for a file while evaluating a rule, 0 means no limit")
 	analysisMode      = flag.String("analysis-mode", "", "select one of full or source-only to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
+	noDependencyRules = flag.Bool("no-dependency-rules", false, "Disable dependency analysis rules")
 )
 
 func main() {
@@ -126,6 +127,7 @@ func main() {
 	parser := parser.RuleParser{
 		ProviderNameToClient: providers,
 		Log:                  log.WithName("parser"),
+		NoDependencyRules:    *noDependencyRules,
 	}
 	ruleSets := []engine.RuleSet{}
 	needProviders := map[string]provider.InternalProviderClient{}
