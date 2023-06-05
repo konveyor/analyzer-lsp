@@ -15,3 +15,18 @@ jobs:
         name: build demo image
       - name: run demo image
         run: podman run localhost/demo:latest
+      - name: save image
+        run: |
+          podman tag localhost/testing:latest quay.io/konveyor/analyzer-lsp:latest
+          podman save -o /tmp/analyzer-lsp.tar quay.io/konveyor/analyzer-lsp:latest
+      - name: Upload image as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: analyzer-lsp
+          path: /tmp/analyzer-lsp.tar
+
+  e2e:
+    needs: test
+    uses: konveyor/ci/.github/workflows/global-ci.yml@main
+    with:
+      component_name: analyzer-lsp
