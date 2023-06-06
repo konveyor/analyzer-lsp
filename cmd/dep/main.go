@@ -19,16 +19,14 @@ var (
 	outputFile       = flag.String("output-file", "output.yaml", "path to output file")
 )
 
-type DepsFlatItem struct {
-	Provider     string         `yaml:"provider"`
-	Dependencies []provider.Dep `yaml:"dependencies"`
-}
-
 type DepsTreeItem struct {
-	Provider     string                `yaml:"provider"`
-	Dependencies []provider.DepDAGItem `yaml:"dependencies"`
+	Provider     string                `yaml:"Provider"`
+	Dependencies []provider.DepDAGItem `yaml:"Dependencies"`
 }
-
+type DepsFlatItem struct {
+	Provider     string         `yaml:"Provider"`
+	Dependencies []provider.Dep `yaml:"Dependencies"`
+}
 func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
@@ -76,6 +74,7 @@ func main() {
 		}
 
 		if *treeOutput {
+
 			deps, _, err := prov.GetDependenciesDAG()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
