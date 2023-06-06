@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -24,8 +25,8 @@ type DepsFlatItem struct {
 }
 
 type DepsTreeItem struct {
-	Provider     string                          `yaml:"Provider"`
-	Dependencies map[provider.Dep][]provider.Dep `yaml:"Dependencies"`
+	Provider     string                `yaml:"Provider"`
+	Dependencies []provider.DepDAGItem `yaml:"Dependencies"`
 }
 
 func main() {
@@ -57,45 +58,47 @@ func main() {
 			log.Error(err, "unable to create provider client")
 			os.Exit(1)
 		}
+		err = provider.ProviderInit(context.TODO())
+		if err != nil {
+			log.Error(err, "unable to init the providers", "provider", config.Name)
+			os.Exit(1)
+		}
 		providers[config.Name] = provider
+
 	}
 
 	var depsFlat []DepsFlatItem
 	var depsTree []DepsTreeItem
 	for name, prov := range providers {
-		if !prov.HasCapability("dependency") {
+		if !provider.HasCapability(prov.Capabilities(), "dependency") {
 			log.Info("provider does not have dependency capability", "provider", name)
 			continue
 		}
 
 		if *treeOutput {
-			providerDeps := DepsTreeItem{
-				Provider:     name,
-				Dependencies: make(map[provider.Dep][]provider.Dep),
-			}
-			deps, _, err := prov.GetDependenciesLinkedList()
+
+			deps, _, err := prov.GetDependenciesDAG()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			for parentDep, transitiveDeps := range deps {
-				providerDeps.Dependencies[parentDep] = transitiveDeps
+			providerDeps := DepsTreeItem{
+				Provider:     name,
+				Dependencies: deps,
 			}
 			depsTree = append(depsTree, providerDeps)
 		} else {
-			providerDeps := DepsFlatItem{
-				Provider:     name,
-				Dependencies: make([]provider.Dep, 0),
-			}
 			deps, _, err := prov.GetDependencies()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			providerDeps.Dependencies = append(providerDeps.Dependencies, deps...)
+			providerDeps := DepsFlatItem{
+				Provider:     name,
+				Dependencies: deps,
+			}
 			depsFlat = append(depsFlat, providerDeps)
 		}
-
 	}
 
 	if depsFlat == nil && depsTree == nil {
