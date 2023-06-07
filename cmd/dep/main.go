@@ -76,7 +76,6 @@ func main() {
 		}
 
 		if *treeOutput {
-
 			deps, _, err := prov.GetDependenciesDAG()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
@@ -99,6 +98,7 @@ func main() {
 			}
 			depsFlat = append(depsFlat, providerDeps)
 		}
+
 	}
 
 	if depsFlat == nil && depsTree == nil {
