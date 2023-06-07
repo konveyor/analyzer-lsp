@@ -373,15 +373,9 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
 			break
 		}
-		lineNumber, hasLineNumber := m.Variables["lineNumber"]
-		var lineNumberTypeAsserted float64
-		if hasLineNumber {
-			lineNumberTypeAsserted, _ = lineNumber.(float64)
-			delete(m.Variables, "lineNumber")
-		}
 		incident := hubapi.Incident{
 			URI:        m.FileURI,
-			LineNumber: int(lineNumberTypeAsserted),
+			LineNumber: m.LineNumber,
 			Variables:  m.Variables,
 		}
 		links := []hubapi.Link{}
