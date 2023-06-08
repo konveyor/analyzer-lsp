@@ -58,9 +58,7 @@ func (p *golangServiceClient) Evaluate(cap string, conditionInfo []byte) (provid
 						FileURI:    u,
 						LineNumber: int(ref.Range.Start.Line),
 						Variables: map[string]interface{}{
-							"file":       ref.URI,
-							"lineNumber": ref.Range.Start.Line,
-						},
+							"file": ref.URI},
 					})
 				}
 			}

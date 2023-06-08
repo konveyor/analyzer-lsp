@@ -43,8 +43,9 @@ func (g *grpcServiceClient) Evaluate(cap string, conditionInfo []byte) (provider
 	incs := []provider.IncidentContext{}
 	for _, i := range r.Response.IncidentContexts {
 		inc := provider.IncidentContext{
-			FileURI:   uri.URI(i.FileURI),
-			Variables: i.GetVariables().AsMap(),
+			FileURI:    uri.URI(i.FileURI),
+			LineNumber: int(i.GetLineNumber()),
+			Variables:  i.GetVariables().AsMap(),
 		}
 		if i.Effort != nil {
 			num := int(*i.Effort)
