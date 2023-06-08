@@ -292,7 +292,12 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 				if strings.Contains(tagString, "{{") && strings.Contains(tagString, "}}") {
 					for _, incident := range response.Incidents {
 						// If this is the case then we neeed to use the reponse variables to get the tag
-						templateString, err := r.createPerformString(tagString, incident.Variables)
+						variables := make(map[string]interface{})
+						for key, value := range incident.Variables {
+							variables[key] = value
+						}
+						variables["lineNumber"] = incident.LineNumber
+						templateString, err := r.createPerformString(tagString, variables)
 						if err != nil {
 							r.logger.Error(err, "unable to create tag string")
 							continue
@@ -445,7 +450,12 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		}
 
 		if rule.Perform.Message.Text != nil {
-			templateString, err := r.createPerformString(*rule.Perform.Message.Text, m.Variables)
+			variables := make(map[string]interface{})
+			for key, value := range m.Variables {
+				variables[key] = value
+			}
+			variables["lineNumber"] = m.LineNumber
+			templateString, err := r.createPerformString(*rule.Perform.Message.Text, variables)
 			if err != nil {
 				r.logger.Error(err, "unable to create template string")
 			}
