@@ -19,9 +19,14 @@ var (
 	outputFile       = flag.String("output-file", "output.yaml", "path to output file")
 )
 
+type DepsFlatItem struct {
+	Provider     string         `yaml:"provider"`
+	Dependencies []provider.Dep `yaml:"dependencies"`
+}
+
 type DepsTreeItem struct {
-	Provider     string                `yaml:"Provider"`
-	Dependencies []provider.DepDAGItem `yaml:"Dependencies"`
+	Provider     string                `yaml:"provider"`
+	Dependencies []provider.DepDAGItem `yaml:"dependencies"`
 }
 type DepsFlatItem struct {
 	Provider     string         `yaml:"Provider"`
