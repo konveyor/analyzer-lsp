@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -17,6 +18,16 @@ var (
 	treeOutput       = flag.Bool("tree", false, "output dependencies as a tree")
 	outputFile       = flag.String("output-file", "output.yaml", "path to output file")
 )
+
+type DepsFlatItem struct {
+	Provider     string         `yaml:"provider"`
+	Dependencies []provider.Dep `yaml:"dependencies"`
+}
+
+type DepsTreeItem struct {
+	Provider     string                `yaml:"provider"`
+	Dependencies []provider.DepDAGItem `yaml:"dependencies"`
+}
 
 func main() {
 	logrusLog := logrus.New()
@@ -47,11 +58,17 @@ func main() {
 			log.Error(err, "unable to create provider client")
 			os.Exit(1)
 		}
+		err = provider.ProviderInit(context.TODO())
+		if err != nil {
+			log.Error(err, "unable to init the providers", "provider", config.Name)
+			os.Exit(1)
+		}
 		providers[config.Name] = provider
+
 	}
 
-	var depsFlat []provider.Dep
-	var depsTree []provider.DepDAGItem
+	var depsFlat []DepsFlatItem
+	var depsTree []DepsTreeItem
 	for name, prov := range providers {
 		if !provider.HasCapability(prov.Capabilities(), "dependency") {
 			log.Info("provider does not have dependency capability", "provider", name)
@@ -64,18 +81,24 @@ func main() {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			depsTree = append(depsTree, deps...)
+			providerDeps := DepsTreeItem{
+				Provider:     name,
+				Dependencies: deps,
+			}
+			depsTree = append(depsTree, providerDeps)
 		} else {
 			deps, _, err := prov.GetDependencies()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			if depsFlat == nil {
-				depsFlat = make([]provider.Dep, 0)
+			providerDeps := DepsFlatItem{
+				Provider:     name,
+				Dependencies: deps,
 			}
-			depsFlat = append(depsFlat, deps...)
+			depsFlat = append(depsFlat, providerDeps)
 		}
+
 	}
 
 	if depsFlat == nil && depsTree == nil {
