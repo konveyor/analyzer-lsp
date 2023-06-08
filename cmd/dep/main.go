@@ -20,13 +20,13 @@ var (
 )
 
 type DepsFlatItem struct {
-	Provider     string         `yaml:"Provider"`
-	Dependencies []provider.Dep `yaml:"Dependencies"`
+	Provider     string         `yaml:"provider"`
+	Dependencies []provider.Dep `yaml:"dependencies"`
 }
 
 type DepsTreeItem struct {
-	Provider     string                `yaml:"Provider"`
-	Dependencies []provider.DepDAGItem `yaml:"Dependencies"`
+	Provider     string                `yaml:"provider"`
+	Dependencies []provider.DepDAGItem `yaml:"dependencies"`
 }
 
 func main() {
