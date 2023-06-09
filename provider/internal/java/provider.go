@@ -161,7 +161,6 @@ func symbolKindToString(symbolKind protocol.SymbolKind) string {
 }
 
 func (p *javaProvider) ProviderInit(ctx context.Context) error {
-
 	for _, c := range p.config.InitConfig {
 		client, err := p.Init(ctx, p.Log, c)
 		if err != nil {
@@ -188,12 +187,14 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	extension := strings.ToLower(path.Ext(config.Location))
 	switch extension {
 	case JavaArchive, WebArchive, EnterpriseArchive:
-		newLocation, err := decompileJava(ctx, log, config.Location)
+		depLocation, sourceLocation, err := decompileJava(ctx, log, config.Location)
 		if err != nil {
 			cancelFunc()
 			return nil, err
 		}
-		config.Location = newLocation
+		config.Location = sourceLocation
+		// for binaries, we fallback to looking at .jar files only for deps
+		config.DependencyPath = depLocation
 	}
 	bundlesString, ok := config.ProviderSpecificConfig[BUNDLES_INIT_OPTION].(string)
 	if !ok {
