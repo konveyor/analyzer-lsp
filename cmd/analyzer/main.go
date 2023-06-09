@@ -149,6 +149,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
+
 	rulesets := eng.RunRules(ctx, ruleSets, selectors...)
 	eng.Stop()
 
