@@ -120,7 +120,7 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			}
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
 				FileURI:    uri.File(ab),
-				LineNumber: lineNumber,
+				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
 					"matchingText": pieces[2],
 				},

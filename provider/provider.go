@@ -117,7 +117,7 @@ type ProviderEvaluateResponse struct {
 type IncidentContext struct {
 	FileURI      uri.URI                `yaml:"fileURI"`
 	Effort       *int                   `yaml:"effort,omitempty"`
-	LineNumber   int                    `yaml:"lineNumber,omitempty"`
+	LineNumber   *int                   `yaml:"lineNumber,omitempty"`
 	Variables    map[string]interface{} `yaml:"variables,omitempty"`
 	Links        []ExternalLinks        `yaml:"externalLink,omitempty"`
 	CodeLocation *Location              `yaml:"location,omitempty"`

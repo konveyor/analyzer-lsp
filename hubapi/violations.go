@@ -82,7 +82,7 @@ type Incident struct {
 	CodeSnip string `yaml:"codeSnip,omitempty"`
 	// Extras reserved for additional data
 	//Extras json.RawMessage
-	LineNumber int                    `yaml:"lineNumber,omitempty"`
+	LineNumber *int                   `yaml:"lineNumber,omitempty"`
 	Variables  map[string]interface{} `yaml:"variables,omitempty"`
 }
 

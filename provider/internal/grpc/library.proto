@@ -47,7 +47,7 @@ message IncidentContext {
   string fileURI = 1;
   optional int64 Effort = 2;
   Location codeLocation = 3;
-  int64 LineNumber = 4;
+  optional int64 LineNumber = 4;
   google.protobuf.Struct variables = 5;
   repeated ExternalLink links = 6;
 }

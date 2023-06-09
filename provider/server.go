@@ -177,10 +177,13 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 		}
 
 		inc := &libgrpc.IncidentContext{
-			FileURI:    string(i.FileURI),
-			LineNumber: int64(i.LineNumber),
-			Variables:  variables,
-			Links:      links,
+			FileURI:   string(i.FileURI),
+			Variables: variables,
+			Links:     links,
+		}
+		if i.LineNumber != nil {
+			lineNumber := int64(*i.LineNumber)
+			inc.LineNumber = &lineNumber
 		}
 		if i.Effort != nil {
 			num := int64(*i.Effort)

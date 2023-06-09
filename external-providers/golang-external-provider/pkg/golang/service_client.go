@@ -54,9 +54,10 @@ func (p *golangServiceClient) Evaluate(cap string, conditionInfo []byte) (provid
 					if err != nil {
 						return provider.ProviderEvaluateResponse{}, err
 					}
+					lineNumber := int(ref.Range.Start.Line)
 					incidents = append(incidents, provider.IncidentContext{
 						FileURI:    u,
-						LineNumber: int(ref.Range.Start.Line),
+						LineNumber: &lineNumber,
 						Variables: map[string]interface{}{
 							"file": ref.URI},
 					})

@@ -129,10 +129,10 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 			return provider.IncidentContext{}, err
 		}
 	}
-
+	lineNumber := int(symbol.Location.Range.Start.Line)
 	incident := provider.IncidentContext{
 		FileURI:    u,
-		LineNumber: int(symbol.Location.Range.Start.Line),
+		LineNumber: &lineNumber,
 		Variables: map[string]interface{}{
 
 			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
@@ -192,7 +192,8 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 		},
 	}
 	incident.Variables[FILE_KEY] = ref.URI
-	incident.LineNumber = int(ref.Range.Start.Line)
+	lineNumber := int(ref.Range.Start.Line)
+	incident.LineNumber = &lineNumber
 
 	return incident, nil
 

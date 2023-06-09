@@ -296,7 +296,9 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 						for key, value := range incident.Variables {
 							variables[key] = value
 						}
-						variables["lineNumber"] = incident.LineNumber
+						if incident.LineNumber != nil {
+							variables["lineNumber"] = *incident.LineNumber
+						}
 						templateString, err := r.createPerformString(tagString, variables)
 						if err != nil {
 							r.logger.Error(err, "unable to create tag string")
@@ -383,6 +385,10 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			LineNumber: m.LineNumber,
 			Variables:  m.Variables,
 		}
+		if m.LineNumber != nil {
+			lineNumber := *m.LineNumber
+			incident.LineNumber = &lineNumber
+		}
 		links := []hubapi.Link{}
 		if len(m.Links) > 0 {
 			for _, l := range m.Links {
@@ -454,7 +460,9 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			for key, value := range m.Variables {
 				variables[key] = value
 			}
-			variables["lineNumber"] = m.LineNumber
+			if m.LineNumber != nil {
+				variables["lineNumber"] = *m.LineNumber
+			}
 			templateString, err := r.createPerformString(*rule.Perform.Message.Text, variables)
 			if err != nil {
 				r.logger.Error(err, "unable to create template string")
@@ -462,7 +470,10 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			incident.Message = templateString
 		}
 
-		incidentLineNumber := incident.LineNumber
+		incidentLineNumber := -1
+		if incident.LineNumber != nil {
+			incidentLineNumber = *incident.LineNumber
+		}
 
 		incidentString := fmt.Sprintf("%s-%s-%d", incident.URI, incident.Message, incidentLineNumber) // Formating a unique string for an incident
 
