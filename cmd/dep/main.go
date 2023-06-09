@@ -28,10 +28,7 @@ type DepsTreeItem struct {
 	Provider     string                `yaml:"provider"`
 	Dependencies []provider.DepDAGItem `yaml:"dependencies"`
 }
-type DepsFlatItem struct {
-	Provider     string         `yaml:"Provider"`
-	Dependencies []provider.Dep `yaml:"Dependencies"`
-}
+
 func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
