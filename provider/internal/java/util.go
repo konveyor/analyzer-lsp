@@ -47,9 +47,8 @@ func decompileJava(ctx context.Context, log logr.Logger, archivePath string) (ex
 	if err != nil {
 		log.Error(err, "failed to create java project", "path", projectPath)
 		return
-	} else {
-		log.V(5).Info("created java project", "path", projectPath)
 	}
+	log.V(5).Info("created java project", "path", projectPath)
 
 	explodedPath, err = decompile(ctx, log, archivePath, projectPath)
 	if err != nil {
