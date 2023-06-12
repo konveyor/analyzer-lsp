@@ -86,12 +86,13 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 		default:
 		}
 
+		filePath := filepath.Join(destDir, f.Name)
+
 		// fernflower already deemed this unparsable, skip...
 		if strings.Contains(f.Name, "unparsable") || strings.Contains(f.Name, "NonParsable") {
+			log.V(8).Info("unable to parse file", "file", filePath)
 			continue
 		}
-
-		filePath := filepath.Join(destDir, f.Name)
 
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(filePath, f.Mode())
