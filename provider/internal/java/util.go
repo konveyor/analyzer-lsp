@@ -46,27 +46,30 @@ func decompileJava(ctx context.Context, log logr.Logger, archivePath string) (ex
 	err = createJavaProject(ctx, projectPath)
 	if err != nil {
 		log.Error(err, "failed to create java project", "path", projectPath)
-		return
+		return "", "", err
 	}
 	log.V(5).Info("created java project", "path", projectPath)
 
 	explodedPath, err = decompile(ctx, log, archivePath, projectPath)
 	if err != nil {
 		log.Error(err, "failed to decompile archive", "path", archivePath)
-		return
+		return "", "", err
 	}
-
-	return
+	return explodedPath, projectPath, err
 }
 
 // decompile is a function that extracts the contents of a Java archive (.jar|.war|.ear) and
 // decompiles any .class files found using the fernflower decompiler into java project location
 // maintaining the tree. swallows decomp and copy errors, returns others
 func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath string) (string, error) {
+	fileInfo, err := os.Stat(archivePath)
+	if err != nil {
+		return "", err
+	}
 	// Create the destDir directory using the same permissions as the Java archive file
 	// java.jar should become java-jar-decompiled
 	destDir := filepath.Join(path.Dir(archivePath), strings.Replace(path.Base(archivePath), ".", "-", -1)+"-decompiled")
-	err := os.MkdirAll(destDir, fileInfo.Mode()|0111)
+	err = os.MkdirAll(destDir, fileInfo.Mode()|0111)
 	if err != nil {
 		return "", err
 	}
@@ -119,13 +122,17 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 		}
 
 		// If we found a class file, decompile it to java project path
-		if strings.HasSuffix(f.Name, ".class") {
+		if strings.HasSuffix(f.Name, ClassFile) {
 			// full path in the java project for the decompd file
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
 				strings.Replace(filePath, destDir, "", -1))
 			destPath = strings.ReplaceAll(destPath, "WEB-INF/classes", "")
 			destPath = strings.ReplaceAll(destPath, "META-INF/classes", "")
+			if _, err = os.Stat(destPath); err == nil {
+				// already decompiled, duplicate...
+				continue
+			}
 			if err = os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 				log.V(8).Error(err, "failed to create directories for decompiled file", "path", filepath.Dir(destPath))
 				continue
@@ -138,7 +145,7 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 			} else {
 				log.V(8).Info("decompiled file", "file", filePath)
 			}
-		} else if strings.HasSuffix(f.Name, ".jar") || strings.HasSuffix(f.Name, ".war") {
+		} else if strings.HasSuffix(f.Name, JavaArchive) || strings.HasSuffix(f.Name, WebArchive) {
 			if _, err := decompile(ctx, log, filePath, projectPath); err != nil {
 				log.Error(err, "failed to decompile file", "file", filePath)
 			}

@@ -19,6 +19,7 @@ const (
 	JavaArchive       = ".jar"
 	WebArchive        = ".war"
 	EnterpriseArchive = ".ear"
+	ClassFile         = ".class"
 )
 
 // Rule Location to location that the bundle understands
