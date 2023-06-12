@@ -40,11 +40,9 @@
   when:
     or:
     - java.referenced:
-        pattern: "*CustomResourceDefinition*"
+        pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
         location: TYPE
-    # This is purposfully failing, the golang reference will not
-    # find anything. testing that `or` will work correctly
-    - go.referenced: "*CustomResourceDefinition*"
+    - go.referenced: "v1beta1.CustomResourceDefinition"
 - message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
   when:
