@@ -83,8 +83,9 @@ A provider condition instructs the analyzer to invoke a specific "provider" and 
 
 ```yaml
 when:
-  <provider>.<capability>: "input"
-```
+  <provider>.<capability>:
+    <input_fields>
+``` 
 
 Analyzer currently supports `builtin`, `java` and `go` providers.
 
@@ -98,7 +99,8 @@ Analyzer currently supports `builtin`, `java` and `go` providers.
 
 ```yaml
 when:
-  builtin.file: "<regex_to_match_filenames>"
+  builtin.file:
+    pattern: "<regex_to_match_filenames>"
 ```
 
 ###### filecontent
@@ -107,7 +109,9 @@ when:
 
 ```yaml
 when:
-  builtin.filecontent: "<regex_to_match_filecontent>"
+  builtin.filecontent:
+    filePattern: "<regex_to_match_filenames_to_scope_search>"
+    pattern: "<regex_to_match_content_in_the_matching_files>"
 ```
 
 ###### xml
