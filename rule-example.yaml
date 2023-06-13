@@ -42,6 +42,8 @@
     - java.referenced:
         pattern: "*CustomResourceDefinition*"
         location: TYPE
+    # This is purposfully failing, the golang reference will not
+    # find anything. testing that `or` will work correctly
     - go.referenced: "*CustomResourceDefinition*"
 - message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
@@ -50,13 +52,13 @@
 - message: testing nested conditions
   ruleID: lang-ref-002
   when:
-    or:
-    - and:
-      - go.referenced: "*CustomResourceDefinition*"
-      - java.referenced:
+    # This is purposfully failing, the golang reference will not
+    # find anything. testing that `and` will work correctly
+    and:
+    - go.referenced: "*CustomResourceDefinition*"
+    - java.referenced:
           pattern: "*CustomResourceDefinition*"
           location: TYPE
-    - go.referenced: "*CustomResourceDefinition*"
 - message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: lang-ref-003
   when:

@@ -169,7 +169,6 @@ func (a AndCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Con
 		matched := response.Matched
 		if c.Not {
 			matched = !matched
-
 		}
 		if !matched {
 			fullResponse.Matched = false
