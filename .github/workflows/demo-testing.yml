@@ -2,23 +2,27 @@ name: Demo Testing
 
 on: ["push", "pull_request"]
 
-jobs: 
-  test: 
+jobs:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: build image
-        run: podman build -f testing.Dockerfile -t localhost/testing:latest
-      - name: run image
-        run: podman run localhost/testing:latest
-      - run: podman build -f Dockerfile -t localhost/demo:latest
-        name: build demo image
-      - name: run demo image
-        run: podman run localhost/demo:latest
+        run: podman build -t quay.io/konveyor/analyzer-lsp:latest .
+
+      - name: build demo image
+        run: podman build -f demo.Dockerfile -t localhost/testing:latest
+
+      - name: run demo image and ensure output unchanged
+        run: |
+          podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
+          git diff demo-output.yaml
+
       - name: save image
         run: |
-          podman tag localhost/testing:latest quay.io/konveyor/analyzer-lsp:latest
           podman save -o /tmp/analyzer-lsp.tar quay.io/konveyor/analyzer-lsp:latest
+
       - name: Upload image as artifact
         uses: actions/upload-artifact@v3
         with:
