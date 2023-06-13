@@ -107,6 +107,14 @@ func (p *javaServiceClient) GetAllSymbols(query, location string) []protocol.Wor
 }
 
 func (p *javaServiceClient) GetAllReferences(symbol protocol.WorkspaceSymbol) []protocol.Location {
+	if strings.Contains(symbol.Location.URI, "konveyor-jdt") {
+		return []protocol.Location{
+			{
+				URI:   symbol.Location.URI,
+				Range: symbol.Location.Range,
+			},
+		}
+	}
 	params := &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{

@@ -83,10 +83,23 @@ message ServiceRequest {
   int64 id = 1;
 }
 
+message GetCodeSnipRequest{
+  string uri = 1;
+  Location codeLocation = 2;
+}
+
+message GetCodeSnipResponse{
+  string codeSnip  = 1;
+  string uri = 2;
+  string error = 3;
+  bool successful = 4;
+}
+
 service ProviderService {
   rpc Capabilities (google.protobuf.Empty) returns (CapabilitiesResponse) {};
   rpc Init (Config) returns (InitResponse) {};
   rpc Evaluate (EvaluateRequest) returns (EvaluateResponse) {};
+  rpc GetCodeSnip(GetCodeSnipRequest) returns (GetCodeSnipResponse) {};
   rpc Stop (ServiceRequest) returns (google.protobuf.Empty) {};
   rpc GetDependencies (ServiceRequest) returns (DependencyResponse) {};
   rpc GetDependenciesDAG(ServiceRequest) returns (DependencyDAGResponse) {};

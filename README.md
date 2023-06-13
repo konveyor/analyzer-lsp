@@ -39,6 +39,7 @@ go run cmd/analyzer/main.go
 CLI Options:
 
 ```sh
+  --analysis-mode string       select on fo full or source-only to tell the providers what to analyze. This can be given or a per provider seting, but this flag will overide those.
   --provider-settings string   path to the provider settings (default "provider_settings.json")
   --rules stringArray          filename or directory containing rule files (default [rule-example.yaml])
   --output-file string         filepath to to store rule violations (default "output.yaml")
@@ -46,6 +47,9 @@ CLI Options:
   --enable-jaeger              enable tracer exports to jaeger endpoint
   --error-on-violation         exit with 3 if any violation are found will also print violations to console
   --jaeger-endpoint string     jaeger endpoint to collect tracing data (default "http://localhost:14268/api/traces")
+  --no-dependency-rules        Disable dependency analysis rules
+  --limit-incidents int        Set this to the limit incidents that a given rule can give. zero means no limit (default 1500)
+  --limit-code-snips int       limit the number codce snippets that are retieved for a file while evaluating a rule, 0 means no limit (default 20)
   --verbose int                level for logging output (default 9)
 ```
 

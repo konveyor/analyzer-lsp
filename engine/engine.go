@@ -400,29 +400,13 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		}
 		// Some violations may not have a location in code.
 		limitSnip := (r.codeSnipLimit != 0 && fileCodeSnipCount[string(m.FileURI)] == r.codeSnipLimit)
-		if m.CodeLocation != nil && strings.HasPrefix(string(m.FileURI), uri.FileScheme) && !limitSnip {
-			//Find the file, open it in a buffer.
-			readFile, err := os.Open(m.FileURI.Filename())
-			if err != nil {
-				r.logger.V(5).Error(err, "Unable to read file")
-				return hubapi.Violation{}, err
+		if !limitSnip {
+			codeSnip, err := r.getCodeLocation(m, rule)
+			if err != nil || codeSnip == "" {
+				r.logger.V(6).Error(err, "unable to get code location")
+			} else {
+				incident.CodeSnip = codeSnip
 			}
-			defer readFile.Close()
-
-			scanner := bufio.NewScanner(readFile)
-			lineNumber := 0
-			codeSnip := ""
-			for scanner.Scan() {
-				if (lineNumber - CONTEXT_LINES) == m.CodeLocation.EndPosition.Line {
-					codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
-					break
-				}
-				if (lineNumber + CONTEXT_LINES) >= m.CodeLocation.StartPosition.Line {
-					codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
-				}
-				lineNumber += 1
-			}
-			incident.CodeSnip = codeSnip
 			fileCodeSnipCount[string(m.FileURI)] += 1
 		}
 
@@ -493,6 +477,44 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		Effort:      rule.Effort,
 		Links:       rule.Perform.Message.Links,
 	}, nil
+}
+
+func (r *ruleEngine) getCodeLocation(m IncidentContext, rule Rule) (codeSnip string, err error) {
+	if m.CodeLocation == nil {
+		r.logger.V(6).Info("unable to get the code snip", "URI", m.FileURI)
+		return "", nil
+	}
+
+	if strings.HasPrefix(string(m.FileURI), uri.FileScheme) {
+		//Find the file, open it in a buffer.
+		readFile, err := os.Open(m.FileURI.Filename())
+		if err != nil {
+			r.logger.V(5).Error(err, "Unable to read file")
+			return "", err
+		}
+		defer readFile.Close()
+
+		scanner := bufio.NewScanner(readFile)
+		lineNumber := 0
+		codeSnip := ""
+		for scanner.Scan() {
+			if (lineNumber - CONTEXT_LINES) == m.CodeLocation.EndPosition.Line {
+				codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
+				break
+			}
+			if (lineNumber + CONTEXT_LINES) >= m.CodeLocation.StartPosition.Line {
+				codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
+			}
+			lineNumber += 1
+		}
+		return codeSnip, nil
+	}
+	if rule.Snipper != nil {
+		return rule.Snipper.GetCodeSnip(m.FileURI, *m.CodeLocation)
+	}
+
+	// if it is not a file ask the provider
+	return "", nil
 }
 
 func (r *ruleEngine) createPerformString(messageTemplate string, ctx map[string]interface{}) (string, error) {

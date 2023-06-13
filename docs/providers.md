@@ -15,9 +15,13 @@ Provider configuration fields are:
   * `location`: Path to the source code / binary of the application to analyze. Note that only `java` provider supports binary analysis.
   * `dependencyPath`: Path to look for dependencies of the app.
   * `lspServerPath`: Path to language server binary used by the provider.
+  * `analysisMode`: one of full or source-only. This will tell the provider what it should analyze.
   * `providerSpecificConfig`: Reserved for additional configuration options specific to a provider.
 
-Currently supported providers are - `builtin`, `java` and `go`.
+Currently supported providers are - `builtin`, `java` and `go`, or any provider that provides the GRPC interface.
+
+```Note For Java: full analysis modewill search all the dependency and source, source-only will only search the source code. for a Jar/Ear/War, this is the code that is compiled in that archive and nothing else.
+```
 
 #### Go provider
 
@@ -31,6 +35,7 @@ Here's an example config for an external `go` provider that is initialized using
         {
             "location": "/path/to/application/source/code",
             "lspServerPath": "/path/to/language/server/binary",
+            "analysisMode": "full",
         }
     ]
 }
@@ -48,6 +53,7 @@ Here's an example config for `java` provider that is currently in-tree and does 
         {
             "location": "/path/to/application/source/or/binary",
             "lspServerPath": "/path/to/language/server/binary",
+            "analysisMode": "full",
             "providerSpecificConfig": {
                 "bundles": "/path/to/extension/bundles",
                 "workspace": "/path/to/workspace",
