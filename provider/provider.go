@@ -341,12 +341,15 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 		}
 		incidents = append(incidents, i)
 	}
-
-	return engine.ConditionResponse{
+	cr := engine.ConditionResponse{
 		Matched:         resp.Matched,
 		TemplateContext: resp.TemplateContext,
 		Incidents:       incidents,
-	}, nil
+	}
+
+	log.V(8).Info("condition response", "ruleID", p.Rule.RuleID, "response", cr, "cap", p.Capability, "conditionInfo", p.ConditionInfo, "client", p.Client)
+	return cr, nil
+
 }
 
 func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([]byte, error) {
