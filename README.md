@@ -8,18 +8,19 @@ One of the primary drivers for this repository is adding providers for specific 
 
 If you would like to run a quick demo we have a Dockerfile that has all the dependencies.
 
-To run this demo build the container:
+To run this demo build the containers:
 
 ```
-$ podman build -f Dockerfile -t test-analyzer-engine
+$ podman build -f Dockerfile -t quay.io/konveyor/analyzer-lsp
+$ podman build -f demo.Dockerfile -t test-analyzer-engine
 ```
 
 This will build the engine, and include the current set of rules and examples in the container to be used. 
 
-To run the rules (rule-example.yaml) against the examples:
+To run the rules (rule-example.yaml) against the examples, and save the output to the `demo-output.yaml` file:
 
 ```
-$ podman run test-analyzer-engine
+$ podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z test-analyzer-engine
 ```
 
 ## Running from source code
