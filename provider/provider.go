@@ -117,6 +117,7 @@ type ProviderEvaluateResponse struct {
 type IncidentContext struct {
 	FileURI      uri.URI                `yaml:"fileURI"`
 	Effort       *int                   `yaml:"effort,omitempty"`
+	LineNumber   *int                   `yaml:"lineNumber,omitempty"`
 	Variables    map[string]interface{} `yaml:"variables,omitempty"`
 	Links        []ExternalLinks        `yaml:"externalLink,omitempty"`
 	CodeLocation *Location              `yaml:"location,omitempty"`
@@ -319,10 +320,11 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 	incidents := []engine.IncidentContext{}
 	for _, inc := range resp.Incidents {
 		i := engine.IncidentContext{
-			FileURI:   inc.FileURI,
-			Effort:    inc.Effort,
-			Variables: inc.Variables,
-			Links:     p.Rule.Perform.Message.Links,
+			FileURI:    inc.FileURI,
+			Effort:     inc.Effort,
+			LineNumber: inc.LineNumber,
+			Variables:  inc.Variables,
+			Links:      p.Rule.Perform.Message.Links,
 		}
 
 		if inc.CodeLocation != nil {

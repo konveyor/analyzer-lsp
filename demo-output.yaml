@@ -152,9 +152,9 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/golang/main.go
         message: golang apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/golang/main.go:9
+        lineNumber: 9
         variables:
           file: file:///analyzer-lsp/examples/golang/main.go
-          lineNumber: 9
       extras: []
     golang-gomod-dependencies:
       description: ""
@@ -207,10 +207,10 @@
           class App {    public static void main( String[] args )    {        CustomResourceDefinition
           crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
           element = new GenericClass<String>("Hello world!");
+        lineNumber: 2
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Module
-          lineNumber: 2
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
@@ -219,10 +219,10 @@
           class App {    public static void main( String[] args )    {        CustomResourceDefinition
           crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
           element = new GenericClass<String>("Hello world!");        element.get();    }}
+        lineNumber: 9
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Module
-          lineNumber: 9
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
       extras: []
     lang-ref-003:
@@ -235,10 +235,10 @@
           class App {    public static void main( String[] args )    {        CustomResourceDefinition
           crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
           element = new GenericClass<String>("Hello world!");
+        lineNumber: 2
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
-          lineNumber: 2
           name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
@@ -246,10 +246,10 @@
           class App {    public static void main( String[] args )    {        CustomResourceDefinition
           crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
           element = new GenericClass<String>("Hello world!");        element.get();    }}
+        lineNumber: 9
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
-          lineNumber: 9
           name: main
       extras: []
     lang-ref-004:
@@ -261,11 +261,11 @@
         codeSnip: public class App {    public static void main( String[] args )    {        CustomResourceDefinition
           crd = new CustomResourceDefinition();        System.out.println( crd );        GenericClass<String>
           element = new GenericClass<String>("Hello world!");        element.get();    }}
+        lineNumber: 13
         variables:
           VariableName: element
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
-          lineNumber: 13
           name: main
       extras: []
     multiple-actions-001:

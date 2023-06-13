@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/antchfx/jsonquery"
@@ -113,10 +114,14 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			if err != nil {
 				ab = pieces[0]
 			}
+			lineNumber, err := strconv.Atoi(pieces[1])
+			if err != nil {
+				return response, fmt.Errorf("Cannot convert line number string to integer")
+			}
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
-				FileURI: uri.File(ab),
+				FileURI:    uri.File(ab),
+				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
-					"lineNumber":   pieces[1],
 					"matchingText": pieces[2],
 				},
 			})

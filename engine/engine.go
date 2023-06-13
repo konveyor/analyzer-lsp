@@ -292,7 +292,14 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 				if strings.Contains(tagString, "{{") && strings.Contains(tagString, "}}") {
 					for _, incident := range response.Incidents {
 						// If this is the case then we neeed to use the reponse variables to get the tag
-						templateString, err := r.createPerformString(tagString, incident.Variables)
+						variables := make(map[string]interface{})
+						for key, value := range incident.Variables {
+							variables[key] = value
+						}
+						if incident.LineNumber != nil {
+							variables["lineNumber"] = *incident.LineNumber
+						}
+						templateString, err := r.createPerformString(tagString, variables)
 						if err != nil {
 							r.logger.Error(err, "unable to create tag string")
 							continue
@@ -374,8 +381,13 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			break
 		}
 		incident := hubapi.Incident{
-			URI:       m.FileURI,
-			Variables: m.Variables,
+			URI:        m.FileURI,
+			LineNumber: m.LineNumber,
+			Variables:  m.Variables,
+		}
+		if m.LineNumber != nil {
+			lineNumber := *m.LineNumber
+			incident.LineNumber = &lineNumber
 		}
 		links := []hubapi.Link{}
 		if len(m.Links) > 0 {
@@ -444,19 +456,26 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		}
 
 		if rule.Perform.Message.Text != nil {
-			templateString, err := r.createPerformString(*rule.Perform.Message.Text, m.Variables)
+			variables := make(map[string]interface{})
+			for key, value := range m.Variables {
+				variables[key] = value
+			}
+			if m.LineNumber != nil {
+				variables["lineNumber"] = *m.LineNumber
+			}
+			templateString, err := r.createPerformString(*rule.Perform.Message.Text, variables)
 			if err != nil {
 				r.logger.Error(err, "unable to create template string")
 			}
 			incident.Message = templateString
 		}
 
-		lineNumber, hasLineNumber := incident.Variables["lineNumber"]
-		if !hasLineNumber {
-			lineNumber = -1
+		incidentLineNumber := -1
+		if incident.LineNumber != nil {
+			incidentLineNumber = *incident.LineNumber
 		}
 
-		incidentString := fmt.Sprintf("%s-%s-%d", incident.URI, incident.Message, lineNumber) // Formating a unique string for an incident
+		incidentString := fmt.Sprintf("%s-%s-%d", incident.URI, incident.Message, incidentLineNumber) // Formating a unique string for an incident
 
 		// Adding it to list  and set if no duplicates found
 		if _, isDuplicate := incidentsSet[incidentString]; !isDuplicate {

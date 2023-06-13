@@ -46,6 +46,10 @@ func (g *grpcServiceClient) Evaluate(cap string, conditionInfo []byte) (provider
 			FileURI:   uri.URI(i.FileURI),
 			Variables: i.GetVariables().AsMap(),
 		}
+		if i.LineNumber != nil {
+			lineNumber := int(*i.LineNumber)
+			inc.LineNumber = &lineNumber
+		}
 		if i.Effort != nil {
 			num := int(*i.Effort)
 			inc.Effort = &num

@@ -181,6 +181,10 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 			Variables: variables,
 			Links:     links,
 		}
+		if i.LineNumber != nil {
+			lineNumber := int64(*i.LineNumber)
+			inc.LineNumber = &lineNumber
+		}
 		if i.Effort != nil {
 			num := int64(*i.Effort)
 			inc.Effort = &num

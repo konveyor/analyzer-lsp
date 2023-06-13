@@ -38,6 +38,7 @@ type ConditionEntry struct {
 type IncidentContext struct {
 	FileURI      uri.URI                `yaml:"fileURI"`
 	Effort       *int                   `yaml:"effort"`
+	LineNumber   *int                   `yaml:"lineNumber,omitempty"`
 	Variables    map[string]interface{} `yaml:"variables"`
 	Links        []hubapi.Link          `yaml:"externalLink"`
 	CodeLocation *Location              `yaml:"location,omitempty"`
