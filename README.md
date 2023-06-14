@@ -49,7 +49,7 @@ CLI Options:
   --jaeger-endpoint string     jaeger endpoint to collect tracing data (default "http://localhost:14268/api/traces")
   --no-dependency-rules        Disable dependency analysis rules
   --limit-incidents int        Set this to the limit incidents that a given rule can give. zero means no limit (default 1500)
-  --limit-code-snips int       limit the number codce snippets that are retieved for a file while evaluating a rule, 0 means no limit (default 20)
+  --limit-code-snips int       limit the number code snippets that are retrieved for a file while evaluating a rule, 0 means no limit (default 20)
   --verbose int                level for logging output (default 9)
 ```
 
