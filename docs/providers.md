@@ -20,7 +20,7 @@ Provider configuration fields are:
 
 Currently supported providers are - `builtin`, `java` and `go`, or any provider that provides the GRPC interface.
 
-```Note For Java: full analysis modewill search all the dependency and source, source-only will only search the source code. for a Jar/Ear/War, this is the code that is compiled in that archive and nothing else.
+```Note For Java: full analysis mode will search all the dependency and source, source-only will only search the source code. for a Jar/Ear/War, this is the code that is compiled in that archive and nothing else.
 ```
 
 #### Go provider
