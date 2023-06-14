@@ -39,7 +39,7 @@ go run cmd/analyzer/main.go
 CLI Options:
 
 ```sh
-  --analysis-mode string       select on fo full or source-only to tell the providers what to analyze. This can be given or a per provider seting, but this flag will overide those.
+  --analysis-mode string       Can be full or source-only to tell the providers what to analyze. If full, source code and all dependencies will be analyzed, if source-only, only the source code will be. This can be given on a per provider basis, but this flag will override those.
   --provider-settings string   path to the provider settings (default "provider_settings.json")
   --rules stringArray          filename or directory containing rule files (default [rule-example.yaml])
   --output-file string         filepath to to store rule violations (default "output.yaml")
