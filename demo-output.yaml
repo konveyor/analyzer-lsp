@@ -210,8 +210,8 @@
         lineNumber: 2
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Module
-          name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+          kind: Method
+          name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
           should be used instead
@@ -222,8 +222,14 @@
         lineNumber: 9
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Module
-          name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+          kind: Method
+          name: main
+      - uri: file:///analyzer-lsp/examples/golang/main.go
+        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions
+          should be used instead
+        lineNumber: 9
+        variables:
+          file: file:///analyzer-lsp/examples/golang/main.go
       extras: []
     lang-ref-003:
       description: ""
