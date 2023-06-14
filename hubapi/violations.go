@@ -92,3 +92,29 @@ type Link struct {
 	// Title optional description
 	Title string `yaml:"title,omitempty"`
 }
+
+type Dep struct {
+	Name               string                 `json:"name,omitempty"`
+	Version            string                 `json:"version,omitempty"`
+	Type               string                 `json:"type,omitempty"`
+	Indirect           bool                   `json:"indirect,omitempty"`
+	ResolvedIdentifier string                 `json:"sha,omitempty"`
+	Extras             map[string]interface{} `json:"extras,omitempty"`
+}
+
+type DepDAGItem struct {
+	Dep       Dep          `json:"dep,omitempty"`
+	AddedDeps []DepDAGItem `json:"addedDep,omitempty"`
+}
+
+type DepsFlatItem struct {
+	FileURI      string `yaml:"fileURI"`
+	Provider     string `yaml:"provider"`
+	Dependencies []Dep  `yaml:"dependencies"`
+}
+
+type DepsTreeItem struct {
+	FileURI      string       `yaml:"fileURI"`
+	Provider     string       `yaml:"provider"`
+	Dependencies []DepDAGItem `yaml:"dependencies"`
+}
