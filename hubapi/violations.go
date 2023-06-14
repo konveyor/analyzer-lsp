@@ -88,7 +88,7 @@ type Incident struct {
 
 // Link defines an external hyperlink
 type Link struct {
-	URL string `json:"url"`
+	URL string `yaml:"url"`
 	// Title optional description
-	Title string `json:"title,omitempty"`
+	Title string `yaml:"title,omitempty"`
 }

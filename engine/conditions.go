@@ -74,18 +74,11 @@ type Conditional interface {
 }
 
 type RuleSet struct {
-	Name        string             `json:"name,omitempty"`
-	Description string             `json:"description,omitempty"`
-	Source      *RuleSetTechnology `json:"source,omitempty"`
-	Target      *RuleSetTechnology `json:"target,omitempty"`
-	Labels      []string           `json:"labels,omitempty"`
-	Tags        []string           `json:"tags,omitempty"`
-	Rules       []Rule             `json:"rules,omitempty"`
-}
-
-type RuleSetTechnology struct {
-	ID           string `json:"id,omitempty"`
-	VersionRange string `json:"versionRange,omitempty"`
+	Name        string   `json:"name,omitempty" yaml:"name,omitempty"`
+	Description string   `json:"description,omitempty" yaml:"description,omitempty"`
+	Labels      []string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Tags        []string `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Rules       []Rule   `json:"rules,omitempty" yaml:"rules,omitempty"`
 }
 
 type Rule struct {
