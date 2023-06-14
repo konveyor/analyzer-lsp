@@ -17,12 +17,6 @@ Rule metadata contains general information about a rule:
 ruleId: "unique_id"
 # violations have pre-defined categories
 category: "potential|information|mandatory"
-# links point to external hyperlinks
-# rule authors are expected to provide
-# relevant hyperlinks for quick fixes, docs etc
-links:
-  - url: "konveyor.io"
-    title: "title to be shown in report"
 # labels are key=value pairs attached to rules, value
 # can be empty or omitted, keys can be subdomain prefixed
 labels:
@@ -50,6 +44,17 @@ The `message` action generates a message for every violation created when rule m
 ```yaml
 # when a match is found, analyzer generates a violation with this message
 message: "helpful message about the violation"
+```
+
+Optionally, hyperlinks can be provided along with a message to give relevant information about the found issue: 
+
+```yaml
+# links point to external hyperlinks
+# rule authors are expected to provide
+# relevant hyperlinks for quick fixes, docs etc
+links:
+  - url: "konveyor.io"
+    title: "short title for the link"
 ```
 
 The `tag` action allows generating tags for the application. Each string in the tag can be a comma separated list of tags. Optionally, tags can have categories.
@@ -281,5 +286,7 @@ description: "Describes the ruleset"
 labels:
   - awesome_rules1
 ```
+
+Labels on a Ruleset are inherited by all the rules in it.
 
 Rulesets provide a good way of organizing multiple rules that achieve a common goal.
