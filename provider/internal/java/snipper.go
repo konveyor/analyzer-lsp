@@ -1,0 +1,104 @@
+package java
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
+
+	"github.com/konveyor/analyzer-lsp/engine"
+	"go.lsp.dev/uri"
+)
+
+const (
+	// TODO: make this configurable in the future
+	// We may or may not need to do this so holding off for now.
+	CONTEXT_LINES = 10
+)
+
+var _ engine.CodeSnip = &javaProvider{}
+
+func (p *javaProvider) GetCodeSnip(u uri.URI, loc engine.Location) (string, error) {
+	ur := string(u)
+	if !strings.Contains(ur, "konveyor-jdt") {
+		return "", fmt.Errorf("invalid uri, must be for konveyor-jdt")
+	}
+	ur = strings.TrimPrefix(ur, "konveyor-jdt://contents")
+
+	parts := strings.Split(ur, "?")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid uri, can not find correct query string")
+	}
+	path := parts[0]
+	queryString := parts[1]
+
+	queryStringParts := strings.Split(queryString, "&")
+	if len(queryStringParts) != 2 {
+		return "", fmt.Errorf("invalid uri, can not find correct parts for query string")
+	}
+
+	packageName := strings.Split(queryStringParts[0], "=")[1]
+	sourceRange := strings.Split(queryStringParts[1], "=")[1]
+	isSourceRange, err := strconv.ParseBool(sourceRange)
+	if err != nil {
+		return "", fmt.Errorf("invalid boolean set for source range")
+	}
+
+	if isSourceRange {
+		// If there is a source range, we know we know there is a sources jar
+		jarName := filepath.Base(path)
+		s := strings.TrimSuffix(jarName, ".jar")
+		s = fmt.Sprintf("%v-sources.jar", s)
+		jarPath := filepath.Join(filepath.Dir(path), s)
+
+		path := filepath.Join(strings.Split(strings.TrimSuffix(packageName, ".class"), ".")...)
+
+		javaFileName := fmt.Sprintf("%s.java", filepath.Base(path))
+		if i := strings.Index(javaFileName, "$"); i > 0 {
+			javaFileName = fmt.Sprintf("%v.java", javaFileName[0:i])
+		}
+
+		cmd := exec.Command("jar", "xf", filepath.Base(jarPath))
+		cmd.Dir = filepath.Dir(jarPath)
+		err := cmd.Run()
+		if err != nil {
+			fmt.Printf("\n java%v", err)
+			return "", err
+		}
+		snip, err := p.scanFile(filepath.Join(filepath.Dir(jarPath), filepath.Dir(path), javaFileName), loc)
+		if err != nil {
+			fmt.Printf("\n%v", err)
+			return "", err
+		}
+		return snip, nil
+	}
+
+	return "", nil
+}
+
+func (p *javaProvider) scanFile(path string, loc engine.Location) (string, error) {
+	readFile, err := os.Open(path)
+	if err != nil {
+		p.Log.V(5).Error(err, "Unable to read file")
+		return "", err
+	}
+	defer readFile.Close()
+
+	scanner := bufio.NewScanner(readFile)
+	lineNumber := 0
+	codeSnip := ""
+	for scanner.Scan() {
+		if (lineNumber - CONTEXT_LINES) == loc.EndPosition.Line {
+			codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
+			break
+		}
+		if (lineNumber + CONTEXT_LINES) >= loc.StartPosition.Line {
+			codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
+		}
+		lineNumber += 1
+	}
+	return codeSnip, nil
+}

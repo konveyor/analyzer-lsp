@@ -13,9 +13,6 @@ require (
 )
 
 require (
-	github.com/antchfx/jsonquery v1.3.0 // indirect
-	github.com/antchfx/xmlquery v1.3.12 // indirect
-	github.com/antchfx/xpath v1.2.4 // indirect
 	github.com/cbroglie/mustache v1.4.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect

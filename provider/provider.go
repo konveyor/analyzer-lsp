@@ -114,6 +114,7 @@ type ProviderEvaluateResponse struct {
 	Incidents       []IncidentContext      `yaml:"incidents"`
 	TemplateContext map[string]interface{} `yaml:"templateContext"`
 }
+
 type IncidentContext struct {
 	FileURI      uri.URI                `yaml:"fileURI"`
 	Effort       *int                   `yaml:"effort,omitempty"`
@@ -270,6 +271,22 @@ type Startable interface {
 	Start(context.Context) error
 }
 
+type CodeSnipProvider struct {
+	Providers []engine.CodeSnip
+}
+
+var _ engine.CodeSnip = &CodeSnipProvider{}
+
+func (p CodeSnipProvider) GetCodeSnip(u uri.URI, l engine.Location) (string, error) {
+	for _, p := range p.Providers {
+		snip, err := p.GetCodeSnip(u, l)
+		if err == nil && snip != "" {
+			return snip, nil
+		}
+	}
+	return "", nil
+}
+
 type ProviderCondition struct {
 	Client        ServiceClient
 	Capability    string
@@ -374,7 +391,6 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 		return nil, err
 	}
 	return []byte(s), nil
-
 }
 
 // TODO where should this go

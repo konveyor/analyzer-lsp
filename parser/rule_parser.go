@@ -336,8 +336,17 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				}
 
 				rule.When = engine.OrCondition{Conditions: conditions}
+				snippers := []engine.CodeSnip{}
 				for k, prov := range provs {
+					if snip, ok := prov.(engine.CodeSnip); ok {
+						snippers = append(snippers, snip)
+					}
 					providers[k] = prov
+				}
+				if len(snippers) > 0 {
+					rule.Snipper = provider.CodeSnipProvider{
+						Providers: snippers,
+					}
 				}
 			case "and":
 				//Handle when clause
@@ -353,8 +362,17 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					noConditions = true
 				}
 				rule.When = engine.AndCondition{Conditions: conditions}
+				snippers := []engine.CodeSnip{}
 				for k, prov := range provs {
+					if snip, ok := prov.(engine.CodeSnip); ok {
+						snippers = append(snippers, snip)
+					}
 					providers[k] = prov
+				}
+				if len(snippers) > 0 {
+					rule.Snipper = provider.CodeSnipProvider{
+						Providers: snippers,
+					}
 				}
 			case "":
 				return nil, nil, fmt.Errorf("must have at least one condition")
@@ -382,6 +400,9 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					Not:                    not,
 				}
 				rule.When = c
+				if snipper, ok := provider.(engine.CodeSnip); ok {
+					rule.Snipper = snipper
+				}
 				providers[providerKey] = provider
 			}
 		}

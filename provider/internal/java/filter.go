@@ -161,7 +161,7 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 	var err error
 
 	// TODO: Can remove when the LSP starts giving files to decompiled binaries
-	if strings.HasPrefix(symbol.Location.URI, "jdt") {
+	if strings.HasPrefix(symbol.Location.URI, "konveyor-jdt") {
 		u = uri.URI(symbol.Location.URI)
 	} else {
 		u, err = uri.Parse(ref.URI)

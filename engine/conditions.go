@@ -73,6 +73,10 @@ type Conditional interface {
 	Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error)
 }
 
+type CodeSnip interface {
+	GetCodeSnip(uri.URI, Location) (string, error)
+}
+
 type RuleSet struct {
 	Name        string   `json:"name,omitempty" yaml:"name,omitempty"`
 	Description string   `json:"description,omitempty" yaml:"description,omitempty"`
@@ -85,6 +89,7 @@ type Rule struct {
 	RuleMeta        `yaml:",inline" json:",inline"`
 	Perform         Perform          `yaml:",inline" json:"perform,omitempty"`
 	When            Conditional      `yaml:"when,omitempty" json:"when,omitempty"`
+	Snipper         CodeSnip         `yaml:"-" json:"-"`
 	CustomVariables []CustomVariable `yaml:"customVariables,omitempty" json:"customVariables,omitempty"`
 }
 

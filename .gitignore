@@ -13,3 +13,4 @@ provider_settings.json
 konveyor-analyzer
 konveyor-analyzer-dep
 go.work
+go.work.sum
