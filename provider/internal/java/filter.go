@@ -121,7 +121,7 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 	var err error
 
 	// TODO: Can remove when the LSP starts giving files to decompiled binaries
-	if strings.HasPrefix(symbol.Location.URI, "jdt") {
+	if strings.HasPrefix(symbol.Location.URI, FILE_URI_PREFIX) {
 		u = uri.URI(symbol.Location.URI)
 	} else {
 		u, err = uri.Parse(symbol.Location.URI)
@@ -161,7 +161,7 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 	var err error
 
 	// TODO: Can remove when the LSP starts giving files to decompiled binaries
-	if strings.HasPrefix(symbol.Location.URI, "konveyor-jdt") {
+	if strings.HasPrefix(symbol.Location.URI, FILE_URI_PREFIX) {
 		u = uri.URI(symbol.Location.URI)
 	} else {
 		u, err = uri.Parse(ref.URI)

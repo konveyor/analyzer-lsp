@@ -107,7 +107,7 @@ func (p *javaServiceClient) GetAllSymbols(query, location string) []protocol.Wor
 }
 
 func (p *javaServiceClient) GetAllReferences(symbol protocol.WorkspaceSymbol) []protocol.Location {
-	if strings.Contains(symbol.Location.URI, "konveyor-jdt") {
+	if strings.Contains(symbol.Location.URI, FILE_URI_PREFIX) {
 		return []protocol.Location{
 			{
 				URI:   symbol.Location.URI,

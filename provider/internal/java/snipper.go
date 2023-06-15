@@ -16,17 +16,18 @@ import (
 const (
 	// TODO: make this configurable in the future
 	// We may or may not need to do this so holding off for now.
-	CONTEXT_LINES = 10
+	CONTEXT_LINES   = 10
+	FILE_URI_PREFIX = "konveyor-jdt"
 )
 
 var _ engine.CodeSnip = &javaProvider{}
 
 func (p *javaProvider) GetCodeSnip(u uri.URI, loc engine.Location) (string, error) {
 	ur := string(u)
-	if !strings.Contains(ur, "konveyor-jdt") {
-		return "", fmt.Errorf("invalid uri, must be for konveyor-jdt")
+	if !strings.Contains(ur, FILE_URI_PREFIX) {
+		return "", fmt.Errorf("invalid uri, must be for %s", FILE_URI_PREFIX)
 	}
-	ur = strings.TrimPrefix(ur, "konveyor-jdt://contents")
+	ur = strings.TrimPrefix(ur, fmt.Sprintf("%s://contents", FILE_URI_PREFIX))
 
 	parts := strings.Split(ur, "?")
 	if len(parts) != 2 {
