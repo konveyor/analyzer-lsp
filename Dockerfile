@@ -20,6 +20,7 @@ RUN make build
 FROM quay.io/konveyor/jdtls-server-base
 
 COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
+COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/bin/konveyor-analyzer-dep
 COPY --from=builder /analyzer-lsp/external-providers/golang-external-provider/golang-external-provider /usr/bin/golang-external-provider
 
 COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
