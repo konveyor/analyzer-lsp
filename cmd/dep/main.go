@@ -43,6 +43,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
 	providers := map[string]provider.Client{}
 
 	// Get the configs
@@ -53,17 +56,23 @@ func main() {
 	}
 
 	for _, config := range configs {
-		provider, err := lib.GetProviderClient(config, log)
+		prov, err := lib.GetProviderClient(config, log)
 		if err != nil {
 			log.Error(err, "unable to create provider client")
 			os.Exit(1)
 		}
-		err = provider.ProviderInit(context.TODO())
+		if s, ok := prov.(provider.Startable); ok {
+			if err := s.Start(ctx); err != nil {
+				log.Error(err, "unable to create provider client")
+				os.Exit(1)
+			}
+		}
+		err = prov.ProviderInit(ctx)
 		if err != nil {
 			log.Error(err, "unable to init the providers", "provider", config.Name)
 			os.Exit(1)
 		}
-		providers[config.Name] = provider
+		providers[config.Name] = prov
 
 	}
 
