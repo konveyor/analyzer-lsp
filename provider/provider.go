@@ -11,7 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/hubapi"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
@@ -254,8 +254,8 @@ type ServiceClient interface {
 	GetDependenciesDAG() ([]DepDAGItem, uri.URI, error)
 }
 
-type Dep = hubapi.Dep
-type DepDAGItem = hubapi.DepDAGItem
+type Dep = konveyor.Dep
+type DepDAGItem = konveyor.DepDAGItem
 type Startable interface {
 	Start(context.Context) error
 }

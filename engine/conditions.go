@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/hubapi"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
 )
@@ -40,7 +40,7 @@ type IncidentContext struct {
 	Effort       *int                   `yaml:"effort"`
 	LineNumber   *int                   `yaml:"lineNumber,omitempty"`
 	Variables    map[string]interface{} `yaml:"variables"`
-	Links        []hubapi.Link          `yaml:"externalLink"`
+	Links        []konveyor.Link        `yaml:"externalLink"`
 	CodeLocation *Location              `yaml:"location,omitempty"`
 }
 
@@ -94,11 +94,11 @@ type Rule struct {
 }
 
 type RuleMeta struct {
-	RuleID      string           `yaml:"ruleID,omitempty" json:"ruleID,omitempty"`
-	Description string           `yaml:"description,omitempty" json:"description,omitempty"`
-	Category    *hubapi.Category `yaml:"category,omitempty" json:"category,omitempty"`
-	Labels      []string         `yaml:"labels,omitempty" json:"labels,omitempty"`
-	Effort      *int             `json:"effort,omitempty"`
+	RuleID      string             `yaml:"ruleID,omitempty" json:"ruleID,omitempty"`
+	Description string             `yaml:"description,omitempty" json:"description,omitempty"`
+	Category    *konveyor.Category `yaml:"category,omitempty" json:"category,omitempty"`
+	Labels      []string           `yaml:"labels,omitempty" json:"labels,omitempty"`
+	Effort      *int               `json:"effort,omitempty"`
 }
 
 // RuleSelector selects rules based on rule metadata
@@ -119,8 +119,8 @@ type Perform struct {
 }
 
 type Message struct {
-	Text  *string       `yaml:"message,omitempty"`
-	Links []hubapi.Link `yaml:"links,omitempty"`
+	Text  *string         `yaml:"message,omitempty"`
+	Links []konveyor.Link `yaml:"links,omitempty"`
 }
 
 func (p *Perform) Validate() error {
