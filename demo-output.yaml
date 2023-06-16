@@ -10,6 +10,25 @@
       description: ""
       category: potential
       incidents:
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+        variables:
+          data: dependency
+          innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
+          matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
+        variables:
+          data: dependency
+          innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
+          matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
+        variables:
+          data: dependency
+          innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n
+            \   "
+          matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
         variables:
@@ -112,25 +131,6 @@
           data: dependency
           innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"
           matchingXML: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
-      - uri: file:///analyzer-lsp/examples/java/pom.xml
-        message: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
-        variables:
-          data: dependency
-          innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
-          matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
-      - uri: file:///analyzer-lsp/examples/java/pom.xml
-        message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
-        variables:
-          data: dependency
-          innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
-          matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
-      - uri: file:///analyzer-lsp/examples/java/pom.xml
-        message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
-        variables:
-          data: dependency
-          innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n
-            \   "
-          matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       extras: []
     file-001:
       description: Testing that we can get all the go files in the project
@@ -304,6 +304,25 @@
       description: ""
       category: potential
       incidents:
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: POM XML dependencies - '<groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>'
+        variables:
+          data: dependency
+          innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
+          matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>'
+        variables:
+          data: dependency
+          innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
+          matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>'
+        variables:
+          data: dependency
+          innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n
+            \   "
+          matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>'
         variables:
@@ -406,25 +425,6 @@
           data: dependency
           innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"
           matchingXML: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
-      - uri: file:///analyzer-lsp/examples/java/pom.xml
-        message: POM XML dependencies - '<groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>'
-        variables:
-          data: dependency
-          innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
-          matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
-      - uri: file:///analyzer-lsp/examples/java/pom.xml
-        message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>'
-        variables:
-          data: dependency
-          innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
-          matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
-      - uri: file:///analyzer-lsp/examples/java/pom.xml
-        message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>'
-        variables:
-          data: dependency
-          innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n
-            \   "
-          matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       extras: []
   errors:
     error-rule-001: |-
