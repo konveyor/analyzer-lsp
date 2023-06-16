@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
+	"github.com/konveyor/analyzer-lsp/hubapi"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
@@ -18,16 +19,6 @@ var (
 	treeOutput       = flag.Bool("tree", false, "output dependencies as a tree")
 	outputFile       = flag.String("output-file", "output.yaml", "path to output file")
 )
-
-type DepsFlatItem struct {
-	Provider     string         `yaml:"provider"`
-	Dependencies []provider.Dep `yaml:"dependencies"`
-}
-
-type DepsTreeItem struct {
-	Provider     string                `yaml:"provider"`
-	Dependencies []provider.DepDAGItem `yaml:"dependencies"`
-}
 
 func main() {
 	logrusLog := logrus.New()
@@ -76,8 +67,8 @@ func main() {
 
 	}
 
-	var depsFlat []DepsFlatItem
-	var depsTree []DepsTreeItem
+	var depsFlat []hubapi.DepsFlatItem
+	var depsTree []hubapi.DepsTreeItem
 	for name, prov := range providers {
 		if !provider.HasCapability(prov.Capabilities(), "dependency") {
 			log.Info("provider does not have dependency capability", "provider", name)
@@ -90,7 +81,7 @@ func main() {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			providerDeps := DepsTreeItem{
+			providerDeps := hubapi.DepsTreeItem{
 				Provider:     name,
 				Dependencies: deps,
 			}
@@ -101,7 +92,7 @@ func main() {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			providerDeps := DepsFlatItem{
+			providerDeps := hubapi.DepsFlatItem{
 				Provider:     name,
 				Dependencies: deps,
 			}

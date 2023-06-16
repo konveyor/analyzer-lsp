@@ -11,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/hubapi"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
@@ -253,20 +254,8 @@ type ServiceClient interface {
 	GetDependenciesDAG() ([]DepDAGItem, uri.URI, error)
 }
 
-type Dep struct {
-	Name               string                 `json:"name,omitempty"`
-	Version            string                 `json:"version,omitempty"`
-	Type               string                 `json:"type,omitempty"`
-	Indirect           bool                   `json:"indirect,omitempty"`
-	ResolvedIdentifier string                 `json:"sha,omitempty"`
-	Extras             map[string]interface{} `json:"extras,omitempty"`
-}
-
-type DepDAGItem struct {
-	Dep       Dep          `json:"dep,omitempty"`
-	AddedDeps []DepDAGItem `json:"addedDep,omitempty"`
-}
-
+type Dep = hubapi.Dep
+type DepDAGItem = hubapi.DepDAGItem
 type Startable interface {
 	Start(context.Context) error
 }
