@@ -9,7 +9,7 @@ import (
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/hubapi"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	ruleparser "github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/sirupsen/logrus"
@@ -32,12 +32,12 @@ func (t testProvider) Evaluate(cap string, conditionInfo []byte) (provider.Provi
 	return provider.ProviderEvaluateResponse{}, nil
 }
 
-func (t testProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
-	return nil, uri.File("test"), nil
+func (t testProvider) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+	return nil, nil
 }
 
-func (t testProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
-	return nil, uri.File("test"), nil
+func (t testProvider) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
+	return nil, nil
 }
 
 func (t testProvider) ProviderInit(context.Context) error {
@@ -133,12 +133,12 @@ func TestLoadRules(t *testing.T) {
 								},
 								Effort:      &effort,
 								Description: "",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 							},
 							Perform: engine.Perform{
 								Message: engine.Message{
 									Text: &allGoFiles,
-									Links: []hubapi.Link{
+									Links: []konveyor.Link{
 										{
 											URL:   "https://go.dev",
 											Title: "Golang",
@@ -180,9 +180,9 @@ func TestLoadRules(t *testing.T) {
 							RuleMeta: engine.RuleMeta{
 								RuleID:      "file-001",
 								Description: "",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 							},
-							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []hubapi.Link{}}},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []konveyor.Link{}}},
 						},
 					},
 				},
@@ -253,9 +253,9 @@ func TestLoadRules(t *testing.T) {
 							RuleMeta: engine.RuleMeta{
 								RuleID:      "file-001",
 								Description: "",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 							},
-							Perform: engine.Perform{Message: engine.Message{Text: &allGoAndJsonFiles, Links: []hubapi.Link{}}},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoAndJsonFiles, Links: []konveyor.Link{}}},
 						},
 					},
 				},
@@ -290,9 +290,9 @@ func TestLoadRules(t *testing.T) {
 							RuleMeta: engine.RuleMeta{
 								RuleID:      "file-001",
 								Description: "",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 							},
-							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []konveyor.Link{}}},
 						},
 					},
 				},
@@ -327,9 +327,9 @@ func TestLoadRules(t *testing.T) {
 							RuleMeta: engine.RuleMeta{
 								RuleID:      "file-001",
 								Description: "",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 							},
-							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []konveyor.Link{}}},
 						},
 					},
 				},
@@ -403,9 +403,9 @@ func TestLoadRules(t *testing.T) {
 							RuleMeta: engine.RuleMeta{
 								RuleID:      "file-001",
 								Description: "",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 							},
-							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []konveyor.Link{}}},
 						},
 					},
 				},
@@ -457,10 +457,10 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleMeta: engine.RuleMeta{
 								RuleID:      "file-001",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 								Description: "",
 							},
-							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []hubapi.Link{}}},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []konveyor.Link{}}},
 						},
 					},
 				},
@@ -496,13 +496,13 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleMeta: engine.RuleMeta{
 								RuleID:      "file-001",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 								Description: "",
 							},
 							Perform: engine.Perform{
 								Message: engine.Message{
 									Text:  &allGoFiles,
-									Links: []hubapi.Link{},
+									Links: []konveyor.Link{},
 								},
 								Tag: []string{"test"},
 							},
@@ -584,9 +584,9 @@ func TestLoadRules(t *testing.T) {
 							RuleMeta: engine.RuleMeta{
 								RuleID:      "file-001",
 								Description: "",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 							},
-							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []hubapi.Link{}}},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []konveyor.Link{}}},
 						},
 					},
 				},
@@ -595,9 +595,9 @@ func TestLoadRules(t *testing.T) {
 						{
 							RuleMeta: engine.RuleMeta{RuleID: "file-001",
 								Description: "",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 							},
-							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []hubapi.Link{}}},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []konveyor.Link{}}},
 						},
 					},
 				},
@@ -655,12 +655,12 @@ func TestLoadRules(t *testing.T) {
 								},
 								Effort:      &effort,
 								Description: "",
-								Category:    &hubapi.Potential,
+								Category:    &konveyor.Potential,
 							},
 							Perform: engine.Perform{
 								Message: engine.Message{
 									Text: &allGoFiles,
-									Links: []hubapi.Link{
+									Links: []konveyor.Link{
 										{
 											URL:   "https://go.dev",
 											Title: "Golang",

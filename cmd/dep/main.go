@@ -76,29 +76,32 @@ func main() {
 		}
 
 		if *treeOutput {
-			deps, _, err := prov.GetDependenciesDAG()
+			deps, err := prov.GetDependenciesDAG()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			providerDeps := konveyor.DepsTreeItem{
-				Provider:     name,
-				Dependencies: deps,
+			for u, ds := range deps {
+				depsTree = append(depsTree, konveyor.DepsTreeItem{
+					FileURI:      string(u),
+					Provider:     name,
+					Dependencies: ds,
+				})
 			}
-			depsTree = append(depsTree, providerDeps)
 		} else {
-			deps, _, err := prov.GetDependencies()
+			deps, err := prov.GetDependencies()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			providerDeps := konveyor.DepsFlatItem{
-				Provider:     name,
-				Dependencies: deps,
+			for u, ds := range deps {
+				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
+					Provider:     name,
+					FileURI:      string(u),
+					Dependencies: ds,
+				})
 			}
-			depsFlat = append(depsFlat, providerDeps)
 		}
-
 	}
 
 	if depsFlat == nil && depsTree == nil {

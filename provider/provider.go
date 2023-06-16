@@ -39,13 +39,13 @@ func init() {
 type UnimplementedDependenciesComponent struct{}
 
 // We don't have dependencies
-func (p *UnimplementedDependenciesComponent) GetDependencies() ([]Dep, uri.URI, error) {
-	return nil, "", nil
+func (p *UnimplementedDependenciesComponent) GetDependencies() (map[uri.URI][]Dep, error) {
+	return nil, nil
 }
 
 // We don't have dependencies
-func (p *UnimplementedDependenciesComponent) GetDependenciesDAG() ([]DepDAGItem, uri.URI, error) {
-	return nil, "", nil
+func (p *UnimplementedDependenciesComponent) GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error) {
+	return nil, nil
 }
 
 type Capability struct {
@@ -191,32 +191,32 @@ func FullResponseFromServiceClients(clients []ServiceClient, cap string, conditi
 	return fullResp, nil
 }
 
-func FullDepsResponse(clients []ServiceClient) ([]Dep, uri.URI, error) {
-	deps := []Dep{}
-	var uri uri.URI
+func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]Dep, error) {
+	deps := map[uri.URI][]Dep{}
 	for _, c := range clients {
-		r, u, err := c.GetDependencies()
+		r, err := c.GetDependencies()
 		if err != nil {
-			return nil, uri, err
+			return nil, err
 		}
-		deps = append(deps, r...)
-		uri = u
+		for k, v := range r {
+			deps[k] = v
+		}
 	}
-	return deps, uri, nil
+	return deps, nil
 }
 
-func FullDepDAGResponse(clients []ServiceClient) ([]DepDAGItem, uri.URI, error) {
-	deps := []DepDAGItem{}
-	var uri uri.URI
+func FullDepDAGResponse(clients []ServiceClient) (map[uri.URI][]DepDAGItem, error) {
+	deps := map[uri.URI][]DepDAGItem{}
 	for _, c := range clients {
-		r, u, err := c.GetDependenciesDAG()
+		r, err := c.GetDependenciesDAG()
 		if err != nil {
-			return nil, uri, err
+			return nil, err
 		}
-		uri = u
-		deps = append(deps, r...)
+		for k, v := range r {
+			deps[k] = v
+		}
 	}
-	return deps, uri, nil
+	return deps, nil
 }
 
 // InternalInit interface is going to be used to init the full config of a provider.
@@ -248,10 +248,10 @@ type ServiceClient interface {
 
 	// GetDependencies will get the dependencies
 	// It is the responsibility of the provider to determine how that is done
-	GetDependencies() ([]Dep, uri.URI, error)
+	GetDependencies() (map[uri.URI][]Dep, error)
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
-	GetDependenciesDAG() ([]DepDAGItem, uri.URI, error)
+	GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error)
 }
 
 type Dep = konveyor.Dep
@@ -397,7 +397,7 @@ type DependencyCondition struct {
 
 func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
 	resp := engine.ConditionResponse{}
-	deps, file, err := dc.Client.GetDependencies()
+	deps, err := dc.Client.GetDependencies()
 	if err != nil {
 		return resp, err
 	}
@@ -405,14 +405,21 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	if err != nil {
 		return resp, err
 	}
-	matchedDeps := []*Dep{}
-	for _, dep := range deps {
-		if dep.Name == dc.Name {
-			matchedDeps = append(matchedDeps, &dep)
-			break
-		}
-		if dc.NameRegex != "" && regex.MatchString(dep.Name) {
-			matchedDeps = append(matchedDeps, &dep)
+	type matchedDep struct {
+		dep Dep
+		uri uri.URI
+	}
+	matchedDeps := []matchedDep{}
+	for u, ds := range deps {
+		for _, dep := range ds {
+
+			if dep.Name == dc.Name {
+				matchedDeps = append(matchedDeps, matchedDep{dep: dep, uri: u})
+				break
+			}
+			if dc.NameRegex != "" && regex.MatchString(dep.Name) {
+				matchedDeps = append(matchedDeps, matchedDep{dep: dep, uri: u})
+			}
 		}
 	}
 
@@ -421,25 +428,25 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	}
 
 	for _, matchedDep := range matchedDeps {
-		if matchedDep.Version == "" || (dc.Lowerbound == "" && dc.Upperbound == "") {
+		if matchedDep.dep.Version == "" || (dc.Lowerbound == "" && dc.Upperbound == "") {
 			resp.Matched = true
 			resp.Incidents = append(resp.Incidents, engine.IncidentContext{
-				FileURI: file,
+				FileURI: matchedDep.uri,
 				Variables: map[string]interface{}{
-					"name":    matchedDep.Name,
-					"version": matchedDep.Version,
-					"type":    matchedDep.Type,
+					"name":    matchedDep.dep.Name,
+					"version": matchedDep.dep.Version,
+					"type":    matchedDep.dep.Type,
 				},
 			})
 			// For now, lets leave this TODO to figure out what we should be setting in the context
 			resp.TemplateContext = map[string]interface{}{
-				"name":    matchedDep.Name,
-				"version": matchedDep.Version,
+				"name":    matchedDep.dep.Name,
+				"version": matchedDep.dep.Version,
 			}
 			continue
 		}
 
-		depVersion, err := getVersion(matchedDep.Version)
+		depVersion, err := getVersion(matchedDep.dep.Version)
 		if err != nil {
 			return resp, err
 		}
@@ -472,15 +479,15 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 
 		resp.Matched = constraints.Check(depVersion)
 		resp.Incidents = append(resp.Incidents, engine.IncidentContext{
-			FileURI: file,
+			FileURI: matchedDep.uri,
 			Variables: map[string]interface{}{
-				"name":    matchedDep.Name,
-				"version": matchedDep.Version,
+				"name":    matchedDep.dep.Name,
+				"version": matchedDep.dep.Version,
 			},
 		})
 		resp.TemplateContext = map[string]interface{}{
-			"name":    matchedDep.Name,
-			"version": matchedDep.Version,
+			"name":    matchedDep.dep.Name,
+			"version": matchedDep.dep.Version,
 		}
 	}
 

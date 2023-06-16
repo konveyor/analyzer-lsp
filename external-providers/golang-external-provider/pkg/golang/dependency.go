@@ -26,25 +26,29 @@ func (g *golangServiceClient) findGoMod() string {
 	return f
 }
 
-func (g *golangServiceClient) GetDependencies() ([]provider.Dep, uri.URI, error) {
-	ll, f, err := g.GetDependenciesDAG()
+func (g *golangServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+	ll, err := g.GetDependenciesDAG()
 	if err != nil {
-		return nil, f, err
+		return nil, err
 	}
 	if len(ll) == 0 {
-		return nil, f, nil
+		return nil, nil
 	}
 
-	return provider.ConvertDagItemsToList(ll), f, err
+	m := map[uri.URI][]provider.Dep{}
+	for u, d := range ll {
+		m[u] = provider.ConvertDagItemsToList(d)
+	}
+
+	return m, err
 }
 
-func (g *golangServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+func (g *golangServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 
 	path := g.findGoMod()
 	file := uri.File(path)
-	fmt.Printf("%#v", file)
 
 	moddir := filepath.Dir(path)
 	// get the graph output
@@ -54,7 +58,7 @@ func (g *golangServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.U
 	cmd.Stdout = &buf
 	err := cmd.Run()
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
 
 	// use base and graph to get the deps and their deps.
@@ -64,10 +68,12 @@ func (g *golangServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.U
 
 	deps, err := parseGoDepLines(lines)
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
+	m := map[uri.URI][]provider.DepDAGItem{}
+	m[file] = deps
 
-	return deps, file, nil
+	return m, nil
 }
 
 // parseGoDepString parses a golang dependency string

@@ -3,7 +3,7 @@ WORKDIR /analyzer-lsp
 
 COPY  cmd /analyzer-lsp/cmd
 COPY  engine /analyzer-lsp/engine
-COPY  hubapi /analyzer-lsp/hubapi
+COPY  output /analyzer-lsp/output
 COPY  jsonrpc2 /analyzer-lsp/jsonrpc2
 COPY  lsp /analyzer-lsp/lsp
 COPY  parser /analyzer-lsp/parser

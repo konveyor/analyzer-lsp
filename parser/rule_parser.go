@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/hubapi"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
@@ -220,13 +220,13 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 						r.Log.V(8).WithValues("ruleID", ruleID).Info("unable to find linkArray")
 					}
 
-					links := []hubapi.Link{}
+					links := []konveyor.Link{}
 					for _, linkMap := range linkArray {
 						m, ok := linkMap.(map[interface{}]interface{})
 						if !ok {
 							r.Log.V(8).WithValues("ruleID", ruleID).Info("unable to find link url")
 						}
-						link := hubapi.Link{}
+						link := konveyor.Link{}
 						link.URL, ok = m["url"].(string)
 						if !ok {
 							r.Log.V(8).WithValues("ruleID", ruleID).Info("unable to find link url")
@@ -460,10 +460,10 @@ func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interfa
 		if !ok {
 			r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find category")
 		}
-		c := hubapi.Category(strings.ToLower(category))
-		if c != hubapi.Potential && c != hubapi.Mandatory && c != hubapi.Optional {
-			r.Log.V(8).WithValues("ruleID", rule.RuleID).Info(fmt.Sprintf("unable to find category: %v, defaulting to %v", c, hubapi.Potential))
-			rule.Category = &hubapi.Potential
+		c := konveyor.Category(strings.ToLower(category))
+		if c != konveyor.Potential && c != konveyor.Mandatory && c != konveyor.Optional {
+			r.Log.V(8).WithValues("ruleID", rule.RuleID).Info(fmt.Sprintf("unable to find category: %v, defaulting to %v", c, konveyor.Potential))
+			rule.Category = &konveyor.Potential
 		} else {
 			rule.Category = &c
 		}
