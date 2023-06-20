@@ -145,27 +145,25 @@ func (p *javaServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGI
 		lines = lines[1 : len(lines)-2]
 	}
 
-	deps := []provider.DepDAGItem{}
-
-	deps, err = parseMavenDepLines(lines, localRepoPath)
+	pomDeps, err := parseMavenDepLines(lines, localRepoPath)
 	if err != nil {
 		return nil, err
 	}
 
+	m := map[uri.URI][]provider.DepDAGItem{}
+	m[file] = pomDeps
+
 	//Walk the dir, looking for .jar files to add to the dependency
 	w := walker{
-		deps: deps,
+		deps: m,
 	}
 	filepath.WalkDir(moddir, w.walkDirForJar)
-
-	m := map[uri.URI][]provider.DepDAGItem{}
-	m[file] = deps
 
 	return m, nil
 }
 
 type walker struct {
-	deps []provider.DepDAGItem
+	deps map[uri.URI][]provider.DepDAGItem
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -179,9 +177,11 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		w.deps = append(w.deps, provider.DepDAGItem{
-			Dep: d,
-		})
+		w.deps[uri.URI(filepath.Join(path, info.Name()))] = []provider.DepDAGItem{
+			{
+				Dep: d,
+			},
+		}
 	}
 	return nil
 }
