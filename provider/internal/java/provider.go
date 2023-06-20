@@ -258,10 +258,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	return &svcClient, returnErr
 }
 
-func (p *javaProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
+func (p *javaProvider) GetDependencies() (map[uri.URI][]provider.Dep, error) {
 	return provider.FullDepsResponse(p.clients)
 }
 
-func (p *javaProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+func (p *javaProvider) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
 	return provider.FullDepDAGResponse(p.clients)
 }

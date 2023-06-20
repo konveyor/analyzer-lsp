@@ -30,20 +30,24 @@ func (p *javaServiceClient) findPom() string {
 	return f
 }
 
-func (p *javaServiceClient) GetDependencies() ([]provider.Dep, uri.URI, error) {
-	ll, file, err := p.GetDependenciesDAG()
+func (p *javaServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+	ll, err := p.GetDependenciesDAG()
 	if err != nil {
 		return p.GetDependencyFallback()
 	}
 	if len(ll) == 0 {
 		return p.GetDependencyFallback()
 	}
-	deps := []provider.Dep{}
-	for _, transitives := range ll {
-		deps = append(deps, transitives.Dep)
-		deps = append(deps, provider.ConvertDagItemsToList(transitives.AddedDeps)...)
+	m := map[uri.URI][]provider.Dep{}
+	for f, ds := range ll {
+		deps := []provider.Dep{}
+		for _, dep := range ds {
+			deps = append(deps, dep.Dep)
+			deps = append(deps, provider.ConvertDagItemsToList(dep.AddedDeps)...)
+		}
+		m[f] = deps
 	}
-	return deps, file, err
+	return m, err
 }
 
 func (p *javaServiceClient) getLocalRepoPath() string {
@@ -59,27 +63,27 @@ func (p *javaServiceClient) getLocalRepoPath() string {
 	return string(outb.String())
 }
 
-func (p *javaServiceClient) GetDependencyFallback() ([]provider.Dep, uri.URI, error) {
+func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]provider.Dep, error) {
 	pomDependencyQuery := "//dependencies/dependency/*"
 	path := p.findPom()
 	file := uri.File(path)
 
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
 
 	f, err := os.Open(absPath)
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
 	doc, err := xmlquery.Parse(f)
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
 	list, err := xmlquery.QueryAll(doc, pomDependencyQuery)
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
 	deps := []provider.Dep{}
 	dep := provider.Dep{}
@@ -101,10 +105,12 @@ func (p *javaServiceClient) GetDependencyFallback() ([]provider.Dep, uri.URI, er
 	if !reflect.DeepEqual(dep, provider.Dep{}) {
 		deps = append(deps, dep)
 	}
-	return deps, file, nil
+	m := map[uri.URI][]provider.Dep{}
+	m[file] = deps
+	return m, nil
 }
 
-func (p *javaServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+func (p *javaServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
 	localRepoPath := p.getLocalRepoPath()
 
 	path := p.findPom()
@@ -113,7 +119,7 @@ func (p *javaServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI
 	//Create temp file to use
 	f, err := os.CreateTemp("", "*")
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
 	defer os.Remove(f.Name())
 
@@ -123,12 +129,12 @@ func (p *javaServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI
 	cmd.Dir = moddir
 	err = cmd.Run()
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
 
 	b, err := os.ReadFile(f.Name())
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
 
 	lines := strings.Split(string(b), "\n")
@@ -139,24 +145,25 @@ func (p *javaServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI
 		lines = lines[1 : len(lines)-2]
 	}
 
-	deps := []provider.DepDAGItem{}
-
-	deps, err = parseMavenDepLines(lines, localRepoPath)
+	pomDeps, err := parseMavenDepLines(lines, localRepoPath)
 	if err != nil {
-		return nil, file, err
+		return nil, err
 	}
+
+	m := map[uri.URI][]provider.DepDAGItem{}
+	m[file] = pomDeps
 
 	//Walk the dir, looking for .jar files to add to the dependency
 	w := walker{
-		deps: deps,
+		deps: m,
 	}
 	filepath.WalkDir(moddir, w.walkDirForJar)
 
-	return deps, file, nil
+	return m, nil
 }
 
 type walker struct {
-	deps []provider.DepDAGItem
+	deps map[uri.URI][]provider.DepDAGItem
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -170,9 +177,11 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		w.deps = append(w.deps, provider.DepDAGItem{
-			Dep: d,
-		})
+		w.deps[uri.URI(filepath.Join(path, info.Name()))] = []provider.DepDAGItem{
+			{
+				Dep: d,
+			},
+		}
 	}
 	return nil
 }

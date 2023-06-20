@@ -121,6 +121,10 @@ message DependencyList {
 message DependencyResponse{
   bool successful  = 1;
   string error  = 2;
+  repeated FileDep fileDep = 3;
+}
+
+message FileDep{
   string fileURI = 3;
   DependencyList list = 4;
 }
@@ -133,6 +137,10 @@ message DependencyDAGItem {
 message DependencyDAGResponse{
   bool successful  = 1;
   string error  = 2;
+  repeated FileDAGDep fileDagDep = 3;
+}
+
+message FileDAGDep {
   string fileURI = 3;
   repeated DependencyDAGItem list = 4;
 }

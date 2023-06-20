@@ -1,4 +1,4 @@
-package hubapi
+package konveyor
 
 import (
 	"encoding/json"

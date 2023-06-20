@@ -85,33 +85,36 @@ func (g *grpcServiceClient) Evaluate(cap string, conditionInfo []byte) (provider
 }
 
 // We don't have dependencies
-func (g *grpcServiceClient) GetDependencies() ([]provider.Dep, uri.URI, error) {
+func (g *grpcServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error) {
 	d, err := g.client.GetDependencies(g.ctx, &pb.ServiceRequest{Id: g.id})
 	if err != nil {
-		return nil, uri.URI(""), err
+		return nil, err
 	}
 	if !d.Successful {
-		return nil, uri.URI(""), fmt.Errorf(d.Error)
+		return nil, fmt.Errorf(d.Error)
 	}
 
-	provs := []provider.Dep{}
-	for _, x := range d.List.Deps {
-		provs = append(provs, provider.Dep{
-			Name:               x.Name,
-			Version:            x.Version,
-			Type:               x.Type,
-			Indirect:           x.Indirect,
-			ResolvedIdentifier: x.ResolvedIdentifier,
-			Extras:             x.Extras.AsMap(),
-		})
+	provs := map[uri.URI][]provider.Dep{}
+	for _, x := range d.FileDep {
+		u, err := uri.Parse(x.FileURI)
+		if err != nil {
+			u = uri.URI(x.FileURI)
+		}
+		deps := []provider.Dep{}
+		for _, d := range x.List.Deps {
+			deps = append(deps, provider.Dep{
+				Name:               d.Name,
+				Version:            d.Version,
+				Type:               d.Type,
+				Indirect:           d.Indirect,
+				ResolvedIdentifier: d.ResolvedIdentifier,
+				Extras:             d.Extras.AsMap(),
+			})
+		}
+		provs[u] = deps
 	}
 
-	u, err := uri.Parse(d.FileURI)
-	if err != nil {
-		u = uri.URI(d.FileURI)
-	}
-
-	return provs, u, nil
+	return provs, nil
 
 }
 
@@ -135,22 +138,25 @@ func recreateDAGAddedItems(items []*pb.DependencyDAGItem) []provider.DepDAGItem 
 }
 
 // We don't have dependencies
-func (g *grpcServiceClient) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+func (g *grpcServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
 	d, err := g.client.GetDependenciesDAG(g.ctx, &pb.ServiceRequest{Id: g.id})
 	if err != nil {
-		return nil, uri.URI(""), err
+		return nil, err
 	}
 	if !d.Successful {
-		return nil, uri.URI(""), fmt.Errorf(d.Error)
+		return nil, fmt.Errorf(d.Error)
 	}
-	m := recreateDAGAddedItems(d.List)
-
-	u, err := uri.Parse(d.FileURI)
-	if err != nil {
-		return nil, uri.URI(""), fmt.Errorf(d.Error)
+	m := map[uri.URI][]provider.DepDAGItem{}
+	for _, x := range d.FileDagDep {
+		u, err := uri.Parse(x.FileURI)
+		if err != nil {
+			return nil, fmt.Errorf(d.Error)
+		}
+		deps := recreateDAGAddedItems(x.List)
+		m[u] = deps
 	}
 
-	return m, u, nil
+	return m, nil
 
 }
 

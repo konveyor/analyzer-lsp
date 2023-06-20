@@ -25,12 +25,15 @@ func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClie
 }
 func (c *fakeClient) Stop() {}
 
-func (c *fakeClient) GetDependencies() ([]Dep, uri.URI, error) {
-	return c.dependencies, uri.File("test"), nil
+func (c *fakeClient) GetDependencies() (map[uri.URI][]Dep, error) {
+	m := map[uri.URI][]Dep{
+		uri.URI("test"): c.dependencies,
+	}
+	return m, nil
 }
 
-func (c *fakeClient) GetDependenciesDAG() ([]DepDAGItem, uri.URI, error) {
-	return nil, uri.File("test"), nil
+func (c *fakeClient) GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error) {
+	return nil, nil
 }
 
 func Test_dependencyConditionEvaluation(t *testing.T) {

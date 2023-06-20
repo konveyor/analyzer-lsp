@@ -105,13 +105,11 @@ func (g *grpcProvider) Evaluate(cap string, conditionInfo []byte) (provider.Prov
 	return provider.FullResponseFromServiceClients(g.serviceClients, cap, conditionInfo)
 }
 
-// TODO: Come back through and re-desing output to handle File A get X-Z deps and File B gets C-E
-func (g *grpcProvider) GetDependencies() ([]provider.Dep, uri.URI, error) {
+func (g *grpcProvider) GetDependencies() (map[uri.URI][]provider.Dep, error) {
 	return provider.FullDepsResponse(g.serviceClients)
 }
 
-// TODO: Come back through and re-desing output to handle File A get X-Z deps and File B gets C-E
-func (g *grpcProvider) GetDependenciesDAG() ([]provider.DepDAGItem, uri.URI, error) {
+func (g *grpcProvider) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
 	return provider.FullDepDAGResponse(g.serviceClients)
 }
 

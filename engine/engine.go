@@ -14,7 +14,7 @@ import (
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/hubapi"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
@@ -25,7 +25,7 @@ const (
 )
 
 type RuleEngine interface {
-	RunRules(context context.Context, rules []RuleSet, selectors ...RuleSelector) []hubapi.RuleSet
+	RunRules(context context.Context, rules []RuleSet, selectors ...RuleSelector) []konveyor.RuleSet
 	Stop()
 }
 
@@ -123,12 +123,12 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 	}
 }
 
-func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *hubapi.RuleSet {
-	rs := &hubapi.RuleSet{
+func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *konveyor.RuleSet {
+	rs := &konveyor.RuleSet{
 		Name:        ruleSet.Name,
 		Description: ruleSet.Description,
 		Tags:        []string{},
-		Violations:  map[string]hubapi.Violation{},
+		Violations:  map[string]konveyor.Violation{},
 		Errors:      map[string]string{},
 		Unmatched:   []string{},
 		Skipped:     []string{},
@@ -138,7 +138,7 @@ func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *hubapi.RuleSet {
 
 // This will run tagging rules first, synchronously, generating tags to pass on further as context to other rules
 // then runs remaining rules async, fanning them out, fanning them in, finally generating the results. will block until completed.
-func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors ...RuleSelector) []hubapi.RuleSet {
+func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors ...RuleSelector) []konveyor.RuleSet {
 	// determine if we should run
 
 	ctx, cancelFunc := context.WithCancel(ctx)
@@ -210,7 +210,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 	case <-ctx.Done():
 		r.logger.V(1).Info("processing of rules was canceled")
 	}
-	responses := []hubapi.RuleSet{}
+	responses := []konveyor.RuleSet{}
 	for _, ruleSet := range mapRuleSets {
 		if ruleSet != nil {
 			responses = append(responses, *ruleSet)
@@ -222,10 +222,10 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 }
 
 // filterRules splits rules into tagging and other rules
-func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) ([]ruleMessage, []ruleMessage, map[string]*hubapi.RuleSet) {
+func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) ([]ruleMessage, []ruleMessage, map[string]*konveyor.RuleSet) {
 	// filter rules that generate tags, they run first
 	taggingRules := []ruleMessage{}
-	mapRuleSets := map[string]*hubapi.RuleSet{}
+	mapRuleSets := map[string]*konveyor.RuleSet{}
 	// all rules except meta
 	otherRules := []ruleMessage{}
 	for _, ruleSet := range ruleSets {
@@ -270,7 +270,7 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 
 // runTaggingRules filters and runs info rules synchronously
 // returns list of non-info rules, a context to pass to them
-func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*hubapi.RuleSet) ConditionContext {
+func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*konveyor.RuleSet) ConditionContext {
 	context := ConditionContext{
 		Tags:     make(map[string]interface{}),
 		Template: make(map[string]ChainTemplate),
@@ -371,8 +371,8 @@ func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log l
 
 }
 
-func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule Rule) (hubapi.Violation, error) {
-	incidents := []hubapi.Incident{}
+func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule Rule) (konveyor.Violation, error) {
+	incidents := []konveyor.Incident{}
 	fileCodeSnipCount := map[string]int{}
 	incidentsSet := map[string]struct{}{} // Set of incidents
 	for _, m := range conditionResponse.Incidents {
@@ -380,7 +380,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
 			break
 		}
-		incident := hubapi.Incident{
+		incident := konveyor.Incident{
 			URI:        m.FileURI,
 			LineNumber: m.LineNumber,
 			Variables:  m.Variables,
@@ -389,10 +389,10 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			lineNumber := *m.LineNumber
 			incident.LineNumber = &lineNumber
 		}
-		links := []hubapi.Link{}
+		links := []konveyor.Link{}
 		if len(m.Links) > 0 {
 			for _, l := range m.Links {
-				links = append(links, hubapi.Link{
+				links = append(links, konveyor.Link{
 					URL:   l.URL,
 					Title: l.Title,
 				})
@@ -468,7 +468,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		}
 	}
 
-	return hubapi.Violation{
+	return konveyor.Violation{
 		Description: rule.Description,
 		Labels:      rule.Labels,
 		Category:    rule.Category,

@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
-	"github.com/konveyor/analyzer-lsp/hubapi"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
@@ -67,8 +67,8 @@ func main() {
 
 	}
 
-	var depsFlat []hubapi.DepsFlatItem
-	var depsTree []hubapi.DepsTreeItem
+	var depsFlat []konveyor.DepsFlatItem
+	var depsTree []konveyor.DepsTreeItem
 	for name, prov := range providers {
 		if !provider.HasCapability(prov.Capabilities(), "dependency") {
 			log.Info("provider does not have dependency capability", "provider", name)
@@ -76,29 +76,32 @@ func main() {
 		}
 
 		if *treeOutput {
-			deps, _, err := prov.GetDependenciesDAG()
+			deps, err := prov.GetDependenciesDAG()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			providerDeps := hubapi.DepsTreeItem{
-				Provider:     name,
-				Dependencies: deps,
+			for u, ds := range deps {
+				depsTree = append(depsTree, konveyor.DepsTreeItem{
+					FileURI:      string(u),
+					Provider:     name,
+					Dependencies: ds,
+				})
 			}
-			depsTree = append(depsTree, providerDeps)
 		} else {
-			deps, _, err := prov.GetDependencies()
+			deps, err := prov.GetDependencies()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
 			}
-			providerDeps := hubapi.DepsFlatItem{
-				Provider:     name,
-				Dependencies: deps,
+			for u, ds := range deps {
+				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
+					Provider:     name,
+					FileURI:      string(u),
+					Dependencies: ds,
+				})
 			}
-			depsFlat = append(depsFlat, providerDeps)
 		}
-
 	}
 
 	if depsFlat == nil && depsTree == nil {

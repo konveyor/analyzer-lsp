@@ -225,36 +225,42 @@ func (s *server) GetDependencies(ctx context.Context, in *libgrpc.ServiceRequest
 	s.mutex.RLock()
 	client := s.clients[in.Id]
 	s.mutex.RUnlock()
-	deps, uri, err := client.client.GetDependencies()
+	deps, err := client.client.GetDependencies()
 	if err != nil {
 		return &libgrpc.DependencyResponse{
 			Successful: false,
 			Error:      err.Error(),
 		}, nil
 	}
-	ds := []*libgrpc.Dependency{}
-	for _, d := range deps {
-		extras, err := structpb.NewStruct(d.Extras)
-		if err != nil {
-			return nil, err
+	fileDeps := []*libgrpc.FileDep{}
+	for f, ds := range deps {
+		fd := libgrpc.FileDep{
+			FileURI: string(f),
 		}
-		ds = append(ds, &libgrpc.Dependency{
-			Name:               d.Name,
-			Version:            d.Version,
-			Type:               d.Type,
-			ResolvedIdentifier: d.ResolvedIdentifier,
-			Extras:             extras,
-			Indirect:           d.Indirect,
-		})
+		deps := []*libgrpc.Dependency{}
+		for _, d := range ds {
+			extras, err := structpb.NewStruct(d.Extras)
+			if err != nil {
+				return nil, err
+			}
+			deps = append(deps, &libgrpc.Dependency{
+				Name:               d.Name,
+				Version:            d.Version,
+				Type:               d.Type,
+				ResolvedIdentifier: d.ResolvedIdentifier,
+				Extras:             extras,
+				Indirect:           d.Indirect,
+			})
+		}
+		fd.List = &libgrpc.DependencyList{
+			Deps: deps,
+		}
+		fileDeps = append(fileDeps, &fd)
 	}
 
 	return &libgrpc.DependencyResponse{
 		Successful: true,
-		//TODO FIX
-		FileURI: string(uri),
-		List: &libgrpc.DependencyList{
-			Deps: ds,
-		},
+		FileDep:    fileDeps,
 	}, nil
 
 }
@@ -285,18 +291,25 @@ func (s *server) GetDependenciesLinkedList(ctx context.Context, in *libgrpc.Serv
 	s.mutex.RLock()
 	client := s.clients[in.Id]
 	s.mutex.RUnlock()
-	deps, uri, err := client.client.GetDependenciesDAG()
+	deps, err := client.client.GetDependenciesDAG()
 	if err != nil {
 		return &libgrpc.DependencyDAGResponse{
 			Successful: false,
 			Error:      err.Error(),
 		}, nil
 	}
-	l := recreateDAGAddedItems(deps)
+	fileDagDeps := []*libgrpc.FileDAGDep{}
+	for f, ds := range deps {
+		l := recreateDAGAddedItems(ds)
+		fileDagDeps = append(fileDagDeps, &libgrpc.FileDAGDep{
+			FileURI: string(f),
+			List:    l,
+		})
+
+	}
 
 	return &libgrpc.DependencyDAGResponse{
 		Successful: true,
-		FileURI:    string(uri),
-		List:       l,
+		FileDagDep: fileDagDeps,
 	}, nil
 }
