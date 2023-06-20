@@ -112,6 +112,7 @@ message Dependency {
   string resolvedIdentifier = 4;
   bool indirect = 5;
   google.protobuf.Struct extras = 6;
+  repeated string labels = 7;
 }
 
 message DependencyList {

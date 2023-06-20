@@ -94,12 +94,13 @@ type Link struct {
 }
 
 type Dep struct {
-	Name               string                 `json:"name,omitempty"`
-	Version            string                 `json:"version,omitempty"`
-	Type               string                 `json:"type,omitempty"`
-	Indirect           bool                   `json:"indirect,omitempty"`
-	ResolvedIdentifier string                 `json:"sha,omitempty"`
-	Extras             map[string]interface{} `json:"extras,omitempty"`
+	Name               string                 `json:"name,omitempty" yaml:"name,omitempty"`
+	Version            string                 `json:"version,omitempty" yaml:"version,omitempty"`
+	Type               string                 `json:"type,omitempty" yaml:"type,omitempty"`
+	Indirect           bool                   `json:"indirect,omitempty" yaml:"indirect,omitempty"`
+	ResolvedIdentifier string                 `json:"sha,omitempty" yaml:"sha,omitempty"`
+	Extras             map[string]interface{} `json:"extras,omitempty" yaml:"extras,omitempty"`
+	Labels             []string               `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
 type DepDAGItem struct {

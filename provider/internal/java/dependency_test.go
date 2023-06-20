@@ -1,6 +1,7 @@
 package java
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -50,6 +51,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 						Type:               "test",
 						Indirect:           false,
 						ResolvedIdentifier: "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
+						Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -59,6 +61,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "test",
 								Indirect:           true,
 								ResolvedIdentifier: "42a25dc3219429f0e5d060061f71acb49bf010a0",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
 							},
 						},
 					},
@@ -70,6 +73,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 						Type:               "compile",
 						Indirect:           false,
 						ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
+						Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -79,6 +83,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "runtime",
 								Indirect:           true,
 								ResolvedIdentifier: "70690b98acb07a809c55d15d7cf45f53ec1026e1",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
 							},
 						},
 						{
@@ -88,6 +93,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "runtime",
 								Indirect:           true,
 								ResolvedIdentifier: "d3e1ce1d2b3119adf270b2d00d947beb03fe3321",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
 							},
 						},
 						{
@@ -97,6 +103,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "runtime",
 								Indirect:           true,
 								ResolvedIdentifier: "bc28b5a964c8f5721eb58ee3f3c47a9bcbf4f4d8",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
 							},
 						},
 						{
@@ -106,6 +113,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "runtime",
 								Indirect:           true,
 								ResolvedIdentifier: "d952189f6abb148ff72aab246aa8c28cf99b469f",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
 							},
 						},
 						{
@@ -115,6 +123,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "compile",
 								Indirect:           true,
 								ResolvedIdentifier: "d3ebf0f291297649b4c8dc3ecc81d2eddedc100d",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
 							},
 						},
 					},

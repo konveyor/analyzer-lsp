@@ -40,10 +40,8 @@ var locationToCode = map[string]int{
 }
 
 type javaProvider struct {
-	config     provider.Config
-	Log        logr.Logger
-	ctx        context.Context
-	cancelFunc context.CancelFunc
+	config provider.Config
+	Log    logr.Logger
 
 	clients []provider.ServiceClient
 
@@ -53,7 +51,7 @@ type javaProvider struct {
 var _ provider.InternalProviderClient = &javaProvider{}
 
 type javaCondition struct {
-	Referenced referenceCondition `yaml:'referenced'`
+	Referenced referenceCondition `yaml:"referenced"`
 }
 
 type referenceCondition struct {

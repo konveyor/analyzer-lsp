@@ -18,6 +18,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	// Dep source label is a label key that any provider can use, to label the dependencies as coming from a particular source.
+	// Examples from java are: open-source and internal. A provider can also have a user provide file that will tell them which
+	// depdendencies to label as this value. This label will be used to filter out these dependencies from a given analysis
+	DepSourceLabel = "konveyor.io/dep-source"
+)
+
 // This will need a better name, may we want to move it to top level
 // Will be used by providers for common interface way of passing in configuration values.
 var builtinConfig = Config{

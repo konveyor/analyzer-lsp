@@ -11,6 +11,11 @@ import (
 	"go.lsp.dev/uri"
 )
 
+const (
+	// This will communicate that, the dep is downloadable and not vendored.
+	golangDownloadableDepSourceLabel = "downloadable"
+)
+
 // TODO implement this for real
 func (g *golangServiceClient) findGoMod() string {
 	var depPath string
@@ -86,6 +91,7 @@ func parseGoDepString(dep string) (provider.Dep, error) {
 	}
 	d.Name = strings.TrimSpace(v[0])
 	d.Version = strings.TrimSpace(strings.ReplaceAll(v[1], "@", ""))
+	d.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, golangDownloadableDepSourceLabel)}
 	return d, nil
 }
 

@@ -109,6 +109,7 @@ func (g *grpcServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error
 				Indirect:           d.Indirect,
 				ResolvedIdentifier: d.ResolvedIdentifier,
 				Extras:             d.Extras.AsMap(),
+				Labels:             d.Labels,
 			})
 		}
 		provs[u] = deps
@@ -130,6 +131,7 @@ func recreateDAGAddedItems(items []*pb.DependencyDAGItem) []provider.DepDAGItem 
 				Indirect:           x.Key.Indirect,
 				ResolvedIdentifier: x.Key.ResolvedIdentifier,
 				Extras:             x.Key.Extras.AsMap(),
+				Labels:             x.Key.Labels,
 			},
 			AddedDeps: recreateDAGAddedItems(x.AddedDeps),
 		})

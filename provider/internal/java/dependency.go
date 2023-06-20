@@ -15,6 +15,11 @@ import (
 	"go.lsp.dev/uri"
 )
 
+const (
+	javaDepSourceInternal   = "internal"
+	javaDepSourceOpenSource = "open-source"
+)
+
 // TODO implement this for real
 func (p *javaServiceClient) findPom() string {
 	var depPath string
@@ -103,6 +108,7 @@ func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]provider.Dep,
 		// Ignore the others
 	}
 	if !reflect.DeepEqual(dep, provider.Dep{}) {
+		dep.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal)}
 		deps = append(deps, dep)
 	}
 	m := map[uri.URI][]provider.Dep{}
@@ -214,6 +220,7 @@ func parseDepString(dep, localRepoPath string) (provider.Dep, error) {
 		return d, err
 	}
 	d.ResolvedIdentifier = string(b)
+	d.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal)}
 
 	return d, nil
 }
