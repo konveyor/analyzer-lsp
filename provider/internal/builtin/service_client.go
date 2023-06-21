@@ -61,7 +61,7 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 				continue
 
 			}
-			ab, err := filepath.Abs(filepath.Join(p.config.Location, match))
+			ab, err := filepath.Abs(match)
 			if err != nil {
 				//TODO: Probably want to log or something to let us know we can't get absolute path here.
 				fmt.Printf("\n%v\n\n", err)
@@ -174,9 +174,6 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			}
 		}
 		for _, file := range xmlFiles {
-			if !strings.HasPrefix(file, "/") {
-				file = filepath.Join(p.config.Location, file)
-			}
 			absPath, err := filepath.Abs(file)
 			if err != nil {
 				fmt.Printf("unable to get absolute path for '%s': %v\n", file, err)
