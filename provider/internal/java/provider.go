@@ -242,17 +242,22 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}()
 
 	svcClient := javaServiceClient{
-		rpc:        rpc,
-		ctx:        ctx,
-		cancelFunc: cancelFunc,
-		config:     config,
-		cmd:        cmd,
-		bundles:    bundles,
-		workspace:  workspace,
-		log:        log,
+		rpc:         rpc,
+		ctx:         ctx,
+		cancelFunc:  cancelFunc,
+		config:      config,
+		cmd:         cmd,
+		bundles:     bundles,
+		workspace:   workspace,
+		log:         log,
+		depToLabels: []depLabelItem{},
 	}
 
 	svcClient.initialization()
+	err = svcClient.depInit()
+	if err != nil {
+		return nil, err
+	}
 	return &svcClient, returnErr
 }
 

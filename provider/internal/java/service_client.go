@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -15,14 +16,20 @@ import (
 )
 
 type javaServiceClient struct {
-	rpc        *jsonrpc2.Conn
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	config     provider.InitConfig
-	log        logr.Logger
-	cmd        *exec.Cmd
-	bundles    []string
-	workspace  string
+	rpc         *jsonrpc2.Conn
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
+	config      provider.InitConfig
+	log         logr.Logger
+	cmd         *exec.Cmd
+	bundles     []string
+	workspace   string
+	depToLabels []depLabelItem
+}
+
+type depLabelItem struct {
+	r      *regexp.Regexp
+	labels []string
 }
 
 var _ provider.ServiceClient = &javaServiceClient{}

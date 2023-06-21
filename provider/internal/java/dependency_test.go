@@ -137,7 +137,10 @@ func Test_parseMavenDepLines(t *testing.T) {
 			lines := strings.Split(tt.mavenOutput, "\n")
 			deps := []provider.DepDAGItem{}
 			var err error
-			if deps, err = parseMavenDepLines(lines[1:], "testdata"); (err != nil) != tt.wantErr {
+			p := javaServiceClient{
+				depToLabels: []depLabelItem{},
+			}
+			if deps, err = p.parseMavenDepLines(lines[1:], "testdata"); (err != nil) != tt.wantErr {
 				t.Errorf("parseMavenDepLines() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if len(tt.wantDeps) != len(deps) {
