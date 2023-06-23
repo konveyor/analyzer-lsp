@@ -20,6 +20,7 @@ message Config {
   string lspServerPath= 3;
   string analysisMode = 4;
   google.protobuf.Struct providerSpecificConfig= 5;
+  Proxy proxy = 6;
 }
 
 message InitResponse {
@@ -145,4 +146,10 @@ message DependencyDAGResponse{
 message FileDAGDep {
   string fileURI = 3;
   repeated DependencyDAGItem list = 4;
+}
+
+message Proxy {
+  string HTTPProxy = 1;
+  string HTTPSProxy = 2;
+  string NoProxy = 3;
 }

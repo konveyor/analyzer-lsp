@@ -99,6 +99,11 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 		DependencyPath: config.DependencyPath,
 		LSPServerPath:  config.LspServerPath,
 		AnalysisMode:   a,
+		Proxy: &Proxy{
+			HTTPProxy:  config.Proxy.HTTPProxy,
+			HTTPSProxy: config.Proxy.HTTPSProxy,
+			NoProxy:    config.Proxy.NoProxy,
+		},
 	}
 
 	if config.ProviderSpecificConfig != nil {
