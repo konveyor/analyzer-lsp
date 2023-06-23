@@ -89,14 +89,6 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		}
 		matches := strings.Split(strings.TrimSpace(string(outputBytes)), "\n")
 
-		var r *regexp.Regexp
-		if c.FilePattern != "" {
-			r, err = regexp.Compile(c.FilePattern)
-			if err != nil {
-				return provider.ProviderEvaluateResponse{}, err
-			}
-		}
-
 		for _, match := range matches {
 			//TODO(fabianvf): This will not work if there is a `:` in the filename, do we care?
 			pieces := strings.SplitN(match, ":", 3)
@@ -106,7 +98,11 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 				return response, fmt.Errorf("Malformed response from grep, cannot parse %s with pattern {filepath}:{lineNumber}:{matchingText}", match)
 			}
 
-			if r != nil && !r.Match([]byte(pieces[0])) {
+			containsFile, err := provider.FilterFilePattern(c.FilePattern, pieces[0])
+			if err != nil {
+				return response, err
+			}
+			if !containsFile {
 				continue
 			}
 
