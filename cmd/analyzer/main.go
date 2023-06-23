@@ -10,6 +10,7 @@ import (
 	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
@@ -29,6 +30,7 @@ var (
 	outputViolations  = flag.String("output-file", "output.yaml", "filepath to to store rule violations")
 	errorOnViolations = flag.Bool("error-on-violation", false, "exit with 3 if any violation are found will also print violations to console")
 	labelSelector     = flag.String("label-selector", "", "an expression to select rules based on labels")
+	depLabelSelector  = flag.String("dep-label-selector", "", "an expression to select rules based on labels")
 	logLevel          = flag.Int("verbose", 9, "level for logging output")
 	enableJaeger      = flag.Bool("enable-jaeger", false, "enable tracer exports to jaeger endpoint")
 	jaegerEndpoint    = flag.String("jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
@@ -60,12 +62,21 @@ func main() {
 
 	selectors := []engine.RuleSelector{}
 	if labelSelector != nil && *labelSelector != "" {
-		selector, err := labels.NewRuleSelector(*labelSelector)
+		selector, err := labels.NewLabelSelector[*engine.RuleMeta](*labelSelector)
 		if err != nil {
 			log.Error(err, "failed to create label selector from expression", "selector", labelSelector)
 			os.Exit(1)
 		}
 		selectors = append(selectors, selector)
+	}
+
+	var dependencyLabelSelector *labels.LabelSelector[*konveyor.Dep]
+	if depLabelSelector != nil {
+		dependencyLabelSelector, err = labels.NewLabelSelector[*konveyor.Dep](*depLabelSelector)
+		if err != nil {
+			log.Error(err, "failed to create label selector from expression", "selector", labelSelector)
+			os.Exit(1)
+		}
 	}
 
 	tracerOptions := tracing.Options{
@@ -128,6 +139,7 @@ func main() {
 		ProviderNameToClient: providers,
 		Log:                  log.WithName("parser"),
 		NoDependencyRules:    *noDependencyRules,
+		DepLabelSelector:     dependencyLabelSelector,
 	}
 	ruleSets := []engine.RuleSet{}
 	needProviders := map[string]provider.InternalProviderClient{}

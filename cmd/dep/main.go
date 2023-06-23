@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
@@ -18,6 +19,7 @@ var (
 	providerSettings = flag.String("provider-settings", "provider_settings.json", "path to provider settings file")
 	treeOutput       = flag.Bool("tree", false, "output dependencies as a tree")
 	outputFile       = flag.String("output-file", "output.yaml", "path to output file")
+	depLabelSelector = flag.String("dep-label-selector", "", "an expression to select rules based on labels")
 )
 
 func main() {
@@ -95,10 +97,18 @@ func main() {
 				continue
 			}
 			for u, ds := range deps {
+				newDeps := ds
+				if depLabelSelector != nil && *depLabelSelector != "" {
+					l, err := labels.NewLabelSelector[*konveyor.Dep](*depLabelSelector)
+					if err != nil {
+						panic(err)
+					}
+					newDeps, err = l.MatchList(ds)
+				}
 				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
 					Provider:     name,
 					FileURI:      string(u),
-					Dependencies: ds,
+					Dependencies: newDeps,
 				})
 			}
 		}

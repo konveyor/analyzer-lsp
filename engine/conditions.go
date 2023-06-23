@@ -101,9 +101,13 @@ type RuleMeta struct {
 	Effort      *int               `json:"effort,omitempty"`
 }
 
+func (r *RuleMeta) GetLabels() []string {
+	return r.Labels
+}
+
 // RuleSelector selects rules based on rule metadata
 type RuleSelector interface {
-	Matches(RuleMeta) bool
+	Matches(*RuleMeta) (bool, error)
 }
 
 type CustomVariable struct {

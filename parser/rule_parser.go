@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
 )
@@ -42,6 +43,7 @@ type RuleParser struct {
 	ProviderNameToClient map[string]provider.InternalProviderClient
 	Log                  logr.Logger
 	NoDependencyRules    bool
+	DepLabelSelector     *labels.LabelSelector[*provider.Dep]
 }
 
 func (r *RuleParser) loadRuleSet(dir string) *engine.RuleSet {
@@ -709,7 +711,8 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 
 	if capability == "dependency" && !r.NoDependencyRules {
 		depCondition := provider.DependencyCondition{
-			Client: client,
+			Client:        client,
+			LabelSelector: r.DepLabelSelector,
 		}
 
 		fullCondition, ok := value.(map[interface{}]interface{})

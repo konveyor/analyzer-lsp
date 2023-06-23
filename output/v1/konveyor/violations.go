@@ -103,6 +103,10 @@ type Dep struct {
 	Labels             []string               `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
+func (d *Dep) GetLabels() []string {
+	return d.Labels
+}
+
 type DepDAGItem struct {
 	Dep       Dep          `json:"dep,omitempty"`
 	AddedDeps []DepDAGItem `json:"addedDep,omitempty"`
@@ -111,7 +115,7 @@ type DepDAGItem struct {
 type DepsFlatItem struct {
 	FileURI      string `yaml:"fileURI"`
 	Provider     string `yaml:"provider"`
-	Dependencies []Dep  `yaml:"dependencies"`
+	Dependencies []*Dep `yaml:"dependencies"`
 }
 
 type DepsTreeItem struct {

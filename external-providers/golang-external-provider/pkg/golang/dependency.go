@@ -31,7 +31,7 @@ func (g *golangServiceClient) findGoMod() string {
 	return f
 }
 
-func (g *golangServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+func (g *golangServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	ll, err := g.GetDependenciesDAG()
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (g *golangServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, err
 		return nil, nil
 	}
 
-	m := map[uri.URI][]provider.Dep{}
+	m := map[uri.URI][]*provider.Dep{}
 	for u, d := range ll {
 		m[u] = provider.ConvertDagItemsToList(d)
 	}

@@ -38,7 +38,7 @@ func (p *javaServiceClient) findPom() string {
 	return f
 }
 
-func (p *javaServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	ll, err := p.GetDependenciesDAG()
 	if err != nil {
 		return p.GetDependencyFallback()
@@ -46,11 +46,11 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error
 	if len(ll) == 0 {
 		return p.GetDependencyFallback()
 	}
-	m := map[uri.URI][]provider.Dep{}
+	m := map[uri.URI][]*provider.Dep{}
 	for f, ds := range ll {
-		deps := []provider.Dep{}
+		deps := []*provider.Dep{}
 		for _, dep := range ds {
-			deps = append(deps, dep.Dep)
+			deps = append(deps, &dep.Dep)
 			deps = append(deps, provider.ConvertDagItemsToList(dep.AddedDeps)...)
 		}
 		m[f] = deps
@@ -71,7 +71,7 @@ func (p *javaServiceClient) getLocalRepoPath() string {
 	return string(outb.String())
 }
 
-func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]provider.Dep, error) {
+func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]*provider.Dep, error) {
 	pomDependencyQuery := "//dependencies/dependency/*"
 	path := p.findPom()
 	file := uri.File(path)
@@ -93,13 +93,13 @@ func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]provider.Dep,
 	if err != nil {
 		return nil, err
 	}
-	deps := []provider.Dep{}
+	deps := []*provider.Dep{}
 	dep := provider.Dep{}
 	// TODO this is comedically janky
 	for _, node := range list {
 		if node.Data == "groupId" {
 			if dep.Name != "" {
-				deps = append(deps, dep)
+				deps = append(deps, &dep)
 				dep = provider.Dep{}
 			}
 			dep.Name = node.InnerText()
@@ -112,9 +112,9 @@ func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]provider.Dep,
 	}
 	if !reflect.DeepEqual(dep, provider.Dep{}) {
 		dep.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal)}
-		deps = append(deps, dep)
+		deps = append(deps, &dep)
 	}
-	m := map[uri.URI][]provider.Dep{}
+	m := map[uri.URI][]*provider.Dep{}
 	m[file] = deps
 	return m, nil
 }
@@ -243,7 +243,7 @@ func (p *javaServiceClient) addDepLabels(depName string) []string {
 		s = append(s, k)
 	}
 	if len(s) == 0 {
-		s = append(s, javaDepSourceInternal)
+		s = append(s, fmt.Sprintf("konveyor.io/dep-source:%v", javaDepSourceInternal))
 	}
 	return s
 }

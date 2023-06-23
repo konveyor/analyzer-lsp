@@ -11,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
@@ -46,7 +47,7 @@ func init() {
 type UnimplementedDependenciesComponent struct{}
 
 // We don't have dependencies
-func (p *UnimplementedDependenciesComponent) GetDependencies() (map[uri.URI][]Dep, error) {
+func (p *UnimplementedDependenciesComponent) GetDependencies() (map[uri.URI][]*Dep, error) {
 	return nil, nil
 }
 
@@ -198,8 +199,8 @@ func FullResponseFromServiceClients(clients []ServiceClient, cap string, conditi
 	return fullResp, nil
 }
 
-func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]Dep, error) {
-	deps := map[uri.URI][]Dep{}
+func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]*Dep, error) {
+	deps := map[uri.URI][]*Dep{}
 	for _, c := range clients {
 		r, err := c.GetDependencies()
 		if err != nil {
@@ -255,7 +256,7 @@ type ServiceClient interface {
 
 	// GetDependencies will get the dependencies
 	// It is the responsibility of the provider to determine how that is done
-	GetDependencies() (map[uri.URI][]Dep, error)
+	GetDependencies() (map[uri.URI][]*Dep, error)
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
 	GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error)
@@ -400,6 +401,8 @@ type DependencyCondition struct {
 	NameRegex string
 
 	Client Client
+
+	LabelSelector *labels.LabelSelector[*Dep]
 }
 
 func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
@@ -413,12 +416,21 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		return resp, err
 	}
 	type matchedDep struct {
-		dep Dep
+		dep *Dep
 		uri uri.URI
 	}
 	matchedDeps := []matchedDep{}
 	for u, ds := range deps {
 		for _, dep := range ds {
+			if dc.LabelSelector != nil {
+				got, err := dc.LabelSelector.Matches(dep)
+				if err != nil {
+					return resp, err
+				}
+				if !got {
+					continue
+				}
+			}
 
 			if dep.Name == dc.Name {
 				matchedDeps = append(matchedDeps, matchedDep{dep: dep, uri: u})
@@ -526,10 +538,10 @@ func getVersion(depVersion string) (*version.Version, error) {
 }
 
 // Convert Dag Item List to flat list.
-func ConvertDagItemsToList(items []DepDAGItem) []Dep {
-	deps := []Dep{}
+func ConvertDagItemsToList(items []DepDAGItem) []*Dep {
+	deps := []*Dep{}
 	for _, i := range items {
-		deps = append(deps, i.Dep)
+		deps = append(deps, &i.Dep)
 		deps = append(deps, ConvertDagItemsToList(i.AddedDeps)...)
 	}
 	return deps
