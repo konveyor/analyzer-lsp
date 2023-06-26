@@ -285,11 +285,12 @@ func (p CodeSnipProvider) GetCodeSnip(u uri.URI, l engine.Location) (string, err
 }
 
 type ProviderCondition struct {
-	Client        ServiceClient
-	Capability    string
-	ConditionInfo interface{}
-	Rule          engine.Rule
-	Ignore        bool
+	Client           ServiceClient
+	Capability       string
+	ConditionInfo    interface{}
+	Rule             engine.Rule
+	Ignore           bool
+	DepLabelSelector *labels.LabelSelector[*Dep]
 }
 
 func (p *ProviderCondition) Ignorable() bool {
@@ -331,8 +332,33 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 		return engine.ConditionResponse{}, err
 	}
 
+	var deps map[uri.URI][]*konveyor.Dep
+	if p.DepLabelSelector != nil {
+		deps, err = p.Client.GetDependencies()
+		if err != nil {
+			return engine.ConditionResponse{}, err
+		}
+	}
 	incidents := []engine.IncidentContext{}
 	for _, inc := range resp.Incidents {
+		// if no allowed deps then nothing is filtered.
+		found := false
+		if p.DepLabelSelector != nil {
+			for _, depList := range deps {
+				depList, err = p.DepLabelSelector.MatchList(depList)
+				if err != nil {
+					return engine.ConditionResponse{}, err
+				}
+				for _, d := range depList {
+					if strings.HasPrefix(string(inc.FileURI), d.FileURIPrefix) {
+						found = true
+					}
+				}
+			}
+		}
+		if !found && !strings.HasPrefix(string(inc.FileURI), uri.FileScheme) && inc.FileURI != "" {
+			continue
+		}
 		i := engine.IncidentContext{
 			FileURI:    inc.FileURI,
 			Effort:     inc.Effort,
@@ -541,7 +567,8 @@ func getVersion(depVersion string) (*version.Version, error) {
 func ConvertDagItemsToList(items []DepDAGItem) []*Dep {
 	deps := []*Dep{}
 	for _, i := range items {
-		deps = append(deps, &i.Dep)
+		d := i.Dep
+		deps = append(deps, &d)
 		deps = append(deps, ConvertDagItemsToList(i.AddedDeps)...)
 	}
 	return deps

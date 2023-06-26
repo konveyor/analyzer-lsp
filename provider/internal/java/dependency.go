@@ -50,7 +50,8 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 	for f, ds := range ll {
 		deps := []*provider.Dep{}
 		for _, dep := range ds {
-			deps = append(deps, &dep.Dep)
+			d := dep.Dep
+			deps = append(deps, &d)
 			deps = append(deps, provider.ConvertDagItemsToList(dep.AddedDeps)...)
 		}
 		m[f] = deps
@@ -224,6 +225,7 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 	}
 	d.ResolvedIdentifier = string(b)
 	d.Labels = p.addDepLabels(d.Name)
+	d.FileURIPrefix = fmt.Sprintf("%v://contents%v", FILE_URI_PREFIX, filepath.Dir(fp))
 
 	return d, nil
 }
@@ -243,7 +245,7 @@ func (p *javaServiceClient) addDepLabels(depName string) []string {
 		s = append(s, k)
 	}
 	if len(s) == 0 {
-		s = append(s, fmt.Sprintf("konveyor.io/dep-source:%v", javaDepSourceInternal))
+		s = append(s, fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal))
 	}
 	return s
 }
@@ -328,11 +330,10 @@ func (p *javaServiceClient) depInit() error {
 		if !found {
 			p.depToLabels = append(p.depToLabels, depLabelItem{
 				r:      r,
-				labels: []string{javaDepSourceOpenSource},
+				labels: []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceOpenSource)},
 			})
 		}
 
 	}
-	fmt.Printf("%#v", p.depToLabels)
 	return nil
 }

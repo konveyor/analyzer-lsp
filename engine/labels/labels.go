@@ -34,7 +34,6 @@ func (l *LabelSelector[T]) Matches(v T) (bool, error) {
 }
 
 func (l *LabelSelector[T]) MatchList(list []T) ([]T, error) {
-	fmt.Printf("\nlist: %v\n", list)
 	newList := []T{}
 	for _, v := range list {
 		b, err := l.Matches(v)
@@ -42,10 +41,10 @@ func (l *LabelSelector[T]) MatchList(list []T) ([]T, error) {
 			return nil, err
 		}
 		if b {
-			newList = append(newList, v)
+			i := &v
+			newList = append(newList, *i)
 		}
 	}
-	fmt.Printf("\nlist: %v\n", newList)
 	return newList, nil
 }
 

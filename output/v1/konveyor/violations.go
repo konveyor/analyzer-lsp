@@ -98,9 +98,10 @@ type Dep struct {
 	Version            string                 `json:"version,omitempty" yaml:"version,omitempty"`
 	Type               string                 `json:"type,omitempty" yaml:"type,omitempty"`
 	Indirect           bool                   `json:"indirect,omitempty" yaml:"indirect,omitempty"`
-	ResolvedIdentifier string                 `json:"sha,omitempty" yaml:"sha,omitempty"`
+	ResolvedIdentifier string                 `json:"resolvedIdentifier,omitempty" yaml:"resolvedIdentifier,omitempty"`
 	Extras             map[string]interface{} `json:"extras,omitempty" yaml:"extras,omitempty"`
 	Labels             []string               `json:"labels,omitempty" yaml:"labels,omitempty"`
+	FileURIPrefix      string                 `json:"prefix,omitempty" yaml:"prefix,omitempty"`
 }
 
 func (d *Dep) GetLabels() []string {

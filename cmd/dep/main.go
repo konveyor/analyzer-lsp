@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
@@ -104,6 +105,9 @@ func main() {
 						panic(err)
 					}
 					newDeps, err = l.MatchList(ds)
+					if err != nil {
+						panic(err)
+					}
 				}
 				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
 					Provider:     name,
@@ -127,6 +131,15 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
+		// Sort depsFlat
+		sort.SliceStable(depsFlat, func(i, j int) bool {
+			if depsFlat[i].Provider == depsFlat[j].Provider {
+				return depsFlat[i].FileURI < depsFlat[j].FileURI
+			} else {
+				return depsFlat[i].Provider < depsFlat[j].Provider
+			}
+		})
+
 		b, err = yaml.Marshal(depsFlat)
 		if err != nil {
 			log.Error(err, "failed to marshal dependency data as yaml")

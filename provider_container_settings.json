@@ -16,7 +16,8 @@
                 "location": "examples/java",
                 "lspServerPath": "/jdtls/bin/jdtls",
                 "providerSpecificConfig": {
-                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "dep-open-source-labels": "open-source-libs.txt"
                 },
                 "analysisMode": "source-only"
             },

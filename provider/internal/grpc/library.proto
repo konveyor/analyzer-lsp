@@ -110,9 +110,10 @@ message Dependency {
   string version = 2;
   string type = 3;
   string resolvedIdentifier = 4;
-  bool indirect = 5;
-  google.protobuf.Struct extras = 6;
-  repeated string labels = 7;
+  string fileURIPrefix = 5;
+  bool indirect = 6;
+  google.protobuf.Struct extras = 7;
+  repeated string labels = 8;
 }
 
 message DependencyList {

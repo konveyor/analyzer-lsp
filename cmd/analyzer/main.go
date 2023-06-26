@@ -71,7 +71,7 @@ func main() {
 	}
 
 	var dependencyLabelSelector *labels.LabelSelector[*konveyor.Dep]
-	if depLabelSelector != nil {
+	if depLabelSelector != nil && *depLabelSelector != "" {
 		dependencyLabelSelector, err = labels.NewLabelSelector[*konveyor.Dep](*depLabelSelector)
 		if err != nil {
 			log.Error(err, "failed to create label selector from expression", "selector", labelSelector)
