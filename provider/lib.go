@@ -5,7 +5,12 @@ import (
 )
 
 func FilterFilePattern(regex string, filepath string) (bool, error) {
-	if regex == "" || filepath == "" {
+	// no pattern given, all files should match
+	if regex == "" {
+		return true, nil
+	}
+
+	if filepath == "" {
 		return false, nil
 	}
 
