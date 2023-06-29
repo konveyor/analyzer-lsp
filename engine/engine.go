@@ -380,8 +380,6 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
 			break
 		}
-		// We need to determine if the incident is valid based on label selectors
-
 		incident := konveyor.Incident{
 			URI:        m.FileURI,
 			LineNumber: m.LineNumber,

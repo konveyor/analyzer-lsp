@@ -1,6 +1,6 @@
 # Labels
 
-Labels are `key=val` pairs associated with Rules or Rulesets. They are specified on a Rule or a Ruleset. Labels on a Ruleset are automatically inherited by all the Rules in it. Labels are specified under `labels` field as a list of strings in `key=val` format:
+Labels are `key=val` pairs associated with Rules or Rulesets as well as Dependencies. They are specified on a Rule or a Ruleset. For Dependencies a provider will add the labels to the dependecies when retrieving them. Labels on a Ruleset are automatically inherited by all the Rules in it. Labels are specified under `labels` field as a list of strings in `key=val` format:
 
 ```yaml
 labels:

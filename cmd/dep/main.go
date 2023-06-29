@@ -20,7 +20,7 @@ var (
 	providerSettings = flag.String("provider-settings", "provider_settings.json", "path to provider settings file")
 	treeOutput       = flag.Bool("tree", false, "output dependencies as a tree")
 	outputFile       = flag.String("output-file", "output.yaml", "path to output file")
-	depLabelSelector = flag.String("dep-label-selector", "", "an expression to select rules based on labels")
+	depLabelSelector = flag.String("dep-label-selector", "", "an expression to select dependencies based on labels provided by the provider")
 )
 
 func main() {

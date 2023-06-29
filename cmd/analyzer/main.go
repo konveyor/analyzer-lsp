@@ -30,7 +30,7 @@ var (
 	outputViolations  = flag.String("output-file", "output.yaml", "filepath to to store rule violations")
 	errorOnViolations = flag.Bool("error-on-violation", false, "exit with 3 if any violation are found will also print violations to console")
 	labelSelector     = flag.String("label-selector", "", "an expression to select rules based on labels")
-	depLabelSelector  = flag.String("dep-label-selector", "", "an expression to select rules based on labels")
+	depLabelSelector  = flag.String("dep-label-selector", "", "an expression to select dependencies based on labels. This will filter out the violations from these dependencies as well these dependencies when matching dependency conditions.")
 	logLevel          = flag.Int("verbose", 9, "level for logging output")
 	enableJaeger      = flag.Bool("enable-jaeger", false, "enable tracer exports to jaeger endpoint")
 	jaegerEndpoint    = flag.String("jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")

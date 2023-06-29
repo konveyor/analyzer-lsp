@@ -20,7 +20,7 @@ import (
 const (
 	javaDepSourceInternal                      = "internal"
 	javaDepSourceOpenSource                    = "open-source"
-	providerSpecificConfigOpenSourceDepListKey = "dep-open-source-labels"
+	providerSpecificConfigOpenSourceDepListKey = "depOpenSourceLabelsFile"
 )
 
 // TODO implement this for real
