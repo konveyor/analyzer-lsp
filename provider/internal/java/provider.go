@@ -180,6 +180,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 	log = log.WithValues("provider", "java")
 
+	isBinary := false
 	var returnErr error
 	// each service client should have their own context
 	ctx, cancelFunc := context.WithCancel(ctx)
@@ -194,6 +195,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		config.Location = sourceLocation
 		// for binaries, we fallback to looking at .jar files only for deps
 		config.DependencyPath = depLocation
+		isBinary = true
 	}
 	bundlesString, ok := config.ProviderSpecificConfig[BUNDLES_INIT_OPTION].(string)
 	if !ok {
@@ -242,15 +244,16 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}()
 
 	svcClient := javaServiceClient{
-		rpc:         rpc,
-		ctx:         ctx,
-		cancelFunc:  cancelFunc,
-		config:      config,
-		cmd:         cmd,
-		bundles:     bundles,
-		workspace:   workspace,
-		log:         log,
-		depToLabels: []depLabelItem{},
+		rpc:              rpc,
+		ctx:              ctx,
+		cancelFunc:       cancelFunc,
+		config:           config,
+		cmd:              cmd,
+		bundles:          bundles,
+		workspace:        workspace,
+		log:              log,
+		depToLabels:      []depLabelItem{},
+		isLocationBinary: isBinary,
 	}
 
 	svcClient.initialization()

@@ -16,15 +16,16 @@ import (
 )
 
 type javaServiceClient struct {
-	rpc         *jsonrpc2.Conn
-	ctx         context.Context
-	cancelFunc  context.CancelFunc
-	config      provider.InitConfig
-	log         logr.Logger
-	cmd         *exec.Cmd
-	bundles     []string
-	workspace   string
-	depToLabels []depLabelItem
+	rpc              *jsonrpc2.Conn
+	ctx              context.Context
+	cancelFunc       context.CancelFunc
+	config           provider.InitConfig
+	log              logr.Logger
+	cmd              *exec.Cmd
+	bundles          []string
+	workspace        string
+	depToLabels      []depLabelItem
+	isLocationBinary bool
 }
 
 type depLabelItem struct {

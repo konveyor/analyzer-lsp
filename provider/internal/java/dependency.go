@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/antchfx/xmlquery"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 )
@@ -39,14 +40,25 @@ func (p *javaServiceClient) findPom() string {
 }
 
 func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
-	ll, err := p.GetDependenciesDAG()
-	if err != nil {
-		return p.GetDependencyFallback()
-	}
-	if len(ll) == 0 {
-		return p.GetDependencyFallback()
-	}
+	var err error
+	var ll map[uri.URI][]konveyor.DepDAGItem
 	m := map[uri.URI][]*provider.Dep{}
+	if p.isLocationBinary {
+		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
+		// for binaries we only find JARs embedded in archive
+		w := walker{
+			deps: ll,
+		}
+		filepath.WalkDir(p.config.DependencyPath, w.walkDirForJar)
+	} else {
+		ll, err = p.GetDependenciesDAG()
+		if err != nil {
+			return p.GetDependencyFallback()
+		}
+		if len(ll) == 0 {
+			return p.GetDependencyFallback()
+		}
+	}
 	for f, ds := range ll {
 		deps := []*provider.Dep{}
 		for _, dep := range ds {
@@ -56,7 +68,7 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 		}
 		m[f] = deps
 	}
-	return m, err
+	return m, nil
 }
 
 func (p *javaServiceClient) getLocalRepoPath() string {

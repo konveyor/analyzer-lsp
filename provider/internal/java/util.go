@@ -97,7 +97,7 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 		}
 
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(filePath, f.Mode())
+			os.MkdirAll(filePath, f.Mode()|0111)
 			continue
 		}
 
