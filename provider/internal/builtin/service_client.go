@@ -43,7 +43,7 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		if c.Pattern == "" {
 			return response, fmt.Errorf("could not parse provided file pattern as string: %v", conditionInfo)
 		}
-		matchingFiles, err := provider.FindFilesMatchingPattern(p.config.Location, c.Pattern)
+		matchingFiles, err := findFilesMatchingPattern(p.config.Location, c.Pattern)
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
 		}
@@ -190,7 +190,7 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
 		}
 		pattern := "*.json"
-		jsonFiles, err := provider.FindFilesMatchingPattern(p.config.Location, pattern)
+		jsonFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
 		if err != nil {
 			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 		}
