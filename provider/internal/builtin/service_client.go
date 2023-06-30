@@ -2,9 +2,11 @@ package builtin
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -239,4 +241,30 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 	default:
 		return response, fmt.Errorf("capability must be one of %v, not %s", capabilities, cap)
 	}
+}
+func findFilesMatchingPattern(root, pattern string) ([]string, error) {
+	var regex *regexp.Regexp
+	// if the regex doesn't compile, we'll default to using filepath.Match on the pattern directly
+	regex, _ = regexp.Compile(pattern)
+	matches := []string{}
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		var matched bool
+		if regex != nil {
+			matched = regex.MatchString(d.Name())
+		} else {
+			// TODO(fabianvf): is a fileglob style pattern sufficient or do we need regexes?
+			matched, err = filepath.Match(pattern, d.Name())
+			if err != nil {
+				return err
+			}
+		}
+		if matched {
+			matches = append(matches, path)
+		}
+		return nil
+	})
+	return matches, err
 }
