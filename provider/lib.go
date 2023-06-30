@@ -41,11 +41,11 @@ func FindFilesMatchingPattern(root, pattern string) ([]string, error) {
 }
 
 func GetFiles(filePaths []string, rootpath string) ([]string, error) {
-	var xmlFiles []string
+	var fileslist []string
 	var err error
 	if len(filePaths) == 0 {
 		pattern := "*.xml"
-		xmlFiles, err = FindFilesMatchingPattern(rootpath, pattern)
+		fileslist, err = FindFilesMatchingPattern(rootpath, pattern)
 		if err != nil {
 			fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 		}
@@ -53,7 +53,7 @@ func GetFiles(filePaths []string, rootpath string) ([]string, error) {
 		if err != nil {
 			fmt.Errorf("Unable to find files using pattern `%s`: %v", "*.xhtml", err)
 		}
-		xmlFiles = append(xmlFiles, xhtmlFiles...)
+		fileslist = append(fileslist, xhtmlFiles...)
 	} else if len(filePaths) == 1 {
 		// Currently, rendering will render a list as a space seperated paths as a single string.
 		patterns := strings.Split(filePaths[0], " ")
@@ -64,23 +64,23 @@ func GetFiles(filePaths []string, rootpath string) ([]string, error) {
 				// is good and pass it on
 				// TODO(fabianvf): if we're ever hitting this for real we should investigate
 				fmt.Printf("Unable to resolve pattern '%s': %v", pattern, err)
-				xmlFiles = append(xmlFiles, pattern)
+				fileslist = append(fileslist, pattern)
 			} else {
-				xmlFiles = append(xmlFiles, files...)
+				fileslist = append(fileslist, files...)
 			}
 		}
 	} else {
 		for _, pattern := range filePaths {
 			files, err := FindFilesMatchingPattern(rootpath, pattern)
 			if err != nil {
-				xmlFiles = append(xmlFiles, pattern)
+				fileslist = append(fileslist, pattern)
 			} else {
-				xmlFiles = append(xmlFiles, files...)
+				fileslist = append(fileslist, files...)
 			}
 		}
 	}
 	var absolutePaths []string
-	for _, file := range xmlFiles {
+	for _, file := range fileslist {
 		absPath, err := filepath.Abs(file)
 		if err != nil {
 			fmt.Printf("unable to get absolute path for '%s': %v\n", file, err)
