@@ -41,6 +41,8 @@ var (
 )
 
 func main() {
+	// This will globally prevent the yaml library from auto-wrapping lines at 80 characters
+	yaml.FutureLineWrap()
 	flag.Parse()
 
 	err := validateFlags()

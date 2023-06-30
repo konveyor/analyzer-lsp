@@ -499,11 +499,11 @@ func (r *ruleEngine) getCodeLocation(m IncidentContext, rule Rule) (codeSnip str
 		codeSnip := ""
 		for scanner.Scan() {
 			if (lineNumber - CONTEXT_LINES) == m.CodeLocation.EndPosition.Line {
-				codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
+				codeSnip = codeSnip + fmt.Sprintf("%d  %v", lineNumber+1, scanner.Text())
 				break
 			}
 			if (lineNumber + CONTEXT_LINES) >= m.CodeLocation.StartPosition.Line {
-				codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
+				codeSnip = codeSnip + fmt.Sprintf("%d  %v\n", lineNumber+1, scanner.Text())
 			}
 			lineNumber += 1
 		}
