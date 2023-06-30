@@ -57,6 +57,7 @@ Here's an example config for `java` provider that is currently in-tree and does 
             "providerSpecificConfig": {
                 "bundles": "/path/to/extension/bundles",
                 "workspace": "/path/to/workspace",
+                "depOpenSourceLabelsFile": "open-source-libs.txt"
             }
         }
     ]
@@ -70,6 +71,8 @@ The `java` provider also takes following options in `providerSpecificConfig`:
 * `bundles`: Path to extension bundles to enhance default Java language server's capabilities. See the [bundle](https://github.com/konveyor/java-analyzer-bundle) Konveyor uses.
 
 * `workspace`: Path to directory where the provider generates debug information such as logs.
+
+* `depOpenSourceLabelsFile`: Path to a text file, that contains the regex's per line to be added as open-source dependencies.
 
 #### Builtin Provider
 

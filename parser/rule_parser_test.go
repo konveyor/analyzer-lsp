@@ -32,7 +32,7 @@ func (t testProvider) Evaluate(cap string, conditionInfo []byte) (provider.Provi
 	return provider.ProviderEvaluateResponse{}, nil
 }
 
-func (t testProvider) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+func (t testProvider) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	return nil, nil
 }
 

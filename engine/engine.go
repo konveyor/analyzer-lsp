@@ -526,7 +526,8 @@ func (r *ruleEngine) createPerformString(messageTemplate string, ctx map[string]
 // when multiple selectors are present, we want all of them to match to filter-in the rule.
 func matchesAllSelectors(m RuleMeta, selectors ...RuleSelector) bool {
 	for _, s := range selectors {
-		if !s.Matches(m) {
+		got, err := s.Matches(&m)
+		if err != nil || !got {
 			return false
 		}
 	}

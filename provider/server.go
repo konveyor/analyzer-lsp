@@ -250,6 +250,7 @@ func (s *server) GetDependencies(ctx context.Context, in *libgrpc.ServiceRequest
 				ResolvedIdentifier: d.ResolvedIdentifier,
 				Extras:             extras,
 				Indirect:           d.Indirect,
+				Labels:             d.Labels,
 			})
 		}
 		fd.List = &libgrpc.DependencyList{
@@ -279,6 +280,7 @@ func recreateDAGAddedItems(items []DepDAGItem) []*libgrpc.DependencyDAGItem {
 				Type:               i.Dep.Type,
 				ResolvedIdentifier: i.Dep.ResolvedIdentifier,
 				Extras:             extras,
+				Labels:             i.Dep.Labels,
 				Indirect:           false,
 			},
 			AddedDeps: recreateDAGAddedItems(i.AddedDeps),

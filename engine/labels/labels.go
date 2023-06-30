@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/PaesslerAG/gval"
-	"github.com/konveyor/analyzer-lsp/engine"
 )
 
 const (
@@ -15,32 +14,49 @@ const (
 	LabelPrefixFmt = "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
 )
 
-// ruleSelector is a label selector
-type ruleSelector struct {
+type LabelSelector[T Labeled] struct {
 	expr     string
 	language gval.Language
 }
 
-// Matches returns true when given rule labels match with expression
-func (s ruleSelector) Matches(m engine.RuleMeta) bool {
-	ruleLabels, _ := ParseLabels(m.Labels)
-	expr := getBooleanExpression(s.expr, ruleLabels)
-	val, err := s.language.Evaluate(expr, nil)
+func (l *LabelSelector[T]) Matches(v T) (bool, error) {
+	ruleLabels, _ := ParseLabels(v.GetLabels())
+	expr := getBooleanExpression(l.expr, ruleLabels)
+	val, err := l.language.Evaluate(expr, nil)
 	if err != nil {
-		return false
+		return false, err
 	}
 	if boolVal, ok := val.(bool); !ok {
-		return false
+		return false, nil
 	} else {
-		return boolVal
+		return boolVal, nil
 	}
+}
+
+func (l *LabelSelector[T]) MatchList(list []T) ([]T, error) {
+	newList := []T{}
+	for _, v := range list {
+		b, err := l.Matches(v)
+		if err != nil {
+			return nil, err
+		}
+		if b {
+			i := &v
+			newList = append(newList, *i)
+		}
+	}
+	return newList, nil
+}
+
+type Labeled interface {
+	GetLabels() []string
 }
 
 // NewRuleSelector returns a new rule selector that works on rule labels
 // it enables using string expressions to form complex label queries
 // supports "&&", "||" and "!" operators, "(" ")" for grouping, operands
 // are string labels in key=val format, keys can be subdomain prefixed
-func NewRuleSelector(expr string) (engine.RuleSelector, error) {
+func NewLabelSelector[T Labeled](expr string) (*LabelSelector[T], error) {
 	language := gval.NewLanguage(
 		gval.Ident(),
 		gval.Parentheses(),
@@ -63,7 +79,7 @@ func NewRuleSelector(expr string) (engine.RuleSelector, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid expression '%s'", expr)
 	}
-	return ruleSelector{
+	return &LabelSelector[T]{
 		language: language,
 		expr:     expr,
 	}, nil

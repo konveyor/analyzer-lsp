@@ -11,11 +11,19 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/yaml.v2"
+)
+
+const (
+	// Dep source label is a label key that any provider can use, to label the dependencies as coming from a particular source.
+	// Examples from java are: open-source and internal. A provider can also have a user provide file that will tell them which
+	// depdendencies to label as this value. This label will be used to filter out these dependencies from a given analysis
+	DepSourceLabel = "konveyor.io/dep-source"
 )
 
 // This will need a better name, may we want to move it to top level
@@ -39,7 +47,7 @@ func init() {
 type UnimplementedDependenciesComponent struct{}
 
 // We don't have dependencies
-func (p *UnimplementedDependenciesComponent) GetDependencies() (map[uri.URI][]Dep, error) {
+func (p *UnimplementedDependenciesComponent) GetDependencies() (map[uri.URI][]*Dep, error) {
 	return nil, nil
 }
 
@@ -191,8 +199,8 @@ func FullResponseFromServiceClients(clients []ServiceClient, cap string, conditi
 	return fullResp, nil
 }
 
-func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]Dep, error) {
-	deps := map[uri.URI][]Dep{}
+func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]*Dep, error) {
+	deps := map[uri.URI][]*Dep{}
 	for _, c := range clients {
 		r, err := c.GetDependencies()
 		if err != nil {
@@ -248,7 +256,7 @@ type ServiceClient interface {
 
 	// GetDependencies will get the dependencies
 	// It is the responsibility of the provider to determine how that is done
-	GetDependencies() (map[uri.URI][]Dep, error)
+	GetDependencies() (map[uri.URI][]*Dep, error)
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
 	GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error)
@@ -277,11 +285,12 @@ func (p CodeSnipProvider) GetCodeSnip(u uri.URI, l engine.Location) (string, err
 }
 
 type ProviderCondition struct {
-	Client        ServiceClient
-	Capability    string
-	ConditionInfo interface{}
-	Rule          engine.Rule
-	Ignore        bool
+	Client           ServiceClient
+	Capability       string
+	ConditionInfo    interface{}
+	Rule             engine.Rule
+	Ignore           bool
+	DepLabelSelector *labels.LabelSelector[*Dep]
 }
 
 func (p *ProviderCondition) Ignorable() bool {
@@ -323,8 +332,33 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 		return engine.ConditionResponse{}, err
 	}
 
+	var deps map[uri.URI][]*konveyor.Dep
+	if p.DepLabelSelector != nil {
+		deps, err = p.Client.GetDependencies()
+		if err != nil {
+			return engine.ConditionResponse{}, err
+		}
+	}
 	incidents := []engine.IncidentContext{}
 	for _, inc := range resp.Incidents {
+		// if no allowed deps then nothing is filtered.
+		found := false
+		if p.DepLabelSelector != nil {
+			for _, depList := range deps {
+				depList, err = p.DepLabelSelector.MatchList(depList)
+				if err != nil {
+					return engine.ConditionResponse{}, err
+				}
+				for _, d := range depList {
+					if strings.HasPrefix(string(inc.FileURI), d.FileURIPrefix) {
+						found = true
+					}
+				}
+			}
+		}
+		if !found && !strings.HasPrefix(string(inc.FileURI), uri.FileScheme) && inc.FileURI != "" {
+			continue
+		}
 		i := engine.IncidentContext{
 			FileURI:    inc.FileURI,
 			Effort:     inc.Effort,
@@ -393,6 +427,8 @@ type DependencyCondition struct {
 	NameRegex string
 
 	Client Client
+
+	LabelSelector *labels.LabelSelector[*Dep]
 }
 
 func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
@@ -406,12 +442,21 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		return resp, err
 	}
 	type matchedDep struct {
-		dep Dep
+		dep *Dep
 		uri uri.URI
 	}
 	matchedDeps := []matchedDep{}
 	for u, ds := range deps {
 		for _, dep := range ds {
+			if dc.LabelSelector != nil {
+				got, err := dc.LabelSelector.Matches(dep)
+				if err != nil {
+					return resp, err
+				}
+				if !got {
+					continue
+				}
+			}
 
 			if dep.Name == dc.Name {
 				matchedDeps = append(matchedDeps, matchedDep{dep: dep, uri: u})
@@ -519,10 +564,11 @@ func getVersion(depVersion string) (*version.Version, error) {
 }
 
 // Convert Dag Item List to flat list.
-func ConvertDagItemsToList(items []DepDAGItem) []Dep {
-	deps := []Dep{}
+func ConvertDagItemsToList(items []DepDAGItem) []*Dep {
+	deps := []*Dep{}
 	for _, i := range items {
-		deps = append(deps, i.Dep)
+		d := i.Dep
+		deps = append(deps, &d)
 		deps = append(deps, ConvertDagItemsToList(i.AddedDeps)...)
 	}
 	return deps

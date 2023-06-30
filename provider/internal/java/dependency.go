@@ -1,6 +1,7 @@
 package java
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io/fs"
@@ -8,11 +9,18 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/antchfx/xmlquery"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
+)
+
+const (
+	javaDepSourceInternal                      = "internal"
+	javaDepSourceOpenSource                    = "open-source"
+	providerSpecificConfigOpenSourceDepListKey = "depOpenSourceLabelsFile"
 )
 
 // TODO implement this for real
@@ -30,7 +38,7 @@ func (p *javaServiceClient) findPom() string {
 	return f
 }
 
-func (p *javaServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	ll, err := p.GetDependenciesDAG()
 	if err != nil {
 		return p.GetDependencyFallback()
@@ -38,11 +46,12 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error
 	if len(ll) == 0 {
 		return p.GetDependencyFallback()
 	}
-	m := map[uri.URI][]provider.Dep{}
+	m := map[uri.URI][]*provider.Dep{}
 	for f, ds := range ll {
-		deps := []provider.Dep{}
+		deps := []*provider.Dep{}
 		for _, dep := range ds {
-			deps = append(deps, dep.Dep)
+			d := dep.Dep
+			deps = append(deps, &d)
 			deps = append(deps, provider.ConvertDagItemsToList(dep.AddedDeps)...)
 		}
 		m[f] = deps
@@ -63,7 +72,7 @@ func (p *javaServiceClient) getLocalRepoPath() string {
 	return string(outb.String())
 }
 
-func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]provider.Dep, error) {
+func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]*provider.Dep, error) {
 	pomDependencyQuery := "//dependencies/dependency/*"
 	path := p.findPom()
 	file := uri.File(path)
@@ -85,13 +94,13 @@ func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]provider.Dep,
 	if err != nil {
 		return nil, err
 	}
-	deps := []provider.Dep{}
+	deps := []*provider.Dep{}
 	dep := provider.Dep{}
 	// TODO this is comedically janky
 	for _, node := range list {
 		if node.Data == "groupId" {
 			if dep.Name != "" {
-				deps = append(deps, dep)
+				deps = append(deps, &dep)
 				dep = provider.Dep{}
 			}
 			dep.Name = node.InnerText()
@@ -103,9 +112,10 @@ func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]provider.Dep,
 		// Ignore the others
 	}
 	if !reflect.DeepEqual(dep, provider.Dep{}) {
-		deps = append(deps, dep)
+		dep.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal)}
+		deps = append(deps, &dep)
 	}
-	m := map[uri.URI][]provider.Dep{}
+	m := map[uri.URI][]*provider.Dep{}
 	m[file] = deps
 	return m, nil
 }
@@ -145,7 +155,7 @@ func (p *javaServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGI
 		lines = lines[1 : len(lines)-2]
 	}
 
-	pomDeps, err := parseMavenDepLines(lines, localRepoPath)
+	pomDeps, err := p.parseMavenDepLines(lines, localRepoPath)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +198,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 
 // parseDepString parses a java dependency string
 // assumes format <group>:<name>:<type>:<version>:<scope>
-func parseDepString(dep, localRepoPath string) (provider.Dep, error) {
+func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.Dep, error) {
 	d := provider.Dep{}
 	// remove all the pretty print characters.
 	dep = strings.TrimFunc(dep, func(r rune) bool {
@@ -214,15 +224,37 @@ func parseDepString(dep, localRepoPath string) (provider.Dep, error) {
 		return d, err
 	}
 	d.ResolvedIdentifier = string(b)
+	d.Labels = p.addDepLabels(d.Name)
+	d.FileURIPrefix = fmt.Sprintf("%v://contents%v", FILE_URI_PREFIX, filepath.Dir(fp))
 
 	return d, nil
 }
 
+func (p *javaServiceClient) addDepLabels(depName string) []string {
+	m := map[string]interface{}{}
+
+	for _, d := range p.depToLabels {
+		if d.r.Match([]byte(depName)) {
+			for _, l := range d.labels {
+				m[l] = nil
+			}
+		}
+	}
+	s := []string{}
+	for k, _ := range m {
+		s = append(s, k)
+	}
+	if len(s) == 0 {
+		s = append(s, fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal))
+	}
+	return s
+}
+
 // parseMavenDepLines recursively parses output lines from maven dependency tree
-func parseMavenDepLines(lines []string, localRepoPath string) ([]provider.DepDAGItem, error) {
+func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath string) ([]provider.DepDAGItem, error) {
 	if len(lines) > 0 {
 		baseDepString := lines[0]
-		baseDep, err := parseDepString(baseDepString, localRepoPath)
+		baseDep, err := p.parseDepString(baseDepString, localRepoPath)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +264,7 @@ func parseMavenDepLines(lines []string, localRepoPath string) ([]provider.DepDAG
 		idx := 1
 		// indirect deps are separated by 3 or more spaces after the direct dep
 		for idx < len(lines) && strings.Count(lines[idx], " ") > 2 {
-			transitiveDep, err := parseDepString(lines[idx], localRepoPath)
+			transitiveDep, err := p.parseDepString(lines[idx], localRepoPath)
 			if err != nil {
 				return nil, err
 			}
@@ -240,7 +272,7 @@ func parseMavenDepLines(lines []string, localRepoPath string) ([]provider.DepDAG
 			item.AddedDeps = append(item.AddedDeps, provider.DepDAGItem{Dep: transitiveDep})
 			idx += 1
 		}
-		ds, err := parseMavenDepLines(lines[idx:], localRepoPath)
+		ds, err := p.parseMavenDepLines(lines[idx:], localRepoPath)
 		if err != nil {
 			return nil, err
 		}
@@ -248,4 +280,60 @@ func parseMavenDepLines(lines []string, localRepoPath string) ([]provider.DepDAG
 		return ds, nil
 	}
 	return []provider.DepDAGItem{}, nil
+}
+
+// depInit will allow for us to check for the list of deps file,
+// If found, we will load into a map, for easy lookup.
+// We will need to define file structure to read in.
+func (p *javaServiceClient) depInit() error {
+	var ok bool
+	var v interface{}
+	if v, ok = p.config.ProviderSpecificConfig[providerSpecificConfigOpenSourceDepListKey]; !ok {
+		p.log.V(7).Info("Did not find open source dep list.")
+		return nil
+	}
+	var filePath string
+	if filePath, ok = v.(string); !ok {
+		return fmt.Errorf("unable to determine filePath from open source dep list")
+	}
+
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		//TODO(shawn-hurley): consider wrapping error with value
+		return err
+	}
+
+	if fileInfo.IsDir() {
+		return fmt.Errorf("open source dep list must be a file, not a directory")
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		depName := scanner.Text()
+		r, err := regexp.Compile(depName)
+		if err != nil {
+			return fmt.Errorf("unable to create regexp for string: %v", depName)
+		}
+		//Make sure that we are not adding duplicates
+		found := false
+		for _, d := range p.depToLabels {
+			if d.r.String() == depName {
+				d.labels = append(d.labels, javaDepSourceOpenSource)
+				found = true
+			}
+		}
+		if !found {
+			p.depToLabels = append(p.depToLabels, depLabelItem{
+				r:      r,
+				labels: []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceOpenSource)},
+			})
+		}
+
+	}
+	return nil
 }

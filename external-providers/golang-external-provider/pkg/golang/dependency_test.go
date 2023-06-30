@@ -1,6 +1,7 @@
 package golang
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -43,6 +44,7 @@ github.com/antchfx/xmlquery@v1.3.12 github.com/golang/groupcache@v0.0.0-20200121
 					Dep: provider.Dep{
 						Name:    "gopkg.in/yaml.v3",
 						Version: "v3.0.1",
+						Labels:  []string{fmt.Sprintf("%v=downloadable", provider.DepSourceLabel)},
 					},
 					AddedDeps: []provider.DepDAGItem{},
 				},
@@ -50,17 +52,21 @@ github.com/antchfx/xmlquery@v1.3.12 github.com/golang/groupcache@v0.0.0-20200121
 					Dep: provider.Dep{
 						Name:    "github.com/antchfx/jsonquery",
 						Version: "v1.3.0",
+						Labels:  []string{fmt.Sprintf("%v=downloadable", provider.DepSourceLabel)},
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
 							Dep: provider.Dep{
 								Name:    "github.com/antchfx/xpath",
-								Version: "v1.2.1"},
+								Version: "v1.2.1",
+								Labels:  []string{fmt.Sprintf("%v=downloadable", provider.DepSourceLabel)},
+							},
 						},
 						{
 							Dep: provider.Dep{
 								Name:    "github.com/golang/groupcache",
 								Version: "v0.0.0-20200121045136-8c9f03a8e57e",
+								Labels:  []string{fmt.Sprintf("%v=downloadable", provider.DepSourceLabel)},
 							},
 						},
 					},
@@ -69,18 +75,21 @@ github.com/antchfx/xmlquery@v1.3.12 github.com/golang/groupcache@v0.0.0-20200121
 					Dep: provider.Dep{
 						Name:    "github.com/antchfx/xmlquery",
 						Version: "v1.3.12",
+						Labels:  []string{fmt.Sprintf("%v=downloadable", provider.DepSourceLabel)},
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
 							Dep: provider.Dep{
 								Name:    "github.com/antchfx/xpath",
 								Version: "v1.2.1",
+								Labels:  []string{fmt.Sprintf("%v=downloadable", provider.DepSourceLabel)},
 							},
 						},
 						{
 							Dep: provider.Dep{
 								Name:    "github.com/golang/groupcache",
 								Version: "v0.0.0-20200121045136-8c9f03a8e57e",
+								Labels:  []string{fmt.Sprintf("%v=downloadable", provider.DepSourceLabel)},
 							},
 						},
 					},

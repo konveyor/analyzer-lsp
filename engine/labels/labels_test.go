@@ -200,7 +200,7 @@ func TestNewRuleSelector(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewRuleSelector(tt.expr)
+			_, err := NewLabelSelector[*engine.RuleMeta](tt.expr)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewRuleSelector() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -279,8 +279,8 @@ func Test_ruleSelector_Matches(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewRuleSelector(tt.expr)
-			if got := s.Matches(engine.RuleMeta{Labels: tt.ruleLabels}); got != tt.want {
+			s, _ := NewLabelSelector[*engine.RuleMeta](tt.expr)
+			if got, _ := s.Matches(&engine.RuleMeta{Labels: tt.ruleLabels}); got != tt.want {
 				t.Errorf("ruleSelector.Matches() = %v, want %v", got, tt.want)
 			}
 		})

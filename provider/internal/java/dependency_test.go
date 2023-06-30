@@ -1,6 +1,7 @@
 package java
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -50,6 +51,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 						Type:               "test",
 						Indirect:           false,
 						ResolvedIdentifier: "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
+						Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
+						FileURIPrefix:      "konveyor-jdt://contentstestdata/junit/junit/4.11",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -59,6 +62,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "test",
 								Indirect:           true,
 								ResolvedIdentifier: "42a25dc3219429f0e5d060061f71acb49bf010a0",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
+								FileURIPrefix:      "konveyor-jdt://contentstestdata/org/hamcrest/hamcrest-core/1.3",
 							},
 						},
 					},
@@ -70,6 +75,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 						Type:               "compile",
 						Indirect:           false,
 						ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
+						Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
+						FileURIPrefix:      "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -79,6 +86,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "runtime",
 								Indirect:           true,
 								ResolvedIdentifier: "70690b98acb07a809c55d15d7cf45f53ec1026e1",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
+								FileURIPrefix:      "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
 						},
 						{
@@ -88,6 +97,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "runtime",
 								Indirect:           true,
 								ResolvedIdentifier: "d3e1ce1d2b3119adf270b2d00d947beb03fe3321",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
+								FileURIPrefix:      "konveyor-jdt://contentstestdata/com/squareup/okhttp3/okhttp/3.12.12",
 							},
 						},
 						{
@@ -97,6 +108,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "runtime",
 								Indirect:           true,
 								ResolvedIdentifier: "bc28b5a964c8f5721eb58ee3f3c47a9bcbf4f4d8",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
+								FileURIPrefix:      "konveyor-jdt://contentstestdata/com/squareup/okio/okio/1.15.0",
 							},
 						},
 						{
@@ -106,6 +119,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "runtime",
 								Indirect:           true,
 								ResolvedIdentifier: "d952189f6abb148ff72aab246aa8c28cf99b469f",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
+								FileURIPrefix:      "konveyor-jdt://contentstestdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
 						},
 						{
@@ -115,6 +130,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Type:               "compile",
 								Indirect:           true,
 								ResolvedIdentifier: "d3ebf0f291297649b4c8dc3ecc81d2eddedc100d",
+								Labels:             []string{fmt.Sprintf("%v=internal", provider.DepSourceLabel)},
+								FileURIPrefix:      "konveyor-jdt://contentstestdata/io/fabric8/zjsonpatch/0.3.0",
 							},
 						},
 					},
@@ -128,7 +145,10 @@ func Test_parseMavenDepLines(t *testing.T) {
 			lines := strings.Split(tt.mavenOutput, "\n")
 			deps := []provider.DepDAGItem{}
 			var err error
-			if deps, err = parseMavenDepLines(lines[1:], "testdata"); (err != nil) != tt.wantErr {
+			p := javaServiceClient{
+				depToLabels: []depLabelItem{},
+			}
+			if deps, err = p.parseMavenDepLines(lines[1:], "testdata"); (err != nil) != tt.wantErr {
 				t.Errorf("parseMavenDepLines() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if len(tt.wantDeps) != len(deps) {
@@ -137,6 +157,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 			for _, wantedDep := range tt.wantDeps {
 				found := false
 				for _, gotDep := range deps {
+					fmt.Printf("%#v", gotDep)
 					if reflect.DeepEqual(wantedDep, gotDep) {
 						found = true
 					}

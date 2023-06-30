@@ -40,10 +40,8 @@ var locationToCode = map[string]int{
 }
 
 type javaProvider struct {
-	config     provider.Config
-	Log        logr.Logger
-	ctx        context.Context
-	cancelFunc context.CancelFunc
+	config provider.Config
+	Log    logr.Logger
 
 	clients []provider.ServiceClient
 
@@ -53,7 +51,7 @@ type javaProvider struct {
 var _ provider.InternalProviderClient = &javaProvider{}
 
 type javaCondition struct {
-	Referenced referenceCondition `yaml:'referenced'`
+	Referenced referenceCondition `yaml:"referenced"`
 }
 
 type referenceCondition struct {
@@ -244,21 +242,26 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}()
 
 	svcClient := javaServiceClient{
-		rpc:        rpc,
-		ctx:        ctx,
-		cancelFunc: cancelFunc,
-		config:     config,
-		cmd:        cmd,
-		bundles:    bundles,
-		workspace:  workspace,
-		log:        log,
+		rpc:         rpc,
+		ctx:         ctx,
+		cancelFunc:  cancelFunc,
+		config:      config,
+		cmd:         cmd,
+		bundles:     bundles,
+		workspace:   workspace,
+		log:         log,
+		depToLabels: []depLabelItem{},
 	}
 
 	svcClient.initialization()
+	err = svcClient.depInit()
+	if err != nil {
+		return nil, err
+	}
 	return &svcClient, returnErr
 }
 
-func (p *javaProvider) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+func (p *javaProvider) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	return provider.FullDepsResponse(p.clients)
 }
 

@@ -105,7 +105,7 @@ func (g *grpcProvider) Evaluate(cap string, conditionInfo []byte) (provider.Prov
 	return provider.FullResponseFromServiceClients(g.serviceClients, cap, conditionInfo)
 }
 
-func (g *grpcProvider) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+func (g *grpcProvider) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	return provider.FullDepsResponse(g.serviceClients)
 }
 

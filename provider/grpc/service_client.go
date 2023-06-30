@@ -85,7 +85,7 @@ func (g *grpcServiceClient) Evaluate(cap string, conditionInfo []byte) (provider
 }
 
 // We don't have dependencies
-func (g *grpcServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+func (g *grpcServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	d, err := g.client.GetDependencies(g.ctx, &pb.ServiceRequest{Id: g.id})
 	if err != nil {
 		return nil, err
@@ -94,21 +94,22 @@ func (g *grpcServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error
 		return nil, fmt.Errorf(d.Error)
 	}
 
-	provs := map[uri.URI][]provider.Dep{}
+	provs := map[uri.URI][]*provider.Dep{}
 	for _, x := range d.FileDep {
 		u, err := uri.Parse(x.FileURI)
 		if err != nil {
 			u = uri.URI(x.FileURI)
 		}
-		deps := []provider.Dep{}
+		deps := []*provider.Dep{}
 		for _, d := range x.List.Deps {
-			deps = append(deps, provider.Dep{
+			deps = append(deps, &provider.Dep{
 				Name:               d.Name,
 				Version:            d.Version,
 				Type:               d.Type,
 				Indirect:           d.Indirect,
 				ResolvedIdentifier: d.ResolvedIdentifier,
 				Extras:             d.Extras.AsMap(),
+				Labels:             d.Labels,
 			})
 		}
 		provs[u] = deps
@@ -130,6 +131,7 @@ func recreateDAGAddedItems(items []*pb.DependencyDAGItem) []provider.DepDAGItem 
 				Indirect:           x.Key.Indirect,
 				ResolvedIdentifier: x.Key.ResolvedIdentifier,
 				Extras:             x.Key.Extras.AsMap(),
+				Labels:             x.Key.Labels,
 			},
 			AddedDeps: recreateDAGAddedItems(x.AddedDeps),
 		})

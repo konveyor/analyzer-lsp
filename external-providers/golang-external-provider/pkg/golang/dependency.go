@@ -11,6 +11,11 @@ import (
 	"go.lsp.dev/uri"
 )
 
+const (
+	// This will communicate that, the dep is downloadable and not vendored.
+	golangDownloadableDepSourceLabel = "downloadable"
+)
+
 // TODO implement this for real
 func (g *golangServiceClient) findGoMod() string {
 	var depPath string
@@ -26,7 +31,7 @@ func (g *golangServiceClient) findGoMod() string {
 	return f
 }
 
-func (g *golangServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, error) {
+func (g *golangServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	ll, err := g.GetDependenciesDAG()
 	if err != nil {
 		return nil, err
@@ -35,7 +40,7 @@ func (g *golangServiceClient) GetDependencies() (map[uri.URI][]provider.Dep, err
 		return nil, nil
 	}
 
-	m := map[uri.URI][]provider.Dep{}
+	m := map[uri.URI][]*provider.Dep{}
 	for u, d := range ll {
 		m[u] = provider.ConvertDagItemsToList(d)
 	}
@@ -86,6 +91,7 @@ func parseGoDepString(dep string) (provider.Dep, error) {
 	}
 	d.Name = strings.TrimSpace(v[0])
 	d.Version = strings.TrimSpace(strings.ReplaceAll(v[1], "@", ""))
+	d.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, golangDownloadableDepSourceLabel)}
 	return d, nil
 }
 
