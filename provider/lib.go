@@ -23,14 +23,23 @@ func FilterFilePattern(regex string, filepath string) (bool, error) {
 }
 
 func FindFilesMatchingPattern(root, pattern string) ([]string, error) {
+	var regex *regexp.Regexp
+	// if the regex doesn't compile, we'll default to using filepath.Match on the pattern directly
+	regex, _ = regexp.Compile(pattern)
 	matches := []string{}
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		matched, err := FilterFilePattern(pattern, d.Name())
-		if err != nil {
-			return err
+		var matched bool
+		if regex != nil {
+			matched = regex.MatchString(d.Name())
+		} else {
+			// TODO(fabianvf): is a fileglob style pattern sufficient or do we need regexes?
+			matched, err = filepath.Match(pattern, d.Name())
+			if err != nil {
+				return err
+			}
 		}
 		if matched {
 			matches = append(matches, path)
@@ -40,55 +49,34 @@ func FindFilesMatchingPattern(root, pattern string) ([]string, error) {
 	return matches, err
 }
 
-func GetFiles(filePaths []string, rootpath string) ([]string, error) {
-	var fileslist []string
-	var err error
-	if len(filePaths) == 0 {
-		pattern := "*.xml"
-		fileslist, err = FindFilesMatchingPattern(rootpath, pattern)
-		if err != nil {
-			fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
-		}
-		xhtmlFiles, err := FindFilesMatchingPattern(rootpath, "*.xhtml")
-		if err != nil {
-			fmt.Errorf("Unable to find files using pattern `%s`: %v", "*.xhtml", err)
-		}
-		fileslist = append(fileslist, xhtmlFiles...)
-	} else if len(filePaths) == 1 {
-		// Currently, rendering will render a list as a space seperated paths as a single string.
-		patterns := strings.Split(filePaths[0], " ")
+func Getfiles(configLocation string, filepaths []string) ([]string, error) {
+	var xmlFiles []string
+
+	if len(filepaths) == 1 {
+		// Currently, rendering will render a list as a space separated paths as a single string.
+		patterns := strings.Split(filepaths[0], " ")
 		for _, pattern := range patterns {
-			files, err := FindFilesMatchingPattern(rootpath, pattern)
+			files, err := FindFilesMatchingPattern(configLocation, pattern)
 			if err != nil {
 				// Something went wrong dealing with the pattern, so we'll assume the user input
 				// is good and pass it on
-				// TODO(fabianvf): if we're ever hitting this for real we should investigate
+				// TODO: If we're ever hitting this for real, we should investigate
 				fmt.Printf("Unable to resolve pattern '%s': %v", pattern, err)
-				fileslist = append(fileslist, pattern)
+				xmlFiles = append(xmlFiles, pattern)
 			} else {
-				fileslist = append(fileslist, files...)
+				xmlFiles = append(xmlFiles, files...)
 			}
 		}
 	} else {
-		for _, pattern := range filePaths {
-			files, err := FindFilesMatchingPattern(rootpath, pattern)
+		for _, pattern := range filepaths {
+			files, err := FindFilesMatchingPattern(configLocation, pattern)
 			if err != nil {
-				fileslist = append(fileslist, pattern)
+				xmlFiles = append(xmlFiles, pattern)
 			} else {
-				fileslist = append(fileslist, files...)
+				xmlFiles = append(xmlFiles, files...)
 			}
 		}
 	}
-	var absolutePaths []string
-	for _, file := range fileslist {
-		absPath, err := filepath.Abs(file)
-		if err != nil {
-			fmt.Printf("unable to get absolute path for '%s': %v\n", file, err)
-			return absolutePaths, err
-		} else {
-			absolutePaths = append(absolutePaths, absPath)
-		}
 
-	}
-	return absolutePaths, err
+	return xmlFiles, nil
 }
