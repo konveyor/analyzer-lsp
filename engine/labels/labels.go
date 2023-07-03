@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	LabelValueFmt  = "^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?$"
+	LabelValueFmt  = "^[a-zA-Z0-9]([-a-zA-Z0-9.]*[a-zA-Z0-9])?$"
 	LabelPrefixFmt = "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
 )
 
