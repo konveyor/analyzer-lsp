@@ -46,10 +46,7 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 	if p.isLocationBinary {
 		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
 		// for binaries we only find JARs embedded in archive
-		w := walker{
-			deps: ll,
-		}
-		filepath.WalkDir(p.config.DependencyPath, w.walkDirForJar)
+		p.discoverDepsFromJars(p.config.DependencyPath, ll)
 	} else {
 		ll, err = p.GetDependenciesDAG()
 		if err != nil {
@@ -175,13 +172,19 @@ func (p *javaServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGI
 	m := map[uri.URI][]provider.DepDAGItem{}
 	m[file] = pomDeps
 
-	//Walk the dir, looking for .jar files to add to the dependency
-	w := walker{
-		deps: m,
-	}
-	filepath.WalkDir(moddir, w.walkDirForJar)
+	// also grab the embedded deps
+	p.discoverDepsFromJars(moddir, m)
 
 	return m, nil
+}
+
+// discoverDepsFromJars walks given path to discover dependencies embedded as JARs
+func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem) {
+	// for binaries we only find JARs embedded in archive
+	w := walker{
+		deps: ll,
+	}
+	filepath.WalkDir(path, w.walkDirForJar)
 }
 
 type walker struct {

@@ -69,6 +69,7 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 	// Create the destDir directory using the same permissions as the Java archive file
 	// java.jar should become java-jar-decompiled
 	destDir := filepath.Join(path.Dir(archivePath), strings.Replace(path.Base(archivePath), ".", "-", -1)+"-decompiled")
+	// make sure execute bits are set so that fernflower can decompile
 	err = os.MkdirAll(destDir, fileInfo.Mode()|0111)
 	if err != nil {
 		return "", err
@@ -97,6 +98,7 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 		}
 
 		if f.FileInfo().IsDir() {
+			// make sure execute bits are set so that fernflower can decompile
 			os.MkdirAll(filePath, f.Mode()|0111)
 			continue
 		}
