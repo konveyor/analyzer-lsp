@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/antchfx/xmlquery"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 )
@@ -39,14 +40,22 @@ func (p *javaServiceClient) findPom() string {
 }
 
 func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
-	ll, err := p.GetDependenciesDAG()
-	if err != nil {
-		return p.GetDependencyFallback()
-	}
-	if len(ll) == 0 {
-		return p.GetDependencyFallback()
-	}
+	var err error
+	var ll map[uri.URI][]konveyor.DepDAGItem
 	m := map[uri.URI][]*provider.Dep{}
+	if p.isLocationBinary {
+		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
+		// for binaries we only find JARs embedded in archive
+		p.discoverDepsFromJars(p.config.DependencyPath, ll)
+	} else {
+		ll, err = p.GetDependenciesDAG()
+		if err != nil {
+			return p.GetDependencyFallback()
+		}
+		if len(ll) == 0 {
+			return p.GetDependencyFallback()
+		}
+	}
 	for f, ds := range ll {
 		deps := []*provider.Dep{}
 		for _, dep := range ds {
@@ -56,7 +65,7 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 		}
 		m[f] = deps
 	}
-	return m, err
+	return m, nil
 }
 
 func (p *javaServiceClient) getLocalRepoPath() string {
@@ -163,13 +172,19 @@ func (p *javaServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGI
 	m := map[uri.URI][]provider.DepDAGItem{}
 	m[file] = pomDeps
 
-	//Walk the dir, looking for .jar files to add to the dependency
-	w := walker{
-		deps: m,
-	}
-	filepath.WalkDir(moddir, w.walkDirForJar)
+	// also grab the embedded deps
+	p.discoverDepsFromJars(moddir, m)
 
 	return m, nil
+}
+
+// discoverDepsFromJars walks given path to discover dependencies embedded as JARs
+func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem) {
+	// for binaries we only find JARs embedded in archive
+	w := walker{
+		deps: ll,
+	}
+	filepath.WalkDir(path, w.walkDirForJar)
 }
 
 type walker struct {
