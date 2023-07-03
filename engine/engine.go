@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -497,13 +498,14 @@ func (r *ruleEngine) getCodeLocation(m IncidentContext, rule Rule) (codeSnip str
 		scanner := bufio.NewScanner(readFile)
 		lineNumber := 0
 		codeSnip := ""
+		paddingSize := len(strconv.Itoa(m.CodeLocation.EndPosition.Line + CONTEXT_LINES))
 		for scanner.Scan() {
 			if (lineNumber - CONTEXT_LINES) == m.CodeLocation.EndPosition.Line {
-				codeSnip = codeSnip + fmt.Sprintf("%d  %v", lineNumber+1, scanner.Text())
+				codeSnip = codeSnip + fmt.Sprintf("%*d  %v", paddingSize, lineNumber+1, scanner.Text())
 				break
 			}
 			if (lineNumber + CONTEXT_LINES) >= m.CodeLocation.StartPosition.Line {
-				codeSnip = codeSnip + fmt.Sprintf("%d  %v\n", lineNumber+1, scanner.Text())
+				codeSnip = codeSnip + fmt.Sprintf("%*d  %v\n", paddingSize, lineNumber+1, scanner.Text())
 			}
 			lineNumber += 1
 		}
