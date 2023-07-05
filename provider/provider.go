@@ -16,6 +16,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
+	"golang.org/x/net/http/httpproxy"
 	"gopkg.in/yaml.v2"
 )
 
@@ -65,7 +66,24 @@ type Config struct {
 	Name       string       `yaml:"name,omitempty" json:"name,omitempty"`
 	BinaryPath string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
 	Address    string       `yaml:"address,omitempty" json:"address,omitempty"`
+	Proxy      *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
 	InitConfig []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
+}
+
+type Proxy httpproxy.Config
+
+func (p Proxy) ToEnvVars() map[string]string {
+	proxy := map[string]string{}
+	if p.HTTPProxy != "" {
+		proxy["http_proxy"] = p.HTTPProxy
+	}
+	if p.HTTPSProxy != "" {
+		proxy["https_proxy"] = p.HTTPSProxy
+	}
+	if p.NoProxy != "" {
+		proxy["no_proxy"] = p.NoProxy
+	}
+	return proxy
 }
 
 type AnalysisMode string
@@ -90,6 +108,8 @@ type InitConfig struct {
 
 	// This will have to be defined for each provider
 	ProviderSpecificConfig map[string]interface{} `yaml:"providerSpecificConfig,omitempty" json:"providerSpecificConfig,omitempty"`
+
+	Proxy *Proxy `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
 }
 
 func GetConfig(filepath string) ([]Config, error) {
@@ -105,9 +125,22 @@ func GetConfig(filepath string) ([]Config, error) {
 		return nil, err
 	}
 	foundBuiltin := false
-	for _, c := range configs {
+	for idx := range configs {
+		c := &configs[idx]
 		if c.Name == builtinConfig.Name {
 			foundBuiltin = true
+		}
+		// default to system-wide proxy
+		if c.Proxy == nil {
+			c.Proxy = (*Proxy)(httpproxy.FromEnvironment())
+		}
+		for jdx := range c.InitConfig {
+			ic := &c.InitConfig[jdx]
+			// if a specific proxy config not present
+			// use provider wide config
+			if ic.Proxy == nil {
+				ic.Proxy = c.Proxy
+			}
 		}
 	}
 	if !foundBuiltin {

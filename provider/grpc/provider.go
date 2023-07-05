@@ -83,6 +83,11 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 		LspServerPath:          config.LSPServerPath,
 		AnalysisMode:           string(config.AnalysisMode),
 		ProviderSpecificConfig: s,
+		Proxy: &pb.Proxy{
+			HTTPProxy:  config.Proxy.HTTPProxy,
+			HTTPSProxy: config.Proxy.HTTPSProxy,
+			NoProxy:    config.Proxy.NoProxy,
+		},
 	}
 
 	r, err := g.Client.Init(ctx, &c)

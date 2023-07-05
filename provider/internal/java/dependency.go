@@ -69,7 +69,13 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 }
 
 func (p *javaServiceClient) getLocalRepoPath() string {
-	cmd := exec.Command("mvn", "help:evaluate", "-Dexpression=settings.localRepository", "-q", "-DforceStdout")
+	args := []string{
+		"help:evaluate", "-Dexpression=settings.localRepository", "-q", "-DforceStdout",
+	}
+	if p.mvnSettingsFile != "" {
+		args = append(args, "-s", p.mvnSettingsFile)
+	}
+	cmd := exec.Command("mvn", args...)
 	var outb bytes.Buffer
 	cmd.Stdout = &outb
 	err := cmd.Run()
@@ -143,8 +149,16 @@ func (p *javaServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGI
 	defer os.Remove(f.Name())
 
 	moddir := filepath.Dir(path)
+	args := []string{
+		"dependency:tree",
+		"-Djava.net.useSystemProxies=true",
+		fmt.Sprintf("-DoutputFile=%s", f.Name()),
+	}
+	if p.mvnSettingsFile != "" {
+		args = append(args, "-s", p.mvnSettingsFile)
+	}
 	// get the graph output
-	cmd := exec.Command("mvn", "dependency:tree", fmt.Sprintf("-DoutputFile=%s", f.Name()))
+	cmd := exec.Command("mvn", args...)
 	cmd.Dir = moddir
 	err = cmd.Run()
 	if err != nil {

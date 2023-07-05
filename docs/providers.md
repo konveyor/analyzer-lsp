@@ -11,6 +11,10 @@ Provider configuration fields are:
 * `name`: Name of the provider.
 * `binaryPath`: Path to binary used to initiate a gRPC provider.
 * `address`: Remote address of an already running gRPC provider.
+* `proxyConfig`: HTTP / HTTPS proxy to use. 
+  * `httpproxy`: HTTP proxy string in format `<proto>://<user>@<password>:<host>:<port>`.
+  * `httpsproxy`: HTTPS proxy string in format `<proto>://<user>@<password>:<host>:<port>`.
+  * `noproxy`: Comma separated list of hosts excluded from the proxy.
 * `initConfig`: List of init configs for the provider.
   * `location`: Path to the source code / binary of the application to analyze. Note that only `java` provider supports binary analysis.
   * `dependencyPath`: Path to look for dependencies of the app.
@@ -19,6 +23,8 @@ Provider configuration fields are:
   * `providerSpecificConfig`: Reserved for additional configuration options specific to a provider.
 
 Currently supported providers are - `builtin`, `java` and `go`, or any provider that provides the GRPC interface.
+
+If an explicit `proxyConfig` is not specified for a provider, system-wide proxy settings configured via environment variables `http_proxy`, `https_proxy` & `no_proxy` are used by default. An explicit `proxyConfig` is typically needed for providers that run externally and are not part of the same process as the rule engine. For the rule engine and the builtin providers, system-wide proxy settings are sufficient.
 
 ```Note For Java: full analysis mode will search all the dependency and source, source-only will only search the source code. for a Jar/Ear/War, this is the code that is compiled in that archive and nothing else.
 ```
@@ -57,7 +63,8 @@ Here's an example config for `java` provider that is currently in-tree and does 
             "providerSpecificConfig": {
                 "bundles": "/path/to/extension/bundles",
                 "workspace": "/path/to/workspace",
-                "depOpenSourceLabelsFile": "open-source-libs.txt"
+                "depOpenSourceLabelsFile": "open-source-libs.txt",
+                "mavenSettingsFile": "/path/to/maven/settings/file"
             }
         }
     ]
@@ -73,6 +80,8 @@ The `java` provider also takes following options in `providerSpecificConfig`:
 * `workspace`: Path to directory where the provider generates debug information such as logs.
 
 * `depOpenSourceLabelsFile`: Path to a text file, that contains the regex's per line to be added as open-source dependencies.
+
+* `mavenSettingsFile`: Path to maven settings file (settings.xml) to use
 
 #### Builtin Provider
 

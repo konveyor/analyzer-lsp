@@ -26,6 +26,7 @@ type javaServiceClient struct {
 	workspace        string
 	depToLabels      []depLabelItem
 	isLocationBinary bool
+	mvnSettingsFile  string
 }
 
 type depLabelItem struct {
@@ -146,7 +147,6 @@ func (p *javaServiceClient) Stop() {
 }
 
 func (p *javaServiceClient) initialization() {
-
 	absLocation, err := filepath.Abs(p.config.Location)
 	if err != nil {
 		p.log.Error(err, "unable to get path to analyize")
@@ -180,8 +180,11 @@ func (p *javaServiceClient) initialization() {
 			"workspaceFolders": []string{fmt.Sprintf("file://%v", absLocation)},
 			"settings": map[string]interface{}{
 				"java": map[string]interface{}{
-					"maven": map[string]interface{}{
-						"downloadSources": downloadSources,
+					"configuration": map[string]interface{}{
+						"maven": map[string]interface{}{
+							"downloadSources": downloadSources,
+							"userSettings":    p.mvnSettingsFile,
+						},
 					},
 				},
 			},

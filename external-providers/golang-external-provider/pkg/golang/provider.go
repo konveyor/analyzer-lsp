@@ -3,6 +3,7 @@ package golang
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -44,6 +45,12 @@ func (p *golangProvider) Init(ctx context.Context, log logr.Logger, c provider.I
 	if c.AnalysisMode != provider.FullAnalysisMode {
 		return nil, fmt.Errorf("only full analysis is supported")
 	}
+
+	// handle proxy settings
+	for k, v := range c.Proxy.ToEnvVars() {
+		os.Setenv(k, v)
+	}
+
 	ctx, cancelFunc := context.WithCancel(ctx)
 	log = log.WithValues("provider", "golang")
 	cmd := exec.CommandContext(ctx, c.LSPServerPath)
