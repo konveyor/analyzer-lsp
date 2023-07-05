@@ -91,13 +91,14 @@ func (p *javaProvider) scanFile(path string, loc engine.Location) (string, error
 	scanner := bufio.NewScanner(readFile)
 	lineNumber := 0
 	codeSnip := ""
+	paddingSize := len(strconv.Itoa(loc.EndPosition.Line + CONTEXT_LINES))
 	for scanner.Scan() {
 		if (lineNumber - CONTEXT_LINES) == loc.EndPosition.Line {
-			codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
+			codeSnip = codeSnip + fmt.Sprintf("%*d  %v", paddingSize, lineNumber+1, scanner.Text())
 			break
 		}
 		if (lineNumber + CONTEXT_LINES) >= loc.StartPosition.Line {
-			codeSnip = codeSnip + fmt.Sprintf("%v", scanner.Text())
+			codeSnip = codeSnip + fmt.Sprintf("%*d  %v\n", paddingSize, lineNumber+1, scanner.Text())
 		}
 		lineNumber += 1
 	}
