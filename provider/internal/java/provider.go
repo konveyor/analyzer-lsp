@@ -246,6 +246,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}()
 	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
 
+	rpc.AddHandler(jsonrpc2.NewBackoffHandler(log))
+
 	go func() {
 		err := rpc.Run(ctx)
 		if err != nil {
