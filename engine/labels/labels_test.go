@@ -72,6 +72,14 @@ func Test_getBooleanExpression(t *testing.T) {
 			},
 			want: "( false || false ) || ( true && true )",
 		},
+		{
+			name: "values with dots",
+			expr: "(konveyor.io/target=eap8||konveyor.io/target=hibernate6.1)",
+			compareLabels: map[string][]string{
+				"konveyor.io/target": {"eap8", "hibernate6.1"},
+			},
+			want: "( true || true )",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -128,6 +136,12 @@ func TestParseLabel(t *testing.T) {
 			name:    "invalid label 003",
 			label:   "dev.konveyor/",
 			wantErr: true,
+		},
+		{
+			name:    "dots in label values",
+			label:   "konveyor.io/target=hibernate6.1",
+			wantKey: "konveyor.io/target",
+			wantVal: "hibernate6.1",
 		},
 	}
 	for _, tt := range tests {
@@ -196,6 +210,10 @@ func TestNewRuleSelector(t *testing.T) {
 		{
 			name: "duplicate keys 002",
 			expr: "(konveyor.io/source=java && konveyor.io/source=go) || (konveyor.io/target=java && konveyor.io/target=java)",
+		},
+		{
+			name: "dots in label values",
+			expr: "(konveyor.io/target=eap8.2.2||konveyor.io/target=hibernate6.1)",
 		},
 	}
 	for _, tt := range tests {
