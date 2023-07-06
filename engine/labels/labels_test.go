@@ -80,6 +80,16 @@ func Test_getBooleanExpression(t *testing.T) {
 			},
 			want: "( true || true )",
 		},
+		{
+			name: "values with spaces",
+			expr: "(konveyor.io/fact=Spring   Beans  || konveyor.io/target=hibernate6.1)&& discovery && Label  With  Spaces",
+			compareLabels: map[string][]string{
+				"konveyor.io/target":  {"hibernate6.1"},
+				"konveyor.io/fact":    {"Spring   Beans"},
+				"Label  With  Spaces": {},
+			},
+			want: "( true || true ) && false && true",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -142,6 +152,12 @@ func TestParseLabel(t *testing.T) {
 			label:   "konveyor.io/target=hibernate6.1",
 			wantKey: "konveyor.io/target",
 			wantVal: "hibernate6.1",
+		},
+		{
+			name:    "spaces in label values",
+			label:   "konveyor.io/fact=Spring Beans",
+			wantKey: "konveyor.io/fact",
+			wantVal: "Spring Beans",
 		},
 	}
 	for _, tt := range tests {
@@ -214,6 +230,10 @@ func TestNewRuleSelector(t *testing.T) {
 		{
 			name: "dots in label values",
 			expr: "(konveyor.io/target=eap8.2.2||konveyor.io/target=hibernate6.1)",
+		},
+		{
+			name: "spaces and dots in label values",
+			expr: "konveyor.io/target=Spring     . Beans",
 		},
 	}
 	for _, tt := range tests {
@@ -293,6 +313,18 @@ func Test_ruleSelector_Matches(t *testing.T) {
 				"konveyor.io/type=special",
 			},
 			want: false,
+		},
+		{
+			name: "nested && and || queries with mixed dots, label values with spaces, matched",
+			expr: "(konveyor.io/sourceTech=eap7 && konveyor.io/targetTech=eap10) || (!special-rule && !konveyor.io/type=restricted) ||konveyor.io/fact=Spring Beans",
+			ruleLabels: []string{
+				"konveyor.io/sourceTech=eap8",
+				"konveyor.io/targetTech=eap11",
+				"konveyor.io/fact=Spring Beans",
+				"special-rule=diff-val",
+				"konveyor.io/type=special",
+			},
+			want: true,
 		},
 	}
 	for _, tt := range tests {
