@@ -10,8 +10,11 @@ import (
 )
 
 const (
-	LabelValueFmt  = "^[a-zA-Z0-9]([-a-zA-Z0-9.]*[a-zA-Z0-9])?$"
-	LabelPrefixFmt = "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
+	LabelValueFmt      = "^[a-zA-Z0-9]([-a-zA-Z0-9. ]*[a-zA-Z0-9])?$"
+	LabelPrefixFmt     = "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
+	exprSpecialSymbols = `!|\|\||&&|\(|\)`
+	// used to split string into groups of special symbols and everything else
+	exprSplitter = `(` + exprSpecialSymbols + `|[^!` + exprSpecialSymbols + `]+)`
 )
 
 type LabelSelector[T Labeled] struct {
@@ -158,9 +161,14 @@ func convertToBool(o interface{}) (bool, bool) {
 
 // getLabelsFromExpression parses only the labels from an expression
 func getLabelsFromExpression(expr string) (map[string][]string, error) {
-	labelsList := strings.FieldsFunc(expr, func(r rune) bool {
-		return r == ' ' || r == '&' || r == '|' || r == '!' || r == '(' || r == ')'
-	})
+	labelsList := []string{}
+	for _, token := range tokenize(expr) {
+		if token == "" ||
+			regexp.MustCompile(exprSpecialSymbols).MatchString(token) {
+			continue
+		}
+		labelsList = append(labelsList, token)
+	}
 	labelsMap, err := ParseLabels(labelsList)
 	if err != nil {
 		return nil, err
@@ -195,19 +203,28 @@ func getBooleanExpression(expr string, compareLabels map[string][]string) string
 			}
 		}
 	}
-	expr = strings.ReplaceAll(expr, " ", "")
-	tokens := regexp.MustCompile(`\s*(!|\|\||&&|\(|\)|[^!\s()&|]+)\s*`).FindAllString(expr, -1)
-	expr = ""
-	for _, token := range tokens {
-		token = strings.TrimSuffix(token, "=")
+	boolExpr := ""
+	for _, token := range tokenize(expr) {
 		if val, ok := replaceMap[token]; ok {
-			expr = fmt.Sprintf("%s %s", expr, val)
+			boolExpr = fmt.Sprintf("%s %s", boolExpr, val)
 		} else {
-			expr = fmt.Sprintf("%s %s", expr, token)
+			boolExpr = fmt.Sprintf("%s %s", boolExpr, token)
 		}
 	}
-	expr = strings.Trim(expr, " ")
-	return expr
+	boolExpr = strings.Trim(boolExpr, " ")
+	return boolExpr
+}
+
+func tokenize(expr string) []string {
+	tokens := []string{}
+	for _, token := range regexp.MustCompile(exprSplitter).FindAllString(expr, -1) {
+		token = strings.Trim(token, " ")
+		token = strings.TrimSuffix(token, "=")
+		if token != "" {
+			tokens = append(tokens, token)
+		}
+	}
+	return tokens
 }
 
 func contains(elem string, items []string) bool {
