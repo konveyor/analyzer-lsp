@@ -77,7 +77,8 @@ type xmlCondition struct {
 }
 
 type jsonCondition struct {
-	XPath string `yaml:'xpath'`
+	XPath     string   `yaml:'xpath'`
+	Filepaths []string `yaml:"filepaths"`
 }
 
 type builtinProvider struct {

@@ -49,10 +49,18 @@ func FindFilesMatchingPattern(root, pattern string) ([]string, error) {
 	return matches, err
 }
 
-func Getfiles(configLocation string, filepaths []string) ([]string, error) {
+func GetFiles(configLocation string, filepaths []string, patterns ...string) ([]string, error) {
 	var xmlFiles []string
-
-	if len(filepaths) == 1 {
+	if len(filepaths) == 0 {
+		for _, pattern := range patterns {
+			files, err := FindFilesMatchingPattern(configLocation, pattern)
+			if err != nil {
+				xmlFiles = append(xmlFiles, pattern)
+			} else {
+				xmlFiles = append(xmlFiles, files...)
+			}
+		}
+	} else if len(filepaths) == 1 {
 		// Currently, rendering will render a list as a space separated paths as a single string.
 		patterns := strings.Split(filepaths[0], " ")
 		for _, pattern := range patterns {
@@ -66,17 +74,18 @@ func Getfiles(configLocation string, filepaths []string) ([]string, error) {
 			} else {
 				xmlFiles = append(xmlFiles, files...)
 			}
+			//
 		}
 	} else {
 		for _, pattern := range filepaths {
 			files, err := FindFilesMatchingPattern(configLocation, pattern)
 			if err != nil {
-				xmlFiles = append(xmlFiles, pattern)
+				fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
+				continue
 			} else {
 				xmlFiles = append(xmlFiles, files...)
 			}
 		}
 	}
-
 	return xmlFiles, nil
 }
