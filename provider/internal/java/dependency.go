@@ -110,13 +110,13 @@ func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]*provider.Dep
 		return nil, err
 	}
 	deps := []*provider.Dep{}
-	dep := provider.Dep{}
+	dep := &provider.Dep{}
 	// TODO this is comedically janky
 	for _, node := range list {
 		if node.Data == "groupId" {
 			if dep.Name != "" {
-				deps = append(deps, &dep)
-				dep = provider.Dep{}
+				deps = append(deps, dep)
+				dep = &provider.Dep{}
 			}
 			dep.Name = node.InnerText()
 		} else if node.Data == "artifactId" {
@@ -128,7 +128,7 @@ func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]*provider.Dep
 	}
 	if !reflect.DeepEqual(dep, provider.Dep{}) {
 		dep.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal)}
-		deps = append(deps, &dep)
+		deps = append(deps, dep)
 	}
 	m := map[uri.URI][]*provider.Dep{}
 	m[file] = deps
