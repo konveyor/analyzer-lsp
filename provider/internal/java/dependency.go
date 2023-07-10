@@ -175,7 +175,7 @@ func (p *javaServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGI
 	// strip first and last line of the output
 	// first line is the base package, last line empty
 	if len(lines) > 2 {
-		lines = lines[1 : len(lines)-2]
+		lines = lines[1 : len(lines)-1]
 	}
 
 	pomDeps, err := p.parseMavenDepLines(lines, localRepoPath)

@@ -404,6 +404,13 @@
 - fileURI: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
   provider: java
   dependencies:
+  - name: io.konveyor.demo.config-utils
+    version: 1.0.0
+    type: compile
+    resolvedIdentifier: FE4FE11AAEE77BE10035218537FBF4B2E6EF1D9F
+    labels:
+    - konveyor.io/dep-source=internal
+    prefix: konveyor-jdt://contents/root/.m2/repository/io/konveyor/demo/config-utils/1.0.0
   - name: org.postgresql.postgresql
     version: 42.2.23
     type: compile
@@ -1113,6 +1120,14 @@
     labels:
     - konveyor.io/dep-source=internal
     prefix: konveyor-jdt://contents/root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.13.3
+  - name: com.fasterxml.jackson.core.jackson-core
+    version: 2.13.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: a27014716e4421684416e5fa83d896ddb87002da
+    labels:
+    - konveyor.io/dep-source=internal
+    prefix: konveyor-jdt://contents/root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.13.3
   - name: io.fabric8.kubernetes-client
     version: 6.0.0
     type: compile
