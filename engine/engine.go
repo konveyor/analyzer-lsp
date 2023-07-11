@@ -412,8 +412,15 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		}
 
 		if len(rule.CustomVariables) > 0 {
+			var originalCodeSnip string
+			re := regexp.MustCompile(`^(\s*[0-9]+  )?(.*)`)
+			scanner := bufio.NewScanner(strings.NewReader(incident.CodeSnip))
+			for scanner.Scan() {
+				originalCodeSnip = originalCodeSnip + re.ReplaceAllString(scanner.Text(), "$2")
+			}
+
 			for _, cv := range rule.CustomVariables {
-				match := cv.Pattern.FindStringSubmatch(incident.CodeSnip)
+				match := cv.Pattern.FindStringSubmatch(originalCodeSnip)
 				switch len(match) {
 				case 0:
 					m.Variables[cv.Name] = cv.DefaultValue
