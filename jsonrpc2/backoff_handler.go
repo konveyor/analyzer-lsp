@@ -105,9 +105,9 @@ func (b *BackoffHandler) Request(ctx context.Context, conn *Conn, direction Dire
 	b.failedRequestsMu.Unlock()
 
 	d := backOff.BackoffRequest()
-	b.logger.V(5).Info("starting backing off request", "method", r.Method, "duration", d)
+	b.logger.V(9).Info("starting backing off request", "method", r.Method, "duration", d)
 	time.Sleep(d)
-	b.logger.V(5).Info("stoping backing off request", "method", r.Method)
+	b.logger.V(9).Info("stopping backing off request", "method", r.Method)
 	return context.WithValue(ctx, "back-off-timer", requestKey)
 }
 
