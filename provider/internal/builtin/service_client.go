@@ -133,51 +133,17 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		}
 		//TODO(fabianvf): how should we scope the files searched here?
 		var xmlFiles []string
-		if len(cond.XML.Filepaths) == 0 {
-			pattern := "*.xml"
-			xmlFiles, err = findFilesMatchingPattern(p.config.Location, pattern)
-			if err != nil {
-				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
-			}
-			xhtmlFiles, err := findFilesMatchingPattern(p.config.Location, "*.xhtml")
-			if err != nil {
-				return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", "*.xhtml", err)
-			}
-			xmlFiles = append(xmlFiles, xhtmlFiles...)
-		} else if len(cond.XML.Filepaths) == 1 {
-			// Currently, rendering will render a list as a space seperated paths as a single string.
-			patterns := strings.Split(cond.XML.Filepaths[0], " ")
-			for _, pattern := range patterns {
-				files, err := findFilesMatchingPattern(p.config.Location, pattern)
-				if err != nil {
-					// Something went wrong dealing with the pattern, so we'll assume the user input
-					// is good and pass it on
-					// TODO(fabianvf): if we're ever hitting this for real we should investigate
-					fmt.Printf("Unable to resolve pattern '%s': %v", pattern, err)
-					xmlFiles = append(xmlFiles, pattern)
-				} else {
-					xmlFiles = append(xmlFiles, files...)
-				}
-			}
-		} else {
-			for _, pattern := range cond.XML.Filepaths {
-				files, err := findFilesMatchingPattern(p.config.Location, pattern)
-				if err != nil {
-					xmlFiles = append(xmlFiles, pattern)
-				} else {
-					xmlFiles = append(xmlFiles, files...)
-				}
-			}
+		patterns := []string{"*.xml", "*.xhtml"}
+		xmlFiles, err = provider.GetFiles(p.config.Location, cond.XML.Filepaths, patterns...)
+		if err != nil {
+			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", patterns, err)
 		}
+
 		for _, file := range xmlFiles {
-			absPath, err := filepath.Abs(file)
+
+			f, err := os.Open(file)
 			if err != nil {
-				fmt.Printf("unable to get absolute path for '%s': %v\n", file, err)
-				continue
-			}
-			f, err := os.Open(absPath)
-			if err != nil {
-				fmt.Printf("unable to open file '%s': %v\n", absPath, err)
+				fmt.Printf("unable to open file '%s': %v\n", file, err)
 				continue
 			}
 			// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
@@ -186,19 +152,19 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			if err != nil {
 				if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
 					// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
-					b, err := os.ReadFile(absPath)
+					b, err := os.ReadFile(file)
 					if err != nil {
-						fmt.Printf("unable to parse xml file '%s': %v\n", absPath, err)
+						fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
 						continue
 					}
 					docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
 					doc, err = xmlquery.Parse(strings.NewReader(docString))
 					if err != nil {
-						fmt.Printf("unable to parse xml file '%s': %v\n", absPath, err)
+						fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
 						continue
 					}
 				} else {
-					fmt.Printf("unable to parse xml file '%s': %v\n", absPath, err)
+					fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
 					continue
 				}
 			}
@@ -221,6 +187,7 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 				}
 			}
 		}
+
 		return response, nil
 	case "json":
 		query := cond.JSON.XPath
@@ -228,7 +195,7 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
 		}
 		pattern := "*.json"
-		jsonFiles, err := findFilesMatchingPattern(p.config.Location, pattern)
+		jsonFiles, err := provider.GetFiles(p.config.Location, cond.JSON.Filepaths, pattern)
 		if err != nil {
 			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
 		}
@@ -280,7 +247,6 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		return response, fmt.Errorf("capability must be one of %v, not %s", capabilities, cap)
 	}
 }
-
 func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 	var regex *regexp.Regexp
 	// if the regex doesn't compile, we'll default to using filepath.Match on the pattern directly
