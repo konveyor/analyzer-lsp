@@ -374,9 +374,9 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 	}
 	incidents := []engine.IncidentContext{}
 	for _, inc := range resp.Incidents {
-		// if no allowed deps then nothing is filtered.
-		found := false
 		if p.DepLabelSelector != nil {
+			// if no allowed deps then nothing is filtered.
+			found := false
 			for _, depList := range deps {
 				depList, err = p.DepLabelSelector.MatchList(depList)
 				if err != nil {
@@ -388,9 +388,9 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 					}
 				}
 			}
-		}
-		if !found && !strings.HasPrefix(string(inc.FileURI), uri.FileScheme) && inc.FileURI != "" {
-			continue
+			if !found && !strings.HasPrefix(string(inc.FileURI), uri.FileScheme) && inc.FileURI != "" {
+				continue
+			}
 		}
 		i := engine.IncidentContext{
 			FileURI:    inc.FileURI,
