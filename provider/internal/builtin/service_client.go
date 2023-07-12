@@ -120,6 +120,10 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 				Variables: map[string]interface{}{
 					"matchingText": pieces[2],
 				},
+				CodeLocation: &provider.Location{
+					StartPosition: provider.Position{Line: float64(lineNumber)},
+					EndPosition:   provider.Position{Line: float64(lineNumber)},
+				},
 			})
 		}
 		if len(response.Incidents) != 0 {
