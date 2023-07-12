@@ -145,6 +145,17 @@
         title: Golang
       extras: []
       effort: 3
+    filecontent-codesnip-test:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/Dockerfile
+        message: Found usage of openjdk base image
+        codeSnip: " 1  ########################################\n 2  # Build Image\n 3  ########################################\n 4  # FROM maven:3.6-jdk-8-slim as build\n 5  FROM maven:3.8-openjdk-11 as build\n 6  \n 7  WORKDIR /app\n 8  \n 9  # Establish the dependency layer\n10  COPY pom.xml .\n11  RUN mvn dependency:resolve\n12  \n13  # Add the source code and package\n14  COPY src ./src\n15  RUN mvn package\n16  "
+        lineNumber: 5
+        variables:
+          matchingText: FROM maven:3.8-openjdk-11 as build
+      extras: []
     go-lang-ref-001:
       description: ""
       category: potential

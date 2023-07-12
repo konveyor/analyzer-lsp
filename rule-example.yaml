@@ -151,4 +151,10 @@
   when:
     builtin.hasTags:
     - Golang
+- message: "Found usage of openjdk base image"
+  ruleID: filecontent-codesnip-test
+  when:
+    builtin.filecontent:
+      pattern: "^FROM.*openjdk-11.*"
+      filePattern: "Dockerfile"
 
