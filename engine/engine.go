@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
@@ -151,6 +152,11 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 	// Need a better name for this thing
 	ret := make(chan response)
 
+	var totalRules int32
+	var matchedRules int32
+	var unmatchedRules int32
+	var failedRules int32
+
 	wg := &sync.WaitGroup{}
 	// Handle returns
 	go func() {
@@ -161,7 +167,9 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 					r.logger.Info("rule returned", "rule", response.Rule.RuleID)
 					defer wg.Done()
 					if response.Err != nil {
+						atomic.AddInt32(&failedRules, 1)
 						r.logger.Error(response.Err, "failed to evaluate rule", "ruleID", response.Rule.RuleID)
+
 						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()
 						}
@@ -170,18 +178,25 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 						if err != nil {
 							r.logger.Error(err, "unable to create violation from response")
 						}
+						atomic.AddInt32(&matchedRules, 1)
+
 						rs, ok := mapRuleSets[response.RuleSetName]
 						if !ok {
 							r.logger.Info("this should never happen that we don't find the ruleset")
 						}
 						rs.Violations[response.Rule.RuleID] = violation
 					} else {
+						atomic.AddInt32(&unmatchedRules, 1)
 						// Log that rule did not pass
 						r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "rule", response.Rule.RuleID)
+
 						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 							rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
 						}
 					}
+					atomic.AddInt32(&totalRules, 1)
+					r.logger.V(5).Info("rule response received", "total", totalRules, "failed", failedRules, "matched", matchedRules, "unmatched", unmatchedRules)
+
 				}()
 			case <-ctx.Done():
 				// At this point we should just return the function, we may want to close the wait group too.

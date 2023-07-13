@@ -189,6 +189,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	rules := []engine.Rule{}
 	ruleIDMap := map[string]*struct{}{}
 	providers := map[string]provider.InternalProviderClient{}
+	rulesParsed := 0
 	for _, ruleMap := range ruleMap {
 		ruleID, ok := ruleMap["ruleID"].(string)
 		if !ok {
@@ -419,6 +420,8 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 		} else {
 			rules = append(rules, rule)
 		}
+		rulesParsed++
+		r.Log.V(5).Info("rules parsed", "parsed", rulesParsed)
 	}
 
 	return append(infoRules, rules...), providers, nil
