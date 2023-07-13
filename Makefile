@@ -1,12 +1,12 @@
 DOCKER_IMAGE = test
 
-build: analyzer deps external-golang
+build: analyzer deps external-generic
 
 analyzer:
 	go build -o konveyor-analyzer ./cmd/analyzer/main.go
 
-external-golang:
-	( cd external-providers/golang-external-provider && go build -o golang-external-provider main.go)
+external-generic:
+	( cd external-providers/generic-external-provider && go build -o generic-external-provider main.go)
 
 deps:
 	go build -o konveyor-analyzer-dep ./cmd/dep/main.go

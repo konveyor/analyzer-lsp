@@ -1,4 +1,5 @@
-package golang
+// package golang
+package genericProvider
 
 import (
 	"context"
@@ -12,10 +13,13 @@ import (
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
+
+	// "go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
-type golangServiceClient struct {
+// type golangServiceClient struct {
+type genericServiceClient struct {
 	rpc        *jsonrpc2.Conn
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -24,14 +28,19 @@ type golangServiceClient struct {
 	config provider.InitConfig
 }
 
-var _ provider.ServiceClient = &golangServiceClient{}
+// var _ provider.ServiceClient = &golangServiceClient{}
+var _ provider.ServiceClient = &genericServiceClient{}
 
-func (p *golangServiceClient) Stop() {
+// func (p *golangServiceClient) Stop() {
+func (p *genericServiceClient) Stop() {
 	p.cancelFunc()
 	p.cmd.Wait()
 }
-func (p *golangServiceClient) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	var cond golangCondition
+
+// func (p *golangServiceClient) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+func (p *genericServiceClient) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	// var cond golangCondition
+	var cond genericCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
@@ -76,7 +85,8 @@ func (p *golangServiceClient) Evaluate(cap string, conditionInfo []byte) (provid
 	}, nil
 }
 
-func (p *golangServiceClient) GetAllSymbols(query string) []protocol.WorkspaceSymbol {
+// func (p *golangServiceClient) GetAllSymbols(query string) []protocol.WorkspaceSymbol {
+func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceSymbol {
 
 	wsp := &protocol.WorkspaceSymbolParams{
 		Query: query,
@@ -93,7 +103,8 @@ func (p *golangServiceClient) GetAllSymbols(query string) []protocol.WorkspaceSy
 	return refs
 }
 
-func (p *golangServiceClient) GetAllReferences(symbol protocol.WorkspaceSymbol) []protocol.Location {
+// func (p *golangServiceClient) GetAllReferences(symbol protocol.WorkspaceSymbol) []protocol.Location {
+func (p *genericServiceClient) GetAllReferences(symbol protocol.WorkspaceSymbol) []protocol.Location {
 	params := &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{
@@ -111,7 +122,8 @@ func (p *golangServiceClient) GetAllReferences(symbol protocol.WorkspaceSymbol) 
 	return res
 }
 
-func (p *golangServiceClient) initialization(ctx context.Context, log logr.Logger) {
+// func (p *golangServiceClient) initialization(ctx context.Context, log logr.Logger) {
+func (p *genericServiceClient) initialization(ctx context.Context, log logr.Logger) {
 	// Get abosulte path of location.
 	abs, err := filepath.Abs(p.config.Location)
 	if err != nil {
@@ -139,6 +151,8 @@ func (p *golangServiceClient) initialization(ctx context.Context, log logr.Logge
 	if err := p.rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
 		fmt.Printf("initialized failed: %v", err)
 	}
-	fmt.Printf("golang connection initialized")
-	log.V(2).Info("golang connection initialized")
+	// fmt.Printf("golang connection initialized")
+	fmt.Printf("provider connection initialized")
+	// log.V(2).Info("golang connection initialized")
+	log.V(2).Info("provider connection initialized")
 }

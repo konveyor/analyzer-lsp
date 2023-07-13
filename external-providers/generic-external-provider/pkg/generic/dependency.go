@@ -1,4 +1,4 @@
-package golang
+package genericProvider
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ const (
 )
 
 // TODO implement this for real
-func (g *golangServiceClient) findGoMod() string {
+func (g *genericServiceClient) findGoMod() string {
 	var depPath string
 	if g.config.DependencyPath == "" {
 		depPath = "go.mod"
@@ -31,7 +31,7 @@ func (g *golangServiceClient) findGoMod() string {
 	return f
 }
 
-func (g *golangServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
+func (g *genericServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	ll, err := g.GetDependenciesDAG()
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (g *golangServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, er
 	return m, err
 }
 
-func (g *golangServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
+func (g *genericServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 

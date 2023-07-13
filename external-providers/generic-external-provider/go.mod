@@ -1,13 +1,13 @@
-module github.com/konveyor/golang-external-provider
+module github.com/konveyor/generic-external-provider
 
 go 1.19
 
 require (
-	github.com/bombsimon/logrusr/v3 v3.0.0
-	github.com/getkin/kin-openapi v0.116.0
+	github.com/bombsimon/logrusr/v3 v3.1.0
+	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-logr/logr v1.2.4
-	github.com/konveyor/analyzer-lsp v0.0.0-20230503143412-a13c5b7be8cb
-	github.com/sirupsen/logrus v1.9.0
+	github.com/konveyor/analyzer-lsp v0.0.0-20230711170256-4751dc9d0913
+	github.com/sirupsen/logrus v1.9.3
 	go.lsp.dev/uri v0.3.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -38,5 +38,3 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/konveyor/analyzer-lsp => ../../

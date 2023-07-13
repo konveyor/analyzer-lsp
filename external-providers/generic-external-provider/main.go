@@ -8,7 +8,7 @@ import (
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/golang-external-provider/pkg/golang"
+	"github.com/konveyor/generic-external-provider/pkg/generic"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,7 +26,8 @@ func main() {
 
 	log := logrusr.New(logrusLog)
 
-	client := golang.NewGolangProvider()
+	// client := golang.NewGolangProvider()
+	client := genericProvider.NewGenericProvider()
 
 	if port == nil || *port == 0 {
 		panic(fmt.Errorf("must pass in the port for the external provider"))
