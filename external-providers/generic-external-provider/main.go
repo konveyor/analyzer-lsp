@@ -8,7 +8,6 @@ import (
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/generic-external-provider/pkg/generic"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,7 +25,6 @@ func main() {
 
 	log := logrusr.New(logrusLog)
 
-	// client := golang.NewGolangProvider()
 	client := genericProvider.NewGenericProvider()
 
 	if port == nil || *port == 0 {
