@@ -98,7 +98,6 @@ const (
 )
 
 type InitConfig struct {
-	Name string `yaml:"name,omitempty" json:"name,omitempty"`
 	// This is the location of the code base that the
 	// Provider will be responisble for parsing
 	Location string `yaml:"location,omitempty" json:"location,omitempty"`

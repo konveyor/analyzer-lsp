@@ -3,6 +3,7 @@
         "name": "go",
         "binaryPath": "/usr/bin/generic-external-provider",
         "initConfig": [{
+            "name": "go",
             "location": "examples/golang",
             "analysisMode": "full",
             "providerSpecificConfig": {
