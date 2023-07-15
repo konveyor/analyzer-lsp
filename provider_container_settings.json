@@ -4,8 +4,10 @@
         "binaryPath": "/usr/bin/golang-external-provider",
         "initConfig": [{
             "location": "examples/golang",
-            "lspServerPath": "/root/go/bin/gopls",
-            "analysisMode": "full"
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerPath": "/root/go/bin/gopls"
+            }
         }]
     },
     {
@@ -14,17 +16,17 @@
         "initConfig": [
             {
                 "location": "examples/java",
-                "lspServerPath": "/jdtls/bin/jdtls",
                 "providerSpecificConfig": {
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
-                    "depOpenSourceLabelsFile": "open-source-libs.txt"
+                    "depOpenSourceLabelsFile": "open-source-libs.txt",
+                    "lspServerPath": "/jdtls/bin/jdtls"
                 },
                 "analysisMode": "source-only"
             },
             {
                 "location": "examples/customers-tomcat-legacy",
-                "lspServerPath": "/jdtls/bin/jdtls",
                 "providerSpecificConfig": {
+                    "lspServerPath": "/jdtls/bin/jdtls",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
                 },
                 "analysisMode": "source-only"

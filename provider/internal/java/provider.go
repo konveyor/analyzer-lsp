@@ -23,6 +23,13 @@ const (
 	ClassFile         = ".class"
 )
 
+// provider specific config keys
+const (
+	BUNDLES_INIT_OPTION           = "bundles"
+	WORKSPACE_INIT_OPTION         = "workspace"
+	MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
+)
+
 // Rule Location to location that the bundle understands
 var locationToCode = map[string]int{
 	//Type is the default.
@@ -59,10 +66,6 @@ type referenceCondition struct {
 	Pattern  string `yaml:"pattern"`
 	Location string `yaml:"location"`
 }
-
-const BUNDLES_INIT_OPTION = "bundles"
-const WORKSPACE_INIT_OPTION = "workspace"
-const MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
 
 func NewJavaProvider(config provider.Config, log logr.Logger) *javaProvider {
 
@@ -199,6 +202,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		config.DependencyPath = depLocation
 		isBinary = true
 	}
+
 	bundlesString, ok := config.ProviderSpecificConfig[BUNDLES_INIT_OPTION].(string)
 	if !ok {
 		bundlesString = ""
@@ -215,12 +219,18 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		mavenSettingsFile = ""
 	}
 
+	lspServerPath, ok := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
+	if !ok || lspServerPath == "" {
+		cancelFunc()
+		return nil, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
+	}
+
 	// handle proxy settings
 	for k, v := range config.Proxy.ToEnvVars() {
 		os.Setenv(k, v)
 	}
 
-	cmd := exec.CommandContext(ctx, config.LSPServerPath,
+	cmd := exec.CommandContext(ctx, lspServerPath,
 		"-Djava.net.useSystemProxies=true",
 		"-configuration",
 		"./",

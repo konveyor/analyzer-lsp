@@ -182,9 +182,11 @@ func (p *javaServiceClient) initialization() {
 				"java": map[string]interface{}{
 					"configuration": map[string]interface{}{
 						"maven": map[string]interface{}{
-							"downloadSources": downloadSources,
-							"userSettings":    p.mvnSettingsFile,
+							"userSettings": p.mvnSettingsFile,
 						},
+					},
+					"maven": map[string]interface{}{
+						"downloadSources": downloadSources,
 					},
 				},
 			},

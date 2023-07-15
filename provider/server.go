@@ -97,7 +97,6 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 	c := InitConfig{
 		Location:       config.Location,
 		DependencyPath: config.DependencyPath,
-		LSPServerPath:  config.LspServerPath,
 		AnalysisMode:   a,
 		Proxy: &Proxy{
 			HTTPProxy:  config.Proxy.HTTPProxy,

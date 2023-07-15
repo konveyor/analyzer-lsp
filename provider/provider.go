@@ -24,7 +24,9 @@ const (
 	// Dep source label is a label key that any provider can use, to label the dependencies as coming from a particular source.
 	// Examples from java are: open-source and internal. A provider can also have a user provide file that will tell them which
 	// depdendencies to label as this value. This label will be used to filter out these dependencies from a given analysis
-	DepSourceLabel = "konveyor.io/dep-source"
+	DepSourceLabel   = "konveyor.io/dep-source"
+	// LspServerPath is a provider specific config used to specify path to a LSP server
+	LspServerPathConfigKey = "lspServerPath"
 )
 
 // This will need a better name, may we want to move it to top level
@@ -101,8 +103,6 @@ type InitConfig struct {
 	// This is the path to look for the dependencies for the project.
 	// It is relative to the Location
 	DependencyPath string `yaml:"dependencyPath,omitempty" json:"dependencyPath,omitempty"`
-
-	LSPServerPath string `yaml:"lspServerPath,omitempty" json:"lspServerPath,omitempty"`
 
 	AnalysisMode AnalysisMode `yaml:"analysisMode" json:"analysisMode"`
 
