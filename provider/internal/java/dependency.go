@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -22,6 +23,7 @@ const (
 	javaDepSourceInternal                      = "internal"
 	javaDepSourceOpenSource                    = "open-source"
 	providerSpecificConfigOpenSourceDepListKey = "depOpenSourceLabelsFile"
+	providerSpecificConfigExcludePackagesKey   = "excludePackages"
 )
 
 // TODO implement this for real
@@ -40,6 +42,9 @@ func (p *javaServiceClient) findPom() string {
 }
 
 func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
+	if p.depsCache != nil {
+		return p.depsCache, nil
+	}
 	var err error
 	var ll map[uri.URI][]konveyor.DepDAGItem
 	m := map[uri.URI][]*provider.Dep{}
@@ -65,6 +70,7 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 		}
 		m[f] = deps
 	}
+	p.depsCache = m
 	return m, nil
 }
 
@@ -132,6 +138,7 @@ func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]*provider.Dep
 	}
 	m := map[uri.URI][]*provider.Dep{}
 	m[file] = deps
+	p.depsCache = m
 	return m, nil
 }
 
@@ -261,11 +268,10 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 
 func (p *javaServiceClient) addDepLabels(depName string) []string {
 	m := map[string]interface{}{}
-
 	for _, d := range p.depToLabels {
 		if d.r.Match([]byte(depName)) {
-			for _, l := range d.labels {
-				m[l] = nil
+			for label, _ := range d.labels {
+				m[label] = nil
 			}
 		}
 	}
@@ -273,9 +279,13 @@ func (p *javaServiceClient) addDepLabels(depName string) []string {
 	for k, _ := range m {
 		s = append(s, k)
 	}
-	if len(s) == 0 {
-		s = append(s, fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal))
+	// if open source label is not found, qualify the dep as being internal by default
+	if _, openSourceLabelFound :=
+		m[fmt.Sprintf("%s=%s", provider.DepSourceLabel, javaDepSourceOpenSource)]; !openSourceLabelFound {
+		s = append(s,
+			fmt.Sprintf("%s=%s", provider.DepSourceLabel, javaDepSourceInternal))
 	}
+	s = append(s, fmt.Sprintf("%s=java", provider.DepLanguageLabel))
 	return s
 }
 
@@ -311,16 +321,33 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath str
 	return []provider.DepDAGItem{}, nil
 }
 
-// depInit will allow for us to check for the list of deps file,
-// If found, we will load into a map, for easy lookup.
-// We will need to define file structure to read in.
+// depInit loads a map of package patterns and their associated labels for easy lookup
 func (p *javaServiceClient) depInit() error {
+	err := p.initOpenSourceDepLabels()
+	if err != nil {
+		p.log.V(5).Error(err, "failed to initialize dep labels lookup for open source packages")
+		return err
+	}
+
+	err = p.initExcludeDepLabels()
+	if err != nil {
+		p.log.V(5).Error(err, "failed to initialize dep labels lookup for excluded packages")
+		return err
+	}
+
+	return nil
+}
+
+// initOpenSourceDepLabels reads user provided file that has a list of open source
+// packages (supports regex) and loads a map of patterns -> labels for easy lookup
+func (p *javaServiceClient) initOpenSourceDepLabels() error {
 	var ok bool
 	var v interface{}
 	if v, ok = p.config.ProviderSpecificConfig[providerSpecificConfigOpenSourceDepListKey]; !ok {
 		p.log.V(7).Info("Did not find open source dep list.")
 		return nil
 	}
+
 	var filePath string
 	if filePath, ok = v.(string); !ok {
 		return fmt.Errorf("unable to determine filePath from open source dep list")
@@ -340,29 +367,51 @@ func (p *javaServiceClient) depInit() error {
 	if err != nil {
 		return err
 	}
+	return loadDepLabelItems(file, p.depToLabels,
+		fmt.Sprintf("%s=%s", provider.DepSourceLabel, javaDepSourceOpenSource))
+}
 
-	scanner := bufio.NewScanner(file)
+// initExcludeDepLabels reads user provided list of excluded packages
+// and initiates label lookup for them
+func (p *javaServiceClient) initExcludeDepLabels() error {
+	var ok bool
+	var v interface{}
+	if v, ok = p.config.ProviderSpecificConfig[providerSpecificConfigExcludePackagesKey]; !ok {
+		p.log.V(7).Info("did not find exclude packages list")
+		return nil
+	}
+	var excludePackages []string
+	if excludePackages, ok = v.([]string); !ok {
+		return fmt.Errorf("%s config must be a list of packages to exclude", providerSpecificConfigExcludePackagesKey)
+	}
+	return loadDepLabelItems(strings.NewReader(
+		strings.Join(excludePackages, "\n")), p.depToLabels, provider.DepExcludeLabel)
+}
+
+// loadDepLabelItems reads list of patterns from reader and appends given
+// label to the list of labels for the associated pattern
+func loadDepLabelItems(r io.Reader, depToLabels map[string]*depLabelItem, label string) error {
+	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		depName := scanner.Text()
-		r, err := regexp.Compile(depName)
+		pattern := scanner.Text()
+		r, err := regexp.Compile(pattern)
 		if err != nil {
-			return fmt.Errorf("unable to create regexp for string: %v", depName)
+			return fmt.Errorf("unable to create regexp for string: %v", pattern)
 		}
 		//Make sure that we are not adding duplicates
-		found := false
-		for _, d := range p.depToLabels {
-			if d.r.String() == depName {
-				d.labels = append(d.labels, javaDepSourceOpenSource)
-				found = true
+		if _, found := depToLabels[pattern]; !found {
+			depToLabels[pattern] = &depLabelItem{
+				r: r,
+				labels: map[string]interface{}{
+					label: nil,
+				},
 			}
+		} else {
+			if depToLabels[pattern].labels == nil {
+				depToLabels[pattern].labels = map[string]interface{}{}
+			}
+			depToLabels[pattern].labels[label] = nil
 		}
-		if !found {
-			p.depToLabels = append(p.depToLabels, depLabelItem{
-				r:      r,
-				labels: []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceOpenSource)},
-			})
-		}
-
 	}
 	return nil
 }

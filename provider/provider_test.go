@@ -6,6 +6,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"go.lsp.dev/uri"
 )
 
@@ -138,4 +140,104 @@ func Test_dependencyConditionEvaluation(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_matchDepLabelSelector(t *testing.T) {
+	tests := []struct {
+		name          string
+		labelSelector string
+		incident      IncidentContext
+		deps          map[uri.URI][]*konveyor.Dep
+		want          bool
+		wantErr       bool
+	}{
+		{
+			name:          "no deps, incident should match",
+			labelSelector: "!konveyor.io/dep-source=open-source",
+			incident: IncidentContext{
+				FileURI: "konveyor-jdt://test-file-uri",
+			},
+			want: true,
+		},
+		{
+			name:          "incident does not come from a dep, should match",
+			labelSelector: "!konveyor.io/dep-source=open-source",
+			incident: IncidentContext{
+				FileURI: "file://test-file-uri/test-file",
+			},
+			deps: map[uri.URI][]*konveyor.Dep{
+				"pom.xml": {
+					{
+						Name:               "test-dep",
+						Version:            "0.5.2",
+						ResolvedIdentifier: "sha256",
+						Labels: []string{
+							"konveyor.io/dep-source=open-source",
+						},
+						FileURIPrefix: "file://test-file-uri",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name:          "label selector matches",
+			labelSelector: "konveyor.io/dep-source=open-source",
+			incident: IncidentContext{
+				FileURI: "konveyor-jdt://test-file-uri/test-file",
+			},
+			deps: map[uri.URI][]*konveyor.Dep{
+				"pom.xml": {
+					{
+						Name:               "test-dep",
+						Version:            "0.5.2",
+						ResolvedIdentifier: "sha256",
+						Labels: []string{
+							"konveyor.io/dep-source=open-source",
+						},
+						FileURIPrefix: "konveyor-jdt://test-file-uri",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name:          "label selector does not match",
+			labelSelector: "!konveyor.io/dep-source=exclude",
+			incident: IncidentContext{
+				FileURI: "konveyor-jdt://test-file-uri/test-file",
+			},
+			deps: map[uri.URI][]*konveyor.Dep{
+				"pom.xml": {
+					{
+						Name:               "test-dep",
+						Version:            "0.5.2",
+						ResolvedIdentifier: "sha256",
+						Labels: []string{
+							"konveyor.io/dep-source=exclude",
+						},
+						FileURIPrefix: "konveyor-jdt://test-file-uri",
+					},
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			labelSelector, err := labels.NewLabelSelector[*Dep](tt.labelSelector)
+			if err != nil {
+				t.Errorf("invalid label selector %s", tt.labelSelector)
+				return
+			}
+			got, err := matchDepLabelSelector(labelSelector, tt.incident, tt.deps)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("matchDepLabelSelector() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("matchDepLabelSelector() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

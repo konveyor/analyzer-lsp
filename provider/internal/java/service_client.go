@@ -12,6 +12,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,14 +25,15 @@ type javaServiceClient struct {
 	cmd              *exec.Cmd
 	bundles          []string
 	workspace        string
-	depToLabels      []depLabelItem
+	depToLabels      map[string]*depLabelItem
 	isLocationBinary bool
 	mvnSettingsFile  string
+	depsCache        map[uri.URI][]*provider.Dep
 }
 
 type depLabelItem struct {
 	r      *regexp.Regexp
-	labels []string
+	labels map[string]interface{}
 }
 
 var _ provider.ServiceClient = &javaServiceClient{}

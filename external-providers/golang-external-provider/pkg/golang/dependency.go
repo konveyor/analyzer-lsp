@@ -91,7 +91,10 @@ func parseGoDepString(dep string) (provider.Dep, error) {
 	}
 	d.Name = strings.TrimSpace(v[0])
 	d.Version = strings.TrimSpace(strings.ReplaceAll(v[1], "@", ""))
-	d.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, golangDownloadableDepSourceLabel)}
+	d.Labels = []string{
+		fmt.Sprintf("%v=%v", provider.DepSourceLabel, golangDownloadableDepSourceLabel),
+		fmt.Sprintf("%s=go", provider.DepLanguageLabel),
+	}
 	return d, nil
 }
 

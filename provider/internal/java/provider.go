@@ -277,7 +277,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		bundles:          bundles,
 		workspace:        workspace,
 		log:              log,
-		depToLabels:      []depLabelItem{},
+		depToLabels:      map[string]*depLabelItem{},
 		isLocationBinary: isBinary,
 		mvnSettingsFile:  mavenSettingsFile,
 	}
