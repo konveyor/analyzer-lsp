@@ -17,7 +17,6 @@ message Capability {
 message Config {
   string location = 1;
   string dependencyPath = 2;
-  string lspServerPath= 3;
   string analysisMode = 4;
   google.protobuf.Struct providerSpecificConfig= 5;
   Proxy proxy = 6;

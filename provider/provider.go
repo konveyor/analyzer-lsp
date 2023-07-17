@@ -24,7 +24,11 @@ const (
 	// Dep source label is a label key that any provider can use, to label the dependencies as coming from a particular source.
 	// Examples from java are: open-source and internal. A provider can also have a user provide file that will tell them which
 	// depdendencies to label as this value. This label will be used to filter out these dependencies from a given analysis
-	DepSourceLabel = "konveyor.io/dep-source"
+	DepSourceLabel   = "konveyor.io/dep-source"
+	DepLanguageLabel = "konveyor.io/language"
+	DepExcludeLabel  = "konveyor.io/exclude"
+	// LspServerPath is a provider specific config used to specify path to a LSP server
+	LspServerPathConfigKey = "lspServerPath"
 )
 
 // This will need a better name, may we want to move it to top level
@@ -101,8 +105,6 @@ type InitConfig struct {
 	// This is the path to look for the dependencies for the project.
 	// It is relative to the Location
 	DependencyPath string `yaml:"dependencyPath,omitempty" json:"dependencyPath,omitempty"`
-
-	LSPServerPath string `yaml:"lspServerPath,omitempty" json:"lspServerPath,omitempty"`
 
 	AnalysisMode AnalysisMode `yaml:"analysisMode" json:"analysisMode"`
 
@@ -365,32 +367,22 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 		return engine.ConditionResponse{}, err
 	}
 
-	var deps map[uri.URI][]*konveyor.Dep
+	var deps map[uri.URI][]*Dep
 	if p.DepLabelSelector != nil {
 		deps, err = p.Client.GetDependencies()
 		if err != nil {
 			return engine.ConditionResponse{}, err
 		}
 	}
+
 	incidents := []engine.IncidentContext{}
 	for _, inc := range resp.Incidents {
-		if p.DepLabelSelector != nil {
-			// if no allowed deps then nothing is filtered.
-			found := false
-			for _, depList := range deps {
-				depList, err = p.DepLabelSelector.MatchList(depList)
-				if err != nil {
-					return engine.ConditionResponse{}, err
-				}
-				for _, d := range depList {
-					if strings.HasPrefix(string(inc.FileURI), d.FileURIPrefix) {
-						found = true
-					}
-				}
-			}
-			if !found && !strings.HasPrefix(string(inc.FileURI), uri.FileScheme) && inc.FileURI != "" {
-				continue
-			}
+		// filter out incidents that don't match the dep label selector
+		if matched, err := matchDepLabelSelector(p.DepLabelSelector, inc, deps); err != nil {
+			log.V(5).Error(err, "failed to match dep label selector")
+			return engine.ConditionResponse{}, err
+		} else if !matched {
+			continue
 		}
 		i := engine.IncidentContext{
 			FileURI:    inc.FileURI,
@@ -423,6 +415,28 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 	log.V(8).Info("condition response", "ruleID", p.Rule.RuleID, "response", cr, "cap", p.Capability, "conditionInfo", p.ConditionInfo, "client", p.Client)
 	return cr, nil
 
+}
+
+// matchDepLabelSelector evaluates the dep label selector on incident
+func matchDepLabelSelector(s *labels.LabelSelector[*Dep], inc IncidentContext, deps map[uri.URI][]*konveyor.Dep) (bool, error) {
+	// always match non dependency URIs or when there are no deps or no dep selector
+	if s == nil || deps == nil || len(deps) == 0 ||
+		strings.HasPrefix(string(inc.FileURI), uri.FileScheme) || inc.FileURI == "" {
+		return true, nil
+	}
+	matched := false
+	for _, depList := range deps {
+		depList, err := s.MatchList(depList)
+		if err != nil {
+			return false, err
+		}
+		for _, d := range depList {
+			if strings.HasPrefix(string(inc.FileURI), d.FileURIPrefix) {
+				matched = true
+			}
+		}
+	}
+	return matched, nil
 }
 
 func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([]byte, error) {

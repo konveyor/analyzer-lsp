@@ -51,9 +51,14 @@ func (p *golangProvider) Init(ctx context.Context, log logr.Logger, c provider.I
 		os.Setenv(k, v)
 	}
 
+	lspServerPath, ok := c.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
+	if !ok || lspServerPath == "" {
+		return nil, fmt.Errorf("invalid lspServerPath provided, unable to init go provider")
+	}
+
 	ctx, cancelFunc := context.WithCancel(ctx)
 	log = log.WithValues("provider", "golang")
-	cmd := exec.CommandContext(ctx, c.LSPServerPath)
+	cmd := exec.CommandContext(ctx, lspServerPath)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
