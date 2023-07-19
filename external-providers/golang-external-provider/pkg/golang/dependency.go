@@ -17,6 +17,17 @@ const (
 	golangDownloadableDepSourceLabel = "downloadable"
 )
 
+// createDepSourceLabel creates a dependency source label with the specified value.
+func createDepSourceLabel(label, value string) string {
+    return fmt.Sprintf("%s=%s", label, value)
+}
+
+// createDepLanguageLabel creates a dependency language label with the specified value.
+func createDepLanguageLabel(label, value string) string {
+    return fmt.Sprintf("%s=%s", label, value)
+}
+
+
 // TODO implement this for real
 func (g *golangServiceClient) findGoMod() string {
 	var depPath string
@@ -93,8 +104,13 @@ func parseGoDepString(dep string) (provider.Dep, error) {
 	d.Name = strings.TrimSpace(v[0])
 	d.Version = strings.TrimSpace(strings.ReplaceAll(v[1], "@", ""))
 	d.Labels = []string{
+<<<<<<< HEAD
 		labels.AsString(provider.DepSourceLabel,golangDownloadableDepSourceLabel),
 		labels.AsString(provider.DepLanguageLabel,"go"),
+=======
+		createDepSourceLabel(provider.DepSourceLabel, golangDownloadableDepSourceLabel),
+		createDepLanguageLabel(provider.DepLanguageLabel, "go"),
+>>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe
 	}
 	return d, nil
 }

@@ -22,12 +22,18 @@ type LabelSelector[T Labeled] struct {
 	language gval.Language
 }
 
+<<<<<<< HEAD
 //Helper function to refactor key value label manipulation
 func AsString(key, value string) string {
     if value == "" {
         return fmt.Sprintf("%s", key)
     }
     return fmt.Sprintf("%s=%s", key, value)
+=======
+// Helper function to refactor key value label manipulation
+func formatLabel(key, value string) string{
+	return fmt.Sprintf("%s=%s", key, value)
+>>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe
 }
 
 func (l *LabelSelector[T]) Matches(v T) (bool, error) {
@@ -200,7 +206,11 @@ func getBooleanExpression(expr string, compareLabels map[string][]string) string
 		for _, exprLabelVal := range exprLabelVals {
 			toReplace := exprLabelKey
 			if exprLabelVal != "" {
+<<<<<<< HEAD
 				toReplace = AsString(toReplace,exprLabelVal)
+=======
+				toReplace = formatLabel(toReplace,exprLabelVal)
+>>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe
 			}
 			if labelVals, ok := compareLabels[exprLabelKey]; !ok {
 				replaceMap[toReplace] = "false"
@@ -214,9 +224,9 @@ func getBooleanExpression(expr string, compareLabels map[string][]string) string
 	boolExpr := ""
 	for _, token := range tokenize(expr) {
 		if val, ok := replaceMap[token]; ok {
-			boolExpr = fmt.Sprintf("%s %s", boolExpr, val)
+			boolExpr = formatLabel(boolExpr,val)
 		} else {
-			boolExpr = fmt.Sprintf("%s %s", boolExpr, token)
+			boolExpr = formatLabel(boolExpr,token) 
 		}
 	}
 	boolExpr = strings.Trim(boolExpr, " ")
