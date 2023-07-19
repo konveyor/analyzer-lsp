@@ -17,19 +17,6 @@ const (
 )
 
 // TODO implement this for real
-func (g *genericServiceClient) findGoMod() string {
-	var depPath string
-	if g.config.DependencyPath == "" {
-		depPath = "go.mod"
-	} else {
-		depPath = g.config.DependencyPath
-	}
-	f, err := filepath.Abs(filepath.Join(g.config.Location, depPath))
-	if err != nil {
-		return ""
-	}
-	return f
-}
 
 func (g *genericServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
 	ll, err := g.GetDependenciesDAG()
@@ -52,16 +39,23 @@ func (g *genericServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepD
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 
-	path := g.findGoMod()
-	file := uri.File(path)
+	path := g.config.ProviderSpecificConfig["scriptPath"]
+	pathStr, terr := path.(string)
+	if terr {
+		return nil, fmt.Errorf("script path is not a string")
+	}
+	absPath, err := filepath.Abs(filepath.Join(g.config.Location, pathStr))
+	if err != nil {
+		return nil, err
+	}
 
-	moddir := filepath.Dir(path)
+	file := uri.File(absPath)
+
 	// get the graph output
 	buf := bytes.Buffer{}
-	cmd := exec.Command("go", "mod", "graph")
-	cmd.Dir = moddir
+	cmd := exec.Command("/bin/sh", absPath)
 	cmd.Stdout = &buf
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return nil, err
 	}

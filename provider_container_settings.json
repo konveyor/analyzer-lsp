@@ -8,6 +8,7 @@
             "analysisMode": "full",
             "providerSpecificConfig": {
                 "lspServerPath": "/root/go/bin/gopls"
+                "scriptPath": "examples/golang/dependency_script.sh"
             }
         }]
     },
