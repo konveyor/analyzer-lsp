@@ -272,6 +272,48 @@
           tags:
           - Golang
       extras: []
+    singleton-sessionbean-00001:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+        message: condition entries should evaluate out of order
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
+        lineNumber: 5
+        variables:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+          kind: Class
+          name: Singleton
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+        message: condition entries should evaluate out of order
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
+        lineNumber: 6
+        variables:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+          kind: Class
+          name: Bean
+      extras: []
+    singleton-sessionbean-00002:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+        message: condition entries should evaluate in order
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
+        lineNumber: 5
+        variables:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+          kind: Class
+          name: Singleton
+      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+        message: condition entries should evaluate in order
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
+        lineNumber: 6
+        variables:
+          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+          kind: Class
+          name: Bean
+      extras: []
     tech-tag-001:
       description: ""
       category: potential
