@@ -22,6 +22,11 @@ type LabelSelector[T Labeled] struct {
 	language gval.Language
 }
 
+// Helper function to refactor key value label manipulation
+func formatLabel(key, value string) string{
+	return fmt.Sprintf("%s=%s", key, value)
+}
+
 func (l *LabelSelector[T]) Matches(v T) (bool, error) {
 	ruleLabels, _ := ParseLabels(v.GetLabels())
 	expr := getBooleanExpression(l.expr, ruleLabels)
@@ -192,7 +197,7 @@ func getBooleanExpression(expr string, compareLabels map[string][]string) string
 		for _, exprLabelVal := range exprLabelVals {
 			toReplace := exprLabelKey
 			if exprLabelVal != "" {
-				toReplace = fmt.Sprintf("%s=%s", toReplace, exprLabelVal)
+				toReplace = formatLabel(toReplace,exprLabelVal)
 			}
 			if labelVals, ok := compareLabels[exprLabelKey]; !ok {
 				replaceMap[toReplace] = "false"
@@ -206,9 +211,9 @@ func getBooleanExpression(expr string, compareLabels map[string][]string) string
 	boolExpr := ""
 	for _, token := range tokenize(expr) {
 		if val, ok := replaceMap[token]; ok {
-			boolExpr = fmt.Sprintf("%s %s", boolExpr, val)
+			boolExpr = formatLabel(boolExpr,val)
 		} else {
-			boolExpr = fmt.Sprintf("%s %s", boolExpr, token)
+			boolExpr = formatLabel(boolExpr,token) 
 		}
 	}
 	boolExpr = strings.Trim(boolExpr, " ")
