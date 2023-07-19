@@ -151,7 +151,11 @@ func (a AndCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Con
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
-	for _, c := range a.Conditions {
+	conditions, err := sortConditionEntries(a.Conditions)
+	if err != nil {
+		return ConditionResponse{}, err
+	}
+	for _, c := range conditions {
 		if _, ok := condCtx.Template[c.From]; !ok && c.From != "" {
 			// Short circut w/ error here
 			// TODO: determine if this is the right thing, I am assume the full rule should fail here
@@ -206,7 +210,11 @@ func (o OrCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Cond
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
-	for _, c := range o.Conditions {
+	conditions, err := sortConditionEntries(o.Conditions)
+	if err != nil {
+		return ConditionResponse{}, err
+	}
+	for _, c := range conditions {
 		if _, ok := condCtx.Template[c.From]; !ok && c.From != "" {
 			// Short circut w/ error here
 			// TODO: determine if this is the right thing, I am assume the full rule should fail here
@@ -266,6 +274,47 @@ func incidentsToFilepaths(incident []IncidentContext) []string {
 		filepaths = append(filepaths, ic.FileURI.Filename())
 	}
 	return filepaths
+}
+
+func sortConditionEntries(entries []ConditionEntry) ([]ConditionEntry, error) {
+	sorted := []ConditionEntry{}
+	as := map[string]bool{}
+	from := map[string]bool{}
+
+	for _, e := range entries {
+		// entries without chaining or that begin a chain come first
+		if e.As == "" && e.From == "" {
+			sorted = append(sorted, e)
+		} else if e.As != "" && e.From == "" {
+			sorted = append(sorted, e)
+			sorted = append(sorted, getDependents(e.As, entries)...)
+		}
+		// collecting these so we can verify there are no Froms declared without a matching As
+		if e.As != "" {
+			as[e.As] = true
+		}
+		if e.From != "" {
+			from[e.From] = true
+		}
+	}
+	for k, _ := range from {
+		if _, ok := as[k]; !ok {
+			return entries, fmt.Errorf("unable to find context key '%s'", k)
+		}
+	}
+
+	return sorted, nil
+}
+
+func getDependents(as string, entries []ConditionEntry) []ConditionEntry {
+	dependents := []ConditionEntry{}
+	for _, d := range entries {
+		if as == d.From && as != "" {
+			dependents = append(dependents, d)
+			dependents = append(dependents, getDependents(d.As, entries)...)
+		}
+	}
+	return dependents
 }
 
 // Chain Templates are used by rules and providers to pass context around during rule execution.
