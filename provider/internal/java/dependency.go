@@ -26,6 +26,11 @@ const (
 	providerSpecificConfigExcludePackagesKey   = "excludePackages"
 )
 
+// createDepLabelItem creates a label item with the provided key-value pair.
+func createDepLabelItem(key, value string) string {
+    return fmt.Sprintf("%s=%s", key, value)
+}
+
 // TODO implement this for real
 func (p *javaServiceClient) findPom() string {
 	var depPath string
@@ -281,11 +286,11 @@ func (p *javaServiceClient) addDepLabels(depName string) []string {
 	}
 	// if open source label is not found, qualify the dep as being internal by default
 	if _, openSourceLabelFound :=
-		m[fmt.Sprintf("%s=%s", provider.DepSourceLabel, javaDepSourceOpenSource)]; !openSourceLabelFound {
+		m[createDepLabelItem(provider.DepSourceLabel,javaDepSourceOpenSource)]; !openSourceLabelFound {
 		s = append(s,
-			fmt.Sprintf("%s=%s", provider.DepSourceLabel, javaDepSourceInternal))
+			createDepLabelItem(provider.DepSourceLabel,javaDepSourceInternal))
 	}
-	s = append(s, fmt.Sprintf("%s=java", provider.DepLanguageLabel))
+	s = append(s, createDepLabelItem(provider.DepLanguageLabel,"java"))
 	return s
 }
 
@@ -367,8 +372,7 @@ func (p *javaServiceClient) initOpenSourceDepLabels() error {
 	if err != nil {
 		return err
 	}
-	return loadDepLabelItems(file, p.depToLabels,
-		fmt.Sprintf("%s=%s", provider.DepSourceLabel, javaDepSourceOpenSource))
+	return loadDepLabelItems(file, p.depToLabels, createDepLabelItem(provider.DepSourceLabel, javaDepSourceOpenSource))
 }
 
 // initExcludeDepLabels reads user provided list of excluded packages
