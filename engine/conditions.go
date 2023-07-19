@@ -274,26 +274,22 @@ func sortConditionEntries(entries []ConditionEntry) []ConditionEntry {
 	sorted := []ConditionEntry{}
 	for _, e := range entries {
 		// entries without chaining or that begin a chain come first
-		if e.As == "" && e.From == "" {
-			sorted = append(sorted, e)
-		} else if e.As != "" && e.From == "" {
-			sorted = append(sorted, e)
-			sorted = append(sorted, getDependents(e.As, entries)...)
+		if e.From == "" {
+			sorted = append(sorted, gatherChain(e, entries)...)
 		}
 	}
 
 	return sorted
 }
 
-func getDependents(as string, entries []ConditionEntry) []ConditionEntry {
-	dependents := []ConditionEntry{}
+func gatherChain(start ConditionEntry, entries []ConditionEntry) []ConditionEntry {
+	chain := []ConditionEntry{start}
 	for _, d := range entries {
-		if as == d.From && as != "" {
-			dependents = append(dependents, d)
-			dependents = append(dependents, getDependents(d.As, entries)...)
+		if start.As == d.From && start.As != "" {
+			chain = append(chain, gatherChain(d, entries)...)
 		}
 	}
-	return dependents
+	return chain
 }
 
 // Chain Templates are used by rules and providers to pass context around during rule execution.
