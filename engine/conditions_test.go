@@ -236,42 +236,10 @@ func Test_sortConditionEntries(t *testing.T) {
 					As: "a",
 				},
 			},
-		}, {
-			title:       "From with no matching As should cause error",
-			shouldError: true,
-			entries: []ConditionEntry{
-				ConditionEntry{
-					As: "a",
-				},
-				ConditionEntry{
-					From: "a",
-					As:   "b",
-				},
-				ConditionEntry{
-					From: "d",
-					As:   "e",
-				},
-			},
-		},
-	}
+		}}
 	for _, tt := range tests {
 		t.Run(tt.title, func(t *testing.T) {
-			sorted, err := sortConditionEntries(tt.entries)
-
-			if !tt.shouldError && err != nil {
-				t.Errorf("expected no error but saw '%v'", err)
-				return
-			}
-
-			if tt.shouldError && err == nil {
-				t.Error("expected an error but no error was thrown")
-				return
-			}
-
-			if tt.shouldError {
-				// return here since we know we failed successfully
-				return
-			}
+			sorted := sortConditionEntries(tt.entries)
 
 			if !reflect.DeepEqual(sorted, tt.expected) {
 				t.Errorf("expected '%+v', got '%+v'", tt.expected, sorted)

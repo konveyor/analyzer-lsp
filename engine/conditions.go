@@ -151,10 +151,7 @@ func (a AndCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Con
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
-	conditions, err := sortConditionEntries(a.Conditions)
-	if err != nil {
-		return ConditionResponse{}, err
-	}
+	conditions := sortConditionEntries(a.Conditions)
 	for _, c := range conditions {
 		if _, ok := condCtx.Template[c.From]; !ok && c.From != "" {
 			// Short circut w/ error here
@@ -210,10 +207,7 @@ func (o OrCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Cond
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
-	conditions, err := sortConditionEntries(o.Conditions)
-	if err != nil {
-		return ConditionResponse{}, err
-	}
+	conditions := sortConditionEntries(o.Conditions)
 	for _, c := range conditions {
 		if _, ok := condCtx.Template[c.From]; !ok && c.From != "" {
 			// Short circut w/ error here
@@ -276,11 +270,8 @@ func incidentsToFilepaths(incident []IncidentContext) []string {
 	return filepaths
 }
 
-func sortConditionEntries(entries []ConditionEntry) ([]ConditionEntry, error) {
+func sortConditionEntries(entries []ConditionEntry) []ConditionEntry {
 	sorted := []ConditionEntry{}
-	as := map[string]bool{}
-	from := map[string]bool{}
-
 	for _, e := range entries {
 		// entries without chaining or that begin a chain come first
 		if e.As == "" && e.From == "" {
@@ -289,21 +280,9 @@ func sortConditionEntries(entries []ConditionEntry) ([]ConditionEntry, error) {
 			sorted = append(sorted, e)
 			sorted = append(sorted, getDependents(e.As, entries)...)
 		}
-		// collecting these so we can verify there are no Froms declared without a matching As
-		if e.As != "" {
-			as[e.As] = true
-		}
-		if e.From != "" {
-			from[e.From] = true
-		}
-	}
-	for k, _ := range from {
-		if _, ok := as[k]; !ok {
-			return entries, fmt.Errorf("unable to find context key '%s'", k)
-		}
 	}
 
-	return sorted, nil
+	return sorted
 }
 
 func getDependents(as string, entries []ConditionEntry) []ConditionEntry {
