@@ -288,11 +288,19 @@ func (p *javaServiceClient) addDepLabels(depName string) []string {
 	// if open source label is not found, qualify the dep as being internal by default
 	if _, openSourceLabelFound :=
 <<<<<<< HEAD
+<<<<<<< HEAD
 		m[labels.AsString(provider.DepSourceLabel,javaDepSourceOpenSource)]; !openSourceLabelFound {
 		s = append(s,
 			labels.AsString(provider.DepSourceLabel,javaDepSourceInternal))
 	}
 	s = append(s, labels.AsString(provider.DepLanguageLabel,"java"))
+=======
+		m[createDepLabelItem(provider.DepSourceLabel,javaDepSourceOpenSource)]; !openSourceLabelFound {
+		s = append(s,
+			createDepLabelItem(provider.DepSourceLabel,javaDepSourceInternal))
+	}
+	s = append(s, createDepLabelItem(provider.DepLanguageLabel,"java"))
+>>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe
 =======
 		m[createDepLabelItem(provider.DepSourceLabel,javaDepSourceOpenSource)]; !openSourceLabelFound {
 		s = append(s,
@@ -382,8 +390,12 @@ func (p *javaServiceClient) initOpenSourceDepLabels() error {
 		return err
 	}
 <<<<<<< HEAD
+<<<<<<< HEAD
 	return loadDepLabelItems(file, p.depToLabels,
 		labels.AsString(provider.DepSourceLabel,javaDepSourceOpenSource))
+=======
+	return loadDepLabelItems(file, p.depToLabels, createDepLabelItem(provider.DepSourceLabel, javaDepSourceOpenSource))
+>>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe
 =======
 	return loadDepLabelItems(file, p.depToLabels, createDepLabelItem(provider.DepSourceLabel, javaDepSourceOpenSource))
 >>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe

@@ -105,8 +105,13 @@ func parseGoDepString(dep string) (provider.Dep, error) {
 	d.Version = strings.TrimSpace(strings.ReplaceAll(v[1], "@", ""))
 	d.Labels = []string{
 <<<<<<< HEAD
+<<<<<<< HEAD
 		labels.AsString(provider.DepSourceLabel,golangDownloadableDepSourceLabel),
 		labels.AsString(provider.DepLanguageLabel,"go"),
+=======
+		createDepSourceLabel(provider.DepSourceLabel, golangDownloadableDepSourceLabel),
+		createDepLanguageLabel(provider.DepLanguageLabel, "go"),
+>>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe
 =======
 		createDepSourceLabel(provider.DepSourceLabel, golangDownloadableDepSourceLabel),
 		createDepLanguageLabel(provider.DepLanguageLabel, "go"),

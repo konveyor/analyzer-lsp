@@ -23,12 +23,18 @@ type LabelSelector[T Labeled] struct {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 //Helper function to refactor key value label manipulation
 func AsString(key, value string) string {
     if value == "" {
         return fmt.Sprintf("%s", key)
     }
     return fmt.Sprintf("%s=%s", key, value)
+=======
+// Helper function to refactor key value label manipulation
+func formatLabel(key, value string) string{
+	return fmt.Sprintf("%s=%s", key, value)
+>>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe
 =======
 // Helper function to refactor key value label manipulation
 func formatLabel(key, value string) string{
@@ -207,7 +213,11 @@ func getBooleanExpression(expr string, compareLabels map[string][]string) string
 			toReplace := exprLabelKey
 			if exprLabelVal != "" {
 <<<<<<< HEAD
+<<<<<<< HEAD
 				toReplace = AsString(toReplace,exprLabelVal)
+=======
+				toReplace = formatLabel(toReplace,exprLabelVal)
+>>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe
 =======
 				toReplace = formatLabel(toReplace,exprLabelVal)
 >>>>>>> 5d4e9ee20df94d06832dd0fbf058987f81105bbe
