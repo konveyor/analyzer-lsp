@@ -22,12 +22,12 @@ type LabelSelector[T Labeled] struct {
 	language gval.Language
 }
 
-//  Helper function to refactor key value label manipulation
-func AsString(key,value string) string{
-	if value == ""{
-		return fmt.Sprintf("%s",key)
+// Helper function to refactor key value label manipulation
+func AsString(key, value string) string {
+	if value == "" {
+		return fmt.Sprintf("%s", key)
 	}
-	return fmt.Sprintf("%s=%s",key,value)
+	return fmt.Sprintf("%s=%s", key, value)
 }
 
 func (l *LabelSelector[T]) Matches(v T) (bool, error) {
@@ -200,7 +200,7 @@ func getBooleanExpression(expr string, compareLabels map[string][]string) string
 		for _, exprLabelVal := range exprLabelVals {
 			toReplace := exprLabelKey
 			if exprLabelVal != "" {
-				toReplace = AsString(toReplace,exprLabelVal)
+				toReplace = AsString(toReplace, exprLabelVal)
 			}
 			if labelVals, ok := compareLabels[exprLabelKey]; !ok {
 				replaceMap[toReplace] = "false"

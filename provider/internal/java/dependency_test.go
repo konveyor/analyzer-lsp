@@ -56,7 +56,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 						ResolvedIdentifier: "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
 						Labels: []string{
 							labels.AsString(provider.DepSourceLabel, "internal"),
-							labels.AsString(provider.DepLanguageLabel,"java"),
+							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
 						FileURIPrefix: "konveyor-jdt://contentstestdata/junit/junit/4.11",
 					},
@@ -70,7 +70,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "42a25dc3219429f0e5d060061f71acb49bf010a0",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/org/hamcrest/hamcrest-core/1.3",
 							},
@@ -86,7 +86,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 						ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
 						Labels: []string{
 							labels.AsString(provider.DepSourceLabel, "internal"),
-							labels.AsString(provider.DepLanguageLabel,"java"),
+							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
 						FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-client/6.0.0",
 					},
@@ -100,7 +100,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "70690b98acb07a809c55d15d7cf45f53ec1026e1",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
@@ -114,7 +114,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "d3e1ce1d2b3119adf270b2d00d947beb03fe3321",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/okhttp/3.12.12",
 							},
@@ -128,7 +128,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "bc28b5a964c8f5721eb58ee3f3c47a9bcbf4f4d8",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okio/okio/1.15.0",
 							},
@@ -142,7 +142,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "d952189f6abb148ff72aab246aa8c28cf99b469f",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
@@ -156,7 +156,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "d3ebf0f291297649b4c8dc3ecc81d2eddedc100d",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/zjsonpatch/0.3.0",
 							},
@@ -191,7 +191,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 						ResolvedIdentifier: "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
 						Labels: []string{
 							labels.AsString(provider.DepSourceLabel, "open-source"),
-							labels.AsString(provider.DepLanguageLabel,"java"),
+							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
 						FileURIPrefix: "konveyor-jdt://contentstestdata/junit/junit/4.11",
 					},
@@ -204,9 +204,9 @@ func Test_parseMavenDepLines(t *testing.T) {
 								Indirect:           true,
 								ResolvedIdentifier: "42a25dc3219429f0e5d060061f71acb49bf010a0",
 								Labels: []string{
-									labels.AsString(provider.DepExcludeLabel,""),
+									labels.AsString(provider.DepExcludeLabel, ""),
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/org/hamcrest/hamcrest-core/1.3",
 							},
@@ -222,7 +222,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 						ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
 						Labels: []string{
 							labels.AsString(provider.DepSourceLabel, "internal"),
-							labels.AsString(provider.DepLanguageLabel,"java"),
+							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
 						FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-client/6.0.0",
 					},
@@ -236,7 +236,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "70690b98acb07a809c55d15d7cf45f53ec1026e1",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
@@ -250,7 +250,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "d3e1ce1d2b3119adf270b2d00d947beb03fe3321",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/okhttp/3.12.12",
 							},
@@ -264,7 +264,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "bc28b5a964c8f5721eb58ee3f3c47a9bcbf4f4d8",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okio/okio/1.15.0",
 							},
@@ -278,7 +278,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "d952189f6abb148ff72aab246aa8c28cf99b469f",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
@@ -292,7 +292,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 								ResolvedIdentifier: "d3ebf0f291297649b4c8dc3ecc81d2eddedc100d",
 								Labels: []string{
 									labels.AsString(provider.DepSourceLabel, "internal"),
-									labels.AsString(provider.DepLanguageLabel,"java"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
 								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/zjsonpatch/0.3.0",
 							},

@@ -282,11 +282,11 @@ func (p *javaServiceClient) addDepLabels(depName string) []string {
 	}
 	// if open source label is not found, qualify the dep as being internal by default
 	if _, openSourceLabelFound :=
-		m[ labels.AsString(provider.DepSourceLabel,javaDepSourceOpenSource)]; !openSourceLabelFound {
+		m[labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource)]; !openSourceLabelFound {
 		s = append(s,
-			labels.AsString(provider.DepSourceLabel,javaDepSourceInternal))
+			labels.AsString(provider.DepSourceLabel, javaDepSourceInternal))
 	}
-	s = append(s, labels.AsString(provider.DepLanguageLabel,"java"))
+	s = append(s, labels.AsString(provider.DepLanguageLabel, "java"))
 	return s
 }
 
