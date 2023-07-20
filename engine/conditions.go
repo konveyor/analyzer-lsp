@@ -151,7 +151,8 @@ func (a AndCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Con
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
-	for _, c := range a.Conditions {
+	conditions := sortConditionEntries(a.Conditions)
+	for _, c := range conditions {
 		if _, ok := condCtx.Template[c.From]; !ok && c.From != "" {
 			// Short circut w/ error here
 			// TODO: determine if this is the right thing, I am assume the full rule should fail here
@@ -206,7 +207,8 @@ func (o OrCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Cond
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
-	for _, c := range o.Conditions {
+	conditions := sortConditionEntries(o.Conditions)
+	for _, c := range conditions {
 		if _, ok := condCtx.Template[c.From]; !ok && c.From != "" {
 			// Short circut w/ error here
 			// TODO: determine if this is the right thing, I am assume the full rule should fail here
@@ -266,6 +268,28 @@ func incidentsToFilepaths(incident []IncidentContext) []string {
 		filepaths = append(filepaths, ic.FileURI.Filename())
 	}
 	return filepaths
+}
+
+func sortConditionEntries(entries []ConditionEntry) []ConditionEntry {
+	sorted := []ConditionEntry{}
+	for _, e := range entries {
+		// entries without chaining or that begin a chain come first
+		if e.From == "" {
+			sorted = append(sorted, gatherChain(e, entries)...)
+		}
+	}
+
+	return sorted
+}
+
+func gatherChain(start ConditionEntry, entries []ConditionEntry) []ConditionEntry {
+	chain := []ConditionEntry{start}
+	for _, d := range entries {
+		if start.As == d.From && start.As != "" {
+			chain = append(chain, gatherChain(d, entries)...)
+		}
+	}
+	return chain
 }
 
 // Chain Templates are used by rules and providers to pass context around during rule execution.
