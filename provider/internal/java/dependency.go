@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/antchfx/xmlquery"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
@@ -281,11 +282,11 @@ func (p *javaServiceClient) addDepLabels(depName string) []string {
 	}
 	// if open source label is not found, qualify the dep as being internal by default
 	if _, openSourceLabelFound :=
-		m[fmt.Sprintf("%s=%s", provider.DepSourceLabel, javaDepSourceOpenSource)]; !openSourceLabelFound {
+		m[labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource)]; !openSourceLabelFound {
 		s = append(s,
-			fmt.Sprintf("%s=%s", provider.DepSourceLabel, javaDepSourceInternal))
+			labels.AsString(provider.DepSourceLabel, javaDepSourceInternal))
 	}
-	s = append(s, fmt.Sprintf("%s=java", provider.DepLanguageLabel))
+	s = append(s, labels.AsString(provider.DepLanguageLabel, "java"))
 	return s
 }
 
@@ -368,7 +369,7 @@ func (p *javaServiceClient) initOpenSourceDepLabels() error {
 		return err
 	}
 	return loadDepLabelItems(file, p.depToLabels,
-		fmt.Sprintf("%s=%s", provider.DepSourceLabel, javaDepSourceOpenSource))
+		labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource))
 }
 
 // initExcludeDepLabels reads user provided list of excluded packages

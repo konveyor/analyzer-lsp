@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 )
@@ -92,8 +93,8 @@ func parseGoDepString(dep string) (provider.Dep, error) {
 	d.Name = strings.TrimSpace(v[0])
 	d.Version = strings.TrimSpace(strings.ReplaceAll(v[1], "@", ""))
 	d.Labels = []string{
-		fmt.Sprintf("%v=%v", provider.DepSourceLabel, golangDownloadableDepSourceLabel),
-		fmt.Sprintf("%s=go", provider.DepLanguageLabel),
+		labels.AsString(provider.DepSourceLabel,golangDownloadableDepSourceLabel),
+		labels.AsString(provider.DepLanguageLabel,"go"),
 	}
 	return d, nil
 }
