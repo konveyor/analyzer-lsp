@@ -1,0 +1,12 @@
+name: Prepare for release
+on:
+  create:
+    branches:
+    - "release-*.*"
+jobs:
+  release-prep:
+    uses: konveyor/release-tools/.github/workflows/prep-release.yaml@main
+    with:
+      images_to_update: '["quay.io/konveyor/jdtls-server-base"]'
+      branch_ref: ${{ github.ref }}
+
