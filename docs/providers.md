@@ -41,11 +41,11 @@ Here's an example config for a external `go` provider that is initialized using 
     "binaryPath": "/path/to/generic/provider/binary",
     "initConfig": [
         {
-            "location": "/path/to/application/source/or/binary",
+            "location": "/path/to/application/source/code",
             "analysisMode": "full",
             "providerSpecificConfig": {
                 "name": "go",
-                "lspServerPath": "/path/to/language/server/bin/gopls",
+                "lspServerPath": "/path/to/language/server/binary",
                 "dependencyProviderPath": "/path/to/dependency/provider/binary"
             }
         }
