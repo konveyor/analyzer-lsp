@@ -57,8 +57,7 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 	}
 
 	ctx, cancelFunc := context.WithCancel(ctx)
-	// TODO: change golang
-	log = log.WithValues("provider", "golang")
+	log = log.WithValues("provider", c.ProviderSpecificConfig["name"])
 	cmd := exec.CommandContext(ctx, lspServerPath)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
