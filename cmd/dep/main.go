@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -13,23 +12,39 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
 
 var (
-	providerSettings = flag.String("provider-settings", "provider_settings.json", "path to provider settings file")
-	treeOutput       = flag.Bool("tree", false, "output dependencies as a tree")
-	outputFile       = flag.String("output-file", "output.yaml", "path to output file")
-	depLabelSelector = flag.String("dep-label-selector", "", "an expression to select dependencies based on labels provided by the provider")
+	providerSettings string
+	treeOutput       bool
+	outputFile       string
+	depLabelSelector string
+
+	rootCmd = &cobra.Command{
+		Use:   "analyze",
+		Short: "Tool for working with analyzer-lsp",
+		Run:   func(c *cobra.Command, args []string) {},
+	}
 )
 
+func init() {
+	rootCmd.Flags().StringVar(&providerSettings, "provider-settings", "provider_settings.json", "path to the provider settings")
+	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
+	rootCmd.Flags().StringVar(&outputFile, "output-file", "output.yaml", "path to output file")
+	rootCmd.Flags().StringVar(&depLabelSelector, "dep-label-selector", "", "an expression to select dependencies based on labels provided by the provider")
+}
+
 func main() {
+	if err := rootCmd.Execute(); err != nil {
+		println(err.Error())
+	}
+
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
 	log := logrusr.New(logrusLog)
-
-	flag.Parse()
 
 	err := validateFlags()
 	if err != nil {
@@ -43,7 +58,7 @@ func main() {
 	providers := map[string]provider.Client{}
 
 	// Get the configs
-	configs, err := provider.GetConfig(*providerSettings)
+	configs, err := provider.GetConfig(providerSettings)
 	if err != nil {
 		log.Error(err, "unable to get configuration")
 		os.Exit(1)
@@ -78,7 +93,7 @@ func main() {
 			continue
 		}
 
-		if *treeOutput {
+		if treeOutput {
 			deps, err := prov.GetDependenciesDAG()
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
@@ -99,8 +114,8 @@ func main() {
 			}
 			for u, ds := range deps {
 				newDeps := ds
-				if depLabelSelector != nil && *depLabelSelector != "" {
-					l, err := labels.NewLabelSelector[*konveyor.Dep](*depLabelSelector)
+				if depLabelSelector != "" {
+					l, err := labels.NewLabelSelector[*konveyor.Dep](depLabelSelector)
 					if err != nil {
 						panic(err)
 					}
@@ -124,7 +139,7 @@ func main() {
 	}
 
 	var b []byte
-	if *treeOutput {
+	if treeOutput {
 		b, err = yaml.Marshal(depsTree)
 		if err != nil {
 			log.Error(err, "failed to marshal dependency data as yaml")
@@ -149,15 +164,15 @@ func main() {
 
 	fmt.Printf("%s", string(b))
 
-	err = os.WriteFile(*outputFile, b, 0644)
+	err = os.WriteFile(outputFile, b, 0644)
 	if err != nil {
-		log.Error(err, "failed to write dependencies to output file", "file", *outputFile)
+		log.Error(err, "failed to write dependencies to output file", "file", outputFile)
 		os.Exit(1)
 	}
 }
 
 func validateFlags() error {
-	_, err := os.Stat(*providerSettings)
+	_, err := os.Stat(providerSettings)
 	if err != nil {
 		return fmt.Errorf("unable to find provider settings file")
 	}
