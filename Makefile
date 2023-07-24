@@ -9,7 +9,7 @@ external-generic:
 	( cd external-providers/generic-external-provider && go build -o generic-external-provider main.go)
 
 golang-dependency-provider:
-	( cd external-providers/golang-dependency-provider && go build -o golang-dependency-provider main.go)
+	go build -o ./external-providers/golang-dependency-provider/golang-dependency-provider ./external-providers/golang-dependency-provider/main.go
 
 deps:
 	go build -o konveyor-analyzer-dep ./cmd/dep/main.go
