@@ -66,11 +66,6 @@
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
-  - name: github.com/modern-go/reflect2
-    version: v1.0.2
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
   - name: golang.org/x/net
     version: v0.0.0-20220127200216-cd36cc0744dd
     labels:
@@ -83,11 +78,6 @@
     - konveyor.io/language=go
   - name: golang.org/x/term
     version: v0.0.0-20210927222741-03fcf44c2211
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: golang.org/x/text
-    version: v0.3.7
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
@@ -126,11 +116,6 @@
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
-  - name: github.com/gogo/protobuf
-    version: v1.3.2
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
   - name: github.com/google/cel-go
     version: v0.10.1
     labels:
@@ -143,11 +128,6 @@
     - konveyor.io/language=go
   - name: github.com/google/go-cmp
     version: v0.5.5
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/google/gofuzz
-    version: v1.1.0
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
@@ -198,11 +178,6 @@
     - konveyor.io/language=go
   - name: google.golang.org/protobuf
     version: v1.27.1
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: gopkg.in/yaml.v2
-    version: v2.4.0
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
@@ -266,18 +241,8 @@
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
-  - name: k8s.io/apimachinery
-    version: v0.24.4
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
   - name: github.com/armon/go-socks5
     version: v0.0.0-20160902184237-e75332964ef5
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/davecgh/go-spew
-    version: v1.1.1
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
@@ -291,38 +256,8 @@
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
-  - name: github.com/gogo/protobuf
-    version: v1.3.2
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
   - name: github.com/golang/protobuf
     version: v1.5.2
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/google/gnostic
-    version: v0.5.7-v3refs
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/google/go-cmp
-    version: v0.5.5
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/google/gofuzz
-    version: v1.1.0
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/google/uuid
-    version: v1.1.2
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/json-iterator/go
-    version: v1.1.12
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
@@ -356,28 +291,8 @@
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
-  - name: github.com/spf13/pflag
-    version: v1.0.5
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/stretchr/testify
-    version: v1.7.0
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: golang.org/x/net
-    version: v0.0.0-20220127200216-cd36cc0744dd
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
   - name: golang.org/x/sys
     version: v0.0.0-20220209214540-3681064d5158
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: google.golang.org/protobuf
-    version: v1.27.1
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
@@ -386,73 +301,8 @@
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
-  - name: gopkg.in/inf.v0
-    version: v0.9.1
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: gopkg.in/yaml.v2
-    version: v2.4.0
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: k8s.io/klog/v2
-    version: v2.60.1
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: k8s.io/kube-openapi
-    version: v0.0.0-20220328201542-3ee0da9b0b42
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: k8s.io/utils
-    version: v0.0.0-20220210201930-3a6ce19ff2f9
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: sigs.k8s.io/json
-    version: v0.0.0-20211208200746-9f7c6b3444d2
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: sigs.k8s.io/structured-merge-diff/v4
-    version: v4.2.1
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: sigs.k8s.io/yaml
-    version: v1.2.0
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: k8s.io/klog/v2
-    version: v2.60.1
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/go-logr/logr
-    version: v1.2.0
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: k8s.io/utils
-    version: v0.0.0-20220210201930-3a6ce19ff2f9
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/davecgh/go-spew
-    version: v1.1.1
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
   - name: github.com/spf13/afero
     version: v1.2.2
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/stretchr/testify
-    version: v1.3.0
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
@@ -461,23 +311,8 @@
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
-  - name: sigs.k8s.io/json
-    version: v0.0.0-20211208200746-9f7c6b3444d2
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: sigs.k8s.io/structured-merge-diff/v4
-    version: v4.2.1
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
   - name: gopkg.in/yaml.v2
     version: v2.2.8
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
-  - name: github.com/google/gofuzz
-    version: v1.0.0
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
@@ -486,21 +321,263 @@
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
-  - name: github.com/modern-go/concurrent
-    version: v0.0.0-20180306012644-bacd9c7ef1dd
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
   - name: github.com/modern-go/reflect2
     version: v1.0.1
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
-  - name: github.com/stretchr/testify
-    version: v1.3.0
-    labels:
-    - konveyor.io/dep-source=downloadable
-    - konveyor.io/language=go
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/FastInfoset-1.2.15.jar/FastInfoset-1.2.15.jar
+  provider: java
+  dependencies:
+  - name: FastInfoset-1.2.15.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/HdrHistogram-2.1.12.jar/HdrHistogram-2.1.12.jar
+  provider: java
+  dependencies:
+  - name: HdrHistogram-2.1.12.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/LatencyUtils-2.0.3.jar/LatencyUtils-2.0.3.jar
+  provider: java
+  dependencies:
+  - name: LatencyUtils-2.0.3.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/antlr-2.7.7.jar/antlr-2.7.7.jar
+  provider: java
+  dependencies:
+  - name: antlr-2.7.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/aspectjrt-1.9.6.jar/aspectjrt-1.9.6.jar
+  provider: java
+  dependencies:
+  - name: aspectjrt-1.9.6.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/byte-buddy-1.10.22.jar/byte-buddy-1.10.22.jar
+  provider: java
+  dependencies:
+  - name: byte-buddy-1.10.22.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/checker-qual-3.5.0.jar/checker-qual-3.5.0.jar
+  provider: java
+  dependencies:
+  - name: checker-qual-3.5.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/classmate-1.5.1.jar/classmate-1.5.1.jar
+  provider: java
+  dependencies:
+  - name: classmate-1.5.1.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/config-utils-1.0.0.jar/config-utils-1.0.0.jar
+  provider: java
+  dependencies:
+  - name: config-utils-1.0.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/dom4j-2.1.3.jar/dom4j-2.1.3.jar
+  provider: java
+  dependencies:
+  - name: dom4j-2.1.3.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/hibernate-commons-annotations-5.1.2.Final.jar/hibernate-commons-annotations-5.1.2.Final.jar
+  provider: java
+  dependencies:
+  - name: hibernate-commons-annotations-5.1.2.Final.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/hibernate-core-5.4.32.Final.jar/hibernate-core-5.4.32.Final.jar
+  provider: java
+  dependencies:
+  - name: hibernate-core-5.4.32.Final.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/hibernate-entitymanager-5.4.32.Final.jar/hibernate-entitymanager-5.4.32.Final.jar
+  provider: java
+  dependencies:
+  - name: hibernate-entitymanager-5.4.32.Final.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/hibernate-validator-6.2.0.Final.jar/hibernate-validator-6.2.0.Final.jar
+  provider: java
+  dependencies:
+  - name: hibernate-validator-6.2.0.Final.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/istack-commons-runtime-3.0.7.jar/istack-commons-runtime-3.0.7.jar
+  provider: java
+  dependencies:
+  - name: istack-commons-runtime-3.0.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jackson-annotations-2.12.3.jar/jackson-annotations-2.12.3.jar
+  provider: java
+  dependencies:
+  - name: jackson-annotations-2.12.3.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jackson-core-2.12.3.jar/jackson-core-2.12.3.jar
+  provider: java
+  dependencies:
+  - name: jackson-core-2.12.3.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jackson-databind-2.12.3.jar/jackson-databind-2.12.3.jar
+  provider: java
+  dependencies:
+  - name: jackson-databind-2.12.3.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jackson-datatype-jsr310-2.12.3.jar/jackson-datatype-jsr310-2.12.3.jar
+  provider: java
+  dependencies:
+  - name: jackson-datatype-jsr310-2.12.3.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jakarta.annotation-api-1.3.5.jar/jakarta.annotation-api-1.3.5.jar
+  provider: java
+  dependencies:
+  - name: jakarta.annotation-api-1.3.5.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jakarta.validation-api-2.0.2.jar/jakarta.validation-api-2.0.2.jar
+  provider: java
+  dependencies:
+  - name: jakarta.validation-api-2.0.2.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jandex-2.2.3.Final.jar/jandex-2.2.3.Final.jar
+  provider: java
+  dependencies:
+  - name: jandex-2.2.3.Final.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/javassist-3.27.0-GA.jar/javassist-3.27.0-GA.jar
+  provider: java
+  dependencies:
+  - name: javassist-3.27.0-GA.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/javax.activation-api-1.2.0.jar/javax.activation-api-1.2.0.jar
+  provider: java
+  dependencies:
+  - name: javax.activation-api-1.2.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/javax.persistence-api-2.2.jar/javax.persistence-api-2.2.jar
+  provider: java
+  dependencies:
+  - name: javax.persistence-api-2.2.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jaxb-api-2.3.1.jar/jaxb-api-2.3.1.jar
+  provider: java
+  dependencies:
+  - name: jaxb-api-2.3.1.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jaxb-runtime-2.3.1.jar/jaxb-runtime-2.3.1.jar
+  provider: java
+  dependencies:
+  - name: jaxb-runtime-2.3.1.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jboss-logging-3.4.1.Final.jar/jboss-logging-3.4.1.Final.jar
+  provider: java
+  dependencies:
+  - name: jboss-logging-3.4.1.Final.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jboss-transaction-api_1.2_spec-1.1.1.Final.jar/jboss-transaction-api_1.2_spec-1.1.1.Final.jar
+  provider: java
+  dependencies:
+  - name: jboss-transaction-api_1.2_spec-1.1.1.Final.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/jul-to-slf4j-1.7.30.jar/jul-to-slf4j-1.7.30.jar
+  provider: java
+  dependencies:
+  - name: jul-to-slf4j-1.7.30.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/log4j-api-2.14.1.jar/log4j-api-2.14.1.jar
+  provider: java
+  dependencies:
+  - name: log4j-api-2.14.1.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/log4j-to-slf4j-2.14.1.jar/log4j-to-slf4j-2.14.1.jar
+  provider: java
+  dependencies:
+  - name: log4j-to-slf4j-2.14.1.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/logback-classic-1.1.7.jar/logback-classic-1.1.7.jar
+  provider: java
+  dependencies:
+  - name: logback-classic-1.1.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/logback-core-1.1.7.jar/logback-core-1.1.7.jar
+  provider: java
+  dependencies:
+  - name: logback-core-1.1.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/micrometer-core-1.7.0.jar/micrometer-core-1.7.0.jar
+  provider: java
+  dependencies:
+  - name: micrometer-core-1.7.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/ojdbc8-21.1.0.0.jar/ojdbc8-21.1.0.0.jar
+  provider: java
+  dependencies:
+  - name: ojdbc8-21.1.0.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/postgresql-42.2.23.jar/postgresql-42.2.23.jar
+  provider: java
+  dependencies:
+  - name: postgresql-42.2.23.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/slf4j-api-1.7.26.jar/slf4j-api-1.7.26.jar
+  provider: java
+  dependencies:
+  - name: slf4j-api-1.7.26.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/snakeyaml-1.28.jar/snakeyaml-1.28.jar
+  provider: java
+  dependencies:
+  - name: snakeyaml-1.28.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-aop-5.3.7.jar/spring-aop-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-aop-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-beans-5.3.7.jar/spring-beans-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-beans-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-boot-2.5.0.jar/spring-boot-2.5.0.jar
+  provider: java
+  dependencies:
+  - name: spring-boot-2.5.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-boot-actuator-2.5.0.jar/spring-boot-actuator-2.5.0.jar
+  provider: java
+  dependencies:
+  - name: spring-boot-actuator-2.5.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-boot-actuator-autoconfigure-2.5.0.jar/spring-boot-actuator-autoconfigure-2.5.0.jar
+  provider: java
+  dependencies:
+  - name: spring-boot-actuator-autoconfigure-2.5.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-boot-autoconfigure-2.5.0.jar/spring-boot-autoconfigure-2.5.0.jar
+  provider: java
+  dependencies:
+  - name: spring-boot-autoconfigure-2.5.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-boot-starter-2.5.0.jar/spring-boot-starter-2.5.0.jar
+  provider: java
+  dependencies:
+  - name: spring-boot-starter-2.5.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-boot-starter-actuator-2.5.0.jar/spring-boot-starter-actuator-2.5.0.jar
+  provider: java
+  dependencies:
+  - name: spring-boot-starter-actuator-2.5.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-boot-starter-logging-2.5.0.jar/spring-boot-starter-logging-2.5.0.jar
+  provider: java
+  dependencies:
+  - name: spring-boot-starter-logging-2.5.0.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-context-5.3.7.jar/spring-context-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-context-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-core-5.3.7.jar/spring-core-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-core-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-data-commons-2.5.1.jar/spring-data-commons-2.5.1.jar
+  provider: java
+  dependencies:
+  - name: spring-data-commons-2.5.1.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-data-jpa-2.5.1.jar/spring-data-jpa-2.5.1.jar
+  provider: java
+  dependencies:
+  - name: spring-data-jpa-2.5.1.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-expression-5.3.7.jar/spring-expression-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-expression-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-jcl-5.3.7.jar/spring-jcl-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-jcl-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-jdbc-5.3.7.jar/spring-jdbc-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-jdbc-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-orm-5.3.7.jar/spring-orm-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-orm-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-tx-5.3.7.jar/spring-tx-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-tx-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-web-5.3.7.jar/spring-web-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-web-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/spring-webmvc-5.3.7.jar/spring-webmvc-5.3.7.jar
+  provider: java
+  dependencies:
+  - name: spring-webmvc-5.3.7.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/stax-ex-1.8.jar/stax-ex-1.8.jar
+  provider: java
+  dependencies:
+  - name: stax-ex-1.8.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/tomcat-jdbc-9.0.46.jar/tomcat-jdbc-9.0.46.jar
+  provider: java
+  dependencies:
+  - name: tomcat-jdbc-9.0.46.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/tomcat-juli-9.0.46.jar/tomcat-juli-9.0.46.jar
+  provider: java
+  dependencies:
+  - name: tomcat-juli-9.0.46.jar
+- fileURI: /analyzer-lsp/examples/customers-tomcat-legacy/target/customers-tomcat-0.0.1-SNAPSHOT/WEB-INF/lib/txw2-2.3.1.jar/txw2-2.3.1.jar
+  provider: java
+  dependencies:
+  - name: txw2-2.3.1.jar
 - fileURI: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
   provider: java
   dependencies:
