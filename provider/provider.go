@@ -244,6 +244,7 @@ func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]*Dep, error) {
 		for k, v := range r {
 			deps[k] = v
 		}
+		deps = deduplicateDependencies(deps)
 	}
 	return deps, nil
 }
@@ -373,6 +374,7 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 		if err != nil {
 			return engine.ConditionResponse{}, err
 		}
+		deps = deduplicateDependencies(deps)
 	}
 
 	incidents := []engine.IncidentContext{}
@@ -619,4 +621,39 @@ func ConvertDagItemsToList(items []DepDAGItem) []*Dep {
 		deps = append(deps, ConvertDagItemsToList(i.AddedDeps)...)
 	}
 	return deps
+}
+
+func deduplicateDependencies(dependencies map[uri.URI][]*Dep) map[uri.URI][]*Dep {
+	// Just need this so I can differentiate between dependencies that aren't found
+	// and dependencies that are at index 0
+	intPtr := func(i int) *int {
+		return &i
+	}
+	deduped := map[uri.URI][]*Dep{}
+	for uri, deps := range dependencies {
+		deduped[uri] = []*Dep{}
+		depSeen := map[string]*int{}
+		for _, dep := range deps {
+			id := dep.Name + dep.Version + dep.ResolvedIdentifier
+			if depSeen[id+"direct"] != nil {
+				// We've already seen it and it's direct, nothing to do
+				continue
+			} else if depSeen[id+"indirect"] != nil && !dep.Indirect {
+				// We've seen it as an indirect, need to update the dep in
+				// the list to reflect that it's actually a direct dependency
+				deduped[uri][*depSeen[id+"indirect"]].Indirect = false
+				depSeen[id+"direct"] = depSeen[id+"indirect"]
+			} else {
+				// We haven't seen this before and need to update the dedup
+				// list and mark that we've seen it
+				deduped[uri] = append(deduped[uri], dep)
+				if dep.Indirect {
+					depSeen[id+"indirect"] = intPtr(len(deduped) - 1)
+				} else {
+					depSeen[id+"direct"] = intPtr(len(deduped) - 1)
+				}
+			}
+		}
+	}
+	return deduped
 }
