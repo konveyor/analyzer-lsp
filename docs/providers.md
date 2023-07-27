@@ -46,7 +46,7 @@ Here's an example config for a external `go` provider that is initialized using 
             "providerSpecificConfig": {
                 "name": "go",
                 "lspServerPath": "/path/to/language/server/binary",
-                "lspArgs": "arg1 arg2 arg3",
+                "lspArgs": ["arg1", "arg2", "arg3"],
                 "dependencyProviderPath": "/path/to/dependency/provider/binary"
             }
         }
