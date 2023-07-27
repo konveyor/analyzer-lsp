@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -240,4 +241,97 @@ func Test_matchDepLabelSelector(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_deduplication(t *testing.T) {
+	tests := []struct {
+		title        string
+		dependencies map[uri.URI][]*Dep
+		expected     map[uri.URI][]*Dep
+	}{
+		{
+			title: "no duplicates within a file should result in an unchanged list",
+			dependencies: map[uri.URI][]*Dep{
+				uri.URI("file1"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+				},
+				uri.URI("file2"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+				},
+			},
+			expected: map[uri.URI][]*Dep{
+				uri.URI("file1"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+				},
+				uri.URI("file2"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+				},
+			},
+		},
+		{
+			title: "different versions or shas of the same dependency should not be deduped",
+			dependencies: map[uri.URI][]*Dep{
+				uri.URI("file1"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+					{Name: "dep1", Version: "v2.0.0", ResolvedIdentifier: "abcd"},
+					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcde"},
+					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcdf"},
+				},
+			},
+			expected: map[uri.URI][]*Dep{
+				uri.URI("file1"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+					{Name: "dep1", Version: "v2.0.0", ResolvedIdentifier: "abcd"},
+					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcde"},
+					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcdf"},
+				},
+			},
+		},
+		{
+			title: "duplicates within a file should be removed",
+			dependencies: map[uri.URI][]*Dep{
+				uri.URI("file1"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+				},
+			},
+			expected: map[uri.URI][]*Dep{
+				uri.URI("file1"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+				},
+			},
+		},
+		{
+			title: "direct dependencies should be preferred over indirect",
+			dependencies: map[uri.URI][]*Dep{
+				uri.URI("file1"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd", Indirect: true},
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+				},
+			},
+			expected: map[uri.URI][]*Dep{
+				uri.URI("file1"): []*Dep{
+					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.title, func(t *testing.T) {
+			deduped := deduplicateDependencies(tt.dependencies)
+			for uri, deps := range tt.expected {
+				for i, dep := range deps {
+					if !reflect.DeepEqual(deduped[uri][i], dep) {
+						t.Errorf("Expected '%+v', got '%+v'", tt.expected, deduped)
+					}
+				}
+			}
+		})
+	}
+
 }
