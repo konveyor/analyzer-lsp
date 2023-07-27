@@ -30,7 +30,7 @@ If an explicit `proxyConfig` is not specified for a provider, system-wide proxy 
 ```
 
 #### Generic provider
-
+y
 Generic provider can be used to create an external provider for any language that is compliant with LSP 3.17 specifications.
 
 Here's an example config for a external `go` provider that is initialized using the generic provider binary.
@@ -54,6 +54,8 @@ Here's an example config for a external `go` provider that is initialized using 
 ```
 
 The `generic provider` takes the following options in `providerSpecificConfig`:
+
+* `name`: Name of the provider to be displayed in the logs.
 
 * `dependencyProviderPath`: Path to a binary that prints the dependencies of the application as a `map[uri.URI][]provider.Dep{}`. The Dep struct can be imported from 
 `"github.com/konveyor/analyzer-lsp/provider"`.

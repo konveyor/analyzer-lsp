@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
@@ -58,7 +59,16 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 
 	ctx, cancelFunc := context.WithCancel(ctx)
 	log = log.WithValues("provider", c.ProviderSpecificConfig["name"])
-	cmd := exec.CommandContext(ctx, lspServerPath)
+	var args []string
+	lspArgs := c.ProviderSpecificConfig["lspArgs"]
+	if lspArgs != nil {
+		argsStr, isString := lspArgs.(string)
+		if !isString {
+			return nil, fmt.Errorf("lspArgs is not a string")
+		}
+		args = strings.Split(argsStr, " ")
+	}
+	cmd := exec.CommandContext(ctx, lspServerPath, args...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
