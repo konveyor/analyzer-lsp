@@ -1,6 +1,6 @@
-# Analyzer Rule Engine 
+# Analyzer Rule Engine
 
-In this project, we are writing a rule engine that can use pluggable providers for rules to make a consistent way to execute rules for Konveyor. 
+In this project, we are writing a rule engine that can use pluggable providers for rules to make a consistent way to execute rules for Konveyor.
 
 One of the primary drivers for this repository is adding providers for specific languages using the Language Server Protocol. Today these providers are in tree, but we will be moving them out in the future.
 
@@ -15,7 +15,7 @@ $ podman build -f Dockerfile -t quay.io/konveyor/analyzer-lsp
 $ podman build -f demo.Dockerfile -t test-analyzer-engine
 ```
 
-This will build the engine, and include the current set of rules and examples in the container to be used. 
+This will build the engine, and include the current set of rules and examples in the container to be used.
 
 To run the rules (rule-example.yaml) against the examples, and save the output to the `demo-output.yaml` file:
 
@@ -27,8 +27,8 @@ $ podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z test-analyze
 
 To run the engine from source code, you need to:
 
-* Configure providers. By default, providers are configured in `provider_settings.json`. See [Providers](#./docs/providers.md) for instructions on configuring providers.
-* Configure rules. By default, rules are present in `rules_example.yaml`. See [Rules](#./docs/rules.md) for details on rule format. 
+* Configure providers. By default, providers are configured in `provider_settings.json`. See [Providers](./docs/providers.md) for instructions on configuring providers.
+* Configure rules. By default, rules are present in `rules_example.yaml`. See [Rules](./docs/rules.md) for details on rule format.
 
 Once the providers are configured, you can run:
 
@@ -59,7 +59,7 @@ CLI Options:
 
  Using the LSP/Protocal from ACME https://github.com/fhs/acme-lsp and stripping out anything related to serving, proxy or anything. Just keeping the types for communication
 
- Using JSONRPC2 from google.org/x/tools/internal. Copied and removed anything to do with serving. 
+ Using JSONRPC2 from google.org/x/tools/internal. Copied and removed anything to do with serving.
 
 
 ## Code of Conduct
