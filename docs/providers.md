@@ -46,6 +46,7 @@ Here's an example config for a external `go` provider that is initialized using 
             "providerSpecificConfig": {
                 "name": "go",
                 "lspServerPath": "/path/to/language/server/binary",
+                "lspArgs": "arg1 arg2 arg3",
                 "dependencyProviderPath": "/path/to/dependency/provider/binary"
             }
         }
@@ -56,6 +57,8 @@ Here's an example config for a external `go` provider that is initialized using 
 The `generic provider` takes the following options in `providerSpecificConfig`:
 
 * `name`: Name of the provider to be displayed in the logs.
+
+* `lspArgs`: Arguements to be passed to run the langauge server. Optional field.
 
 * `dependencyProviderPath`: Path to a binary that prints the dependencies of the application as a `map[uri.URI][]provider.Dep{}`. The Dep struct can be imported from 
 `"github.com/konveyor/analyzer-lsp/provider"`.
