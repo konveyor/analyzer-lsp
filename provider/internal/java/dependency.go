@@ -258,9 +258,14 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 	fp := filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
 	b, err := os.ReadFile(fp)
 	if err != nil {
-		return d, err
+		// Log the error and continue with the next dependency.
+		p.log.V(5).Error(err, "error reading SHA hash file for dependency", "dep", d.Name)
+		// Set some default or empty resolved identifier for the dependency.
+		d.ResolvedIdentifier = ""
+	} else {
+		d.ResolvedIdentifier = string(b)
 	}
-	d.ResolvedIdentifier = string(b)
+
 	d.Labels = p.addDepLabels(d.Name)
 	d.FileURIPrefix = fmt.Sprintf("%v://contents%v", FILE_URI_PREFIX, filepath.Dir(fp))
 
