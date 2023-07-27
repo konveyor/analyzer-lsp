@@ -259,7 +259,7 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 	b, err := os.ReadFile(fp)
 	if err != nil {
 		// Log the error and continue with the next dependency.
-		fmt.Printf("Error reading SHA hash file for dependency %s: %s\n", dep, err)
+		p.log.V(7).Info("Error reading SHA hash file for dependency %s: %s\n", dep, err)
 		// Set some default or empty resolved identifier for the dependency.
 		d.ResolvedIdentifier = ""
 	} else {
