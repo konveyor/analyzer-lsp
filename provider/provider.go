@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -149,8 +150,30 @@ func GetConfig(filepath string) ([]Config, error) {
 		configs = append(configs, builtinConfig)
 	}
 
+	// Validate provider names for duplicate providers.
+	if err := validateProviderName(configs); err != nil {
+		return nil, err
+	}
+
 	return configs, nil
 
+}
+
+func validateProviderName(configs []Config) error {
+	providerNames := make(map[string]bool)
+	for _, config := range configs {
+		name := strings.TrimSpace(config.Name)
+		// Check if the provider name is empty
+		if name == "" {
+			return fmt.Errorf("provider name should not be empty")
+		}
+		// Check the provider already exist in providerNames map
+		if providerNames[name] {
+			return fmt.Errorf("duplicate providers found: %s", name)
+		}
+		providerNames[name] = true
+	}
+	return nil
 }
 
 type ProviderEvaluateResponse struct {
