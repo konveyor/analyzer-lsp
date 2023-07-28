@@ -103,6 +103,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Validate provider names for duplicate providers.
+	if err := validateProviderName(configs); err != nil {
+		log.Error(err, "duplicate providers found")
+		os.Exit(1)
+	}
+
 	//start up the rule eng
 	eng := engine.CreateRuleEngine(ctx,
 		10,
@@ -202,5 +208,22 @@ func validateFlags() error {
 		return fmt.Errorf("must select one of %s or %s for analysis mode", provider.FullAnalysisMode, provider.SourceOnlyAnalysisMode)
 	}
 
+	return nil
+}
+
+func validateProviderName(configs []provider.Config) error {
+	providerNames := make(map[string]bool)
+	for _, config := range configs {
+		name := strings.TrimSpace(config.Name)
+		// Check if the provider name is empty
+		if name == "" {
+			return fmt.Errorf("provider name should not be emty")
+		}
+		// Check the provider already exist in providerNames map
+		if providerNames[name] {
+			return fmt.Errorf("duplicate provider name found: %s", name)
+		}
+		providerNames[name] = true
+	}
 	return nil
 }
