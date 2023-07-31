@@ -265,7 +265,9 @@ func (ce ConditionEntry) Evaluate(ctx context.Context, log logr.Logger, condCtx 
 func incidentsToFilepaths(incident []IncidentContext) []string {
 	filepaths := []string{}
 	for _, ic := range incident {
-		filepaths = append(filepaths, ic.FileURI.Filename())
+		if _, err := uri.Parse(string(ic.FileURI)); err == nil {
+			filepaths = append(filepaths, ic.FileURI.Filename())
+		}
 	}
 	return filepaths
 }
