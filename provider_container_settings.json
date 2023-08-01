@@ -8,7 +8,7 @@
             "providerSpecificConfig": {
                 "name": "go",
                 "lspServerPath": "/root/go/bin/gopls",
-                "dependencyProviderPath": "golang-dependency-provider"
+                "dependencyProviderPath": "/usr/bin/golang-dependency-provider"
             }
         }]
     },

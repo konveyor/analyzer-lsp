@@ -36,7 +36,7 @@ func (p *genericServiceClient) Evaluate(cap string, conditionInfo []byte) (provi
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
 	}
-	query := cond.Referenced
+	query := cond.Referenced.Pattern
 	if query == "" {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
 	}

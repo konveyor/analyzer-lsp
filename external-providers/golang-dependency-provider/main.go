@@ -40,6 +40,8 @@ func main() {
 		log.Fatal(fmt.Errorf("unable to marshal dependencies"))
 		return
 	}
+
+	// Outputs the dependency list for the generic provider
 	fmt.Println(string(jsonStr))
 
 }
@@ -98,8 +100,8 @@ func parseGoDepString(dep string) (provider.Dep, error) {
 	d.Name = strings.TrimSpace(v[0])
 	d.Version = strings.TrimSpace(strings.ReplaceAll(v[1], "@", ""))
 	d.Labels = []string{
-		labels.AsString(provider.DepSourceLabel,golangDownloadableDepSourceLabel),
-		labels.AsString(provider.DepLanguageLabel,"go"),
+		labels.AsString(provider.DepSourceLabel, golangDownloadableDepSourceLabel),
+		labels.AsString(provider.DepLanguageLabel, "go"),
 	}
 	return d, nil
 }

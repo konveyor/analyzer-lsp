@@ -38,7 +38,11 @@ func (p *genericProvider) Capabilities() []provider.Capability {
 }
 
 type genericCondition struct {
-	Referenced string `yaml:"referenced"`
+	Referenced referenceCondition `yaml:"referenced"`
+}
+
+type referenceCondition struct {
+	Pattern string `yaml:"pattern"`
 }
 
 func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {

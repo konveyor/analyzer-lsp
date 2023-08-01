@@ -30,7 +30,7 @@ If an explicit `proxyConfig` is not specified for a provider, system-wide proxy 
 ```
 
 #### Generic provider
-y
+
 Generic provider can be used to create an external provider for any language that is compliant with LSP 3.17 specifications.
 
 Here's an example config for a external `go` provider that is initialized using the generic provider binary.
