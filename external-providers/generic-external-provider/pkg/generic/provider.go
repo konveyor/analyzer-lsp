@@ -50,9 +50,11 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 		return nil, fmt.Errorf("only full analysis is supported")
 	}
 
-	// handle proxy settings
-	for k, v := range c.Proxy.ToEnvVars() {
-		os.Setenv(k, v)
+	if c.Proxy != nil {
+		// handle proxy settings
+		for k, v := range c.Proxy.ToEnvVars() {
+			os.Setenv(k, v)
+		}
 	}
 
 	lspServerPath, ok := c.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)

@@ -45,23 +45,21 @@ func (p *genericServiceClient) Evaluate(cap string, conditionInfo []byte) (provi
 
 	incidents := []provider.IncidentContext{}
 	for _, s := range symbols {
-		if s.Kind == protocol.Struct {
-			references := p.GetAllReferences(s)
-			for _, ref := range references {
-				// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
-				if strings.Contains(ref.URI, p.config.Location) {
-					u, err := uri.Parse(ref.URI)
-					if err != nil {
-						return provider.ProviderEvaluateResponse{}, err
-					}
-					lineNumber := int(ref.Range.Start.Line)
-					incidents = append(incidents, provider.IncidentContext{
-						FileURI:    u,
-						LineNumber: &lineNumber,
-						Variables: map[string]interface{}{
-							"file": ref.URI},
-					})
+		references := p.GetAllReferences(s)
+		for _, ref := range references {
+			// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
+			if strings.Contains(ref.URI, p.config.Location) {
+				u, err := uri.Parse(ref.URI)
+				if err != nil {
+					return provider.ProviderEvaluateResponse{}, err
 				}
+				lineNumber := int(ref.Range.Start.Line)
+				incidents = append(incidents, provider.IncidentContext{
+					FileURI:    u,
+					LineNumber: &lineNumber,
+					Variables: map[string]interface{}{
+						"file": ref.URI},
+				})
 			}
 		}
 	}
