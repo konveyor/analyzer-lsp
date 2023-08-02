@@ -401,12 +401,14 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 	}
 
 	incidents := []engine.IncidentContext{}
+	filteredOutCount := 0 // Counter to track incidents filtered out
 	for _, inc := range resp.Incidents {
 		// filter out incidents that don't match the dep label selector
 		if matched, err := matchDepLabelSelector(p.DepLabelSelector, inc, deps); err != nil {
 			log.V(5).Error(err, "failed to match dep label selector")
 			return engine.ConditionResponse{}, err
 		} else if !matched {
+			filteredOutCount++
 			continue
 		}
 		i := engine.IncidentContext{
@@ -431,6 +433,13 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 		}
 		incidents = append(incidents, i)
 	}
+
+	// If there are no incidents, don't generate any violations
+	if len(incidents) == 0 {
+		log.V(3).Info("filtered out all incidents based on dep label selector", "filteredOutCount: ", filteredOutCount)
+		return engine.ConditionResponse{}, nil
+	}
+
 	cr := engine.ConditionResponse{
 		Matched:         resp.Matched,
 		TemplateContext: resp.TemplateContext,
@@ -438,6 +447,7 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 	}
 
 	log.V(8).Info("condition response", "ruleID", p.Rule.RuleID, "response", cr, "cap", p.Capability, "conditionInfo", p.ConditionInfo, "client", p.Client)
+	log.V(3).Info("filtered out incidents based on dep label selector", "filteredOutCount: ", filteredOutCount)
 	return cr, nil
 
 }
