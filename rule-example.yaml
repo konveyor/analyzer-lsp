@@ -42,18 +42,21 @@
     - java.referenced:
         pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
         location: TYPE
-    - go.referenced: "v1beta1.CustomResourceDefinition"
+    - go.referenced: 
+        pattern: "v1beta1.CustomResourceDefinition"
 - message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
   when:
-    go.referenced: "v1beta1.CustomResourceDefinition"
+    go.referenced: 
+        pattern: "v1beta1.CustomResourceDefinition"
 - message: testing nested conditions
   ruleID: lang-ref-002
   when:
     # This is purposfully failing, the golang reference will not
     # find anything. testing that `and` will work correctly
     and:
-    - go.referenced: "*CustomResourceDefinition*"
+    - go.referenced: 
+          pattern: "*CustomResourceDefinition*"
     - java.referenced:
           pattern: "*CustomResourceDefinition*"
           location: TYPE

@@ -29,23 +29,39 @@ If an explicit `proxyConfig` is not specified for a provider, system-wide proxy 
 ```Note For Java: full analysis mode will search all the dependency and source, source-only will only search the source code. for a Jar/Ear/War, this is the code that is compiled in that archive and nothing else.
 ```
 
-#### Go provider
+#### Generic provider
 
-Here's an example config for an external `go` provider that is initialized using a binary and works on gRPC:
+Generic provider can be used to create an external provider for any language that is compliant with LSP 3.17 specifications.
+
+Here's an example config for a external `go` provider that is initialized using the generic provider binary.
 
 ```json
 {
     "name": "go",
-    "binaryPath": "/path/to/go/grpc/provider/binary",
+    "binaryPath": "/path/to/generic/provider/binary",
     "initConfig": [
         {
             "location": "/path/to/application/source/code",
-            "lspServerPath": "/path/to/language/server/binary",
             "analysisMode": "full",
+            "providerSpecificConfig": {
+                "name": "go",
+                "lspServerPath": "/path/to/language/server/binary",
+                "lspArgs": ["arg1", "arg2", "arg3"],
+                "dependencyProviderPath": "/path/to/dependency/provider/binary"
+            }
         }
     ]
 }
 ```
+
+The `generic provider` takes the following options in `providerSpecificConfig`:
+
+* `name`: Name of the provider to be displayed in the logs.
+
+* `lspArgs`: Arguments to be passed to run the langauge server. Optional field.
+
+* `dependencyProviderPath`: Path to a binary that prints the dependencies of the application as a `map[uri.URI][]provider.Dep{}`. The Dep struct can be imported from 
+`"github.com/konveyor/analyzer-lsp/provider"`.
 
 #### Java provider
 
