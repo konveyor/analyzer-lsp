@@ -26,7 +26,10 @@ func (g *genericServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, e
 		return nil, nil
 	}
 	m := map[uri.URI][]*provider.Dep{}
-	json.Unmarshal([]byte(data), &m)
+	err = json.Unmarshal([]byte(data), &m)
+	if err != nil {
+		return nil, err
+	}
 	return m, err
 }
 
