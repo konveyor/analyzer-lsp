@@ -245,15 +245,15 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
         codeSnip: |
-           1  package com.example.apps;
-           2  
-           3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;
-           4  
-           5  public class App 
-           6  {
-           7  
-           8      public static void main( String[] args )
-           9      {
+          1  package com.example.apps;
+          2  
+          3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;
+          4  
+          5  public class App 
+          6  {
+          7  
+          8      public static void main( String[] args )
+          9      {
           10          CustomResourceDefinition crd = new CustomResourceDefinition();
           11          System.out.println( crd );
           12  
