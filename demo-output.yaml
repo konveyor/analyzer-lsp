@@ -167,6 +167,8 @@
           13  # Add the source code and package
           14  COPY src ./src
           15  RUN mvn package
+          16
+
         lineNumber: 5
         variables:
           matchingText: FROM maven:3.8-openjdk-11 as build
@@ -236,6 +238,7 @@
           11          System.out.println( crd );
           12
           13          GenericClass<String> element = new GenericClass<String>("Hello world!");
+          
         lineNumber: 2
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
@@ -260,6 +263,7 @@
           14          element.get();
           15      }
           16  }
+          
         lineNumber: 9
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
@@ -291,6 +295,7 @@
            11          System.out.println( crd );
            12  
            13          GenericClass<String> element = new GenericClass<String>("Hello world!");
+
         lineNumber: 2
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
@@ -315,6 +320,7 @@
           14          element.get();
           15      }
           16  }
+
         lineNumber: 9
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
@@ -341,6 +347,7 @@
           14          element.get();
           15      }
           16  }
+
         lineNumber: 13
         variables:
           VariableName: element
@@ -373,6 +380,7 @@
           6  @Singleton
           7  public class Bean implements SessionBean {
           8  }
+
         lineNumber: 5
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
@@ -389,6 +397,7 @@
           6  @Singleton
           7  public class Bean implements SessionBean {
           8  }
+          
         lineNumber: 6
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
