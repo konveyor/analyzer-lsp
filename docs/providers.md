@@ -79,7 +79,7 @@ Here's an example config for `java` provider that is currently in-tree and does 
             "providerSpecificConfig": {
                 "bundles": "/path/to/extension/bundles",
                 "workspace": "/path/to/workspace",
-                "depOpenSourceLabelsFile": "open-source-libs.txt",
+                "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                 "mavenSettingsFile": "/path/to/maven/settings/file"
             }
         }
