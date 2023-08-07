@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
@@ -265,7 +266,11 @@ func (ce ConditionEntry) Evaluate(ctx context.Context, log logr.Logger, condCtx 
 func incidentsToFilepaths(incident []IncidentContext) []string {
 	filepaths := []string{}
 	for _, ic := range incident {
-		filepaths = append(filepaths, ic.FileURI.Filename())
+		if strings.HasPrefix(string(ic.FileURI), uri.FileScheme) {
+			filepaths = append(filepaths, ic.FileURI.Filename())
+		} else {
+			filepaths = append(filepaths, string(ic.FileURI))
+		}
 	}
 	return filepaths
 }

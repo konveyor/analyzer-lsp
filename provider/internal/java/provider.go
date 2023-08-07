@@ -251,7 +251,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	go func() {
 		err := cmd.Start()
 		if err != nil {
-			fmt.Printf("here cmd failed- %v", err)
+			cancelFunc()
+			returnErr = err
+			log.Error(err, "unable to  start lsp command")
+			return
 		}
 	}()
 	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
@@ -264,6 +267,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			//TODO: we need to pipe the ctx further into the stream header and run.
 			// basically it is checking if done, then reading. When it gets EOF it errors.
 			// We need the read to be at the same level of selection to fully implment graceful shutdown
+			cancelFunc()
+			returnErr = err
 			return
 		}
 	}()

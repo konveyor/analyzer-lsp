@@ -87,7 +87,12 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			}
 			return response, fmt.Errorf("could not run grep with provided pattern %+v", err)
 		}
-		matches := strings.Split(strings.TrimSpace(string(outputBytes)), "\n")
+
+		matches := []string{}
+		outputString := strings.TrimSpace(string(outputBytes))
+		if outputString != "" {
+			matches = append(matches, strings.Split(outputString, "\n")...)
+		}
 
 		for _, match := range matches {
 			//TODO(fabianvf): This will not work if there is a `:` in the filename, do we care?
@@ -95,7 +100,8 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 			if len(pieces) != 3 {
 				//TODO(fabianvf): Just log or return?
 				//(shawn-hurley): I think the return is good personally
-				return response, fmt.Errorf("Malformed response from grep, cannot parse %s with pattern {filepath}:{lineNumber}:{matchingText}", match)
+				return response, fmt.Errorf(
+					"malformed response from grep, cannot parse grep output '%s' with pattern {filepath}:{lineNumber}:{matchingText}", match)
 			}
 
 			containsFile, err := provider.FilterFilePattern(c.FilePattern, pieces[0])

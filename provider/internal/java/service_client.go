@@ -196,7 +196,7 @@ func (p *javaServiceClient) initialization() {
 	}
 
 	var result protocol.InitializeResult
-	for {
+	for i:=0; i < 10; i++ {
 		if err := p.rpc.Call(p.ctx, "initialize", params, &result); err != nil {
 			p.log.Error(err, "initialize failed")
 			continue
