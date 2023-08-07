@@ -435,7 +435,9 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 	// If there are no incidents, don't generate any violations
 	if len(incidents) == 0 && len(resp.Incidents)-len(incidents) > 0 {
 		log.V(5).Info("filtered out all incidents based on dep label selector", "filteredOutCount", len(resp.Incidents)-len(incidents))
-		return engine.ConditionResponse{}, nil
+		return engine.ConditionResponse{
+			Matched: resp.Matched,
+		}, nil
 	}
 
 	cr := engine.ConditionResponse{
