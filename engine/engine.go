@@ -421,15 +421,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			if err != nil || codeSnip == "" {
 				r.logger.V(6).Error(err, "unable to get code location")
 			} else {
-				// Split the code snippet into lines
-				lines := strings.Split(codeSnip, "\n")
-
-				// Build the properly formatted multiline string
-				var formattedCodeSnip string
-				for _, line := range lines {
-					formattedCodeSnip += "    " + line + "\n"
-				}
-				incident.CodeSnip = "|-\n" + formattedCodeSnip
+				incident.CodeSnip = fmt.Sprintf("%s\n", codeSnip)
 			}
 			fileCodeSnipCount[string(m.FileURI)] += 1
 		}

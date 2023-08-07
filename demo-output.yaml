@@ -295,7 +295,6 @@
            11          System.out.println( crd );
            12  
            13          GenericClass<String> element = new GenericClass<String>("Hello world!");
-
         lineNumber: 2
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
