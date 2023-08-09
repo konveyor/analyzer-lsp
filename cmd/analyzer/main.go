@@ -104,13 +104,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	engine.CONTEXT_LINES = *contextLines
 	//start up the rule eng
 	eng := engine.CreateRuleEngine(ctx,
 		10,
 		log,
 		engine.WithIncidentLimit(*limitIncidents),
 		engine.WithCodeSnipLimit(*limitCodeSnips),
+		engine.WithContextLines(*contextLines),
 	)
 
 	providers := map[string]provider.InternalProviderClient{}
