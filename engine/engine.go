@@ -20,9 +20,8 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
-const (
-	// TODO: make this configurable in the future
-	// We may or may not need to do this so holding off for now.
+var (
+	// CONTEXT_LINES is set by flag `--context-lines`.
 	CONTEXT_LINES = 10
 )
 

@@ -38,6 +38,7 @@ var (
 	limitCodeSnips    = flag.Int("limit-code-snips", 20, "limit the number code snippets that are retrieved for a file while evaluating a rule, 0 means no limit")
 	analysisMode      = flag.String("analysis-mode", "", "select one of full or source-only to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
 	noDependencyRules = flag.Bool("no-dependency-rules", false, "Disable dependency analysis rules")
+	contextLines      = flag.Int("context-lines", 10, "When violation occurs, A part of source code is added to the output, So this flag configures the number of source code lines to be printed to the output.")
 )
 
 func main() {
@@ -103,6 +104,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	engine.CONTEXT_LINES = *contextLines
 	//start up the rule eng
 	eng := engine.CreateRuleEngine(ctx,
 		10,
