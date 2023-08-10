@@ -173,7 +173,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()
 						}
-					} else if response.ConditionResponse.Matched {
+					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
 						violation, err := r.createViolation(response.ConditionResponse, response.Rule)
 						if err != nil {
 							r.logger.Error(err, "unable to create violation from response")
