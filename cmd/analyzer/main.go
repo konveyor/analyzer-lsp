@@ -47,8 +47,8 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().StringVar(&settingsFile, "settings-file", "provider_settings.json", "path to the provider settings")
-	rootCmd.Flags().StringArrayVar(&rulesFile, "rules-file", []string{"rule-example.yaml"}, "filename or directory containing rule files")
+	rootCmd.Flags().StringVar(&settingsFile, "provider-settings", "provider_settings.json", "path to the provider settings")
+	rootCmd.Flags().StringArrayVar(&rulesFile, "rules", []string{"rule-example.yaml"}, "filename or directory containing rule files")
 	rootCmd.Flags().StringVar(&outputViolations, "output-file", "output.yaml", "filepath to to store rule violations")
 	rootCmd.Flags().BoolVar(&errorOnViolations, "error-on-violation", false, "exit with 3 if any violation are found will also print violations to console")
 	rootCmd.Flags().StringVar(&labelSelector, "label-selector", "", "an expression to select rules based on labels")
