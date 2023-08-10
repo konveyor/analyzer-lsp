@@ -610,6 +610,11 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
+				// There was no error so the conditions have all been filtered
+				// Return early to prevent constructing an empty rule
+				if len(conds) == 0 && len(conds) != len(iConditions) {
+					return []engine.ConditionEntry{}, nil, nil
+				}
 				ce = engine.ConditionEntry{
 					From:      from,
 					As:        as,
@@ -630,6 +635,11 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				conds, provs, err := r.getConditions(iConditions)
 				if err != nil {
 					return nil, nil, err
+				}
+				// There was no error so the conditions have all been filtered
+				// Return early to prevent constructing an empty rule
+				if len(conds) == 0 && len(conds) != len(iConditions) {
+					return []engine.ConditionEntry{}, nil, nil
 				}
 				ce = engine.ConditionEntry{
 					From:      from,
