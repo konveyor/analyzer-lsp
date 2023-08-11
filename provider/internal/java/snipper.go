@@ -62,14 +62,19 @@ func (p *javaProvider) GetCodeSnip(u uri.URI, loc engine.Location) (string, erro
 			javaFileName = fmt.Sprintf("%v.java", javaFileName[0:i])
 		}
 
-		cmd := exec.Command("jar", "xf", filepath.Base(jarPath))
-		cmd.Dir = filepath.Dir(jarPath)
-		err := cmd.Run()
-		if err != nil {
-			fmt.Printf("\n java%v", err)
-			return "", err
+		javaFileAbsolutePath := filepath.Join(filepath.Dir(jarPath), filepath.Dir(path), javaFileName)
+
+		if _, err := os.Stat(javaFileAbsolutePath); err != nil {
+			cmd := exec.Command("jar", "xf", filepath.Base(jarPath))
+			cmd.Dir = filepath.Dir(jarPath)
+			err := cmd.Run()
+			if err != nil {
+				fmt.Printf("\n java%v", err)
+				return "", err
+			}
 		}
-		snip, err := p.scanFile(filepath.Join(filepath.Dir(jarPath), filepath.Dir(path), javaFileName), loc)
+
+		snip, err := p.scanFile(javaFileAbsolutePath, loc)
 		if err != nil {
 			fmt.Printf("\n%v", err)
 			return "", err
