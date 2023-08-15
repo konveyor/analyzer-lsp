@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -208,6 +209,76 @@ func main() {
 	}
 
 	os.WriteFile(outputViolations, b, 0644)
+
+	tempFilePath := "temp.yaml"
+	var codesnip []string
+	for i := range rulesets {
+		violations := rulesets[i].Violations
+		for ruleID, violation := range violations {
+			incidents := violation.Incidents
+			for j := range incidents {
+				x := "codeSnip: |\n" + incidents[j].CodeSnip
+				codesnip = append(codesnip, x)
+			}
+			violations[ruleID] = violation
+		}
+		rulesets[i].Violations = violations
+	}
+
+	inputFile, err := os.Open(outputViolations)
+	if err != nil {
+		fmt.Println("Error opening input file:", err)
+		return
+	}
+	defer inputFile.Close()
+
+	tempFile, err := os.Create(tempFilePath)
+	if err != nil {
+		fmt.Println("Error creating temporary file:", err)
+		return
+	}
+
+	scanner := bufio.NewScanner(inputFile)
+
+	msgline := 0
+	// Iterate through each line in the input file
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Write the line to the output file
+		_, err := tempFile.WriteString(line + "\n")
+		if err != nil {
+			fmt.Println("Error writing to output file:", err)
+			return
+		}
+
+		// If the line contains "message:", insert your desired line after it
+		if strings.Contains(line, "message:") {
+			additionalLine := codesnip[msgline] // Add the codeSnip object block
+			_, err := tempFile.WriteString(additionalLine + "\n")
+			if err != nil {
+				fmt.Println("Error writing additional line to output file:", err)
+				return
+			}
+
+			msgline++
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error reading input file:", err)
+		return
+	}
+
+	// Close the temporary file before replacing the input file
+	tempFile.Close()
+
+	// Replace the input file with the temporary file
+	err = os.Rename(tempFilePath, outputViolations)
+	if err != nil {
+		fmt.Println("Error replacing input file with temporary file:", err)
+		return
+	}
 }
 
 func validateFlags() error {
