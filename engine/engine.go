@@ -462,6 +462,8 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			}
 		}
 
+		makeCodeSnipsBlockConvertible(&incident.CodeSnip)
+
 		if rule.Perform.Message.Text != nil {
 			variables := make(map[string]interface{})
 			for key, value := range m.Variables {
@@ -556,4 +558,10 @@ func matchesAllSelectors(m RuleMeta, selectors ...RuleSelector) bool {
 		}
 	}
 	return true
+}
+
+func makeCodeSnipsBlockConvertible(codeSnip *string) {
+	// remove spaces and tabs from the beginning of each new line of codesnippet strings
+	re := regexp.MustCompile(`\n\s+`)
+	*codeSnip = re.ReplaceAllString(*codeSnip, "\n")
 }
