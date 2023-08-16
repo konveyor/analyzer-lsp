@@ -142,6 +142,7 @@ func main() {
 	providers := map[string]provider.InternalProviderClient{}
 
 	for _, config := range configs {
+		config.ContextLines = contextLines
 		// IF analsyis mode is set from the CLI, then we will override this for each init config
 		if analysisMode != "" {
 			inits := []provider.InitConfig{}

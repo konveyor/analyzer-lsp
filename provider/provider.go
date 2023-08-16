@@ -68,11 +68,12 @@ type Capability struct {
 }
 
 type Config struct {
-	Name       string       `yaml:"name,omitempty" json:"name,omitempty"`
-	BinaryPath string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
-	Address    string       `yaml:"address,omitempty" json:"address,omitempty"`
-	Proxy      *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
-	InitConfig []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
+	Name         string       `yaml:"name,omitempty" json:"name,omitempty"`
+	BinaryPath   string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
+	Address      string       `yaml:"address,omitempty" json:"address,omitempty"`
+	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
+	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
+	ContextLines int
 }
 
 type Proxy httpproxy.Config
