@@ -491,6 +491,8 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		}
 	}
 
+	deduplicateLabels(&rule.Labels)
+
 	return konveyor.Violation{
 		Description: rule.Description,
 		Labels:      rule.Labels,
@@ -556,4 +558,19 @@ func matchesAllSelectors(m RuleMeta, selectors ...RuleSelector) bool {
 		}
 	}
 	return true
+}
+
+func deduplicateLabels(labels *[]string) {
+	present := map[string]bool{}
+	i := 0
+
+	for _, label := range *labels {
+		if !present[label] {
+			present[label] = true
+			(*labels)[i] = label
+			i++
+		}
+	}
+
+	*labels = (*labels)[:i]
 }
