@@ -3,15 +3,18 @@ FROM debian:buster AS jaeger-builder
 WORKDIR /jaeger
 
 RUN apt-get update && \
-    apt-get install -y curl && \
-    curl -L -o jaeger-1.47.0-linux-amd64.tar.gz https://github.com/jaegertracing/jaeger/releases/download/v1.47.0/jaeger-1.47.0-linux-amd64.tar.gz && \
-    tar -xzf jaeger-1.47.0-linux-amd64.tar.gz && \
-    rm jaeger-1.47.0-linux-amd64.tar.gz
+    apt-get install -y curl jq && \
+    JAEGER_VERSION=$(curl -s https://api.github.com/repos/jaegertracing/jaeger/releases/latest | jq -r '.tag_name' | cut -c 2-) && \
+    curl -L -o jaeger.tar.gz https://github.com/jaegertracing/jaeger/releases/download/v${JAEGER_VERSION}/jaeger-${JAEGER_VERSION}-linux-amd64.tar.gz && \
+    tar -xzf jaeger.tar.gz && \
+    rm jaeger.tar.gz && \
+    mv jaeger-${JAEGER_VERSION}-linux-amd64/* /jaeger/ && \
+    rmdir jaeger-${JAEGER_VERSION}-linux-amd64
 
 
 FROM quay.io/konveyor/analyzer-lsp AS analyzer-builder
 
-COPY --from=jaeger-builder /jaeger/jaeger-1.47.0-linux-amd64/* /usr/local/bin/
+COPY --from=jaeger-builder /jaeger/* /usr/local/bin/
 
 WORKDIR /analyzer-lsp
 
