@@ -16,22 +16,12 @@ COPY  Makefile /analyzer-lsp/Makefile
 
 RUN make build
 
-FROM debian:buster AS jaeger-builder
-WORKDIR /jaeger
-
-RUN apt-get update && \
-    apt-get install -y curl jq && \
-    JAEGER_VERSION=$(curl -s https://api.github.com/repos/jaegertracing/jaeger/releases/latest | jq -r '.tag_name' | cut -c 2-) && \
-    curl -L -o jaeger.tar.gz https://github.com/jaegertracing/jaeger/releases/download/v${JAEGER_VERSION}/jaeger-${JAEGER_VERSION}-linux-amd64.tar.gz && \
-    tar -xzf jaeger.tar.gz && \
-    rm jaeger.tar.gz && \
-    mv jaeger-${JAEGER_VERSION}-linux-amd64/* /jaeger/ && \
-    rmdir jaeger-${JAEGER_VERSION}-linux-amd64
+FROM jaegertracing/all-in-one:latest AS jaeger-builder
 
 # The unofficial base image w/ jdtls and gopls installed
 FROM quay.io/konveyor/jdtls-server-base
 
-COPY --from=jaeger-builder /jaeger/* /usr/local/bin/
+COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/bin/
 
 COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
 COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/bin/konveyor-analyzer-dep
@@ -44,4 +34,4 @@ WORKDIR /analyzer-lsp
 
 EXPOSE 5775/udp 6831/udp 6832/udp 5778 16686 14268 9411
 
-ENTRYPOINT ["sh", "-c", "jaeger-all-in-one && konveyor-analyzer"]
+ENTRYPOINT ["sh", "-c", "all-in-one-linux & sleep 5 && konveyor-analyzer --enable-jaeger=true"]
