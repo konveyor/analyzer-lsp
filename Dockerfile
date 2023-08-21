@@ -32,6 +32,6 @@ COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
 
 WORKDIR /analyzer-lsp
 
-EXPOSE 5775/udp 6831/udp 6832/udp 5778 16686 14268 9411
+EXPOSE 16686
 
 ENTRYPOINT ["sh", "-c", "all-in-one-linux & sleep 5 && konveyor-analyzer"]
