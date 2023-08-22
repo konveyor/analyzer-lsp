@@ -16,8 +16,12 @@ COPY  Makefile /analyzer-lsp/Makefile
 
 RUN make build
 
+FROM jaegertracing/all-in-one:latest AS jaeger-builder
+
 # The unofficial base image w/ jdtls and gopls installed
 FROM quay.io/konveyor/jdtls-server-base
+
+COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/bin/
 
 COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
 COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/bin/konveyor-analyzer-dep
@@ -28,4 +32,6 @@ COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
 
 WORKDIR /analyzer-lsp
 
-ENTRYPOINT ["konveyor-analyzer"]
+EXPOSE 16686
+
+ENTRYPOINT ["sh", "-c", "all-in-one-linux & sleep 5 && konveyor-analyzer"]
