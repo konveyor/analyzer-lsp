@@ -14,9 +14,6 @@ import (
 )
 
 const (
-	// TODO: make this configurable in the future
-	// We may or may not need to do this so holding off for now.
-	CONTEXT_LINES   = 10
 	FILE_URI_PREFIX = "konveyor-jdt"
 )
 
@@ -96,13 +93,13 @@ func (p *javaProvider) scanFile(path string, loc engine.Location) (string, error
 	scanner := bufio.NewScanner(readFile)
 	lineNumber := 0
 	codeSnip := ""
-	paddingSize := len(strconv.Itoa(loc.EndPosition.Line + CONTEXT_LINES))
+	paddingSize := len(strconv.Itoa(loc.EndPosition.Line + p.config.ContextLines))
 	for scanner.Scan() {
-		if (lineNumber - CONTEXT_LINES) == loc.EndPosition.Line {
+		if (lineNumber - p.config.ContextLines) == loc.EndPosition.Line {
 			codeSnip = codeSnip + fmt.Sprintf("%*d  %v", paddingSize, lineNumber+1, scanner.Text())
 			break
 		}
-		if (lineNumber + CONTEXT_LINES) >= loc.StartPosition.Line {
+		if (lineNumber + p.config.ContextLines) >= loc.StartPosition.Line {
 			codeSnip = codeSnip + fmt.Sprintf("%*d  %v\n", paddingSize, lineNumber+1, scanner.Text())
 		}
 		lineNumber += 1

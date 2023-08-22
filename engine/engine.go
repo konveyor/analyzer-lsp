@@ -20,12 +20,6 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
-const (
-	// TODO: make this configurable in the future
-	// We may or may not need to do this so holding off for now.
-	CONTEXT_LINES = 10
-)
-
 type RuleEngine interface {
 	RunRules(context context.Context, rules []RuleSet, selectors ...RuleSelector) []konveyor.RuleSet
 	Stop()
@@ -55,6 +49,7 @@ type ruleEngine struct {
 
 	incidentLimit int
 	codeSnipLimit int
+	contextLines  int
 }
 
 type Option func(engine *ruleEngine)
@@ -62,6 +57,12 @@ type Option func(engine *ruleEngine)
 func WithIncidentLimit(i int) Option {
 	return func(engine *ruleEngine) {
 		engine.incidentLimit = i
+	}
+}
+
+func WithContextLines(i int) Option {
+	return func(engine *ruleEngine) {
+		engine.contextLines = i
 	}
 }
 
@@ -520,13 +521,13 @@ func (r *ruleEngine) getCodeLocation(m IncidentContext, rule Rule) (codeSnip str
 		scanner := bufio.NewScanner(readFile)
 		lineNumber := 0
 		codeSnip := ""
-		paddingSize := len(strconv.Itoa(m.CodeLocation.EndPosition.Line + CONTEXT_LINES))
+		paddingSize := len(strconv.Itoa(m.CodeLocation.EndPosition.Line + r.contextLines))
 		for scanner.Scan() {
-			if (lineNumber - CONTEXT_LINES) == m.CodeLocation.EndPosition.Line {
+			if (lineNumber - r.contextLines) == m.CodeLocation.EndPosition.Line {
 				codeSnip = codeSnip + fmt.Sprintf("%*d  %v", paddingSize, lineNumber+1, scanner.Text())
 				break
 			}
-			if (lineNumber + CONTEXT_LINES) >= m.CodeLocation.StartPosition.Line {
+			if (lineNumber + r.contextLines) >= m.CodeLocation.StartPosition.Line {
 				codeSnip = codeSnip + fmt.Sprintf("%*d  %v\n", paddingSize, lineNumber+1, scanner.Text())
 			}
 			lineNumber += 1
