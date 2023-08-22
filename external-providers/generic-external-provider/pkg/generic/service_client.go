@@ -141,9 +141,13 @@ func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceS
 						logger.WriteString(fmt.Sprintf("Locations: %+v\n", matchLocations))
 						for _, loc := range matchLocations {
 							logger.WriteString(fmt.Sprintf("%s, %d, %+v\n", path, lineNumber, loc))
+							absPath, err := filepath.Abs(path)
+							if err != nil {
+								logger.WriteString(err.Error() + "\n")
+							}
 							positions = append(positions, protocol.TextDocumentPositionParams{
 								TextDocument: protocol.TextDocumentIdentifier{
-									URI: fmt.Sprintf("file://%s", path),
+									URI: fmt.Sprintf("file://%s", absPath),
 								},
 								Position: protocol.Position{
 									Line:      float64(lineNumber),
