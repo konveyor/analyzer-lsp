@@ -406,15 +406,6 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			lineNumber := *m.LineNumber
 			incident.LineNumber = &lineNumber
 		}
-		links := []konveyor.Link{}
-		if len(m.Links) > 0 {
-			for _, l := range m.Links {
-				links = append(links, konveyor.Link{
-					URL:   l.URL,
-					Title: l.Title,
-				})
-			}
-		}
 		// Some violations may not have a location in code.
 		limitSnip := (r.codeSnipLimit != 0 && fileCodeSnipCount[string(m.FileURI)] == r.codeSnipLimit)
 		if !limitSnip {
