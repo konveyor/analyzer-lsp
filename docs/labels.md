@@ -75,3 +75,32 @@ To group sub-expressions and control precedence using `(` and `)`:
 ```sh
 --label-selector="(key1=val1 || key2=val2) && !val3"
 ```
+
+## Dependency Labels
+
+The analyzer engine adds labels on dependencies. These labels provide additional information about a dependency such as whether it's open-source or internal, programming language, etc. 
+
+Currenty, analyzer adds following labels on dependencies:
+
+```yaml
+labels:
+- konveyor.io/dep-source=internal
+- konveyor.io/language=java
+```
+
+### Dependency Label Selector
+
+Analyzer CLI accepts `--dep-label-selector` option that allows filtering-in / filtering-out incidents generated from a dependency based on the labels.
+
+For instance, analyzer adds `konveyor.io/dep-source` label on dependencies with a value that identifies whether the dependency is a known open source dependency or not. To exclude incidents for all such open-source dependencies, `--dep-label-selector` can be used as:
+
+```sh
+konveyor-analyzer ... --dep-label-selector !konveyor.io/dep-source=open-source
+```
+
+The Java provider in analyzer also takes a list of packages to add an exclude label. To exclude all such packages, `--dep-label-selector` can be used as:
+
+```sh
+konveyor-analyzer ... --dep-label-selector !konveyor.io/exclude
+```
+

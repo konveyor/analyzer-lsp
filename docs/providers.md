@@ -80,7 +80,11 @@ Here's an example config for `java` provider that is currently in-tree and does 
                 "bundles": "/path/to/extension/bundles",
                 "workspace": "/path/to/workspace",
                 "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
-                "mavenSettingsFile": "/path/to/maven/settings/file"
+                "mavenSettingsFile": "/path/to/maven/settings/file",
+                "excludePackages": [
+                    "package1.test",
+                    "package2.test"
+                ],
             }
         }
     ]
@@ -95,9 +99,11 @@ The `java` provider also takes following options in `providerSpecificConfig`:
 
 * `workspace`: Path to directory where the provider generates debug information such as logs.
 
-* `depOpenSourceLabelsFile`: Path to a text file, that contains the regex's per line to be added as open-source dependencies.
+* `depOpenSourceLabelsFile`: Path to a text file, that contains the regex's per line to be added as open-source dependencies. The base image already contains a default file at `/usr/local/etc/maven.default.index`.
 
-* `mavenSettingsFile`: Path to maven settings file (settings.xml) to use
+* `mavenSettingsFile`: Path to maven settings file (settings.xml) to use.
+
+* `excludePackages`: List of dependency packages on which to add exclude label.
 
 #### Builtin Provider
 

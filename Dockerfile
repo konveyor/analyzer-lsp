@@ -34,4 +34,4 @@ WORKDIR /analyzer-lsp
 
 EXPOSE 16686
 
-ENTRYPOINT ["sh", "-c", "all-in-one-linux & sleep 5 && konveyor-analyzer"]
+ENTRYPOINT ["sh", "-c", "all-in-one-linux &> /dev/null & sleep 5 && konveyor-analyzer"]

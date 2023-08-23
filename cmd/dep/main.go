@@ -52,6 +52,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	var labelSelector *labels.LabelSelector[*konveyor.Dep]
+	if depLabelSelector != "" {
+		labelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector)
+		if err != nil {
+			log.Error(err, "invalid label selector")
+			os.Exit(1)
+		}
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
@@ -114,14 +123,11 @@ func main() {
 			}
 			for u, ds := range deps {
 				newDeps := ds
-				if depLabelSelector != "" {
-					l, err := labels.NewLabelSelector[*konveyor.Dep](depLabelSelector)
+				if labelSelector != nil {
+					newDeps, err = labelSelector.MatchList(ds)
 					if err != nil {
-						panic(err)
-					}
-					newDeps, err = l.MatchList(ds)
-					if err != nil {
-						panic(err)
+						log.Error(err, "error matching label selector on deps")
+						continue
 					}
 				}
 				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
@@ -131,6 +137,11 @@ func main() {
 				})
 			}
 		}
+	}
+
+	// stop providers before exiting
+	for _, prov := range providers {
+		prov.Stop()
 	}
 
 	if depsFlat == nil && depsTree == nil {
@@ -161,8 +172,6 @@ func main() {
 			os.Exit(1)
 		}
 	}
-
-	fmt.Printf("%s", string(b))
 
 	err = os.WriteFile(outputFile, b, 0644)
 	if err != nil {
