@@ -199,6 +199,79 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		}
 
 		return response, nil
+	case "xmlPublicid":
+		regex, err := regexp.Compile(cond.XMLPublicid.Regex)
+		if err != nil {
+			return response, fmt.Errorf("Could not parse provided public-id regex '%s': %v", cond.XMLPublicid.Regex, err)
+		}
+		query, err := xpath.CompileWithNS("//*[@public-id]", cond.XML.Namespaces)
+		if query == nil || err != nil {
+			return response, fmt.Errorf("Could not parse public-id xml query '%s': %v", cond.XML.XPath, err)
+		}
+		// TODO(fabianvf): how should we scope the files searched here?
+		var xmlFiles []string
+		patterns := []string{"*.xml", "*.xhtml"}
+		xmlFiles, err = provider.GetFiles(p.config.Location, cond.XML.Filepaths, patterns...)
+		if err != nil {
+			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", patterns, err)
+		}
+
+		for _, file := range xmlFiles {
+
+			f, err := os.Open(file)
+			if err != nil {
+				fmt.Printf("unable to open file '%s': %v\n", file, err)
+				continue
+			}
+			// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
+			var doc *xmlquery.Node
+			doc, err = xmlquery.ParseWithOptions(f, xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
+			if err != nil {
+				if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
+					// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
+					b, err := os.ReadFile(file)
+					if err != nil {
+						fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
+						continue
+					}
+					docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
+					doc, err = xmlquery.Parse(strings.NewReader(docString))
+					if err != nil {
+						fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
+						continue
+					}
+				} else {
+					fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
+					continue
+				}
+			}
+			list := xmlquery.QuerySelectorAll(doc, query)
+			for _, node := range list {
+				// public-id attribute regex match check
+				for _, attr := range node.Attr {
+					if attr.Name.Local == "public-id" {
+						if regex.MatchString(attr.Value) {
+							response.Matched = true
+							ab, err := filepath.Abs(file)
+							if err != nil {
+								ab = file
+							}
+							response.Incidents = append(response.Incidents, provider.IncidentContext{
+								FileURI: uri.File(ab),
+								Variables: map[string]interface{}{
+									"matchingXML": node.OutputXML(false),
+									"innerText":   node.InnerText(),
+									"data":        node.Data,
+								},
+							})
+						}
+						break
+					}
+				}
+			}
+		}
+
+		return response, nil
 	case "json":
 		query := cond.JSON.XPath
 		if query == "" {

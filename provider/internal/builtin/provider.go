@@ -54,6 +54,7 @@ type builtinCondition struct {
 	Filecontent              fileContentCondition `yaml:"filecontent"`
 	File                     fileCondition        `yaml:"file"`
 	XML                      xmlCondition         `yaml:"xml"`
+	XMLPublicid              xmlPublicidCondition `yaml:"xmlPublicid"`
 	JSON                     jsonCondition        `yaml:"json"`
 	HasTags                  []string             `yaml:"hasTags"`
 	provider.ProviderContext `yaml:",inline"`
@@ -72,6 +73,12 @@ var _ provider.InternalProviderClient = &builtinProvider{}
 
 type xmlCondition struct {
 	XPath      string            `yaml:"xpath"`
+	Namespaces map[string]string `yaml:"namespaces"`
+	Filepaths  []string          `yaml:"filepaths"`
+}
+
+type xmlPublicidCondition struct {
+	Regex      string            `yaml:"regex"`
 	Namespaces map[string]string `yaml:"namespaces"`
 	Filepaths  []string          `yaml:"filepaths"`
 }
