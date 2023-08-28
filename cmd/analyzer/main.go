@@ -67,6 +67,8 @@ func init() {
 func main() {
 	if err := rootCmd.Execute(); err != nil {
 		println(err.Error())
+	} else if rootCmd.Flags().Changed("help") {
+		return
 	}
 
 	// This will globally prevent the yaml library from auto-wrapping lines at 80 characters
