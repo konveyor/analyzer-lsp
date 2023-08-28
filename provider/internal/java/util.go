@@ -122,9 +122,9 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 		if _, err := io.Copy(dstFile, archiveFile); err != nil {
 			return "", err
 		}
-
-		// If we found a class file, decompile it to java project path
-		if strings.HasSuffix(f.Name, ClassFile) {
+		switch {
+		// when it's a .class file, decompile it into java project
+		case strings.HasSuffix(f.Name, ClassFile):
 			// full path in the java project for the decompd file
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
@@ -147,7 +147,8 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 			} else {
 				log.V(8).Info("decompiled file", "file", filePath)
 			}
-		} else if strings.HasSuffix(f.Name, JavaArchive) || strings.HasSuffix(f.Name, WebArchive) {
+		// decompile web archives
+		case strings.HasSuffix(f.Name, WebArchive):
 			if _, err := decompile(ctx, log, filePath, projectPath); err != nil {
 				log.Error(err, "failed to decompile file", "file", filePath)
 			}
