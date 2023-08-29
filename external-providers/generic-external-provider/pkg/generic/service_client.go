@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
@@ -78,6 +79,73 @@ func (p *genericServiceClient) Evaluate(cap string, conditionInfo []byte) (provi
 	}, nil
 }
 
+func processFile(path string, regex *regexp.Regexp, positionsChan chan<- protocol.TextDocumentPositionParams, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	if regex.Match(content) {
+		scanner := bufio.NewScanner(strings.NewReader(string(content)))
+		lineNumber := 0
+		for scanner.Scan() {
+			matchLocations := regex.FindAllStringIndex(scanner.Text(), -1)
+			for _, loc := range matchLocations {
+				absPath, err := filepath.Abs(path)
+				if err != nil {
+					return
+				}
+				positionsChan <- protocol.TextDocumentPositionParams{
+					TextDocument: protocol.TextDocumentIdentifier{
+						URI: fmt.Sprintf("file://%s", absPath),
+					},
+					Position: protocol.Position{
+						Line:      float64(lineNumber),
+						Character: float64(loc[1]),
+					},
+				}
+			}
+			lineNumber++
+		}
+	}
+}
+
+func parallelWalk(location string, regex *regexp.Regexp) ([]protocol.TextDocumentPositionParams, error) {
+	var positions []protocol.TextDocumentPositionParams
+	positionsChan := make(chan protocol.TextDocumentPositionParams)
+	wg := &sync.WaitGroup{}
+
+	go func() {
+		err := filepath.Walk(location, func(path string, f os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if f.Mode().IsRegular() {
+				wg.Add(1)
+				go processFile(path, regex, positionsChan, wg)
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return
+		}
+
+		wg.Wait()
+		close(positionsChan)
+	}()
+
+	for pos := range positionsChan {
+		positions = append(positions, pos)
+	}
+
+	return positions, nil
+}
+
 func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceSymbol {
 	logger, err := os.OpenFile("golang-provider.log",
 		os.O_CREATE|os.O_WRONLY, 0644)
@@ -123,45 +191,7 @@ func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceS
 	if len(symbols) == 0 {
 		var positions []protocol.TextDocumentPositionParams
 		// Fallback to manually searching for an occurrence and performing a GotoDefinition call
-		visit := func(path string, f os.FileInfo, err error) error {
-			logger.WriteString(fmt.Sprintf("Visiting %s\n", path))
-			if f.Mode().IsRegular() {
-				content, err := os.ReadFile(path)
-				if err != nil {
-					logger.WriteString(err.Error() + "\n")
-					return err
-				}
-				if regex.Match(content) {
-					logger.WriteString("Found a match\n")
-					// Find the exact location
-					scanner := bufio.NewScanner(strings.NewReader(string(content)))
-					lineNumber := 0
-					for scanner.Scan() {
-						matchLocations := regex.FindAllStringIndex(scanner.Text(), -1)
-						logger.WriteString(fmt.Sprintf("Locations: %+v\n", matchLocations))
-						for _, loc := range matchLocations {
-							logger.WriteString(fmt.Sprintf("%s, %d, %+v\n", path, lineNumber, loc))
-							absPath, err := filepath.Abs(path)
-							if err != nil {
-								logger.WriteString(err.Error() + "\n")
-							}
-							positions = append(positions, protocol.TextDocumentPositionParams{
-								TextDocument: protocol.TextDocumentIdentifier{
-									URI: fmt.Sprintf("file://%s", absPath),
-								},
-								Position: protocol.Position{
-									Line:      float64(lineNumber),
-									Character: float64(loc[1]),
-								},
-							})
-						}
-						lineNumber++
-					}
-				}
-			}
-			return nil
-		}
-		err = filepath.Walk(p.config.Location, visit)
+		positions, err := parallelWalk(p.config.Location, regex)
 		if err != nil {
 			logger.WriteString(err.Error() + "\n")
 			// return err
