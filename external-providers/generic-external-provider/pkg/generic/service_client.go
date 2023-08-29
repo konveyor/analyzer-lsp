@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -147,30 +146,19 @@ func parallelWalk(location string, regex *regexp.Regexp) ([]protocol.TextDocumen
 }
 
 func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceSymbol {
-	logger, err := os.OpenFile("golang-provider.log",
-		os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-	}
-	defer logger.Close()
-
 	wsp := &protocol.WorkspaceSymbolParams{
 		Query: query,
 	}
 
 	var symbols []protocol.WorkspaceSymbol
 	fmt.Printf("\nrpc call\n")
-	logger.WriteString("\nrpc call\n")
-	err = p.rpc.Call(context.TODO(), "workspace/symbol", wsp, &symbols)
+	err := p.rpc.Call(context.TODO(), "workspace/symbol", wsp, &symbols)
 	fmt.Printf("\nrpc called\n")
 	if err != nil {
 		fmt.Printf("\n\nerror: %v\n", err)
-		logger.WriteString(err.Error() + "\n")
 	}
-	logger.WriteString(fmt.Sprintf("First try: %+v\n", symbols))
 	regex, err := regexp.Compile(query)
 	if err != nil {
-		logger.WriteString(err.Error())
 		// Not a valid regex, can't do anything more
 		return symbols
 	}
@@ -187,29 +175,24 @@ func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceS
 			}
 		}
 	}
-	logger.WriteString(fmt.Sprintf("Second try: %+v\n", symbols))
 	if len(symbols) == 0 {
 		var positions []protocol.TextDocumentPositionParams
 		// Fallback to manually searching for an occurrence and performing a GotoDefinition call
 		positions, err := parallelWalk(p.config.Location, regex)
 		if err != nil {
-			logger.WriteString(err.Error() + "\n")
-			// return err
+			fmt.Printf("\n\nerror: %v\n", err)
+			return nil
 		}
 		for _, position := range positions {
 			fmt.Println(position)
-			logger.WriteString(fmt.Sprintf("%+v\n", position))
 			res := []protocol.Location{}
 			err := p.rpc.Call(p.ctx, "textDocument/definition", position, &res)
 			if err != nil {
 				fmt.Printf("Error rpc: %v", err)
-				logger.WriteString(err.Error() + "\n")
 			}
-			logger.WriteString(fmt.Sprintf("%+v\n", res))
 			for _, r := range res {
 				symbols = append(symbols, protocol.WorkspaceSymbol{Location: r})
 			}
-			logger.WriteString(fmt.Sprintf("%+v\n", symbols))
 		}
 	}
 	return symbols
