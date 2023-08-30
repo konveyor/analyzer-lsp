@@ -200,6 +200,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		config.Location = sourceLocation
 		// for binaries, we fallback to looking at .jar files only for deps
 		config.DependencyPath = depLocation
+		// for binaries, always run in source-only mode as we don't know how to correctly resolve deps
+		config.AnalysisMode = provider.SourceOnlyAnalysisMode
 		isBinary = true
 	}
 
