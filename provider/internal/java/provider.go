@@ -103,8 +103,8 @@ func (p *javaProvider) Capabilities() []provider.Capability {
 	return caps
 }
 
-func (p *javaProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	return provider.FullResponseFromServiceClients(p.clients, cap, conditionInfo)
+func (p *javaProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	return provider.FullResponseFromServiceClients(ctx, p.clients, cap, conditionInfo)
 }
 
 func symbolKindToString(symbolKind protocol.SymbolKind) string {
@@ -278,7 +278,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 	svcClient := javaServiceClient{
 		rpc:              rpc,
-		ctx:              ctx,
 		cancelFunc:       cancelFunc,
 		config:           config,
 		cmd:              cmd,
@@ -290,7 +289,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		mvnSettingsFile:  mavenSettingsFile,
 	}
 
-	svcClient.initialization()
+	svcClient.initialization(ctx)
 	err = svcClient.depInit()
 	if err != nil {
 		return nil, err
@@ -298,10 +297,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	return &svcClient, returnErr
 }
 
-func (p *javaProvider) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
-	return provider.FullDepsResponse(p.clients)
+func (p *javaProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	return provider.FullDepsResponse(ctx, p.clients)
 }
 
-func (p *javaProvider) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
-	return provider.FullDepDAGResponse(p.clients)
+func (p *javaProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	return provider.FullDepDAGResponse(ctx, p.clients)
 }

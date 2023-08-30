@@ -175,7 +175,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()
 						}
 					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
-						violation, err := r.createViolation(response.ConditionResponse, response.Rule)
+						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule)
 						if err != nil {
 							r.logger.Error(err, "unable to create violation from response")
 						}
@@ -388,7 +388,7 @@ func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log l
 
 }
 
-func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule Rule) (konveyor.Violation, error) {
+func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse ConditionResponse, rule Rule) (konveyor.Violation, error) {
 	incidents := []konveyor.Incident{}
 	fileCodeSnipCount := map[string]int{}
 	incidentsSet := map[string]struct{}{} // Set of incidents
@@ -409,7 +409,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		// Some violations may not have a location in code.
 		limitSnip := (r.codeSnipLimit != 0 && fileCodeSnipCount[string(m.FileURI)] == r.codeSnipLimit)
 		if !limitSnip {
-			codeSnip, err := r.getCodeLocation(m, rule)
+			codeSnip, err := r.getCodeLocation(ctx, m, rule)
 			if err != nil || codeSnip == "" {
 				r.logger.V(6).Error(err, "unable to get code location")
 			} else {
@@ -496,7 +496,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 	}, nil
 }
 
-func (r *ruleEngine) getCodeLocation(m IncidentContext, rule Rule) (codeSnip string, err error) {
+func (r *ruleEngine) getCodeLocation(ctx context.Context, m IncidentContext, rule Rule) (codeSnip string, err error) {
 	if m.CodeLocation == nil {
 		r.logger.V(6).Info("unable to get the code snip", "URI", m.FileURI)
 		return "", nil

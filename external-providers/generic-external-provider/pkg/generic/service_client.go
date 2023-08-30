@@ -21,7 +21,6 @@ import (
 
 type genericServiceClient struct {
 	rpc        *jsonrpc2.Conn
-	ctx        context.Context
 	cancelFunc context.CancelFunc
 	cmd        *exec.Cmd
 
@@ -34,7 +33,7 @@ func (p *genericServiceClient) Stop() {
 	p.cancelFunc()
 	p.cmd.Wait()
 }
-func (p *genericServiceClient) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond genericCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
@@ -45,11 +44,11 @@ func (p *genericServiceClient) Evaluate(cap string, conditionInfo []byte) (provi
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
 	}
 
-	symbols := p.GetAllSymbols(query)
+	symbols := p.GetAllSymbols(ctx, query)
 
 	incidents := []provider.IncidentContext{}
 	for _, s := range symbols {
-		references := p.GetAllReferences(s.Location)
+		references := p.GetAllReferences(ctx, s.Location)
 		for _, ref := range references {
 			// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
 			if strings.Contains(ref.URI, p.config.Location) {
@@ -145,14 +144,14 @@ func parallelWalk(location string, regex *regexp.Regexp) ([]protocol.TextDocumen
 	return positions, nil
 }
 
-func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceSymbol {
+func (p *genericServiceClient) GetAllSymbols(ctx context.Context, query string) []protocol.WorkspaceSymbol {
 	wsp := &protocol.WorkspaceSymbolParams{
 		Query: query,
 	}
 
 	var symbols []protocol.WorkspaceSymbol
 	fmt.Printf("\nrpc call\n")
-	err := p.rpc.Call(context.TODO(), "workspace/symbol", wsp, &symbols)
+	err := p.rpc.Call(ctx, "workspace/symbol", wsp, &symbols)
 	fmt.Printf("\nrpc called\n")
 	if err != nil {
 		fmt.Printf("\n\nerror: %v\n", err)
@@ -165,7 +164,7 @@ func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceS
 	if len(symbols) == 0 {
 		// Run empty string query and manually search using the query as a regex
 		var allSymbols []protocol.WorkspaceSymbol
-		err = p.rpc.Call(context.TODO(), "workspace/symbol", &protocol.WorkspaceSymbolParams{Query: ""}, &allSymbols)
+		err = p.rpc.Call(ctx, "workspace/symbol", &protocol.WorkspaceSymbolParams{Query: ""}, &allSymbols)
 		if err != nil {
 			fmt.Printf("\n\nerror: %v\n", err)
 		}
@@ -186,7 +185,7 @@ func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceS
 		for _, position := range positions {
 			fmt.Println(position)
 			res := []protocol.Location{}
-			err := p.rpc.Call(p.ctx, "textDocument/definition", position, &res)
+			err := p.rpc.Call(ctx, "textDocument/definition", position, &res)
 			if err != nil {
 				fmt.Printf("Error rpc: %v", err)
 			}
@@ -198,7 +197,7 @@ func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceS
 	return symbols
 }
 
-func (p *genericServiceClient) GetAllReferences(location protocol.Location) []protocol.Location {
+func (p *genericServiceClient) GetAllReferences(ctx context.Context, location protocol.Location) []protocol.Location {
 	params := &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{
@@ -209,7 +208,7 @@ func (p *genericServiceClient) GetAllReferences(location protocol.Location) []pr
 	}
 
 	res := []protocol.Location{}
-	err := p.rpc.Call(p.ctx, "textDocument/references", params, &res)
+	err := p.rpc.Call(ctx, "textDocument/references", params, &res)
 	if err != nil {
 		fmt.Printf("Error rpc: %v", err)
 	}

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
 const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
@@ -41,6 +42,9 @@ const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
 // creates new java project and puts the java files in the tree of the project
 // returns path to exploded archive, path to java project, and an error when encountered
 func decompileJava(ctx context.Context, log logr.Logger, archivePath string) (explodedPath, projectPath string, err error) {
+	ctx, span := tracing.StartNewSpan(ctx, "decompile")
+	defer span.End()
+
 	projectPath = filepath.Join(filepath.Dir(archivePath), "java-project")
 
 	err = createJavaProject(ctx, projectPath)
