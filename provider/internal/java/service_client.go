@@ -72,6 +72,8 @@ func (p *javaServiceClient) Evaluate(cap string, conditionInfo []byte) (provider
 		incidents, err = p.filterVariableDeclaration(symbols)
 	case 10:
 		incidents, err = p.filterTypeReferences(symbols)
+	case 11:
+		incidents, err = p.filterDefault(symbols)
 	default:
 
 	}
@@ -196,7 +198,7 @@ func (p *javaServiceClient) initialization() {
 	}
 
 	var result protocol.InitializeResult
-	for i:=0; i < 10; i++ {
+	for i := 0; i < 10; i++ {
 		if err := p.rpc.Call(p.ctx, "initialize", params, &result); err != nil {
 			p.log.Error(err, "initialize failed")
 			continue
