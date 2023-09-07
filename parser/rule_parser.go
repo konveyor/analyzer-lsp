@@ -778,7 +778,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 		selector = r.DepLabelSelector
 	}
 
-	return &provider.ProviderCondition{
+	return provider.ProviderCondition{
 		Client:           client,
 		Capability:       capability,
 		ConditionInfo:    value,

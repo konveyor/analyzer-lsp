@@ -353,11 +353,11 @@ type ProviderCondition struct {
 	DepLabelSelector *labels.LabelSelector[*Dep]
 }
 
-func (p *ProviderCondition) Ignorable() bool {
+func (p ProviderCondition) Ignorable() bool {
 	return p.Ignore
 }
 
-func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
+func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
 	_, span := tracing.StartNewSpan(
 		ctx, "provider-condition", attribute.Key("cap").String(p.Capability))
 	defer span.End()
