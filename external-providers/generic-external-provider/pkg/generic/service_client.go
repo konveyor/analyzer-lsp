@@ -92,12 +92,26 @@ func (p *genericServiceClient) GetAllSymbols(query string) []protocol.WorkspaceS
 }
 
 func (p *genericServiceClient) GetAllReferences(symbol protocol.WorkspaceSymbol) []protocol.Location {
+	var locationURI string
+	var locationRange protocol.Range
+	switch x := symbol.Location.Value.(type) {
+	case protocol.Location:
+		locationURI = string(x.URI)
+		locationRange = x.Range
+	case protocol.PLocationMsg_workspace_symbol:
+		locationURI = string(x.URI)
+		locationRange = protocol.Range{}
+	default:
+		locationURI = ""
+		locationRange = protocol.Range{}
+	}
+
 	params := &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{
-				URI: symbol.Location.URI,
+				URI: locationURI,
 			},
-			Position: symbol.Location.Range.Start,
+			Position: locationRange.Start,
 		},
 	}
 
@@ -117,13 +131,12 @@ func (p *genericServiceClient) initialization(ctx context.Context, log logr.Logg
 		panic(1)
 	}
 
-	params := &protocol.InitializeParams{
-		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
-		RootURI:      fmt.Sprintf("file://%v", abs),
-		Capabilities: protocol.ClientCapabilities{},
-		ExtendedClientCapilities: map[string]interface{}{
-			"classFileContentsSupport": true,
-		},
+	//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
+	params := &protocol.InitializeParams{}
+	params.RootURI = fmt.Sprintf("file://%v", abs)
+	params.Capabilities = protocol.ClientCapabilities{}
+	params.ExtendedClientCapilities = map[string]interface{}{
+		"classFileContentsSupport": true,
 	}
 
 	var result protocol.InitializeResult

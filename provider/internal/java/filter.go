@@ -121,15 +121,30 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 	var err error
 
 	// TODO: Can remove when the LSP starts giving files to decompiled binaries
-	if strings.HasPrefix(symbol.Location.URI, FILE_URI_PREFIX) {
-		u = uri.URI(symbol.Location.URI)
+
+	var locationURI protocol.DocumentURI
+	var locationRange protocol.Range
+	switch x := symbol.Location.Value.(type) {
+	case protocol.Location:
+		locationURI = x.URI
+		locationRange = x.Range
+	case protocol.PLocationMsg_workspace_symbol:
+		locationURI = x.URI
+		locationRange = protocol.Range{}
+	default:
+		locationURI = ""
+		locationRange = protocol.Range{}
+	}
+
+	if strings.HasPrefix(locationURI, FILE_URI_PREFIX) {
+		u = uri.URI(locationURI)
 	} else {
-		u, err = uri.Parse(symbol.Location.URI)
+		u, err = uri.Parse(locationURI)
 		if err != nil {
 			return provider.IncidentContext{}, err
 		}
 	}
-	lineNumber := int(symbol.Location.Range.Start.Line)
+	lineNumber := int(locationRange.Start.Line)
 	incident := provider.IncidentContext{
 		FileURI:    u,
 		LineNumber: &lineNumber,
@@ -137,20 +152,20 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 
 			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
 			SYMBOL_NAME_KEY: symbol.Name,
-			FILE_KEY:        symbol.Location.URI,
+			FILE_KEY:        locationURI,
 		},
 	}
-	if symbol.Location.Range.Start.Line == 0 && symbol.Location.Range.Start.Character == 0 && symbol.Location.Range.End.Line == 0 && symbol.Location.Range.End.Character == 0 {
+	if locationRange.Start.Line == 0 && locationRange.Start.Character == 0 && locationRange.End.Line == 0 && locationRange.End.Character == 0 {
 		return incident, nil
 	}
 	incident.CodeLocation = &provider.Location{
 		StartPosition: provider.Position{
-			Line:      symbol.Location.Range.Start.Line,
-			Character: symbol.Location.Range.Start.Character,
+			Line:      float64(locationRange.Start.Line),
+			Character: float64(locationRange.Start.Character),
 		},
 		EndPosition: provider.Position{
-			Line:      symbol.Location.Range.End.Line,
-			Character: symbol.Location.Range.End.Character,
+			Line:      float64(locationRange.End.Line),
+			Character: float64(locationRange.End.Character),
 		},
 	}
 	return incident, nil
@@ -161,8 +176,19 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 	var err error
 
 	// TODO: Can remove when the LSP starts giving files to decompiled binaries
-	if strings.HasPrefix(symbol.Location.URI, FILE_URI_PREFIX) {
-		u = uri.URI(symbol.Location.URI)
+
+	var locationURI protocol.DocumentURI
+	switch x := symbol.Location.Value.(type) {
+	case protocol.Location:
+		locationURI = x.URI
+	case protocol.PLocationMsg_workspace_symbol:
+		locationURI = x.URI
+	default:
+		locationURI = ""
+	}
+
+	if strings.HasPrefix(locationURI, FILE_URI_PREFIX) {
+		u = uri.URI(locationURI)
 	} else {
 		u, err = uri.Parse(ref.URI)
 		if err != nil {
@@ -183,12 +209,12 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 
 	incident.CodeLocation = &provider.Location{
 		StartPosition: provider.Position{
-			Line:      ref.Range.Start.Line,
-			Character: ref.Range.Start.Character,
+			Line:      float64(ref.Range.Start.Line),
+			Character: float64(ref.Range.Start.Character),
 		},
 		EndPosition: provider.Position{
-			Line:      ref.Range.End.Line,
-			Character: ref.Range.End.Character,
+			Line:      float64(ref.Range.End.Line),
+			Character: float64(ref.Range.End.Character),
 		},
 	}
 	incident.Variables[FILE_KEY] = ref.URI
