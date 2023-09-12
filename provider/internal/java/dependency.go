@@ -56,9 +56,11 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 	} else {
 		ll, err = p.GetDependenciesDAG()
 		if err != nil {
+			p.log.Info("unable to get dependencies using fallback", "error", err)
 			return p.GetDependencyFallback()
 		}
 		if len(ll) == 0 {
+			p.log.Info("unable to get dependencies non found  using fallback")
 			return p.GetDependencyFallback()
 		}
 	}
@@ -267,7 +269,7 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 	}
 
 	d.Labels = p.addDepLabels(d.Name)
-	d.FileURIPrefix = fmt.Sprintf("%v://contents%v", FILE_URI_PREFIX, filepath.Dir(fp))
+	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
 
 	return d, nil
 }
@@ -373,6 +375,7 @@ func (p *javaServiceClient) initOpenSourceDepLabels() error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	return loadDepLabelItems(file, p.depToLabels,
 		labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource))
 }
