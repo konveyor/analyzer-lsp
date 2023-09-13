@@ -67,7 +67,7 @@ type Violation struct {
 	Links []Link `yaml:"links,omitempty" json:"links,omitempty"`
 
 	// Extras reserved for additional data
-	Extras json.RawMessage
+	Extras json.RawMessage `yaml:"extras,omitempty" json:"extras,omitempty"`
 
 	// Effort defines expected story points for this incident
 	Effort *int `yaml:"effort,omitempty" json:"effort,omitempty"`
