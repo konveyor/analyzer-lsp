@@ -156,16 +156,14 @@ func Test_matchDepLabelSelector(t *testing.T) {
 			name:          "no deps, incident should match",
 			labelSelector: "!konveyor.io/dep-source=open-source",
 			incident: IncidentContext{
-				FileURI: "konveyor-jdt://test-file-uri",
+				FileURI: "file://test-file-uri",
 			},
 			want: true,
 		},
 		{
 			name:          "incident does not come from a dep, should match",
 			labelSelector: "!konveyor.io/dep-source=open-source",
-			incident: IncidentContext{
-				FileURI: "file://test-file-uri/test-file",
-			},
+			incident:      IncidentContext{},
 			deps: map[uri.URI][]*konveyor.Dep{
 				"pom.xml": {
 					{
@@ -185,7 +183,7 @@ func Test_matchDepLabelSelector(t *testing.T) {
 			name:          "label selector matches",
 			labelSelector: "konveyor.io/dep-source=open-source",
 			incident: IncidentContext{
-				FileURI: "konveyor-jdt://test-file-uri/test-file",
+				FileURI: "file://test-file-uri/test-file",
 			},
 			deps: map[uri.URI][]*konveyor.Dep{
 				"pom.xml": {
@@ -196,7 +194,7 @@ func Test_matchDepLabelSelector(t *testing.T) {
 						Labels: []string{
 							"konveyor.io/dep-source=open-source",
 						},
-						FileURIPrefix: "konveyor-jdt://test-file-uri",
+						FileURIPrefix: "file://test-file-uri",
 					},
 				},
 			},
@@ -206,7 +204,7 @@ func Test_matchDepLabelSelector(t *testing.T) {
 			name:          "label selector does not match",
 			labelSelector: "!konveyor.io/dep-source=exclude",
 			incident: IncidentContext{
-				FileURI: "konveyor-jdt://test-file-uri/test-file",
+				FileURI: "file://test-file-uri/test-file",
 			},
 			deps: map[uri.URI][]*konveyor.Dep{
 				"pom.xml": {
@@ -217,7 +215,7 @@ func Test_matchDepLabelSelector(t *testing.T) {
 						Labels: []string{
 							"konveyor.io/dep-source=exclude",
 						},
-						FileURIPrefix: "konveyor-jdt://test-file-uri",
+						FileURIPrefix: "file://test-file-uri",
 					},
 				},
 			},
