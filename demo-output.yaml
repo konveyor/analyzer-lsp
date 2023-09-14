@@ -130,7 +130,6 @@
           data: dependency
           innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"
           matchingXML: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
-      extras: []
     file-001:
       description: Testing that we can get all the go files in the project
       category: potential
@@ -143,7 +142,6 @@
       links:
       - url: https://go.dev
         title: Golang
-      extras: []
       effort: 3
     filecontent-codesnip-test:
       description: ""
@@ -155,7 +153,6 @@
         lineNumber: 5
         variables:
           matchingText: FROM maven:3.8-openjdk-11 as build
-      extras: []
     go-lang-ref-001:
       description: ""
       category: potential
@@ -165,7 +162,6 @@
         lineNumber: 9
         variables:
           file: file:///analyzer-lsp/examples/golang/main.go
-      extras: []
     golang-gomod-dependencies:
       description: ""
       category: potential
@@ -185,7 +181,6 @@
         variables:
           name: sigs.k8s.io/structured-merge-diff/v4
           version: v4.2.1
-      extras: []
     java-pomxml-dependencies:
       description: ""
       category: potential
@@ -200,7 +195,6 @@
         variables:
           name: io.fabric8.kubernetes-client
           version: 6.0.0
-      extras: []
     lang-ref-001:
       description: ""
       category: potential
@@ -226,7 +220,6 @@
         lineNumber: 9
         variables:
           file: file:///analyzer-lsp/examples/golang/main.go
-      extras: []
     lang-ref-003:
       description: ""
       category: potential
@@ -247,7 +240,6 @@
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
-      extras: []
     lang-ref-004:
       description: ""
       category: potential
@@ -261,7 +253,6 @@
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
-      extras: []
     multiple-actions-001:
       description: ""
       category: potential
@@ -271,7 +262,6 @@
         variables:
           tags:
           - Golang
-      extras: []
     singleton-sessionbean-00001:
       description: ""
       category: potential
@@ -292,7 +282,6 @@
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
           kind: Class
           name: Bean
-      extras: []
     singleton-sessionbean-00002:
       description: ""
       category: potential
@@ -313,7 +302,6 @@
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
           kind: Class
           name: Bean
-      extras: []
     tech-tag-001:
       description: ""
       category: potential
@@ -329,7 +317,6 @@
         variables:
           tags:
           - Java
-      extras: []
     xml-pom-001:
       description: ""
       category: potential
@@ -454,7 +441,6 @@
           data: dependency
           innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"
           matchingXML: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
-      extras: []
   errors:
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:
