@@ -24,41 +24,41 @@ const (
 // A.B.C.D means that one of B or C would change to a pointer
 // so a test or initialization would be needed
 var goplsStar = map[prop]int{
-	{"ClientCapabilities", "textDocument"}: wantOpt, // A.B.C.D at fake/editor.go:255
-	{"ClientCapabilities", "window"}:       wantOpt, // regtest failures
-	{"ClientCapabilities", "workspace"}:    wantOpt, // regtest failures
-	{"CodeAction", "kind"}:                 wantOpt, // A.B.C.D
+	// {"ClientCapabilities", "textDocument"}: wantOpt, // A.B.C.D at fake/editor.go:255
+	// {"ClientCapabilities", "window"}:       wantOpt, // regtest failures
+	// {"ClientCapabilities", "workspace"}:    wantOpt, // regtest failures
+	// {"CodeAction", "kind"}:                 wantOpt, // A.B.C.D
 
-	{"CodeActionClientCapabilities", "codeActionLiteralSupport"}: wantOpt, // regtest failures
+	// {"CodeActionClientCapabilities", "codeActionLiteralSupport"}: wantOpt, // regtest failures
 
-	{"CompletionClientCapabilities", "completionItem"}: wantOpt, // A.B.C.D
-	{"CompletionClientCapabilities", "insertTextMode"}: wantOpt, // A.B.C.D
-	{"CompletionItem", "kind"}:                         wantOpt, // need temporary variables
-	{"CompletionParams", "context"}:                    wantOpt, // needs nil checks
+	// {"CompletionClientCapabilities", "completionItem"}: wantOpt, // A.B.C.D
+	// {"CompletionClientCapabilities", "insertTextMode"}: wantOpt, // A.B.C.D
+	// {"CompletionItem", "kind"}:                         wantOpt, // need temporary variables
+	// {"CompletionParams", "context"}:                    wantOpt, // needs nil checks
 
-	{"Diagnostic", "severity"}:            wantOpt,     // nil checks or more careful thought
-	{"DidSaveTextDocumentParams", "text"}: wantOptStar, // capabilities_test.go:112 logic
-	{"DocumentHighlight", "kind"}:         wantOpt,     // need temporary variables
-	{"Hover", "range"}:                    wantOpt,     // complex expressions
-	{"InlayHint", "kind"}:                 wantOpt,     // temporary variables
+	// {"Diagnostic", "severity"}:            wantOpt,     // nil checks or more careful thought
+	// {"DidSaveTextDocumentParams", "text"}: wantOptStar, // capabilities_test.go:112 logic
+	// {"DocumentHighlight", "kind"}:         wantOpt,     // need temporary variables
+	// {"Hover", "range"}:                    wantOpt,     // complex expressions
+	// {"InlayHint", "kind"}:                 wantOpt,     // temporary variables
 
-	{"Lit_CompletionClientCapabilities_completionItem", "tagSupport"}:     nothing, // A.B.C.
-	{"Lit_SemanticTokensClientCapabilities_requests", "full"}:             nothing, // A.B.C.D
-	{"Lit_SemanticTokensClientCapabilities_requests", "range"}:            nothing, // A.B.C.D
-	{"Lit_SemanticTokensClientCapabilities_requests_full_Item1", "delta"}: nothing, // A.B.C.D
-	{"Lit_SemanticTokensOptions_full_Item1", "delta"}:                     nothing, // A.B.C.
+	// {"Lit_CompletionClientCapabilities_completionItem", "tagSupport"}:     nothing, // A.B.C.
+	// {"Lit_SemanticTokensClientCapabilities_requests", "full"}:             nothing, // A.B.C.D
+	// {"Lit_SemanticTokensClientCapabilities_requests", "range"}:            nothing, // A.B.C.D
+	// {"Lit_SemanticTokensClientCapabilities_requests_full_Item1", "delta"}: nothing, // A.B.C.D
+	// {"Lit_SemanticTokensOptions_full_Item1", "delta"}:                     nothing, // A.B.C.
 
-	{"Lit_TextDocumentContentChangeEvent_Item0", "range"}: wantStar, // == nil test
+	// {"Lit_TextDocumentContentChangeEvent_Item0", "range"}: wantStar, // == nil test
 
-	{"TextDocumentClientCapabilities", "codeAction"}:          wantOpt, // A.B.C.D
-	{"TextDocumentClientCapabilities", "completion"}:          wantOpt, // A.B.C.D
-	{"TextDocumentClientCapabilities", "documentSymbol"}:      wantOpt, // A.B.C.D
-	{"TextDocumentClientCapabilities", "publishDiagnostics"}:  wantOpt, //A.B.C.D
-	{"TextDocumentClientCapabilities", "semanticTokens"}:      wantOpt, // A.B.C.D
-	{"TextDocumentSyncOptions", "change"}:                     wantOpt, // &constant
-	{"WorkDoneProgressParams", "workDoneToken"}:               wantOpt, // regtest
-	{"WorkspaceClientCapabilities", "didChangeConfiguration"}: wantOpt, // A.B.C.D
-	{"WorkspaceClientCapabilities", "didChangeWatchedFiles"}:  wantOpt, // A.B.C.D
+	// {"TextDocumentClientCapabilities", "codeAction"}:          wantOpt, // A.B.C.D
+	// {"TextDocumentClientCapabilities", "completion"}:          wantOpt, // A.B.C.D
+	// {"TextDocumentClientCapabilities", "documentSymbol"}:      wantOpt, // A.B.C.D
+	// {"TextDocumentClientCapabilities", "publishDiagnostics"}:  wantOpt, //A.B.C.D
+	// {"TextDocumentClientCapabilities", "semanticTokens"}:      wantOpt, // A.B.C.D
+	// {"TextDocumentSyncOptions", "change"}:                     wantOpt, // &constant
+	// {"WorkDoneProgressParams", "workDoneToken"}:               wantOpt, // regtest
+	// {"WorkspaceClientCapabilities", "didChangeConfiguration"}: wantOpt, // A.B.C.D
+	// {"WorkspaceClientCapabilities", "didChangeWatchedFiles"}:  wantOpt, // A.B.C.D
 }
 
 // keep track of which entries in goplsStar are used
@@ -199,9 +199,9 @@ var goplsType = map[string]string{
 	"Or_InlayHint_tooltip":          "OrPTooltip_textDocument_inlayHint",
 	"Or_LSPAny":                     "interface{}",
 	"Or_NotebookDocumentFilter":     "Msg_NotebookDocumentFilter",
-	"Or_NotebookDocumentSyncOptions_notebookSelector_Elem": "PNotebookSelectorPNotebookDocumentSync",
+	// "Or_NotebookDocumentSyncOptions_notebookSelector_Elem": "PNotebookSelectorPNotebookDocumentSync",
 
-	"Or_NotebookDocumentSyncOptions_notebookSelector_Elem_Item0_notebook": "OrFNotebookPNotebookSelector",
+	// "Or_NotebookDocumentSyncOptions_notebookSelector_Elem_Item0_notebook": "OrFNotebookPNotebookSelector",
 
 	"Or_ParameterInformation_documentation":            "string",
 	"Or_ParameterInformation_label":                    "string",
@@ -218,20 +218,20 @@ var goplsType = map[string]string{
 	"Or_TextDocumentContentChangeEvent":                "Msg_TextDocumentContentChangeEvent",
 	"Or_TextDocumentFilter":                            "Msg_TextDocumentFilter",
 	// "Or_WorkspaceFoldersServerCapabilities_changeNotifications": "string",
-	"Or_WorkspaceSymbol_location":                            "OrPLocation_workspace_symbol",
-	"PrepareRenameResult":                                    "PrepareRename2Gn",
-	"Tuple_ParameterInformation_label_Item1":                 "UIntCommaUInt",
-	"WorkspaceFoldersServerCapabilities":                     "WorkspaceFolders5Gn",
-	"[]LSPAny":                                               "[]interface{}",
-	"[]Or_NotebookDocumentSyncOptions_notebookSelector_Elem": "[]PNotebookSelectorPNotebookDocumentSync",
-	"[]Or_Result_textDocument_codeAction_Item0_Elem":         "[]CodeAction",
-	"[]PreviousResultId":                                     "[]PreviousResultID",
-	"[]uinteger":                                             "[]uint32",
-	"boolean":                                                "bool",
-	"decimal":                                                "float64",
-	"integer":                                                "int32",
-	"map[DocumentUri][]TextEdit":                             "map[DocumentURI][]TextEdit",
-	"uinteger":                                               "uint32",
+	"Or_WorkspaceSymbol_location":            "OrPLocation_workspace_symbol",
+	"PrepareRenameResult":                    "PrepareRename2Gn",
+	"Tuple_ParameterInformation_label_Item1": "UIntCommaUInt",
+	"WorkspaceFoldersServerCapabilities":     "WorkspaceFolders5Gn",
+	"[]LSPAny":                               "[]interface{}",
+	// "[]Or_NotebookDocumentSyncOptions_notebookSelector_Elem": "[]PNotebookSelectorPNotebookDocumentSync",
+	"[]Or_Result_textDocument_codeAction_Item0_Elem": "[]CodeAction",
+	"[]PreviousResultId":                             "[]PreviousResultID",
+	"[]uinteger":                                     "[]uint32",
+	"boolean":                                        "bool",
+	"decimal":                                        "float64",
+	"integer":                                        "int32",
+	"map[DocumentUri][]TextEdit":                     "map[DocumentURI][]TextEdit",
+	"uinteger":                                       "uint32",
 }
 
 var usedGoplsType = make(map[string]bool)

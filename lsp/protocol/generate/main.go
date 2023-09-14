@@ -24,6 +24,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const vscodeRepo = "https://github.com/microsoft/vscode-languageserver-node"
@@ -33,7 +34,8 @@ const vscodeRepo = "https://github.com/microsoft/vscode-languageserver-node"
 // For example, tag release/protocol/3.17.3 of the repo defines protocol version 3.17.0.
 // (Point releases are reflected in the git tag version even when they are cosmetic
 // and don't change the protocol.)
-var lspGitRef = "release/protocol/3.17.4-next.2"
+// var lspGitRef = "release/protocol/3.17.4-next.3"
+var lspGitRef = "main"
 
 var (
 	repodir   = flag.String("d", "", "directory containing clone of "+vscodeRepo)
@@ -55,11 +57,13 @@ func processinline() {
 	// A local repository may be specified during debugging.
 	// The default behavior is to download the canonical version.
 	if *repodir == "" {
-		tmpdir, err := os.MkdirTemp("", "")
+		// tmpdir, err := os.MkdirTemp("", "")
+		tmpdir := time.Now().String()
+		err := os.Mkdir(tmpdir, 0755)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer os.RemoveAll(tmpdir) // ignore error
+		// defer os.RemoveAll(tmpdir) // ignore error
 
 		// Clone the repository.
 		cmd := exec.Command("git", "clone", "--quiet", "--depth=1", "-c", "advice.detachedHead=false", vscodeRepo, "--branch="+lspGitRef, "--single-branch", tmpdir)
@@ -195,6 +199,15 @@ func writeprotocol() {
 	hack("PreviousResultId", "PreviousResultID")
 	hack("WorkspaceFoldersServerCapabilities", "WorkspaceFolders5Gn")
 	hack("_InitializeParams", "XInitializeParams")
+
+	h := "  // added by konveyor/analyzer-lsp. Why is this needed? - Jonah\n  ExtendedClientCapilities map[string]interface{} `json:\"extendedClientCapabilities\"`\n}"
+	s := types["XInitializeParams"]
+	i := strings.LastIndex(s, "}")
+	s = s[:i] + h + s[i+len("}"):]
+
+	types["XInitializeParams"] = s
+	fmt.Printf("%s", types["XInitializeParams"])
+
 	// and some aliases to make the new code contain the old
 	types["PrepareRename2Gn"] = "type PrepareRename2Gn = Msg_PrepareRename2Gn // (alias) line 13927\n"
 	types["PrepareRenameResult"] = "type PrepareRenameResult = Msg_PrepareRename2Gn // (alias) line 13927\n"
