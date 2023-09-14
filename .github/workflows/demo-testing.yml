@@ -8,6 +8,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: replace analyzer-lsp upstream dep from external providers
+        run: |
+          for dir in ./external-providers/*; do
+            pushd $dir &> /dev/null
+            go mod edit -replace=github.com/konveyor/analyzer-lsp=../../
+            popd &> /dev/null
+          done
+
       - name: build image
         run: podman build -t quay.io/konveyor/analyzer-lsp:latest .
 
