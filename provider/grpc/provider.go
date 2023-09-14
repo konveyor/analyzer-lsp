@@ -1,8 +1,10 @@
 package grpc
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os/exec"
 	"time"
@@ -32,6 +34,7 @@ var _ provider.InternalProviderClient = &grpcProvider{}
 var _ provider.Startable = &grpcProvider{}
 
 func NewGRPCClient(config provider.Config, log logr.Logger) *grpcProvider {
+	log = log.WithName(config.Name)
 	log = log.WithValues("provider", "grpc")
 	return &grpcProvider{
 		config:         config,
@@ -134,6 +137,12 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 		cmd := exec.CommandContext(ctx, g.config.BinaryPath, "--port", fmt.Sprintf("%v", port))
 		// TODO: For each output line, log that line here, allows the server's to output to the main log file. Make sure we name this correctly
 		// cmd will exit with the ending of the ctx.
+		out, err := cmd.StdoutPipe()
+		if err != nil {
+			return err
+		}
+		go g.LogProviderOut(ctx, out)
+
 		err = cmd.Start()
 		if err != nil {
 			return err
@@ -173,4 +182,12 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 
 	}
 	return fmt.Errorf("must set Address or Binary Path for a GRPC provider")
+}
+
+func (g *grpcProvider) LogProviderOut(ctx context.Context, out io.ReadCloser) {
+	scan := bufio.NewScanner(out)
+
+	for scan.Scan() {
+		g.log.V(3).Info(scan.Text())
+	}
 }
