@@ -43,12 +43,12 @@
         pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
         location: TYPE
     - go.referenced: 
-        pattern: "v1beta1.CustomResourceDefinition"
+        pattern: ".*v1beta1.CustomResourceDefinition"
 - message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
   when:
     go.referenced: 
-        pattern: "v1beta1.CustomResourceDefinition"
+        pattern: ".*v1beta1.CustomResourceDefinition"
 - message: testing nested conditions
   ruleID: lang-ref-002
   when:
