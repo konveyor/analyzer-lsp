@@ -229,7 +229,9 @@ func (p *javaServiceClient) getURI(refURI string) (uri.URI, error) {
 
 	javaFileAbsolutePath := filepath.Join(filepath.Dir(jarPath), filepath.Dir(path), javaFileName)
 
-	if _, err := os.Stat(javaFileAbsolutePath); err != nil {
+	// attempt to decompile when directory for the expected java file doesn't exist
+	// if directory exists, assume .java file is present within, this avoids decompiling every Jar
+	if _, err := os.Stat(filepath.Dir(javaFileAbsolutePath)); err != nil {
 		cmd := exec.Command("jar", "xf", filepath.Base(jarPath))
 		cmd.Dir = filepath.Dir(jarPath)
 		err := cmd.Run()
