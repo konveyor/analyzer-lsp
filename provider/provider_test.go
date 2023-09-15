@@ -20,7 +20,7 @@ type fakeClient struct {
 
 func (c *fakeClient) Capabilities() []Capability { return nil }
 func (c *fakeClient) HasCapability(string) bool  { return true }
-func (c *fakeClient) Evaluate(string, []byte) (ProviderEvaluateResponse, error) {
+func (c *fakeClient) Evaluate(context.Context, string, []byte) (ProviderEvaluateResponse, error) {
 	return ProviderEvaluateResponse{}, nil
 }
 func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClient, error) {
@@ -28,14 +28,14 @@ func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClie
 }
 func (c *fakeClient) Stop() {}
 
-func (c *fakeClient) GetDependencies() (map[uri.URI][]*Dep, error) {
+func (c *fakeClient) GetDependencies(ctx context.Context) (map[uri.URI][]*Dep, error) {
 	m := map[uri.URI][]*Dep{
 		uri.URI("test"): c.dependencies,
 	}
 	return m, nil
 }
 
-func (c *fakeClient) GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error) {
+func (c *fakeClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]DepDAGItem, error) {
 	return nil, nil
 }
 

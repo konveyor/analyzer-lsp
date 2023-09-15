@@ -3,6 +3,7 @@ package java
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -42,7 +43,7 @@ func (p *javaServiceClient) findPom() string {
 	return f
 }
 
-func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
+func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	if p.depsCache != nil {
 		return p.depsCache, nil
 	}
@@ -54,14 +55,14 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 		// for binaries we only find JARs embedded in archive
 		p.discoverDepsFromJars(p.config.DependencyPath, ll)
 	} else {
-		ll, err = p.GetDependenciesDAG()
+		ll, err = p.GetDependenciesDAG(ctx)
 		if err != nil {
 			p.log.Info("unable to get dependencies using fallback", "error", err)
-			return p.GetDependencyFallback()
+			return p.GetDependencyFallback(ctx)
 		}
 		if len(ll) == 0 {
 			p.log.Info("unable to get dependencies non found  using fallback")
-			return p.GetDependencyFallback()
+			return p.GetDependencyFallback(ctx)
 		}
 	}
 	for f, ds := range ll {
@@ -96,7 +97,7 @@ func (p *javaServiceClient) getLocalRepoPath() string {
 	return string(outb.String())
 }
 
-func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]*provider.Dep, error) {
+func (p *javaServiceClient) GetDependencyFallback(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	pomDependencyQuery := "//dependencies/dependency/*"
 	path := p.findPom()
 	file := uri.File(path)
@@ -145,7 +146,7 @@ func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]*provider.Dep
 	return m, nil
 }
 
-func (p *javaServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
+func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	localRepoPath := p.getLocalRepoPath()
 
 	path := p.findPom()

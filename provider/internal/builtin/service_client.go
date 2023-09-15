@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -18,19 +19,19 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type builtintServiceClient struct {
+type builtinServiceClient struct {
 	config provider.InitConfig
 	tags   map[string]bool
 	provider.UnimplementedDependenciesComponent
 }
 
-var _ provider.ServiceClient = &builtintServiceClient{}
+var _ provider.ServiceClient = &builtinServiceClient{}
 
-func (p *builtintServiceClient) Stop() {
+func (p *builtinServiceClient) Stop() {
 	return
 }
 
-func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond builtinCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {

@@ -139,7 +139,7 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 	client := s.clients[req.Id]
 	s.mutex.RUnlock()
 
-	r, err := client.client.Evaluate(req.Cap, []byte(req.ConditionInfo))
+	r, err := client.client.Evaluate(ctx, req.Cap, []byte(req.ConditionInfo))
 
 	if err != nil {
 		return &libgrpc.EvaluateResponse{
@@ -229,7 +229,7 @@ func (s *server) GetDependencies(ctx context.Context, in *libgrpc.ServiceRequest
 	s.mutex.RLock()
 	client := s.clients[in.Id]
 	s.mutex.RUnlock()
-	deps, err := client.client.GetDependencies()
+	deps, err := client.client.GetDependencies(ctx)
 	if err != nil {
 		return &libgrpc.DependencyResponse{
 			Successful: false,
@@ -297,7 +297,7 @@ func (s *server) GetDependenciesLinkedList(ctx context.Context, in *libgrpc.Serv
 	s.mutex.RLock()
 	client := s.clients[in.Id]
 	s.mutex.RUnlock()
-	deps, err := client.client.GetDependenciesDAG()
+	deps, err := client.client.GetDependenciesDAG(ctx)
 	if err != nil {
 		return &libgrpc.DependencyDAGResponse{
 			Successful: false,

@@ -44,7 +44,6 @@ func NewGRPCClient(config provider.Config, log logr.Logger) *grpcProvider {
 }
 
 func (g *grpcProvider) ProviderInit(ctx context.Context) error {
-	g.ctx = ctx
 	for _, c := range g.config.InitConfig {
 		s, err := g.Init(ctx, g.log, c)
 		if err != nil {
@@ -102,22 +101,21 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 	return &grpcServiceClient{
 		id:     r.Id,
-		ctx:    ctx,
 		config: config,
 		client: g.Client,
 	}, nil
 }
 
-func (g *grpcProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	return provider.FullResponseFromServiceClients(g.serviceClients, cap, conditionInfo)
+func (g *grpcProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	return provider.FullResponseFromServiceClients(ctx, g.serviceClients, cap, conditionInfo)
 }
 
-func (g *grpcProvider) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
-	return provider.FullDepsResponse(g.serviceClients)
+func (g *grpcProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	return provider.FullDepsResponse(ctx, g.serviceClients)
 }
 
-func (g *grpcProvider) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
-	return provider.FullDepDAGResponse(g.serviceClients)
+func (g *grpcProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	return provider.FullDepDAGResponse(ctx, g.serviceClients)
 }
 
 func (g *grpcProvider) Stop() {

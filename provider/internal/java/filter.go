@@ -1,6 +1,7 @@
 package java
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -61,10 +62,10 @@ func (p *javaServiceClient) filterTypesInheritance(symbols []protocol.WorkspaceS
 	return incidents, nil
 }
 
-func (p *javaServiceClient) filterTypeReferences(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterTypeReferences(ctx context.Context, symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
-		references := p.GetAllReferences(symbol)
+		references := p.GetAllReferences(ctx, symbol)
 
 		for _, ref := range references {
 			incident, err := p.convertSymbolRefToIncidentContext(symbol, ref)
@@ -106,11 +107,11 @@ func (p *javaServiceClient) filterMethodSymbols(symbols []protocol.WorkspaceSymb
 
 }
 
-func (p *javaServiceClient) filterConstructorSymbols(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterConstructorSymbols(ctx context.Context, symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
-		references := p.GetAllReferences(symbol)
+		references := p.GetAllReferences(ctx, symbol)
 		for _, ref := range references {
 			incident, err := p.convertSymbolRefToIncidentContext(symbol, ref)
 			if err != nil {

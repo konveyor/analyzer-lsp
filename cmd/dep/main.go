@@ -103,7 +103,7 @@ func main() {
 		}
 
 		if treeOutput {
-			deps, err := prov.GetDependenciesDAG()
+			deps, err := prov.GetDependenciesDAG(ctx)
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
@@ -116,7 +116,7 @@ func main() {
 				})
 			}
 		} else {
-			deps, err := prov.GetDependencies()
+			deps, err := prov.GetDependencies(ctx)
 			if err != nil {
 				log.Error(err, "failed to get list of dependencies for provider", "provider", name)
 				continue
