@@ -1,6 +1,13 @@
 package java
 
 import (
+	"context"
+	"fmt"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
@@ -55,10 +62,10 @@ func (p *javaServiceClient) filterTypesInheritance(symbols []protocol.WorkspaceS
 	return incidents, nil
 }
 
-func (p *javaServiceClient) filterTypeReferences(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterTypeReferences(ctx context.Context, symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
-		references := p.GetAllReferences(symbol)
+		references := p.GetAllReferences(ctx, symbol)
 
 		for _, ref := range references {
 			incident, err := p.convertSymbolRefToIncidentContext(symbol, ref)
@@ -100,11 +107,11 @@ func (p *javaServiceClient) filterMethodSymbols(symbols []protocol.WorkspaceSymb
 
 }
 
-func (p *javaServiceClient) filterConstructorSymbols(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+func (p *javaServiceClient) filterConstructorSymbols(ctx context.Context, symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
-		references := p.GetAllReferences(symbol)
+		references := p.GetAllReferences(ctx, symbol)
 		for _, ref := range references {
 			incident, err := p.convertSymbolRefToIncidentContext(symbol, ref)
 			if err != nil {
@@ -117,11 +124,6 @@ func (p *javaServiceClient) filterConstructorSymbols(symbols []protocol.Workspac
 }
 
 func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSymbol) (provider.IncidentContext, error) {
-	var u uri.URI
-	var err error
-
-	// TODO: Can remove when the LSP starts giving files to decompiled binaries
-
 	var locationURI protocol.DocumentURI
 	var locationRange protocol.Range
 	switch x := symbol.Location.Value.(type) {
@@ -136,14 +138,11 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 		locationRange = protocol.Range{}
 	}
 
-	if strings.HasPrefix(locationURI, FILE_URI_PREFIX) {
-		u = uri.URI(locationURI)
-	} else {
-		u, err = uri.Parse(locationURI)
-		if err != nil {
-			return provider.IncidentContext{}, err
-		}
+	u, err := p.getURI(locationURI)
+	if err != nil {
+		return provider.IncidentContext{}, err
 	}
+
 	lineNumber := int(locationRange.Start.Line)
 	incident := provider.IncidentContext{
 		FileURI:    u,
@@ -152,7 +151,7 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 
 			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
 			SYMBOL_NAME_KEY: symbol.Name,
-			FILE_KEY:        locationURI,
+			FILE_KEY:        u,
 		},
 	}
 	if locationRange.Start.Line == 0 && locationRange.Start.Character == 0 && locationRange.End.Line == 0 && locationRange.End.Character == 0 {
@@ -172,35 +171,17 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 }
 
 func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.WorkspaceSymbol, ref protocol.Location) (provider.IncidentContext, error) {
-	var u uri.URI
-	var err error
-
-	// TODO: Can remove when the LSP starts giving files to decompiled binaries
-
-	var locationURI protocol.DocumentURI
-	switch x := symbol.Location.Value.(type) {
-	case protocol.Location:
-		locationURI = x.URI
-	case protocol.PLocationMsg_workspace_symbol:
-		locationURI = x.URI
-	default:
-		locationURI = ""
+	u, err := p.getURI(ref.URI)
+	if err != nil {
+		return provider.IncidentContext{}, err
 	}
 
-	if strings.HasPrefix(locationURI, FILE_URI_PREFIX) {
-		u = uri.URI(locationURI)
-	} else {
-		u, err = uri.Parse(ref.URI)
-		if err != nil {
-			return provider.IncidentContext{}, err
-		}
-	}
 	incident := provider.IncidentContext{
 		FileURI: u,
 		Variables: map[string]interface{}{
-
 			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
 			SYMBOL_NAME_KEY: symbol.Name,
+			FILE_KEY:        u,
 		},
 	}
 	if ref.Range.Start.Line == 0 && ref.Range.Start.Character == 0 && ref.Range.End.Line == 0 && ref.Range.End.Character == 0 {
@@ -217,10 +198,63 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 			Character: float64(ref.Range.End.Character),
 		},
 	}
-	incident.Variables[FILE_KEY] = ref.URI
 	lineNumber := int(ref.Range.Start.Line)
 	incident.LineNumber = &lineNumber
 
 	return incident, nil
+
+}
+
+func (p *javaServiceClient) getURI(refURI string) (uri.URI, error) {
+	if !strings.HasPrefix(refURI, FILE_URI_PREFIX) {
+		return uri.Parse(refURI)
+	}
+
+	u, err := url.Parse(refURI)
+	if err != nil {
+		return uri.URI(""), err
+	}
+
+	// Decompile the jar
+	sourceRange, err := strconv.ParseBool(u.Query().Get("source-range"))
+	if err != nil {
+		// then we got some response that does not make sense or should not be valid
+		return uri.URI(""), fmt.Errorf("unable to get konveyor-jdt source range query parameter")
+	}
+	packageName := u.Query().Get("packageName")
+
+	var jarPath string
+	if sourceRange {
+		// If there is a source range, we know we know there is a sources jar
+		jarName := filepath.Base(u.Path)
+		s := strings.TrimSuffix(jarName, ".jar")
+		s = fmt.Sprintf("%v-sources.jar", s)
+		jarPath = filepath.Join(filepath.Dir(u.Path), s)
+	} else {
+		jarName := filepath.Base(u.Path)
+		jarPath = filepath.Join(filepath.Dir(u.Path), jarName)
+	}
+	path := filepath.Join(strings.Split(strings.TrimSuffix(packageName, ".class"), ".")...)
+
+	javaFileName := fmt.Sprintf("%s.java", filepath.Base(path))
+	if i := strings.Index(javaFileName, "$"); i > 0 {
+		javaFileName = fmt.Sprintf("%v.java", javaFileName[0:i])
+	}
+
+	javaFileAbsolutePath := filepath.Join(filepath.Dir(jarPath), filepath.Dir(path), javaFileName)
+
+	// attempt to decompile when directory for the expected java file doesn't exist
+	// if directory exists, assume .java file is present within, this avoids decompiling every Jar
+	if _, err := os.Stat(filepath.Dir(javaFileAbsolutePath)); err != nil {
+		cmd := exec.Command("jar", "xf", filepath.Base(jarPath))
+		cmd.Dir = filepath.Dir(jarPath)
+		err := cmd.Run()
+		if err != nil {
+			fmt.Printf("\n java error%v", err)
+			return "", err
+		}
+	}
+
+	return uri.New(javaFileAbsolutePath), nil
 
 }

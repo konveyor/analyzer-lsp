@@ -53,12 +53,12 @@ func init() {
 type UnimplementedDependenciesComponent struct{}
 
 // We don't have dependencies
-func (p *UnimplementedDependenciesComponent) GetDependencies() (map[uri.URI][]*Dep, error) {
+func (p *UnimplementedDependenciesComponent) GetDependencies(ctx context.Context) (map[uri.URI][]*Dep, error) {
 	return nil, nil
 }
 
 // We don't have dependencies
-func (p *UnimplementedDependenciesComponent) GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error) {
+func (p *UnimplementedDependenciesComponent) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]DepDAGItem, error) {
 	return nil, nil
 }
 
@@ -236,14 +236,14 @@ func HasCapability(caps []Capability, name string) bool {
 	return false
 }
 
-func FullResponseFromServiceClients(clients []ServiceClient, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error) {
+func FullResponseFromServiceClients(ctx context.Context, clients []ServiceClient, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error) {
 	fullResp := ProviderEvaluateResponse{
 		Matched:         false,
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
 	for _, c := range clients {
-		r, err := c.Evaluate(cap, conditionInfo)
+		r, err := c.Evaluate(ctx, cap, conditionInfo)
 		if err != nil {
 			return fullResp, err
 		}
@@ -258,10 +258,10 @@ func FullResponseFromServiceClients(clients []ServiceClient, cap string, conditi
 	return fullResp, nil
 }
 
-func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]*Dep, error) {
+func FullDepsResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI][]*Dep, error) {
 	deps := map[uri.URI][]*Dep{}
 	for _, c := range clients {
-		r, err := c.GetDependencies()
+		r, err := c.GetDependencies(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -273,10 +273,10 @@ func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]*Dep, error) {
 	return deps, nil
 }
 
-func FullDepDAGResponse(clients []ServiceClient) (map[uri.URI][]DepDAGItem, error) {
+func FullDepDAGResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI][]DepDAGItem, error) {
 	deps := map[uri.URI][]DepDAGItem{}
 	for _, c := range clients {
-		r, err := c.GetDependenciesDAG()
+		r, err := c.GetDependenciesDAG(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -310,16 +310,16 @@ type BaseClient interface {
 
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
 type ServiceClient interface {
-	Evaluate(cap string, conditionInfo []byte) (ProviderEvaluateResponse, error)
+	Evaluate(ctx context.Context, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error)
 
 	Stop()
 
 	// GetDependencies will get the dependencies
 	// It is the responsibility of the provider to determine how that is done
-	GetDependencies() (map[uri.URI][]*Dep, error)
+	GetDependencies(ctx context.Context) (map[uri.URI][]*Dep, error)
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
-	GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error)
+	GetDependenciesDAG(ctx context.Context) (map[uri.URI][]DepDAGItem, error)
 }
 
 type Dep = konveyor.Dep
@@ -358,7 +358,7 @@ func (p ProviderCondition) Ignorable() bool {
 }
 
 func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
-	_, span := tracing.StartNewSpan(
+	ctx, span := tracing.StartNewSpan(
 		ctx, "provider-condition", attribute.Key("cap").String(p.Capability))
 	defer span.End()
 
@@ -386,7 +386,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 		panic(err)
 	}
 	span.SetAttributes(attribute.Key("condition").String(string(templatedInfo)))
-	resp, err := p.Client.Evaluate(p.Capability, templatedInfo)
+	resp, err := p.Client.Evaluate(ctx, p.Capability, templatedInfo)
 	if err != nil {
 		// If an error always just return the empty
 		return engine.ConditionResponse{}, err
@@ -394,7 +394,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 
 	var deps map[uri.URI][]*Dep
 	if p.DepLabelSelector != nil {
-		deps, err = p.Client.GetDependencies()
+		deps, err = p.Client.GetDependencies(ctx)
 		if err != nil {
 			return engine.ConditionResponse{}, err
 		}
@@ -458,8 +458,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 // matchDepLabelSelector evaluates the dep label selector on incident
 func matchDepLabelSelector(s *labels.LabelSelector[*Dep], inc IncidentContext, deps map[uri.URI][]*konveyor.Dep) (bool, error) {
 	// always match non dependency URIs or when there are no deps or no dep selector
-	if s == nil || deps == nil || len(deps) == 0 ||
-		strings.HasPrefix(string(inc.FileURI), uri.FileScheme) || inc.FileURI == "" {
+	if s == nil || deps == nil || len(deps) == 0 || inc.FileURI == "" {
 		return true, nil
 	}
 	matched := false
@@ -517,8 +516,11 @@ type DependencyCondition struct {
 }
 
 func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
+	_, span := tracing.StartNewSpan(ctx, "dep-condition")
+	defer span.End()
+
 	resp := engine.ConditionResponse{}
-	deps, err := dc.Client.GetDependencies()
+	deps, err := dc.Client.GetDependencies(ctx)
 	if err != nil {
 		return resp, err
 	}

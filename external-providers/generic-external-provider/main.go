@@ -35,4 +35,22 @@ func main() {
 	s := provider.NewServer(client, *port, log)
 	ctx := context.TODO()
 	s.Start(ctx)
+	// serviceClient, err := client.Init(ctx, log, provider.InitConfig{
+	// 	Location:     "/home/fabian/projects/github.com/konveyor/analyzer-lsp/examples/golang",
+	// 	AnalysisMode: "full",
+	// 	ProviderSpecificConfig: map[string]interface{}{
+	// 		"name":          "go",
+	// 		"lspServerPath": "gopls",
+	// 		"lspArgs":       []interface{}{"-vv", "-logfile", "go-debug.log", "-rpc.trace"},
+	// 	},
+	// })
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// response, err := serviceClient.Evaluate("referenced", []byte(`{"referenced":{pattern: ".*v1beta1.CustomResourceDefinition"}}`))
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(response)
 }

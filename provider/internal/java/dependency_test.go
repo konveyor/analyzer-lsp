@@ -58,7 +58,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							labels.AsString(provider.DepSourceLabel, "internal"),
 							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
-						FileURIPrefix: "konveyor-jdt://contentstestdata/junit/junit/4.11",
+						FileURIPrefix: "file://testdata/junit/junit/4.11",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -72,7 +72,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/org/hamcrest/hamcrest-core/1.3",
+								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
 							},
 						},
 					},
@@ -88,7 +88,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							labels.AsString(provider.DepSourceLabel, "internal"),
 							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
-						FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-client/6.0.0",
+						FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -102,7 +102,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
+								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
 						},
 						{
@@ -116,7 +116,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/okhttp/3.12.12",
+								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
 							},
 						},
 						{
@@ -130,7 +130,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okio/okio/1.15.0",
+								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
 							},
 						},
 						{
@@ -144,7 +144,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
+								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
 						},
 						{
@@ -158,7 +158,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/zjsonpatch/0.3.0",
+								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
 							},
 						},
 					},
@@ -193,7 +193,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							labels.AsString(provider.DepSourceLabel, "open-source"),
 							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
-						FileURIPrefix: "konveyor-jdt://contentstestdata/junit/junit/4.11",
+						FileURIPrefix: "file://testdata/junit/junit/4.11",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -208,7 +208,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/org/hamcrest/hamcrest-core/1.3",
+								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
 							},
 						},
 					},
@@ -224,7 +224,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							labels.AsString(provider.DepSourceLabel, "internal"),
 							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
-						FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-client/6.0.0",
+						FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -238,7 +238,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
+								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
 						},
 						{
@@ -252,7 +252,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/okhttp/3.12.12",
+								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
 							},
 						},
 						{
@@ -266,7 +266,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okio/okio/1.15.0",
+								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
 							},
 						},
 						{
@@ -280,7 +280,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
+								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
 						},
 						{
@@ -294,7 +294,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/zjsonpatch/0.3.0",
+								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
 							},
 						},
 					},

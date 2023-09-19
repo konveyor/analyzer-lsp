@@ -1,8 +1,10 @@
 package grpc
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os/exec"
 	"time"
@@ -32,6 +34,7 @@ var _ provider.InternalProviderClient = &grpcProvider{}
 var _ provider.Startable = &grpcProvider{}
 
 func NewGRPCClient(config provider.Config, log logr.Logger) *grpcProvider {
+	log = log.WithName(config.Name)
 	log = log.WithValues("provider", "grpc")
 	return &grpcProvider{
 		config:         config,
@@ -41,7 +44,6 @@ func NewGRPCClient(config provider.Config, log logr.Logger) *grpcProvider {
 }
 
 func (g *grpcProvider) ProviderInit(ctx context.Context) error {
-	g.ctx = ctx
 	for _, c := range g.config.InitConfig {
 		s, err := g.Init(ctx, g.log, c)
 		if err != nil {
@@ -99,22 +101,21 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 	return &grpcServiceClient{
 		id:     r.Id,
-		ctx:    ctx,
 		config: config,
 		client: g.Client,
 	}, nil
 }
 
-func (g *grpcProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	return provider.FullResponseFromServiceClients(g.serviceClients, cap, conditionInfo)
+func (g *grpcProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	return provider.FullResponseFromServiceClients(ctx, g.serviceClients, cap, conditionInfo)
 }
 
-func (g *grpcProvider) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
-	return provider.FullDepsResponse(g.serviceClients)
+func (g *grpcProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	return provider.FullDepsResponse(ctx, g.serviceClients)
 }
 
-func (g *grpcProvider) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
-	return provider.FullDepDAGResponse(g.serviceClients)
+func (g *grpcProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	return provider.FullDepDAGResponse(ctx, g.serviceClients)
 }
 
 func (g *grpcProvider) Stop() {
@@ -134,6 +135,12 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 		cmd := exec.CommandContext(ctx, g.config.BinaryPath, "--port", fmt.Sprintf("%v", port))
 		// TODO: For each output line, log that line here, allows the server's to output to the main log file. Make sure we name this correctly
 		// cmd will exit with the ending of the ctx.
+		out, err := cmd.StdoutPipe()
+		if err != nil {
+			return err
+		}
+		go g.LogProviderOut(ctx, out)
+
 		err = cmd.Start()
 		if err != nil {
 			return err
@@ -173,4 +180,12 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 
 	}
 	return fmt.Errorf("must set Address or Binary Path for a GRPC provider")
+}
+
+func (g *grpcProvider) LogProviderOut(ctx context.Context, out io.ReadCloser) {
+	scan := bufio.NewScanner(out)
+
+	for scan.Scan() {
+		g.log.V(3).Info(scan.Text())
+	}
 }
