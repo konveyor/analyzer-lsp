@@ -197,8 +197,10 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	m := map[uri.URI][]provider.DepDAGItem{}
 	m[file] = pomDeps
 
-	// also grab the embedded deps
-	p.discoverDepsFromJars(moddir, m)
+	if len(m) == 0 {
+		// grab the embedded deps
+		p.discoverDepsFromJars(moddir, m)
+	}
 
 	return m, nil
 }
