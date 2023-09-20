@@ -202,7 +202,7 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      public static void main( String[] args )\n 9      {\n10          CustomResourceDefinition crd = new CustomResourceDefinition();\n11          System.out.println( crd );\n12  \n13          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");"
-        lineNumber: 2
+        lineNumber: 3
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -210,7 +210,7 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      public static void main( String[] args )\n 9      {\n10          CustomResourceDefinition crd = new CustomResourceDefinition();\n11          System.out.println( crd );\n12  \n13          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n14          element.get();\n15      }\n16  }\n"
-        lineNumber: 9
+        lineNumber: 10
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -225,17 +225,17 @@
       category: potential
       incidents:
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:2
+        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:3
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      public static void main( String[] args )\n 9      {\n10          CustomResourceDefinition crd = new CustomResourceDefinition();\n11          System.out.println( crd );\n12  \n13          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");"
-        lineNumber: 2
+        lineNumber: 3
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:9
+        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:10
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      public static void main( String[] args )\n 9      {\n10          CustomResourceDefinition crd = new CustomResourceDefinition();\n11          System.out.println( crd );\n12  \n13          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n14          element.get();\n15      }\n16  }\n"
-        lineNumber: 9
+        lineNumber: 10
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
           kind: Method
@@ -247,7 +247,7 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
         message: found generic call
         codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      public static void main( String[] args )\n 9      {\n10          CustomResourceDefinition crd = new CustomResourceDefinition();\n11          System.out.println( crd );\n12  \n13          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n14          element.get();\n15      }\n16  }\n"
-        lineNumber: 13
+        lineNumber: 14
         variables:
           VariableName: element
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
@@ -269,7 +269,7 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
         message: condition entries should evaluate out of order
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 5
+        lineNumber: 6
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
           kind: Class
@@ -277,7 +277,7 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
         message: condition entries should evaluate out of order
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 6
+        lineNumber: 7
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
           kind: Class
@@ -289,7 +289,7 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
         message: condition entries should evaluate in order
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 5
+        lineNumber: 6
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
           kind: Class
@@ -297,7 +297,7 @@
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
         message: condition entries should evaluate in order
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 6
+        lineNumber: 7
         variables:
           file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
           kind: Class
