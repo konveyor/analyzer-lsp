@@ -19,7 +19,7 @@ RUN make build
 FROM jaegertracing/all-in-one:latest AS jaeger-builder
 
 # The unofficial base image w/ jdtls and gopls installed
-FROM quay.io/konveyor/jdtls-server-base
+FROM quay.io/konveyor/jdtls-server-base:release-0.3
 
 COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/bin/
 
