@@ -143,7 +143,8 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 		return provider.IncidentContext{}, err
 	}
 
-	lineNumber := int(locationRange.Start.Line)
+	lineNumber := int(locationRange.Start.Line) + 1
+  
 	incident := provider.IncidentContext{
 		FileURI:    u,
 		LineNumber: &lineNumber,
@@ -198,7 +199,7 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 			Character: float64(ref.Range.End.Character),
 		},
 	}
-	lineNumber := int(ref.Range.Start.Line)
+	lineNumber := int(ref.Range.Start.Line) + 1
 	incident.LineNumber = &lineNumber
 
 	return incident, nil
