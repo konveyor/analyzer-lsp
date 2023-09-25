@@ -336,3 +336,104 @@ func Test_ruleSelector_Matches(t *testing.T) {
 		})
 	}
 }
+
+func Test_labelValueMatches(t *testing.T) {
+	tests := []struct {
+		name      string
+		candidate string
+		matchWith string
+		want      bool
+	}{
+		{
+			name:      "no version range test",
+			candidate: "eap",
+			matchWith: "eap",
+			want:      true,
+		},
+		{
+			name:      "name mismatch test",
+			candidate: "eap",
+			matchWith: "javaee",
+			want:      false,
+		},
+		{
+			name:      "absolute version test",
+			candidate: "eap6",
+			matchWith: "eap6",
+			want:      true,
+		},
+		{
+			name:      "version range test for '+'",
+			candidate: "eap6",
+			matchWith: "eap5+",
+			want:      true,
+		},
+		{
+			name:      "version range test for '+'",
+			candidate: "eap5",
+			matchWith: "eap5+",
+			want:      true,
+		},
+		{
+			name:      "version range test for '-'",
+			candidate: "eap7",
+			matchWith: "eap8-",
+			want:      true,
+		},
+		{
+			name:      "version range negative test for '-'",
+			candidate: "eap9",
+			matchWith: "eap8-",
+			want:      false,
+		},
+		{
+			name:      "version range negative test for '+'",
+			candidate: "eap7",
+			matchWith: "eap8+",
+			want:      false,
+		},
+		{
+			name:      "complex value version range test",
+			candidate: "Golang Version",
+			matchWith: "Golang Version11+",
+			want:      true,
+		},
+		{
+			name:      "match any version test",
+			candidate: "eap",
+			matchWith: "eap6+",
+			want:      true,
+		},
+		{
+			name:      "match any version test negative",
+			candidate: "eap6",
+			matchWith: "eap",
+			want:      false,
+		},
+		{
+			name:      "float value absolute match",
+			candidate: "hibernate5.1",
+			matchWith: "hibernate5.1",
+			want:      true,
+		},
+		{
+			name:      "float value range symbol '+' match",
+			candidate: "hibernate5.2",
+			matchWith: "hibernate5.1+",
+			want:      true,
+		},
+		{
+			name:      "float value range symbol '+' negative match",
+			candidate: "hibernate5.0.12",
+			matchWith: "hibernate5.1+",
+			want:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := labelValueMatches(tt.matchWith, tt.candidate); got != tt.want {
+				t.Errorf("versionRangeMatches() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
