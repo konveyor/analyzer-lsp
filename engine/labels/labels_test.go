@@ -159,6 +159,12 @@ func TestParseLabel(t *testing.T) {
 			wantKey: "konveyor.io/fact",
 			wantVal: "Spring Beans",
 		},
+		{
+			name:    "version ranges in values",
+			label:   "konveyor.io/fact=Spring Beans12",
+			wantKey: "konveyor.io/fact",
+			wantVal: "Spring Beans12",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
