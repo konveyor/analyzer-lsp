@@ -48,7 +48,7 @@ func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditi
 
 	incidents := []provider.IncidentContext{}
 	for _, s := range symbols {
-		references := p.GetAllReferences(ctx, s.Location)
+		references := p.GetAllReferences(ctx, s.Location.Value.(protocol.Location))
 		for _, ref := range references {
 			// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
 			if strings.Contains(ref.URI, p.config.Location) {
@@ -100,8 +100,8 @@ func processFile(path string, regex *regexp.Regexp, positionsChan chan<- protoco
 						URI: fmt.Sprintf("file://%s", absPath),
 					},
 					Position: protocol.Position{
-						Line:      float64(lineNumber),
-						Character: float64(loc[1]),
+						Line:      uint32(lineNumber),
+						Character: uint32(loc[1]),
 					},
 				}
 			}
@@ -190,7 +190,12 @@ func (p *genericServiceClient) GetAllSymbols(ctx context.Context, query string) 
 				fmt.Printf("Error rpc: %v", err)
 			}
 			for _, r := range res {
-				symbols = append(symbols, protocol.WorkspaceSymbol{Location: r})
+				symbols = append(symbols, protocol.WorkspaceSymbol{
+					Location: protocol.OrPLocation_workspace_symbol{
+						Value: r,
+					},
+					// Location: r
+				})
 			}
 		}
 	}
@@ -223,13 +228,12 @@ func (p *genericServiceClient) initialization(ctx context.Context, log logr.Logg
 		panic(1)
 	}
 
-	params := &protocol.InitializeParams{
-		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
-		RootURI:      fmt.Sprintf("file://%v", abs),
-		Capabilities: protocol.ClientCapabilities{},
-		ExtendedClientCapilities: map[string]interface{}{
-			"classFileContentsSupport": true,
-		},
+	//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
+	params := &protocol.InitializeParams{}
+	params.RootURI = fmt.Sprintf("file://%v", abs)
+	params.Capabilities = protocol.ClientCapabilities{}
+	params.ExtendedClientCapilities = map[string]interface{}{
+		"classFileContentsSupport": true,
 	}
 
 	var result protocol.InitializeResult

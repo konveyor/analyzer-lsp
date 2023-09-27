@@ -2,6 +2,7 @@ package java
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -98,16 +99,19 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location s
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
-	arguments := map[string]string{
+	argumentsMap := map[string]string{
 		"query":        query,
 		"project":      "java",
 		"location":     fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
 		"analysisMode": string(p.config.AnalysisMode),
 	}
 
+	argumentsBytes, _ := json.Marshal(argumentsMap)
+	arguments := []json.RawMessage{argumentsBytes}
+
 	wsp := &protocol.ExecuteCommandParams{
 		Command:   "io.konveyor.tackle.ruleEntry",
-		Arguments: []interface{}{arguments},
+		Arguments: arguments,
 	}
 
 	var refs []protocol.WorkspaceSymbol
@@ -120,20 +124,34 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location s
 }
 
 func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protocol.WorkspaceSymbol) []protocol.Location {
-	if strings.Contains(symbol.Location.URI, FILE_URI_PREFIX) {
+	var locationURI protocol.DocumentURI
+	var locationRange protocol.Range
+	switch x := symbol.Location.Value.(type) {
+	case protocol.Location:
+		locationURI = x.URI
+		locationRange = x.Range
+	case protocol.PLocationMsg_workspace_symbol:
+		locationURI = x.URI
+		locationRange = protocol.Range{}
+	default:
+		locationURI = ""
+		locationRange = protocol.Range{}
+	}
+
+	if strings.Contains(locationURI, FILE_URI_PREFIX) {
 		return []protocol.Location{
 			{
-				URI:   symbol.Location.URI,
-				Range: symbol.Location.Range,
+				URI:   locationURI,
+				Range: locationRange,
 			},
 		}
 	}
 	params := &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{
-				URI: symbol.Location.URI,
+				URI: locationURI,
 			},
-			Position: symbol.Location.Range.Start,
+			Position: locationRange.Start,
 		},
 	}
 
@@ -172,26 +190,25 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 		downloadSources = false
 	}
 
-	params := &protocol.InitializeParams{
-		//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
-		RootURI:      fmt.Sprintf("file://%v", absLocation),
-		Capabilities: protocol.ClientCapabilities{},
-		ExtendedClientCapilities: map[string]interface{}{
-			"classFileContentsSupport": true,
-		},
-		InitializationOptions: map[string]interface{}{
-			"bundles":          absBundles,
-			"workspaceFolders": []string{fmt.Sprintf("file://%v", absLocation)},
-			"settings": map[string]interface{}{
-				"java": map[string]interface{}{
-					"configuration": map[string]interface{}{
-						"maven": map[string]interface{}{
-							"userSettings": p.mvnSettingsFile,
-						},
-					},
+	//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
+	params := &protocol.InitializeParams{}
+	params.RootURI = fmt.Sprintf("file://%v", absLocation)
+	params.Capabilities = protocol.ClientCapabilities{}
+	params.ExtendedClientCapilities = map[string]interface{}{
+		"classFileContentsSupport": true,
+	}
+	params.InitializationOptions = map[string]interface{}{
+		"bundles":          absBundles,
+		"workspaceFolders": []string{fmt.Sprintf("file://%v", absLocation)},
+		"settings": map[string]interface{}{
+			"java": map[string]interface{}{
+				"configuration": map[string]interface{}{
 					"maven": map[string]interface{}{
-						"downloadSources": downloadSources,
+						"userSettings": p.mvnSettingsFile,
 					},
+				},
+				"maven": map[string]interface{}{
+					"downloadSources": downloadSources,
 				},
 			},
 		},
