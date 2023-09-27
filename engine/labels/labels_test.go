@@ -90,6 +90,22 @@ func Test_getBooleanExpression(t *testing.T) {
 			},
 			want: "( true || true ) && false && true",
 		},
+		{
+			name: "values with version ranges",
+			expr: "(konveyor.io/target=Spring Beans12  && konveyor.io/target=hibernate6.1)",
+			compareLabels: map[string][]string{
+				"konveyor.io/target": {"hibernate6-", "Spring Beans11+"},
+			},
+			want: "( true && false )",
+		},
+		{
+			name: "values with version ranges",
+			expr: "(konveyor.io/target=Spring Beans12  && konveyor.io/target=hibernate6.1)",
+			compareLabels: map[string][]string{
+				"konveyor.io/target": {"hibernate6+", "Spring Beans11-"},
+			},
+			want: "( false && true )",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -158,6 +174,24 @@ func TestParseLabel(t *testing.T) {
 			label:   "konveyor.io/fact=Spring Beans",
 			wantKey: "konveyor.io/fact",
 			wantVal: "Spring Beans",
+		},
+		{
+			name:    "absolte version in value",
+			label:   "konveyor.io/fact=Spring Beans12",
+			wantKey: "konveyor.io/fact",
+			wantVal: "Spring Beans12",
+		},
+		{
+			name:    "version range + in value",
+			label:   "konveyor.io/fact=Spring Beans12+",
+			wantKey: "konveyor.io/fact",
+			wantVal: "Spring Beans12+",
+		},
+		{
+			name:    "version range - in value",
+			label:   "konveyor.io/fact=Spring Beans12-",
+			wantKey: "konveyor.io/fact",
+			wantVal: "Spring Beans12-",
 		},
 	}
 	for _, tt := range tests {
