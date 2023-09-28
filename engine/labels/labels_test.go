@@ -360,6 +360,23 @@ func Test_ruleSelector_Matches(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "simple wildcard value",
+			expr: "(konveyor.io/source=technology-usage)",
+			ruleLabels: []string{
+				"konveyor.io/source",
+			},
+			want: true,
+		},
+		{
+			name: "wildcard value expression",
+			expr: "(konveyor.io/target && konveyor.io/source=test)",
+			ruleLabels: []string{
+				"konveyor.io/target=eap",
+				"konveyor.io/source",
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

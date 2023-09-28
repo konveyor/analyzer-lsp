@@ -251,6 +251,10 @@ func matchesAny(elem string, items []string) bool {
 // returns true when names of values are equal and the version of
 // candidate falls within the version range of matchWith
 func labelValueMatches(matchWith string, candidate string) bool {
+	// empty value treated as wildcard
+	if matchWith == "" {
+		return true
+	}
 	versionRegex := regexp.MustCompile(`(\d(?:[\d\.]*\d)?)([\+-])?$`)
 	mMatch := versionRegex.FindStringSubmatch(matchWith)
 	cMatch := versionRegex.FindStringSubmatch(candidate)
