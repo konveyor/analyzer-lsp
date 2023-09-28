@@ -29,14 +29,15 @@ labels:
 - "konveyor.io/key"
 ```
 
-## Reserved Labels
+## Rule Labels
 
-The analyzer defines some labels that have special meaning. Here is a list of all such labels:
+The analyzer defines some labels that have special meanings:
 
-- `konveyor.io/source`: Identifies source technology a rule or a ruleset applies to.
-- `konveyor.io/target`: Identifies target technology a rule or a ruleset applies to.
+- `konveyor.io/source`: Identifies source technology a rule or a ruleset applies to. The value can be a string with optional version range at the end e.g. "eap", "eap6", "eap7-" etc.
+- `konveyor.io/target`: Identifies target technology a rule or a ruleset applies to. The value can be a string with optional version range at the end e.g. "eap", "eap6", "eap8+" etc.
+- `konveyor.io/include`: Overrides filter behavior for a rule irrespective of the label selector used. The value can either be `always` or `never`. `always` will always filter-in this rule, `never` will always filter-out this rule.  
 
-## Label Selector
+### Rule Label Selector
 
 The analyzer CLI takes `--label-selector` as an option. It is a string expression that supports logical AND, OR and NOT operations. It can be used to filter-in/filter-out rules based on labels.
 

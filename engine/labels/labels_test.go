@@ -360,6 +360,24 @@ func Test_ruleSelector_Matches(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "rule has a explicit include=always label",
+			expr: "konveyor.io/source=test",
+			ruleLabels: []string{
+				"konveyor.io/include=always",
+				"konveyor.io/source=noTest", // this should make the selector not match, but 'always' selector takes precedance
+			},
+			want: true,
+		},
+		{
+			name: "rule has a explicit include=never label",
+			expr: "konveyor.io/source=test",
+			ruleLabels: []string{
+				"konveyor.io/include=never",
+				"konveyor.io/source=test", // this should make the selector match, but 'never' selector takes precedance
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

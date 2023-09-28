@@ -11,6 +11,13 @@ import (
 )
 
 const (
+	// a selector label takes precedance over any other label when matching
+	RuleIncludeLabel = "konveyor.io/include"
+	SelectAlways     = "always"
+	SelectNever      = "never"
+)
+
+const (
 	LabelValueFmt      = "^[a-zA-Z0-9]([-a-zA-Z0-9. ]*[a-zA-Z0-9+-])?$"
 	LabelPrefixFmt     = "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
 	exprSpecialSymbols = `!|\|\||&&|\(|\)`
@@ -33,6 +40,15 @@ func AsString(key, value string) string {
 
 func (l *LabelSelector[T]) Matches(v T) (bool, error) {
 	ruleLabels, _ := ParseLabels(v.GetLabels())
+	if val, ok := ruleLabels[RuleIncludeLabel]; ok &&
+		val != nil && len(val) > 0 {
+		switch val[0] {
+		case SelectAlways:
+			return true, nil
+		case SelectNever:
+			return false, nil
+		}
+	}
 	expr := getBooleanExpression(l.expr, ruleLabels)
 	val, err := l.language.Evaluate(expr, nil)
 	if err != nil {
