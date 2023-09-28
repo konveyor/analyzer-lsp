@@ -186,3 +186,19 @@
     builtin.filecontent:
       pattern: "^FROM.*openjdk-11.*"
       filePattern: "Dockerfile"
+
+- message: python sample rule 001
+  ruleID: python-sample-rule-001
+  when:
+    python.referenced: 
+      pattern: "hello_world"
+- message: python sample rule 002
+  ruleID: python-sample-rule-002
+  when:
+    python.referenced: 
+      pattern: "speak"
+- message: python sample rule 003
+  ruleID: python-sample-rule-003
+  when:
+    python.referenced: 
+      pattern: "create_custom_resource_definition"

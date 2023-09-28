@@ -102,11 +102,24 @@ const (
 type InitConfig struct {
 	// This is the location of the code base that the
 	// Provider will be responisble for parsing
+	// Deprecated: rootUri, which is what this maps to in the LSP spec, is deprecated.
+	// We should instead use workspaceFolders.
 	Location string `yaml:"location,omitempty" json:"location,omitempty"`
 
 	// This is the path to look for the dependencies for the project.
 	// It is relative to the Location
+	// Deprecated: This only allows for one directory for dependencies. Use DependencyFolders instead
 	DependencyPath string `yaml:"dependencyPath,omitempty" json:"dependencyPath,omitempty"`
+
+	// It would be nice to get workspacefolders working
+
+	// // The folders for the workspace. Maps to workspaceFolders in the LSP spec
+	// WorkspaceFolders []string `yaml:"workspaceFolders,omitempty" json:"workspaceFolders,omitempty"`
+
+	// // The folders for the dependencies. Also maps to workspaceFolders in the LSP
+	// // spec. These folders will not be inlcuded in search results for things like
+	// // 'referenced'.
+	// DependencyFolders []string `yaml:"dependencyFolders,omitempty" json:"dependencyFolders,omitempty"`
 
 	AnalysisMode AnalysisMode `yaml:"analysisMode" json:"analysisMode"`
 

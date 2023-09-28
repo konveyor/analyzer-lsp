@@ -3,6 +3,7 @@ package generic
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,21 +20,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type genericServiceClient struct {
-	rpc        *jsonrpc2.Conn
-	cancelFunc context.CancelFunc
-	cmd        *exec.Cmd
+type GenericServiceClient struct {
+	Rpc        *jsonrpc2.Conn
+	CancelFunc context.CancelFunc
+	Cmd        *exec.Cmd
 
-	config provider.InitConfig
+	Config       provider.InitConfig
+	Capabilities protocol.ServerCapabilities
 }
 
-var _ provider.ServiceClient = &genericServiceClient{}
+var _ provider.ServiceClient = &GenericServiceClient{}
 
-func (p *genericServiceClient) Stop() {
-	p.cancelFunc()
-	p.cmd.Wait()
+func (p *GenericServiceClient) Stop() {
+	p.CancelFunc()
+	p.Cmd.Wait()
 }
-func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+
+func (p *GenericServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond genericCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
@@ -47,24 +50,57 @@ func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	symbols := p.GetAllSymbols(ctx, query)
 
 	incidents := []provider.IncidentContext{}
+	incidentsMap := make(map[string]provider.IncidentContext) // To remove duplicates
+
 	for _, s := range symbols {
 		references := p.GetAllReferences(ctx, s.Location.Value.(protocol.Location))
 		for _, ref := range references {
-			// Look for things that are in the location loaded, //Note may need to filter out vendor at some point
-			if strings.Contains(ref.URI, p.config.Location) {
+			// Look for things that are in the location loaded,
+			// Note may need to filter out vendor at some point
+			if strings.Contains(ref.URI, p.Config.Location) {
+
+				var referencedOutputIgnoreContains []interface{}
+				if p.Config.ProviderSpecificConfig["referencedOutputIgnoreContains"] != nil {
+					referencedOutputIgnoreContains = p.Config.ProviderSpecificConfig["referencedOutputIgnoreContains"].([]interface{})
+				}
+
+				foundSubstr := false
+				for _, x := range referencedOutputIgnoreContains {
+					substr := x.(string)
+					if substr == "" {
+						continue
+					}
+
+					if strings.Contains(ref.URI, substr) {
+						foundSubstr = true
+						break
+					}
+				}
+				if foundSubstr {
+					continue
+				}
+
 				u, err := uri.Parse(ref.URI)
 				if err != nil {
 					return provider.ProviderEvaluateResponse{}, err
 				}
 				lineNumber := int(ref.Range.Start.Line)
-				incidents = append(incidents, provider.IncidentContext{
+				incident := provider.IncidentContext{
 					FileURI:    u,
 					LineNumber: &lineNumber,
 					Variables: map[string]interface{}{
-						"file": ref.URI},
-				})
+						"file": ref.URI,
+					},
+				}
+				b, _ := json.Marshal(incident)
+
+				incidentsMap[string(b)] = incident
 			}
 		}
+	}
+
+	for _, incident := range incidentsMap {
+		incidents = append(incidents, incident)
 	}
 
 	if len(incidents) == 0 {
@@ -144,29 +180,41 @@ func parallelWalk(location string, regex *regexp.Regexp) ([]protocol.TextDocumen
 	return positions, nil
 }
 
-func (p *genericServiceClient) GetAllSymbols(ctx context.Context, query string) []protocol.WorkspaceSymbol {
+// Returns all symbols for the given query.
+// NOTE: Only returns definitions when server does not supoprt workspace/symbol.
+// Is is intended behavior?
+// TODO: Change protocol.WorkspaceSymbol to protocol.SymbolInformation
+func (p *GenericServiceClient) GetAllSymbols(ctx context.Context, query string) []protocol.WorkspaceSymbol {
 	wsp := &protocol.WorkspaceSymbolParams{
 		Query: query,
 	}
 
 	var symbols []protocol.WorkspaceSymbol
-	fmt.Printf("\nrpc call\n")
-	err := p.rpc.Call(ctx, "workspace/symbol", wsp, &symbols)
-	fmt.Printf("\nrpc called\n")
-	if err != nil {
-		fmt.Printf("\n\nerror: %v\n", err)
+	var err error
+
+	regex, regexErr := regexp.Compile(query)
+
+	// Client may or may not support the "workspace/symbol" method, so we must
+	// check before calling.
+
+	if p.Capabilities.Supports("workspace/symbol") {
+		err := p.Rpc.Call(ctx, "workspace/symbol", wsp, &symbols)
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+		}
 	}
-	regex, err := regexp.Compile(query)
-	if err != nil {
+
+	if regexErr != nil {
 		// Not a valid regex, can't do anything more
 		return symbols
 	}
-	if len(symbols) == 0 {
+
+	if p.Capabilities.Supports("workspace/symbol") && len(symbols) == 0 {
 		// Run empty string query and manually search using the query as a regex
 		var allSymbols []protocol.WorkspaceSymbol
-		err = p.rpc.Call(ctx, "workspace/symbol", &protocol.WorkspaceSymbolParams{Query: ""}, &allSymbols)
+		err = p.Rpc.Call(ctx, "workspace/symbol", &protocol.WorkspaceSymbolParams{Query: ""}, &allSymbols)
 		if err != nil {
-			fmt.Printf("\n\nerror: %v\n", err)
+			fmt.Printf("error: %v\n", err)
 		}
 		for _, s := range allSymbols {
 			if regex.MatchString(s.Name) {
@@ -174,35 +222,78 @@ func (p *genericServiceClient) GetAllSymbols(ctx context.Context, query string) 
 			}
 		}
 	}
-	if len(symbols) == 0 {
+
+	if p.Capabilities.Supports("textDocument/definition") && len(symbols) == 0 {
 		var positions []protocol.TextDocumentPositionParams
-		// Fallback to manually searching for an occurrence and performing a GotoDefinition call
-		positions, err := parallelWalk(p.config.Location, regex)
-		if err != nil {
-			fmt.Printf("\n\nerror: %v\n", err)
+		symbolMap := make(map[string]protocol.WorkspaceSymbol) // To avoid repeats
+
+		// Fallback to manually searching for an occurrence and performing a
+		// GotoDefinition call
+
+		// Lambda function to support switch to workspace folders
+		walkFiles := func(locations []string) error {
+			for _, location := range locations {
+				if location == "" {
+					continue
+				}
+
+				result, err := parallelWalk(location, regex)
+				if err != nil {
+					return fmt.Errorf("error: %v", err)
+				}
+
+				positions = append(positions, result...)
+			}
+
 			return nil
 		}
+
+		err := walkFiles([]string{p.Config.Location})
+		if err != nil {
+			fmt.Printf("%s\n", err.Error())
+			return nil
+		}
+
+		// Leaving this in here until we determine whether we can use workspace
+		// folders
+
+		// err = walkFiles(p.Config.WorkspaceFolders)
+		// if err != nil {
+		// 	fmt.Printf("%s\n", err.Error())
+		// 	return nil
+		// }
+		// err = walkFiles(p.Config.DependencyFolders)
+		// if err != nil {
+		// 	fmt.Printf("%s\n", err.Error())
+		// 	return nil
+		// }
+
 		for _, position := range positions {
-			fmt.Println(position)
 			res := []protocol.Location{}
-			err := p.rpc.Call(ctx, "textDocument/definition", position, &res)
+			err := p.Rpc.Call(ctx, "textDocument/definition", position, &res)
 			if err != nil {
 				fmt.Printf("Error rpc: %v", err)
 			}
+
 			for _, r := range res {
-				symbols = append(symbols, protocol.WorkspaceSymbol{
+				out, _ := json.Marshal(r)
+				symbolMap[string(out)] = protocol.WorkspaceSymbol{
 					Location: protocol.OrPLocation_workspace_symbol{
 						Value: r,
 					},
-					// Location: r
-				})
+				}
 			}
 		}
+
+		for _, ws := range symbolMap {
+			symbols = append(symbols, ws)
+		}
 	}
+
 	return symbols
 }
 
-func (p *genericServiceClient) GetAllReferences(ctx context.Context, location protocol.Location) []protocol.Location {
+func (p *GenericServiceClient) GetAllReferences(ctx context.Context, location protocol.Location) []protocol.Location {
 	params := &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{
@@ -210,19 +301,23 @@ func (p *genericServiceClient) GetAllReferences(ctx context.Context, location pr
 			},
 			Position: location.Range.Start,
 		},
+		Context: protocol.ReferenceContext{
+			// pylsp has trouble with always returning declarations
+			IncludeDeclaration: false,
+		},
 	}
 
 	res := []protocol.Location{}
-	err := p.rpc.Call(ctx, "textDocument/references", params, &res)
+	err := p.Rpc.Call(ctx, "textDocument/references", params, &res)
 	if err != nil {
 		fmt.Printf("Error rpc: %v", err)
 	}
 	return res
 }
 
-func (p *genericServiceClient) initialization(ctx context.Context, log logr.Logger) {
+func (p *GenericServiceClient) initialization(ctx context.Context, log logr.Logger) {
 	// Get abosulte path of location.
-	abs, err := filepath.Abs(p.config.Location)
+	abs, err := filepath.Abs(p.Config.Location)
 	if err != nil {
 		log.Error(err, "unable to get path to analyize")
 		panic(1)
@@ -231,6 +326,27 @@ func (p *genericServiceClient) initialization(ctx context.Context, log logr.Logg
 	//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
 	params := &protocol.InitializeParams{}
 	params.RootURI = fmt.Sprintf("file://%v", abs)
+
+	// Leaving this in here until we determine whether we can use workspace
+	// folders
+
+	// var allWorkspaceFolders []string
+	// copy(allWorkspaceFolders, p.Config.WorkspaceFolders)
+	// allWorkspaceFolders = append(allWorkspaceFolders, p.Config.DependencyFolders...)
+
+	// for _, path := range allWorkspaceFolders {
+	// 	abs, err := filepath.Abs(path)
+	// 	if err != nil {
+	// 		log.Error(err, "unable to get path to analyize")
+	// 		panic(1)
+	// 	}
+
+	// 	params.WorkspaceFolders = append(params.WorkspaceFolders, protocol.WorkspaceFolder{
+	// 		URI:  abs,
+	// 		Name: abs,
+	// 	})
+	// }
+
 	params.Capabilities = protocol.ClientCapabilities{}
 	params.ExtendedClientCapilities = map[string]interface{}{
 		"classFileContentsSupport": true,
@@ -238,15 +354,39 @@ func (p *genericServiceClient) initialization(ctx context.Context, log logr.Logg
 
 	var result protocol.InitializeResult
 	for {
-		if err := p.rpc.Call(ctx, "initialize", params, &result); err != nil {
-			fmt.Printf("initialize failed: %v", err)
+		err := p.Rpc.Call(ctx, "initialize", params, &result)
+		if err == nil {
+			break
+		}
+
+		// Code to attempt to fix broken initialize responses. There is probably a
+		// better way than shown here.
+
+		rpcerr, ok := err.(*jsonrpc2.RPCUnmarshalError)
+		if !ok {
+			fmt.Printf("initialized failed: %v\n", err)
 			continue
 		}
+
+		language := p.Config.ProviderSpecificConfig["name"]
+		fix := NaiveFixResponse(language.(string), rpcerr.Json)
+
+		fmt.Println(fix)
+
+		err = json.Unmarshal([]byte(fix), &result)
+		if err != nil {
+			fmt.Printf("initialized failed: %v", err)
+			continue
+		}
+
 		break
 	}
-	if err := p.rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
+
+	p.Capabilities = result.Capabilities
+
+	if err := p.Rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
 		fmt.Printf("initialized failed: %v", err)
 	}
-	fmt.Printf("provider connection initialized")
-	log.V(2).Info("provider connection initialized")
+	fmt.Printf("provider connection initialized\n")
+	log.V(2).Info("provider connection initialized\n")
 }

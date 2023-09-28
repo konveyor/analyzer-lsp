@@ -10,17 +10,17 @@ If you would like to run a quick demo we have a Dockerfile that has all the depe
 
 To run this demo build the containers:
 
-```
-$ podman build -f Dockerfile -t quay.io/konveyor/analyzer-lsp
-$ podman build -f demo.Dockerfile -t test-analyzer-engine
+```sh
+podman build -f Dockerfile -t quay.io/konveyor/analyzer-lsp
+podman build -f demo.Dockerfile -t test-analyzer-engine
 ```
 
 This will build the engine, and include the current set of rules and examples in the container to be used.
 
 To run the rules (rule-example.yaml) against the examples, and save the output to the `demo-output.yaml` file:
 
-```
-$ podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z test-analyzer-engine
+```sh
+podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z test-analyzer-engine
 ```
 
 ## Running from source code

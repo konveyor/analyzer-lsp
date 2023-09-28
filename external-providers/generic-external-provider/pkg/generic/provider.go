@@ -108,11 +108,11 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 		}
 	}()
 
-	svcClient := genericServiceClient{
-		rpc:        rpc,
-		cancelFunc: cancelFunc,
-		cmd:        cmd,
-		config:     c,
+	svcClient := GenericServiceClient{
+		Rpc:        rpc,
+		CancelFunc: cancelFunc,
+		Cmd:        cmd,
+		Config:     c,
 	}
 
 	// Lets Initiallize before returning

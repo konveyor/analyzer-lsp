@@ -353,7 +353,7 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 			ShouldErr:    true,
-			ErrorMessage: "unable to find provider for :builtin",
+			ErrorMessage: "unable to find provider for: builtin",
 		},
 		{
 			Name:         "rule no conditions",

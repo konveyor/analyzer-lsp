@@ -9,6 +9,8 @@ If there is an update to the LSP specification, navigate to the `protocol` direc
 
 ## Changes
 
+- Created `extensions.go`
+  - Need to implement `Supports` method fully.
 - Commented out `writeclient()` and `writeserver()` in generate/main.go
 - Commented out `"Or_WorkspaceFoldersServerCapabilities_changeNotifications": "string",` in generate/tables.go
 - Changed `type DocumentURI string` to `type DocumentURI = string` in generate/output.go

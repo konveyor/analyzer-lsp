@@ -89,6 +89,15 @@ func (c *Conn) Notify(ctx context.Context, method string, params interface{}) (e
 	return err
 }
 
+type RPCUnmarshalError struct {
+	Json string
+	Err  error
+}
+
+func (e *RPCUnmarshalError) Error() string {
+	return fmt.Sprintf("tried to unmarshal: %v\ngot error: %v", e.Json, e.Err)
+}
+
 // Call sends a request over the connection and then waits for a response.
 // If the response is not an error, it will be decoded into result.
 // result must be of a type you an pass to json.Unmarshal.
@@ -149,8 +158,10 @@ func (c *Conn) Call(ctx context.Context, method string, params, result interface
 		if result == nil || response.Result == nil {
 			return nil
 		}
+
+		// fmt.Printf("Unmarshalling response: %s\n", string(*response.Result))
 		if err := json.Unmarshal(*response.Result, result); err != nil {
-			return fmt.Errorf("unmarshalling result: %v", err)
+			return &RPCUnmarshalError{string(*response.Result), err}
 		}
 		return nil
 	case <-ctx.Done():

@@ -706,7 +706,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 	// Here there can only be a single provider.
 	client, ok := r.ProviderNameToClient[langProvider]
 	if !ok {
-		return nil, nil, fmt.Errorf("unable to find provider for :%v", langProvider)
+		return nil, nil, fmt.Errorf("unable to find provider for: %v", langProvider)
 	}
 
 	if !provider.HasCapability(client.Capabilities(), capability) {
