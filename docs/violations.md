@@ -25,7 +25,7 @@ The analyzer rule engine creates a _Violation_ for every rule that matches excep
 
 * **effort**: Integer value indicating story points for each incident as determined by the rule author.
 
-See [Violation struct](../hubapi/violations.go) for more details.
+See [Violation struct](../output/v1/konveyor/violations.go) for more details.
 
 ### Output Structure
 
