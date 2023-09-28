@@ -7,10 +7,11 @@ import (
 	"strings"
 
 	"github.com/PaesslerAG/gval"
+	"github.com/hashicorp/go-version"
 )
 
 const (
-	LabelValueFmt      = "^[a-zA-Z0-9]([-a-zA-Z0-9. ]*[a-zA-Z0-9])?$"
+	LabelValueFmt      = "^[a-zA-Z0-9]([-a-zA-Z0-9. ]*[a-zA-Z0-9+-])?$"
 	LabelPrefixFmt     = "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
 	exprSpecialSymbols = `!|\|\||&&|\(|\)`
 	// used to split string into groups of special symbols and everything else
@@ -204,7 +205,7 @@ func getBooleanExpression(expr string, compareLabels map[string][]string) string
 			}
 			if labelVals, ok := compareLabels[exprLabelKey]; !ok {
 				replaceMap[toReplace] = "false"
-			} else if exprLabelVal != "" && !contains(exprLabelVal, labelVals) {
+			} else if exprLabelVal != "" && !matchesAny(exprLabelVal, labelVals) {
 				replaceMap[toReplace] = "false"
 			} else {
 				replaceMap[toReplace] = "true"
@@ -235,11 +236,58 @@ func tokenize(expr string) []string {
 	return tokens
 }
 
-func contains(elem string, items []string) bool {
+func matchesAny(elem string, items []string) bool {
 	for _, item := range items {
-		if item == elem {
+		if labelValueMatches(item, elem) {
 			return true
 		}
 	}
 	return false
+}
+
+// labelValueMatches returns true when candidate matches with matchWith
+// label value is divided into two parts - name and version
+// version is absolute version or a range denoted by + or -
+// returns true when names of values are equal and the version of
+// candidate falls within the version range of matchWith
+func labelValueMatches(matchWith string, candidate string) bool {
+	versionRegex := regexp.MustCompile(`(\d(?:[\d\.]*\d)?)([\+-])?$`)
+	mMatch := versionRegex.FindStringSubmatch(matchWith)
+	cMatch := versionRegex.FindStringSubmatch(candidate)
+	if len(mMatch) != 3 {
+		return matchWith == candidate
+	}
+	mName, mVersion, mVersionRangeSymbol :=
+		versionRegex.ReplaceAllString(matchWith, ""), mMatch[1], mMatch[2]
+	if len(cMatch) != 3 {
+		// when no version on candidate, match for any version
+		return mName == candidate
+	}
+	cName, cVersion :=
+		versionRegex.ReplaceAllString(candidate, ""), cMatch[1]
+	if mName != cName {
+		return false
+	}
+	if mVersion == "" {
+		return mVersion == cVersion
+	}
+	if cVersion == "" {
+		return true
+	}
+	cSemver, err := version.NewSemver(cVersion)
+	if err != nil {
+		return cVersion == mVersion
+	}
+	mSemver, err := version.NewSemver(mVersion)
+	if err != nil {
+		return cVersion == mVersion
+	}
+	switch mVersionRangeSymbol {
+	case "+":
+		return cSemver.GreaterThanOrEqual(mSemver)
+	case "-":
+		return mSemver.GreaterThanOrEqual(cSemver)
+	default:
+		return cSemver.Equal(mSemver)
+	}
 }
