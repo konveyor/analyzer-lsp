@@ -26,9 +26,9 @@ The following files have NOT been resolved:
 			wantList: []javaArtifact{
 				{
 					packaging:  JavaArchive,
-					groupId:    "io.konveyor.demo",
-					artifactId: "config-utils",
-					version:    "1.0.0",
+					GroupId:    "io.konveyor.demo",
+					ArtifactId: "config-utils",
+					Version:    "1.0.0",
 				},
 			},
 		},

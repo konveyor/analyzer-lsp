@@ -348,15 +348,15 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 		return nil
 	}
 	for _, artifact := range artifacts {
-		groupDirs := filepath.Join(strings.Split(artifact.groupId, ".")...)
-		artifactDirs := filepath.Join(strings.Split(artifact.artifactId, ".")...)
-		jarName := fmt.Sprintf("%s-%s.jar", artifact.artifactId, artifact.version)
+		groupDirs := filepath.Join(strings.Split(artifact.GroupId, ".")...)
+		artifactDirs := filepath.Join(strings.Split(artifact.ArtifactId, ".")...)
+		jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
 		decompileJobs = append(decompileJobs, decompileJob{
 			artifact: artifact,
 			inputPath: filepath.Join(
-				m2Repo, groupDirs, artifactDirs, artifact.version, jarName),
+				m2Repo, groupDirs, artifactDirs, artifact.Version, jarName),
 			outputPath: filepath.Join(
-				m2Repo, groupDirs, artifactDirs, artifact.version, "decompiled", jarName),
+				m2Repo, groupDirs, artifactDirs, artifact.Version, "decompiled", jarName),
 		})
 	}
 	err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, "")
@@ -393,9 +393,9 @@ func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
 			artifacts = append(artifacts,
 				javaArtifact{
 					packaging:  JavaArchive,
-					artifactId: artifactId,
-					groupId:    groupId,
-					version:    version,
+					ArtifactId: artifactId,
+					GroupId:    groupId,
+					Version:    version,
 				})
 		}
 	}
