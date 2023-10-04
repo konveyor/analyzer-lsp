@@ -5,15 +5,18 @@ import (
 	"bufio"
 	"context"
 	"encoding/xml"
+	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
+	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
@@ -41,6 +44,96 @@ const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
 </project>
 `
 
+type javaArtifact struct {
+	packaging  string
+	groupId    string
+	artifactId string
+	version    string
+}
+
+type decompileFilter interface {
+	shouldDecompile(javaArtifact) bool
+}
+
+type alwaysDecompileFilter bool
+
+func (a alwaysDecompileFilter) shouldDecompile(j javaArtifact) bool {
+	return bool(a)
+}
+
+type excludeOpenSourceDecompileFilter map[string]*depLabelItem
+
+func (o excludeOpenSourceDecompileFilter) shouldDecompile(j javaArtifact) bool {
+	matchWith := fmt.Sprintf("%s.%s", j.groupId, j.artifactId)
+	for _, r := range o {
+		if r.r.MatchString(matchWith) {
+			if _, ok := r.labels[labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource)]; ok {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+type decompileJob struct {
+	inputPath  string
+	outputPath string
+	artifact   javaArtifact
+}
+
+func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, workerCount int, jobs []decompileJob, projectPath string) error {
+	wg := &sync.WaitGroup{}
+	jobChan := make(chan decompileJob)
+
+	// init workers
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		log.V(6).Info("init decompile worker")
+		go func(log logr.Logger) {
+			defer log.V(6).Info("shutting down decompile worker")
+			defer wg.Done()
+			for job := range jobChan {
+				if _, err := os.Stat(job.outputPath); err == nil {
+					// already decompiled, duplicate...
+					continue
+				}
+				outputPathDir := filepath.Dir(job.outputPath)
+				if err := os.MkdirAll(outputPathDir, 0755); err != nil {
+					log.V(3).Error(err,
+						"failed to create directories for decompiled file", "path", outputPathDir)
+					continue
+				}
+				cmd := exec.CommandContext(
+					ctx, "java", "-jar", "/bin/fernflower.jar", job.inputPath, outputPathDir)
+				err := cmd.Run()
+				if err != nil {
+					log.V(5).Error(err, "failed to decompile file", "file", job.inputPath, job.outputPath)
+				} else {
+					log.V(5).Info("decompiled file", "source", job.inputPath, "dest", job.outputPath)
+				}
+				// if we just decompiled a java archive, we need to
+				// explode it further and copy files to project
+				if job.artifact.packaging == JavaArchive {
+					_, _, err = explode(ctx, log, job.outputPath, projectPath)
+					if err != nil {
+						log.V(5).Error(err, "failed to explode decompiled jar", "path", job.inputPath)
+					}
+				}
+			}
+		}(log.WithName(fmt.Sprintf("decompileWorker-%d", i)))
+	}
+
+	for _, job := range jobs {
+		jobChan <- job
+	}
+
+	close(jobChan)
+
+	wg.Wait()
+
+	return nil
+}
+
 // decompileJava unpacks archive at archivePath, decompiles all .class files in it
 // creates new java project and puts the java files in the tree of the project
 // returns path to exploded archive, path to java project, and an error when encountered
@@ -57,42 +150,53 @@ func decompileJava(ctx context.Context, log logr.Logger, archivePath string) (ex
 	}
 	log.V(5).Info("created java project", "path", projectPath)
 
-	explodedPath, err = decompile(ctx, log, archivePath, projectPath)
+	decompFilter := alwaysDecompileFilter(true)
+
+	explodedPath, decompJobs, err := explode(ctx, log, archivePath, projectPath)
 	if err != nil {
 		log.Error(err, "failed to decompile archive", "path", archivePath)
 		return "", "", err
 	}
+
+	err = decompile(context.TODO(), log, decompFilter, 10, decompJobs, projectPath)
+	if err != nil {
+		log.Error(err, "failed to decompile", "path", archivePath)
+		return "", "", err
+	}
+
 	return explodedPath, projectPath, err
 }
 
-// decompile is a function that extracts the contents of a Java archive (.jar|.war|.ear) and
-// decompiles any .class files found using the fernflower decompiler into java project location
-// maintaining the tree. swallows decomp and copy errors, returns others
-func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath string) (string, error) {
+// explode explodes the given JAR, WAR or EAR archive, generates javaArtifact struct for given archive
+// and identifies all .class found recursively. returns output path, a list of decompileJob for .class files
+func explode(ctx context.Context, log logr.Logger, archivePath, projectPath string) (string, []decompileJob, error) {
 	fileInfo, err := os.Stat(archivePath)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
+
 	// Create the destDir directory using the same permissions as the Java archive file
 	// java.jar should become java-jar-decompiled
-	destDir := filepath.Join(path.Dir(archivePath), strings.Replace(path.Base(archivePath), ".", "-", -1)+"-decompiled")
+	destDir := filepath.Join(path.Dir(archivePath), strings.Replace(path.Base(archivePath), ".", "-", -1)+"-exploded")
 	// make sure execute bits are set so that fernflower can decompile
 	err = os.MkdirAll(destDir, fileInfo.Mode()|0111)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	archive, err := zip.OpenReader(archivePath)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	defer archive.Close()
+
+	decompileJobs := []decompileJob{}
 
 	for _, f := range archive.File {
 		// Stop processing if our context is cancelled
 		select {
 		case <-ctx.Done():
-			return "", ctx.Err()
+			return "", decompileJobs, ctx.Err()
 		default:
 		}
 
@@ -110,24 +214,24 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 			continue
 		}
 
-		if err = os.MkdirAll(filepath.Dir(filePath), f.Mode()); err != nil {
-			return "", err
+		if err = os.MkdirAll(filepath.Dir(filePath), f.Mode()|0111); err != nil {
+			return "", decompileJobs, err
 		}
 
-		dstFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		dstFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode()|0111)
 		if err != nil {
-			return "", err
+			return "", decompileJobs, err
 		}
 		defer dstFile.Close()
 
 		archiveFile, err := f.Open()
 		if err != nil {
-			return "", err
+			return "", decompileJobs, err
 		}
 		defer archiveFile.Close()
 
 		if _, err := io.Copy(dstFile, archiveFile); err != nil {
-			return "", err
+			return "", decompileJobs, err
 		}
 		switch {
 		// when it's a .class file, decompile it into java project
@@ -138,36 +242,82 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 				strings.Replace(filePath, destDir, "", -1))
 			destPath = strings.ReplaceAll(destPath, "WEB-INF/classes", "")
 			destPath = strings.ReplaceAll(destPath, "META-INF/classes", "")
-			if _, err = os.Stat(destPath); err == nil {
-				// already decompiled, duplicate...
+			destPath = strings.TrimSuffix(destPath, ClassFile) + ".java"
+			// TODO (pgaikwad): pass real artifact for filtering to work correctly
+			decompileJobs = append(decompileJobs, decompileJob{
+				inputPath:  filePath,
+				outputPath: destPath,
+				artifact: javaArtifact{
+					packaging: ClassFile,
+				},
+			})
+		// when it's a java file, it's already decompiled, copy it to project path
+		case strings.HasSuffix(f.Name, JavaFile):
+			destPath := filepath.Join(
+				projectPath, "src", "main", "java",
+				strings.Replace(filePath, destDir, "", -1))
+			destPath = strings.ReplaceAll(destPath, "WEB-INF/classes", "")
+			destPath = strings.ReplaceAll(destPath, "META-INF/classes", "")
+			if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+				log.V(8).Error(err, "error creating directory for java file", "path", destPath)
 				continue
 			}
-			if err = os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
-				log.V(8).Error(err, "failed to create directories for decompiled file", "path", filepath.Dir(destPath))
-				continue
-			}
-			cmd := exec.CommandContext(
-				ctx, "java", "-jar", "/bin/fernflower.jar", filePath, path.Dir(destPath))
-			err := cmd.Run()
+			log.V(6).Info("copying file", "src", filePath, "dest", destPath)
+			inputFile, err := os.Open(filePath)
 			if err != nil {
-				log.Error(err, "failed to decompile file", "file", filePath)
-			} else {
-				log.V(8).Info("decompiled file", "file", filePath)
+				log.V(8).Error(err, "failed to open input file", "path", filePath)
+				continue
 			}
+			outputFile, err := os.Create(destPath)
+			if err != nil {
+				inputFile.Close()
+				log.V(8).Error(err, "failed to open output file", "path", destPath)
+				continue
+			}
+			_, err = io.Copy(outputFile, inputFile)
+			inputFile.Close()
+			if err != nil {
+				log.V(8).Error(err, "failed to move java file to project", "src", filePath, "dest", destPath)
+				continue
+			}
+			// The copy was successful, so now delete the original file
+			err = os.Remove(filePath)
+			if err != nil {
+				log.V(8).Error(err, "failed to remove source file", "src", filePath)
+				continue
+			}
+			defer outputFile.Close()
 		// decompile web archives
 		case strings.HasSuffix(f.Name, WebArchive):
-			if _, err := decompile(ctx, log, filePath, projectPath); err != nil {
+			_, nestedJobs, err := explode(ctx, log, filePath, projectPath)
+			if err != nil {
 				log.Error(err, "failed to decompile file", "file", filePath)
 			}
+			decompileJobs = append(decompileJobs, nestedJobs...)
+		// nested JARs won't be exploded further, they will be decompiled as whole
 		case strings.HasSuffix(f.Name, JavaArchive):
-			artifact, err := addProjectDep(ctx, filepath.Join(projectPath, "pom.xml"), f.Name)
+			artifact, err := addProjectDep(ctx, filepath.Join(projectPath, "pom.xml"), filePath)
 			if err != nil {
 				log.Error(err, "failed to add dep", "file", filePath)
+				// when we fail to identify a dep we will fallback to
+				// decompiling it ourselves and adding as source
+				outputPath := filepath.Join(
+					filepath.Dir(filePath), fmt.Sprintf("%s-decompiled",
+						strings.TrimSuffix(f.Name, JavaArchive)), filepath.Base(f.Name))
+				decompileJobs = append(decompileJobs, decompileJob{
+					inputPath:  filePath,
+					outputPath: outputPath,
+					artifact: javaArtifact{
+						packaging:  JavaArchive,
+						groupId:    artifact.groupId,
+						artifactId: artifact.artifactId,
+					},
+				})
 			}
 		}
 	}
 
-	return destDir, nil
+	return destDir, decompileJobs, nil
 }
 
 func createJavaProject(ctx context.Context, dir string) error {
@@ -182,20 +332,13 @@ func createJavaProject(ctx context.Context, dir string) error {
 	return nil
 }
 
-type javaArtifact struct {
-	packaging  string
-	groupId    string
-	artifactId string
-	version    string
-}
-
 type project struct {
-	XMLName    xml.Name    `xml:"project"`
+	XMLName    xml.Name     `xml:"project"`
 	Dependency dependencies `xml:"dependencies"`
 }
 
 type dependencies struct {
-	XMLName    xml.Name    `xml:"dependencies"`
+	XMLName    xml.Name     `xml:"dependencies"`
 	Dependency []dependency `xml:"dependency"`
 }
 

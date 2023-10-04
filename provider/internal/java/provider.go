@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	JavaFile          = ".java"
 	JavaArchive       = ".jar"
 	WebArchive        = ".war"
 	EnterpriseArchive = ".ear"
