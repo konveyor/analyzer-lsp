@@ -2,8 +2,11 @@ package java
 
 import (
 	"archive/zip"
+	"bufio"
 	"context"
+	"encoding/xml"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path"
@@ -156,6 +159,11 @@ func decompile(ctx context.Context, log logr.Logger, archivePath, projectPath st
 			if _, err := decompile(ctx, log, filePath, projectPath); err != nil {
 				log.Error(err, "failed to decompile file", "file", filePath)
 			}
+		case strings.HasSuffix(f.Name, JavaArchive):
+			artifact, err := addProjectDep(ctx, filepath.Join(projectPath, "pom.xml"), f.Name)
+			if err != nil {
+				log.Error(err, "failed to add dep", "file", filePath)
+			}
 		}
 	}
 
@@ -172,4 +180,88 @@ func createJavaProject(ctx context.Context, dir string) error {
 		return err
 	}
 	return nil
+}
+
+type javaArtifact struct {
+	packaging  string
+	groupId    string
+	artifactId string
+	version    string
+}
+
+type project struct {
+	XMLName    xml.Name    `xml:"project"`
+	Dependency dependencies `xml:"dependencies"`
+}
+
+type dependencies struct {
+	XMLName    xml.Name    `xml:"dependencies"`
+	Dependency []dependency `xml:"dependency"`
+}
+
+type dependency struct {
+	GroupID    string `xml:"groupId"`
+	ArtifactID string `xml:"artifactId"`
+	Version    string `xml:"version"`
+}
+
+func addProjectDep(ctx context.Context, pomFile string, jarFile string) (javaArtifact, error) {
+	dep := javaArtifact{}
+	jar, err := zip.OpenReader(jarFile)
+	if err != nil {
+		return dep, err
+	}
+	defer jar.Close()
+
+	for _, jarFile := range jar.File {
+		match, err := filepath.Match("META-INF/maven/*/*/pom.properties", jarFile.Name)
+		if err != nil {
+			return dep, err
+		}
+
+		if match {
+			// Open the file in the ZIP archive
+			rc, err := jarFile.Open()
+			if err != nil {
+				return dep, err
+			}
+			defer rc.Close()
+
+			// Read and process the lines in the properties file
+			scanner := bufio.NewScanner(rc)
+			for scanner.Scan() {
+				line := scanner.Text()
+				if strings.HasPrefix(line, "version=") {
+					dep.version = strings.TrimSpace(strings.TrimPrefix(line, "version="))
+				} else if strings.HasPrefix(line, "artifactId=") {
+					dep.artifactId = strings.TrimSpace(strings.TrimPrefix(line, "artifactId="))
+				} else if strings.HasPrefix(line, "groupId=") {
+					dep.groupId = strings.TrimSpace(strings.TrimPrefix(line, "groupId="))
+				}
+			}
+
+			// Read the pom
+			content, err := os.ReadFile(pomFile)
+			if err != nil {
+				return dep, err
+			}
+
+			// Unmarshal the existing pom.xml content into a Project struct
+			var project project
+			if err := xml.Unmarshal(content, &project); err != nil {
+				return dep, err
+			}
+			project.Dependency.Dependency = append(project.Dependency.Dependency, dependency{GroupID: dep.groupId, ArtifactID: dep.artifactId, Version: dep.version})
+			// Marshal the modified Project struct back to XML
+			updatedXML, err := xml.MarshalIndent(project, "", "  ")
+			if err != nil {
+				return dep, err
+			}
+
+			err = os.WriteFile(pomFile, updatedXML, 0755)
+			return dep, err
+		}
+	}
+
+	return dep, err
 }
