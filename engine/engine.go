@@ -21,7 +21,7 @@ import (
 )
 
 type RuleEngine interface {
-	RunRules(context context.Context, rules []RuleSet, selectors ...RuleSelector) []konveyor.RuleSet
+	RunRules(context context.Context, rules []RuleSet, locations []string, selectors ...RuleSelector) []konveyor.RuleSet
 	Stop()
 }
 
@@ -141,7 +141,7 @@ func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *konveyor.RuleSet {
 
 // This will run tagging rules first, synchronously, generating tags to pass on further as context to other rules
 // then runs remaining rules async, fanning them out, fanning them in, finally generating the results. will block until completed.
-func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors ...RuleSelector) []konveyor.RuleSet {
+func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, locations []string, selectors ...RuleSelector) []konveyor.RuleSet {
 	// determine if we should run
 
 	ctx, cancelFunc := context.WithCancel(ctx)
@@ -175,7 +175,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()
 						}
 					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
-						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule)
+						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule, locations)
 						if err != nil {
 							r.logger.Error(err, "unable to create violation from response")
 						}
@@ -388,7 +388,8 @@ func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log l
 
 }
 
-func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse ConditionResponse, rule Rule) (konveyor.Violation, error) {
+func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse ConditionResponse, rule Rule, locations []string) (konveyor.Violation, error) {
+
 	incidents := []konveyor.Incident{}
 	fileCodeSnipCount := map[string]int{}
 	incidentsSet := map[string]struct{}{} // Set of incidents
@@ -397,6 +398,19 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
 			break
 		}
+		var updatedFile string
+		for i := range locations {
+			tempFile := uri.File(locations[i])
+			if strings.Contains(string(m.FileURI), locations[i]) {
+				updatedFile = strings.TrimPrefix(string(m.FileURI), string(tempFile))
+			}
+		}
+		for k := range m.Variables {
+			if k == "file" {
+				m.Variables["file"] = updatedFile
+			}
+		}
+
 		incident := konveyor.Incident{
 			URI:        m.FileURI,
 			LineNumber: m.LineNumber,

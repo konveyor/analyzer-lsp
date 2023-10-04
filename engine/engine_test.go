@@ -661,7 +661,7 @@ func TestRuleEngine(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			start := time.Now()
-			ruleEngine.RunRules(context.Background(), tc.Rules)
+			ruleEngine.RunRules(context.Background(), tc.Rules, []string{""})
 			// make sure that the the test takes only as long as we would expect w/ the sleeps
 			if time.Since(start) >= 11*time.Second {
 				t.Fail()

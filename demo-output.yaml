@@ -158,10 +158,10 @@
       category: potential
       incidents:
       - uri: file:///analyzer-lsp/examples/golang/main.go
-        message: golang apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/golang/main.go:9
+        message: golang apiextensions/v1/customresourcedefinitions found /main.go:9
         lineNumber: 9
         variables:
-          file: file:///analyzer-lsp/examples/golang/main.go
+          file: /main.go
     golang-gomod-dependencies:
       description: ""
       category: potential
@@ -204,7 +204,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      public static void main( String[] args )\n 9      {\n10          CustomResourceDefinition crd = new CustomResourceDefinition();\n11          System.out.println( crd );\n12  \n13          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");"
         lineNumber: 3
         variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          file: /src/main/java/com/example/apps/App.java
           kind: Method
           name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
@@ -212,32 +212,32 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      public static void main( String[] args )\n 9      {\n10          CustomResourceDefinition crd = new CustomResourceDefinition();\n11          System.out.println( crd );\n12  \n13          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n14          element.get();\n15      }\n16  }\n"
         lineNumber: 10
         variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          file: /src/main/java/com/example/apps/App.java
           kind: Method
           name: main
       - uri: file:///analyzer-lsp/examples/golang/main.go
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
         lineNumber: 9
         variables:
-          file: file:///analyzer-lsp/examples/golang/main.go
+          file: /main.go
     lang-ref-003:
       description: ""
       category: potential
       incidents:
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:3
+        message: java found apiextensions/v1/customresourcedefinitions found /src/main/java/com/example/apps/App.java:3
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      public static void main( String[] args )\n 9      {\n10          CustomResourceDefinition crd = new CustomResourceDefinition();\n11          System.out.println( crd );\n12  \n13          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");"
         lineNumber: 3
         variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          file: /src/main/java/com/example/apps/App.java
           kind: Method
           name: main
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:10
+        message: java found apiextensions/v1/customresourcedefinitions found /src/main/java/com/example/apps/App.java:10
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      public static void main( String[] args )\n 9      {\n10          CustomResourceDefinition crd = new CustomResourceDefinition();\n11          System.out.println( crd );\n12  \n13          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n14          element.get();\n15      }\n16  }\n"
         lineNumber: 10
         variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          file: /src/main/java/com/example/apps/App.java
           kind: Method
           name: main
     lang-ref-004:
@@ -250,7 +250,7 @@
         lineNumber: 14
         variables:
           VariableName: element
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
+          file: /src/main/java/com/example/apps/App.java
           kind: Method
           name: main
     multiple-actions-001:
@@ -271,7 +271,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
         lineNumber: 6
         variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+          file: /src/main/java/com/example/apps/Singleton.java
           kind: Class
           name: Singleton
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
@@ -279,7 +279,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
         lineNumber: 7
         variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+          file: /src/main/java/com/example/apps/Singleton.java
           kind: Class
           name: Bean
     singleton-sessionbean-00002:
@@ -291,7 +291,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
         lineNumber: 6
         variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+          file: /src/main/java/com/example/apps/Singleton.java
           kind: Class
           name: Singleton
       - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
@@ -299,7 +299,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
         lineNumber: 7
         variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
+          file: /src/main/java/com/example/apps/Singleton.java
           kind: Class
           name: Bean
     tech-tag-001:

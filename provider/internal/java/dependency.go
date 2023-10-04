@@ -271,8 +271,9 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 		d.ResolvedIdentifier = string(b)
 	}
 
+	trimmedFP := strings.TrimPrefix(fp, localRepoPath)
 	d.Labels = p.addDepLabels(d.Name)
-	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
+	d.FileURIPrefix = fmt.Sprintf("file://%v", trimmedFP)
 
 	return d, nil
 }

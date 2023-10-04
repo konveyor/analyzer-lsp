@@ -142,6 +142,7 @@ func main() {
 	)
 
 	providers := map[string]provider.InternalProviderClient{}
+	locations := []string{}
 
 	for _, config := range configs {
 		config.ContextLines = contextLines
@@ -165,6 +166,9 @@ func main() {
 				log.Error(err, "unable to create provider client")
 				os.Exit(1)
 			}
+		}
+		for _, ind := range config.InitConfig {
+			locations = append(locations, ind.Location)
 		}
 	}
 
@@ -195,7 +199,7 @@ func main() {
 		}
 	}
 
-	rulesets := eng.RunRules(ctx, ruleSets, selectors...)
+	rulesets := eng.RunRules(ctx, ruleSets, locations, selectors...)
 	eng.Stop()
 
 	for _, provider := range needProviders {
