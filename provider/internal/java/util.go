@@ -4,9 +4,13 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -382,15 +386,15 @@ func toDependency(ctx context.Context, jarFile string) (javaArtifact, error) {
 	}
 	defer jar.Close()
 
-	for _, jarFile := range jar.File {
-		match, err := filepath.Match("META-INF/maven/*/*/pom.properties", jarFile.Name)
+	for _, file := range jar.File {
+		match, err := filepath.Match("META-INF/maven/*/*/pom.properties", file.Name)
 		if err != nil {
 			return dep, err
 		}
 
 		if match {
 			// Open the file in the ZIP archive
-			rc, err := jarFile.Open()
+			rc, err := file.Open()
 			if err != nil {
 				return dep, err
 			}
@@ -413,5 +417,58 @@ func toDependency(ctx context.Context, jarFile string) (javaArtifact, error) {
 		}
 	}
 
+	// we didn't find a pom.properties. Look it up in maven
+	file, err := os.Open(jarFile)
+	if err != nil {
+		return dep, err
+	}
+	defer file.Close()
+
+	hash := sha1.New()
+	_, err = io.Copy(hash, file)
+	if err != nil {
+		return dep, err
+	}
+
+	sha1sum := hex.EncodeToString(hash.Sum(nil))
+
+	// Make an HTTP request to search.maven.org
+	searchURL := fmt.Sprintf("http://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
+	resp, err := http.Get(searchURL)
+	if err != nil {
+		return dep, err
+	}
+	defer resp.Body.Close()
+
+	// Read and parse the JSON response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return dep, err
+	}
+
+	var data map[string]interface{}
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return dep, err
+	}
+
+	// Check if a single result is found
+	response, ok := data["response"].(map[string]interface{})
+	if !ok {
+		return dep, err
+	}
+
+	numFound, ok := response["numFound"].(float64)
+	if !ok {
+		return dep, err
+	}
+
+	if numFound == 1 {
+		jarInfo := response["docs"].([]interface{})[0].(map[string]interface{})
+		dep.GroupId = jarInfo["g"].(string)
+		dep.ArtifactId = jarInfo["a"].(string)
+		dep.Version = jarInfo["v"].(string)
+		return dep, nil
+	}
 	return dep, fmt.Errorf("failed to construct artifact from jar")
 }
