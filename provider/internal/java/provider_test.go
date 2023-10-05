@@ -11,7 +11,7 @@ func Test_parseUnresolvedSources(t *testing.T) {
 		name      string
 		mvnOutput string
 		wantErr   bool
-		wantList  []string
+		wantList  []javaArtifact
 	}{
 		{
 			name: "valid sources output",
@@ -23,8 +23,13 @@ The following files have NOT been resolved:
    io.konveyor.demo:config-utils:jar:sources:1.0.0:compile
 `,
 			wantErr: false,
-			wantList: []string{
-				"io/konveyor/demo/config-utils/1.0.0/config-utils-1.0.0.jar",
+			wantList: []javaArtifact{
+				{
+					packaging:  JavaArchive,
+					groupId:    "io.konveyor.demo",
+					artifactId: "config-utils",
+					version:    "1.0.0",
+				},
 			},
 		},
 	}
