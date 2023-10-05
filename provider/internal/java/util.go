@@ -99,11 +99,12 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 	workerCount = int(math.Min(float64(len(jobs)), float64(workerCount)))
 	// init workers
 	for i := 0; i < workerCount; i++ {
+		logger := log.WithName(fmt.Sprintf("decompileWorker-%d", i))
 		wg.Add(1)
-		log.V(6).Info("init decompile worker")
 		go func(log logr.Logger) {
 			defer log.V(6).Info("shutting down decompile worker")
 			defer wg.Done()
+			log.V(6).Info("init decompile worker")
 			for job := range jobChan {
 				// apply decompile filter
 				if !filter.shouldDecompile(job.artifact) {
@@ -129,7 +130,6 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 				}
 				// if we just decompiled a java archive, we need to
 				// explode it further and copy files to project
-				// TODO(djzager): should we grab deps?
 				if job.artifact.packaging == JavaArchive && projectPath != "" {
 					_, _, _, err = explode(ctx, log, job.outputPath, projectPath)
 					if err != nil {
@@ -137,11 +137,16 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 					}
 				}
 			}
-		}(log.WithName(fmt.Sprintf("decompileWorker-%d", i)))
+		}(logger)
 	}
 
+	seenJobs := map[string]bool{}
 	for _, job := range jobs {
-		jobChan <- job
+		jobKey := fmt.Sprintf("%s-%s", job.inputPath, job.outputPath)
+		if _, ok := seenJobs[jobKey]; !ok {
+			seenJobs[jobKey] = true
+			jobChan <- job
+		}
 	}
 
 	close(jobChan)
@@ -186,6 +191,7 @@ func decompileJava(ctx context.Context, log logr.Logger, archivePath string) (ex
 
 // explode explodes the given JAR, WAR or EAR archive, generates javaArtifact struct for given archive
 // and identifies all .class found recursively. returns output path, a list of decompileJob for .class files
+// it also returns a list of any javaArtifact we could interpret from jars
 func explode(ctx context.Context, log logr.Logger, archivePath, projectPath string) (string, []decompileJob, []javaArtifact, error) {
 	var dependencies []javaArtifact
 	fileInfo, err := os.Stat(archivePath)
@@ -261,7 +267,6 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			destPath = strings.ReplaceAll(destPath, "WEB-INF/classes", "")
 			destPath = strings.ReplaceAll(destPath, "META-INF/classes", "")
 			destPath = strings.TrimSuffix(destPath, ClassFile) + ".java"
-			// TODO (pgaikwad): pass real artifact for filtering to work correctly
 			decompileJobs = append(decompileJobs, decompileJob{
 				inputPath:  filePath,
 				outputPath: destPath,
@@ -288,11 +293,12 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 		// decompile web archives
 		case strings.HasSuffix(f.Name, WebArchive):
 			// TODO(djzager): Should we add these deps to the pom?
-			_, nestedJobs, _, err := explode(ctx, log, filePath, projectPath)
+			_, nestedJobs, deps, err := explode(ctx, log, filePath, projectPath)
 			if err != nil {
 				log.Error(err, "failed to decompile file", "file", filePath)
 			}
 			decompileJobs = append(decompileJobs, nestedJobs...)
+			dependencies = append(dependencies, deps...)
 		// attempt to add nested jars as dependency before decompiling
 		case strings.HasSuffix(f.Name, JavaArchive):
 			dep, err := toDependency(ctx, filePath)
@@ -303,7 +309,9 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 				outputPath := filepath.Join(
 					filepath.Dir(filePath), fmt.Sprintf("%s-decompiled",
 						strings.TrimSuffix(f.Name, JavaArchive)), filepath.Base(f.Name))
-				// TODO(djzager): Is it possible for the
+				// TODO(djzager): Is it possible for the javaArtifact be empty
+				// it is not an issue right now, but if we used a decompileFilter
+				// javaArtifact has to be accurate for filter to work
 				decompileJobs = append(decompileJobs, decompileJob{
 					inputPath:  filePath,
 					outputPath: outputPath,

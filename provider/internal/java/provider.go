@@ -325,6 +325,7 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	if err != nil {
 		return err
 	}
+	defer mvnOutput.Close()
 	args := []string{
 		"dependency:sources",
 		"-Djava.net.useSystemProxies=true",
