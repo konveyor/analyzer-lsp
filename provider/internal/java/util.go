@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"path"
@@ -81,10 +82,14 @@ type decompileJob struct {
 	artifact   javaArtifact
 }
 
+// decompile decompiles files submitted via a list of decompileJob concurrently
+// if a .class file is encountered, it will be decompiled to output path right away
+// if a .jar file is encountered, it will be decompiled as a whole, then exploded to project path
 func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, workerCount int, jobs []decompileJob, projectPath string) error {
 	wg := &sync.WaitGroup{}
 	jobChan := make(chan decompileJob)
 
+	workerCount = int(math.Min(float64(len(jobs)), float64(workerCount)))
 	// init workers
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
@@ -93,6 +98,10 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 			defer log.V(6).Info("shutting down decompile worker")
 			defer wg.Done()
 			for job := range jobChan {
+				// apply decompile filter
+				if !filter.shouldDecompile(job.artifact) {
+					continue
+				}
 				if _, err := os.Stat(job.outputPath); err == nil {
 					// already decompiled, duplicate...
 					continue
@@ -113,7 +122,7 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 				}
 				// if we just decompiled a java archive, we need to
 				// explode it further and copy files to project
-				if job.artifact.packaging == JavaArchive {
+				if job.artifact.packaging == JavaArchive && projectPath != "" {
 					_, _, err = explode(ctx, log, job.outputPath, projectPath)
 					if err != nil {
 						log.V(5).Error(err, "failed to explode decompiled jar", "path", job.inputPath)
@@ -168,7 +177,8 @@ func decompileJava(ctx context.Context, log logr.Logger, archivePath string) (ex
 }
 
 // explode explodes the given JAR, WAR or EAR archive, generates javaArtifact struct for given archive
-// and identifies all .class found recursively. returns output path, a list of decompileJob for .class files
+// and identifies all .class found recursively. returns output path, a list of decompileJob for .class & .jar files
+// .jar files will only be added as decompileJob when we are unable to add them to project's pom file
 func explode(ctx context.Context, log logr.Logger, archivePath, projectPath string) (string, []decompileJob, error) {
 	fileInfo, err := os.Stat(archivePath)
 	if err != nil {
@@ -251,7 +261,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 					packaging: ClassFile,
 				},
 			})
-		// when it's a java file, it's already decompiled, copy it to project path
+		// when it's a java file, it's already decompiled, move it to project path
 		case strings.HasSuffix(f.Name, JavaFile):
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
@@ -262,31 +272,11 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 				log.V(8).Error(err, "error creating directory for java file", "path", destPath)
 				continue
 			}
-			log.V(6).Info("copying file", "src", filePath, "dest", destPath)
-			inputFile, err := os.Open(filePath)
-			if err != nil {
-				log.V(8).Error(err, "failed to open input file", "path", filePath)
+			if err := moveFile(filePath, destPath); err != nil {
+				log.V(8).Error(err, "error moving decompiled file to project path",
+					"src", filePath, "dest", destPath)
 				continue
 			}
-			outputFile, err := os.Create(destPath)
-			if err != nil {
-				inputFile.Close()
-				log.V(8).Error(err, "failed to open output file", "path", destPath)
-				continue
-			}
-			_, err = io.Copy(outputFile, inputFile)
-			inputFile.Close()
-			if err != nil {
-				log.V(8).Error(err, "failed to move java file to project", "src", filePath, "dest", destPath)
-				continue
-			}
-			// The copy was successful, so now delete the original file
-			err = os.Remove(filePath)
-			if err != nil {
-				log.V(8).Error(err, "failed to remove source file", "src", filePath)
-				continue
-			}
-			defer outputFile.Close()
 		// decompile web archives
 		case strings.HasSuffix(f.Name, WebArchive):
 			_, nestedJobs, err := explode(ctx, log, filePath, projectPath)
@@ -329,6 +319,29 @@ func createJavaProject(ctx context.Context, dir string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func moveFile(srcPath string, destPath string) error {
+	inputFile, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	outputFile, err := os.Create(destPath)
+	if err != nil {
+		inputFile.Close()
+		return err
+	}
+	_, err = io.Copy(outputFile, inputFile)
+	inputFile.Close()
+	if err != nil {
+		return err
+	}
+	err = os.Remove(srcPath)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
 	return nil
 }
 

@@ -78,12 +78,12 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 	return m, nil
 }
 
-func (p *javaServiceClient) getLocalRepoPath() string {
+func getMavenLocalRepoPath(mvnSettingsFile string) string {
 	args := []string{
 		"help:evaluate", "-Dexpression=settings.localRepository", "-q", "-DforceStdout",
 	}
-	if p.mvnSettingsFile != "" {
-		args = append(args, "-s", p.mvnSettingsFile)
+	if mvnSettingsFile != "" {
+		args = append(args, "-s", mvnSettingsFile)
 	}
 	cmd := exec.Command("mvn", args...)
 	var outb bytes.Buffer
@@ -147,7 +147,7 @@ func (p *javaServiceClient) GetDependencyFallback(ctx context.Context) (map[uri.
 }
 
 func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
-	localRepoPath := p.getLocalRepoPath()
+	localRepoPath := getMavenLocalRepoPath(p.mvnSettingsFile)
 
 	path := p.findPom()
 	file := uri.File(path)

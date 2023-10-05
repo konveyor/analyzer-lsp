@@ -1,11 +1,14 @@
 package java
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -187,26 +190,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 	log = log.WithValues("provider", "java")
 
-	isBinary := false
-	var returnErr error
-	// each service client should have their own context
-	ctx, cancelFunc := context.WithCancel(ctx)
-	extension := strings.ToLower(path.Ext(config.Location))
-	switch extension {
-	case JavaArchive, WebArchive, EnterpriseArchive:
-		depLocation, sourceLocation, err := decompileJava(ctx, log, config.Location)
-		if err != nil {
-			cancelFunc()
-			return nil, err
-		}
-		config.Location = sourceLocation
-		// for binaries, we fallback to looking at .jar files only for deps
-		config.DependencyPath = depLocation
-		// for binaries, always run in source-only mode as we don't know how to correctly resolve deps
-		config.AnalysisMode = provider.SourceOnlyAnalysisMode
-		isBinary = true
-	}
-
+	// read provider settings
 	bundlesString, ok := config.ProviderSpecificConfig[BUNDLES_INIT_OPTION].(string)
 	if !ok {
 		bundlesString = ""
@@ -225,8 +209,35 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 	lspServerPath, ok := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	if !ok || lspServerPath == "" {
-		cancelFunc()
 		return nil, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
+	}
+
+	isBinary := false
+	var returnErr error
+	// each service client should have their own context
+	ctx, cancelFunc := context.WithCancel(ctx)
+	extension := strings.ToLower(path.Ext(config.Location))
+	switch extension {
+	case JavaArchive, WebArchive, EnterpriseArchive:
+		depLocation, sourceLocation, err := decompileJava(ctx, log, config.Location)
+		if err != nil {
+			cancelFunc()
+			return nil, err
+		}
+		config.Location = sourceLocation
+		// for binaries, we fallback to looking at .jar files only for deps
+		config.DependencyPath = depLocation
+		// for binaries, always run in source-only mode as we don't know how to correctly resolve deps
+		config.AnalysisMode = provider.SourceOnlyAnalysisMode
+		isBinary = true
+	default:
+		// when location points to source code, we attempt to decompile
+		// JARs of dependencies that don't have a sources JAR attached
+		err := resolveSourcesJars(ctx, log, config.Location, mavenSettingsFile)
+		if err != nil {
+			// TODO (pgaikwad): should we ignore this failure?
+			log.Error(err, "failed to resolve sources jar for location", "location", config.Location)
+		}
 	}
 
 	// handle proxy settings
@@ -304,4 +315,89 @@ func (p *javaProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*prov
 
 func (p *javaProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	return provider.FullDepDAGResponse(ctx, p.clients)
+}
+
+// resolveSourcesJars for a given source code location, runs maven to find
+// deps that don't have sources attached and decompiles them
+func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSettings string) error {
+	decompileJobs := []decompileJob{}
+	mvnOutput, err := os.CreateTemp("", "mvn-sources-")
+	if err != nil {
+		return err
+	}
+	args := []string{
+		"dependency:sources",
+		"-Djava.net.useSystemProxies=true",
+		fmt.Sprintf("-DoutputFile=%s", mvnOutput.Name()),
+	}
+	if mavenSettings != "" {
+		args = append(args, "-s", mavenSettings)
+	}
+	cmd := exec.CommandContext(ctx, "mvn", args...)
+	cmd.Dir = location
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+	artifacts, err := parseUnresolvedSources(mvnOutput)
+	if err != nil {
+		return err
+	}
+	m2Repo := getMavenLocalRepoPath(mavenSettings)
+	if m2Repo == "" {
+		return nil
+	}
+	for _, artifact := range artifacts {
+		groupDirs := filepath.Join(strings.Split(artifact.groupId, ".")...)
+		artifactDirs := filepath.Join(strings.Split(artifact.artifactId, ".")...)
+		jarName := fmt.Sprintf("%s-%s.jar", artifact.artifactId, artifact.version)
+		decompileJobs = append(decompileJobs, decompileJob{
+			artifact: artifact,
+			inputPath: filepath.Join(
+				m2Repo, groupDirs, artifactDirs, artifact.version, jarName),
+			outputPath: filepath.Join(
+				m2Repo, groupDirs, artifactDirs, artifact.version, "decompiled", jarName),
+		})
+	}
+	err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, "")
+	if err != nil {
+		return err
+	}
+	// move decompiled files to base location of the jar
+	for _, decompileJob := range decompileJobs {
+		jarName := strings.TrimSuffix(filepath.Base(decompileJob.inputPath), ".jar")
+		moveFile(decompileJob.outputPath,
+			filepath.Join(filepath.Dir(decompileJob.inputPath),
+				fmt.Sprintf("%s-sources.jar", jarName)))
+	}
+	return nil
+}
+
+func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
+	artifacts := []javaArtifact{}
+	scanner := bufio.NewScanner(output)
+	unresolvedSeparatorSeen := false
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimLeft(line, " ")
+		if strings.HasPrefix(line, "The following files have NOT been resolved:") {
+			unresolvedSeparatorSeen = true
+		} else if unresolvedSeparatorSeen {
+			parts := strings.Split(line, ":")
+			if len(parts) != 6 {
+				continue
+			}
+			groupId := parts[0]
+			artifactId := parts[1]
+			version := parts[4]
+			artifacts = append(artifacts,
+				javaArtifact{
+					packaging:  JavaArchive,
+					artifactId: artifactId,
+					groupId:    groupId,
+					version:    version,
+				})
+		}
+	}
+	return artifacts, scanner.Err()
 }
