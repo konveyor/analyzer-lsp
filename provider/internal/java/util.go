@@ -61,6 +61,7 @@ type javaArtifact struct {
 	GroupId    string
 	ArtifactId string
 	Version    string
+	sha1       string
 }
 
 type decompileFilter interface {
@@ -177,20 +178,34 @@ func decompileJava(ctx context.Context, log logr.Logger, archivePath string) (ex
 		return "", "", err
 	}
 
-	err = createJavaProject(ctx, projectPath, deps)
+	err = createJavaProject(ctx, projectPath, deduplicateJavaArtifacts(deps))
 	if err != nil {
 		log.Error(err, "failed to create java project", "path", projectPath)
 		return "", "", err
 	}
 	log.V(5).Info("created java project", "path", projectPath)
 
-	err = decompile(context.TODO(), log, decompFilter, 10, decompJobs, projectPath)
+	err = decompile(ctx, log, decompFilter, 10, decompJobs, projectPath)
 	if err != nil {
 		log.Error(err, "failed to decompile", "path", archivePath)
 		return "", "", err
 	}
 
 	return explodedPath, projectPath, err
+}
+
+func deduplicateJavaArtifacts(artifacts []javaArtifact) []javaArtifact {
+	uniq := []javaArtifact{}
+	seen := map[string]bool{}
+	for _, a := range artifacts {
+		key := fmt.Sprintf("%s-%s-%s%s",
+			a.ArtifactId, a.GroupId, a.Version, a.packaging)
+		if _, ok := seen[key]; !ok {
+			seen[key] = true
+			uniq = append(uniq, a)
+		}
+	}
+	return uniq
 }
 
 // explode explodes the given JAR, WAR or EAR archive, generates javaArtifact struct for given archive
@@ -204,7 +219,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 	}
 
 	// Create the destDir directory using the same permissions as the Java archive file
-	// java.jar should become java-jar-decompiled
+	// java.jar should become java-jar-exploded
 	destDir := filepath.Join(path.Dir(archivePath), strings.Replace(path.Base(archivePath), ".", "-", -1)+"-exploded")
 	// make sure execute bits are set so that fernflower can decompile
 	err = os.MkdirAll(destDir, fileInfo.Mode()|0111)
@@ -468,6 +483,7 @@ func toDependency(ctx context.Context, jarFile string) (javaArtifact, error) {
 		dep.GroupId = jarInfo["g"].(string)
 		dep.ArtifactId = jarInfo["a"].(string)
 		dep.Version = jarInfo["v"].(string)
+		dep.sha1 = sha1sum
 		return dep, nil
 	}
 	return dep, fmt.Errorf("failed to construct artifact from jar")

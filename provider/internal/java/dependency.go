@@ -209,13 +209,17 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem) {
 	// for binaries we only find JARs embedded in archive
 	w := walker{
-		deps: ll,
+		deps:        ll,
+		depToLabels: p.depToLabels,
+		m2RepoPath:  getMavenLocalRepoPath(p.mvnSettingsFile),
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
 
 type walker struct {
-	deps map[uri.URI][]provider.DepDAGItem
+	deps        map[uri.URI][]provider.DepDAGItem
+	depToLabels map[string]*depLabelItem
+	m2RepoPath  string
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -229,6 +233,20 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
+		artifact, _ := toDependency(context.TODO(), path)
+		if (artifact != javaArtifact{}) {
+			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
+			d.Version = artifact.Version
+			d.Labels = addDepLabels(w.depToLabels, d.Name)
+			d.ResolvedIdentifier = artifact.sha1
+			// when we can successfully get javaArtifact from a jar
+			// we added it to the pom and it should be in m2Repo path
+			if w.m2RepoPath != "" {
+				d.FileURIPrefix = filepath.Join(w.m2RepoPath,
+					strings.Replace(artifact.GroupId, ".", "/", -1), artifact.ArtifactId, artifact.Version)
+			}
+		}
+
 		w.deps[uri.URI(filepath.Join(path, info.Name()))] = []provider.DepDAGItem{
 			{
 				Dep: d,
@@ -271,15 +289,15 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 		d.ResolvedIdentifier = string(b)
 	}
 
-	d.Labels = p.addDepLabels(d.Name)
+	d.Labels = addDepLabels(p.depToLabels, d.Name)
 	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
 
 	return d, nil
 }
 
-func (p *javaServiceClient) addDepLabels(depName string) []string {
+func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string {
 	m := map[string]interface{}{}
-	for _, d := range p.depToLabels {
+	for _, d := range depToLabels {
 		if d.r.Match([]byte(depName)) {
 			for label, _ := range d.labels {
 				m[label] = nil

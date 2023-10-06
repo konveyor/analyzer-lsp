@@ -227,17 +227,15 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		config.Location = sourceLocation
 		// for binaries, we fallback to looking at .jar files only for deps
 		config.DependencyPath = depLocation
-		// for binaries, always run in source-only mode as we don't know how to correctly resolve deps
-		config.AnalysisMode = provider.SourceOnlyAnalysisMode
 		isBinary = true
-	default:
-		// when location points to source code, we attempt to decompile
-		// JARs of dependencies that don't have a sources JAR attached
-		err := resolveSourcesJars(ctx, log, config.Location, mavenSettingsFile)
-		if err != nil {
-			// TODO (pgaikwad): should we ignore this failure?
-			log.Error(err, "failed to resolve sources jar for location", "location", config.Location)
-		}
+	}
+
+	// we attempt to decompile JARs of dependencies that don't have a sources JAR attached
+	// we need to do this for jdtls to correctly recognize source attachment for dep
+	err := resolveSourcesJars(ctx, log, config.Location, mavenSettingsFile)
+	if err != nil {
+		// TODO (pgaikwad): should we ignore this failure?
+		log.Error(err, "failed to resolve sources jar for location", "location", config.Location)
 	}
 
 	// handle proxy settings
