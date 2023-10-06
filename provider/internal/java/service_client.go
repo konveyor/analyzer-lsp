@@ -19,7 +19,6 @@ import (
 
 type javaServiceClient struct {
 	rpc              *jsonrpc2.Conn
-	ctx              context.Context
 	cancelFunc       context.CancelFunc
 	config           provider.InitConfig
 	log              logr.Logger
