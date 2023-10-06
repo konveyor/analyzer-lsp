@@ -102,13 +102,13 @@ const (
 type InitConfig struct {
 	// This is the location of the code base that the
 	// Provider will be responisble for parsing
-	// Deprecated: rootUri, which is what this maps to in the LSP spec, is deprecated.
+	// TODO: rootUri, which is what this maps to in the LSP spec, is deprecated.
 	// We should instead use workspaceFolders.
 	Location string `yaml:"location,omitempty" json:"location,omitempty"`
 
 	// This is the path to look for the dependencies for the project.
 	// It is relative to the Location
-	// Deprecated: This only allows for one directory for dependencies. Use DependencyFolders instead
+	// TODO: This only allows for one directory for dependencies. Use DependencyFolders instead
 	DependencyPath string `yaml:"dependencyPath,omitempty" json:"dependencyPath,omitempty"`
 
 	// It would be nice to get workspacefolders working

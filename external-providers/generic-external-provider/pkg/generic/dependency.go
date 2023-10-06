@@ -10,7 +10,7 @@ import (
 	"go.lsp.dev/uri"
 )
 
-func (g *GenericServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+func (g *genericServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	cmdStr, isString := g.Config.ProviderSpecificConfig["dependencyProviderPath"].(string)
 	if !isString {
 		return nil, fmt.Errorf("dependency provider path is not a string")
@@ -34,6 +34,6 @@ func (g *GenericServiceClient) GetDependencies(ctx context.Context) (map[uri.URI
 	return m, err
 }
 
-func (p *GenericServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+func (p *genericServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	return nil, nil
 }

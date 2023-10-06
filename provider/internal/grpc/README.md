@@ -1,6 +1,14 @@
-To install protoc, go to https://github.com/protocolbuffers/protobuf/releases 
-and download the appropriate zip file, say `protoc-24.3-linux-x86_64.zip` to
-`~/Downloads/`. Then run:
+## GRPC Communication 
+
+## Protoc Installation
+
+To install protoc, follow the directions found here: https://grpc.io/docs/protoc-installation/
+
+### Linux Installation
+
+Below is a list of instructions specifically for Linux on installing `protoc`.
+
+Go to https://github.com/protocolbuffers/protobuf/releases and download the appropriate zip file, say `protoc-24.3-linux-x86_64.zip` to ~/Downloads/`. Then run:
 
 ```sh
 cd ~/Downloads/
@@ -9,6 +17,8 @@ cd protoc-24.3-linux-x86_64
 sudo mv ./bin/* /usr/local/bin
 sudo mv ./include/* /usr/local/include
 ```
+
+## Update Provider GRPC Definition
 
 To update the Provider GRPC definition, update `library.proto` and run:
 

@@ -195,6 +195,13 @@ As far as I am aware, this finishes the preliminary work on getting `referenced`
 
 Unfortunately, there are still some wrinkles that need to be solved.
 
+### Pylsp capabilities response incorrect
+
+When responding with its capabilites, python-lsp-server returns an object. However, the spec requires it to be an array of objects. See [tables.go](../../external-providers/generic-external-provider/pkg/generic/tables.go) for the fix.
+
+- https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#notebookDocumentSyncOptions
+- https://github.com/python-lsp/python-lsp-server/blob/05698fa11bfc566ae7e040a2ed272247f8d406b2/pylsp/python_lsp.py#L298
+
 ### Pylsp includes definitions in results
 
 `pylsp` is currently returning references that are usages *and* definitions. `gopls` does not do this. Theoretically, the code I added in `external-providers/generic-external-provider/pkg/generic/service_client.go` should fix this by setting IncludeDeclaration to false, but it doesn't for some reason:

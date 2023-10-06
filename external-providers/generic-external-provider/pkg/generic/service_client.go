@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type GenericServiceClient struct {
+type genericServiceClient struct {
 	Rpc        *jsonrpc2.Conn
 	CancelFunc context.CancelFunc
 	Cmd        *exec.Cmd
@@ -29,14 +29,14 @@ type GenericServiceClient struct {
 	Capabilities protocol.ServerCapabilities
 }
 
-var _ provider.ServiceClient = &GenericServiceClient{}
+var _ provider.ServiceClient = &genericServiceClient{}
 
-func (p *GenericServiceClient) Stop() {
+func (p *genericServiceClient) Stop() {
 	p.CancelFunc()
 	p.Cmd.Wait()
 }
 
-func (p *GenericServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond genericCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
@@ -184,7 +184,7 @@ func parallelWalk(location string, regex *regexp.Regexp) ([]protocol.TextDocumen
 // NOTE: Only returns definitions when server does not supoprt workspace/symbol.
 // Is is intended behavior?
 // TODO: Change protocol.WorkspaceSymbol to protocol.SymbolInformation
-func (p *GenericServiceClient) GetAllSymbols(ctx context.Context, query string) []protocol.WorkspaceSymbol {
+func (p *genericServiceClient) GetAllSymbols(ctx context.Context, query string) []protocol.WorkspaceSymbol {
 	wsp := &protocol.WorkspaceSymbolParams{
 		Query: query,
 	}
@@ -293,7 +293,7 @@ func (p *GenericServiceClient) GetAllSymbols(ctx context.Context, query string) 
 	return symbols
 }
 
-func (p *GenericServiceClient) GetAllReferences(ctx context.Context, location protocol.Location) []protocol.Location {
+func (p *genericServiceClient) GetAllReferences(ctx context.Context, location protocol.Location) []protocol.Location {
 	params := &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{
@@ -315,7 +315,7 @@ func (p *GenericServiceClient) GetAllReferences(ctx context.Context, location pr
 	return res
 }
 
-func (p *GenericServiceClient) initialization(ctx context.Context, log logr.Logger) {
+func (p *genericServiceClient) initialization(ctx context.Context, log logr.Logger) {
 	// Get abosulte path of location.
 	abs, err := filepath.Abs(p.Config.Location)
 	if err != nil {
