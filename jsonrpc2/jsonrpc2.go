@@ -82,6 +82,9 @@ func (c *Conn) Notify(ctx context.Context, method string, params interface{}) (e
 			h.Done(ctx, err)
 		}
 	}()
+
+	// fmt.Printf("notifying: %s\n", string(data))
+
 	n, err := c.stream.Write(ctx, data)
 	for _, h := range c.handlers {
 		ctx = h.Wrote(ctx, n)
@@ -136,6 +139,9 @@ func (c *Conn) Call(ctx context.Context, method string, params, result interface
 			h.Done(ctx, err)
 		}
 	}()
+
+	// fmt.Printf("Sending: %s\n", string(data))
+
 	// now we are ready to send
 	n, err := c.stream.Write(ctx, data)
 	for _, h := range c.handlers {
@@ -160,6 +166,7 @@ func (c *Conn) Call(ctx context.Context, method string, params, result interface
 		}
 
 		// fmt.Printf("Unmarshalling response: %s\n", string(*response.Result))
+
 		if err := json.Unmarshal(*response.Result, result); err != nil {
 			return &RPCUnmarshalError{string(*response.Result), err}
 		}
@@ -220,7 +227,7 @@ func (c *Conn) Run(runCtx context.Context) error {
 		case msg.ID != nil:
 			// we have a response, get the pending entry from the map
 			c.pendingMu.Lock()
-			rchan := c.pending[*msg.ID]
+			rchan, ok := c.pending[*msg.ID]
 			if rchan != nil {
 				delete(c.pending, *msg.ID)
 			}
@@ -231,8 +238,12 @@ func (c *Conn) Run(runCtx context.Context) error {
 				Error:  msg.Error,
 				ID:     msg.ID,
 			}
-			rchan <- response
-			close(rchan)
+
+			// yaml-language-server sends back a request with an ID
+			if ok {
+				rchan <- response
+				close(rchan)
+			}
 		default:
 			for _, h := range c.handlers {
 				h.Error(runCtx, fmt.Errorf("message not a call, notify or response, ignoring"))

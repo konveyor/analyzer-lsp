@@ -368,10 +368,7 @@ func (p *GenericServiceClient) initialization(ctx context.Context, log logr.Logg
 			continue
 		}
 
-		language := p.Config.ProviderSpecificConfig["name"]
-		fix := NaiveFixResponse(language.(string), rpcerr.Json)
-
-		fmt.Println(fix)
+		fix := NaiveFixResponse(p.Config.ProviderSpecificConfig["name"].(string), rpcerr.Json)
 
 		err = json.Unmarshal([]byte(fix), &result)
 		if err != nil {
