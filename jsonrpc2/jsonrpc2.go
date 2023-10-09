@@ -83,8 +83,6 @@ func (c *Conn) Notify(ctx context.Context, method string, params interface{}) (e
 		}
 	}()
 
-	// fmt.Printf("notifying: %s\n", string(data))
-
 	n, err := c.stream.Write(ctx, data)
 	for _, h := range c.handlers {
 		ctx = h.Wrote(ctx, n)
@@ -140,8 +138,6 @@ func (c *Conn) Call(ctx context.Context, method string, params, result interface
 		}
 	}()
 
-	// fmt.Printf("Sending: %s\n", string(data))
-
 	// now we are ready to send
 	n, err := c.stream.Write(ctx, data)
 	for _, h := range c.handlers {
@@ -164,8 +160,6 @@ func (c *Conn) Call(ctx context.Context, method string, params, result interface
 		if result == nil || response.Result == nil {
 			return nil
 		}
-
-		// fmt.Printf("Unmarshalling response: %s\n", string(*response.Result))
 
 		if err := json.Unmarshal(*response.Result, result); err != nil {
 			return &RPCUnmarshalError{string(*response.Result), err}
