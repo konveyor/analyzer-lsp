@@ -1,4 +1,5 @@
 .vscode
+.idea
 *.metadata*
 jdt.ls-java-project
 examples/java/*.project
