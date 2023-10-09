@@ -213,11 +213,11 @@ func main() {
 		os.Exit(EXIT_ON_ERROR_CODE)
 	}
 
-	os.WriteFile(outputViolations, b, 0644)
+	err = os.WriteFile(outputViolations, b, 0644)
 	if err != nil {
-    log.Error(err, "error writing output file", "file", outputViolations)
-    os.Exit(1) // Treat the error as a fatal error
-}
+		log.Error(err, "error writing output file", "file", outputViolations)
+		os.Exit(1) // Treat the error as a fatal error
+	}	
 }
 
 func validateFlags() error {
