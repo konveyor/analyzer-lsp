@@ -122,7 +122,7 @@ func (p *javaServiceClient) GetDependencyFallback(ctx context.Context) (map[uri.
 	}
 	deps := []*provider.Dep{}
 	dep := &provider.Dep{}
-	// TODO this is comedically janky
+	// TODO this is comically janky
 	for _, node := range list {
 		if node.Data == "groupId" {
 			if dep.Name != "" {
@@ -163,6 +163,10 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	moddir := filepath.Dir(path)
 
 	pom, err := gopom.Parse(path)
+	if err != nil {
+		return nil, err
+	}
+
 	args := []string{
 		"dependency:tree",
 		"-Djava.net.useSystemProxies=true",

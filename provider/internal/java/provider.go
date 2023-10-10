@@ -328,6 +328,10 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 
 	pomPath := fmt.Sprintf("%s/pom.xml", location)
 	pom, err := gopom.Parse(pomPath)
+	if err != nil {
+		return err
+	}
+
 	args := []string{
 		"dependency:sources",
 		"-Djava.net.useSystemProxies=true",
