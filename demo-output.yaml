@@ -137,6 +137,8 @@
       - testing
       - test
       incidents:
+      - uri: file:///analyzer-lsp/examples/golang/dummy/test_functions.go
+        message: all go files
       - uri: file:///analyzer-lsp/examples/golang/main.go
         message: all go files
       links:
@@ -158,8 +160,8 @@
       category: potential
       incidents:
       - uri: file:///analyzer-lsp/examples/golang/main.go
-        message: golang apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/golang/main.go:9
-        lineNumber: 9
+        message: golang apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/golang/main.go:10
+        lineNumber: 10
         variables:
           file: file:///analyzer-lsp/examples/golang/main.go
     golang-gomod-dependencies:
@@ -217,7 +219,7 @@
           name: main
       - uri: file:///analyzer-lsp/examples/golang/main.go
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        lineNumber: 9
+        lineNumber: 10
         variables:
           file: file:///analyzer-lsp/examples/golang/main.go
     lang-ref-003:
@@ -262,6 +264,43 @@
         variables:
           tags:
           - Golang
+    python-sample-rule-001:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/python/file_a.py
+        message: python sample rule 001
+        lineNumber: 2
+        variables:
+          file: file:///analyzer-lsp/examples/python/file_a.py
+      - uri: file:///analyzer-lsp/examples/python/file_b.py
+        message: python sample rule 001
+        lineNumber: 0
+        variables:
+          file: file:///analyzer-lsp/examples/python/file_b.py
+    python-sample-rule-002:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/python/file_a.py
+        message: python sample rule 002
+        lineNumber: 5
+        variables:
+          file: file:///analyzer-lsp/examples/python/file_a.py
+      - uri: file:///analyzer-lsp/examples/python/file_b.py
+        message: python sample rule 002
+        lineNumber: 7
+        variables:
+          file: file:///analyzer-lsp/examples/python/file_b.py
+    python-sample-rule-003:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/python/main.py
+        message: python sample rule 003
+        lineNumber: 27
+        variables:
+          file: file:///analyzer-lsp/examples/python/main.py
     singleton-sessionbean-00001:
       description: ""
       category: potential

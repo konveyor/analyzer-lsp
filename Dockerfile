@@ -21,6 +21,9 @@ FROM jaegertracing/all-in-one:latest AS jaeger-builder
 # The unofficial base image w/ jdtls and gopls installed
 FROM quay.io/konveyor/jdtls-server-base
 
+RUN python3 -m ensurepip --upgrade
+RUN python3 -m pip install python-lsp-server
+
 COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/bin/
 
 COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer

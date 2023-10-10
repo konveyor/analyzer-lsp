@@ -13,6 +13,22 @@
         }]
     },
     {
+        "name": "python",
+        "binaryPath": "/usr/bin/generic-external-provider",
+        "initConfig": [{
+            "location": "examples/python",
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "name": "python",
+                "lspServerPath": "/usr/local/bin/pylsp",
+                "referencedOutputIgnoreContains": [
+                    "examples/python/__pycache__",
+                    "examples/python/.venv"
+                ]
+            }
+        }]
+    },
+    {
         "name": "java",
         "binaryPath": "/jdtls/bin/jdtls",
         "initConfig": [

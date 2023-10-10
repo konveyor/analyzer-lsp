@@ -14,15 +14,23 @@ jobs:
       - name: build demo image
         run: podman build -f demo.Dockerfile -t localhost/testing:latest
 
+      - name: install yq for testing
+        run: go install github.com/mikefarah/yq/v4@latest
+
       - name: run demo image and ensure violations output unchanged
         run: |
           podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
-          git diff --exit-code demo-output.yaml
+          diff \
+            <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)))) \
+            <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))))
 
       - name: run demo image and ensure dependency output unchanged
         run: |
           podman run --entrypoint /usr/bin/konveyor-analyzer-dep -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z localhost/testing:latest --output-file=demo-dep-output.yaml
-          git diff --exit-code demo-dep-output.yaml
+          podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
+          diff \
+            <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)))) \
+            <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))))
 
       - name: save image
         run: |
