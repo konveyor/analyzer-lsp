@@ -423,32 +423,28 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 			re := regexp.MustCompile(`^(\s*[0-9]+  )?(.*)`)
 			scanner := bufio.NewScanner(strings.NewReader(incident.CodeSnip))
 			for scanner.Scan() {
-				originalCodeSnip = originalCodeSnip + re.ReplaceAllString(scanner.Text(), "$2")
+				if incident.LineNumber != nil && strings.HasPrefix(strings.TrimSpace(scanner.Text()), fmt.Sprintf("%v", *incident.LineNumber)) {
+					originalCodeSnip = strings.TrimSpace(re.ReplaceAllString(scanner.Text(), "$2"))
+					r.logger.Info("found orignalCodeSnip", "lineNuber", incident.LineNumber, "orignal", originalCodeSnip)
+					break
+				}
 			}
 
 			for _, cv := range rule.CustomVariables {
 				match := cv.Pattern.FindStringSubmatch(originalCodeSnip)
-				switch len(match) {
-				case 0:
-					m.Variables[cv.Name] = cv.DefaultValue
+				if cv.NameOfCaptureGroup != "" && cv.Pattern.SubexpIndex(cv.NameOfCaptureGroup) < len(match) {
+					m.Variables[cv.Name] = strings.TrimSpace(match[cv.Pattern.SubexpIndex(cv.NameOfCaptureGroup)])
 					continue
-				case 1:
-					m.Variables[cv.Name] = match[0]
-					continue
-				case 2:
-					m.Variables[cv.Name] = match[1]
-				default:
-					// if more than 1 match, then we have to look up the names.
-					found := false
-					for i, n := range cv.Pattern.SubexpNames() {
-						if n == cv.NameOfCaptureGroup {
-							m.Variables[cv.Name] = match[i]
-							found = true
-							break
-						}
-					}
-					if !found {
+				} else {
+					switch len(match) {
+					case 0:
 						m.Variables[cv.Name] = cv.DefaultValue
+						continue
+					case 1:
+						m.Variables[cv.Name] = strings.TrimSpace(match[0])
+						continue
+					case 2:
+						m.Variables[cv.Name] = strings.TrimSpace(match[1])
 					}
 				}
 			}
