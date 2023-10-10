@@ -18,6 +18,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/vifraa/gopom"
 	"go.lsp.dev/uri"
 )
 
@@ -160,11 +161,17 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	defer os.Remove(f.Name())
 
 	moddir := filepath.Dir(path)
+
+	pom, err := gopom.Parse(path)
 	args := []string{
 		"dependency:tree",
 		"-Djava.net.useSystemProxies=true",
 		fmt.Sprintf("-DoutputFile=%s", f.Name()),
 	}
+	if pom.Modules != nil {
+		args = append([]string{"compile"}, args...)
+	}
+
 	if p.mvnSettingsFile != "" {
 		args = append(args, "-s", p.mvnSettingsFile)
 	}

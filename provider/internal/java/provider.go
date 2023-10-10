@@ -16,6 +16,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/vifraa/gopom"
 	"go.lsp.dev/uri"
 )
 
@@ -324,12 +325,18 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 		return err
 	}
 	defer mvnOutput.Close()
+
+	pomPath := fmt.Sprintf("%s/pom.xml", location)
+	pom, err := gopom.Parse(pomPath)
 	args := []string{
-		"compile",
 		"dependency:sources",
 		"-Djava.net.useSystemProxies=true",
 		fmt.Sprintf("-DoutputFile=%s", mvnOutput.Name()),
 	}
+	if pom.Modules != nil {
+		args = append([]string{"compile"}, args...)
+	}
+
 	if mavenSettings != "" {
 		args = append(args, "-s", mavenSettings)
 	}
