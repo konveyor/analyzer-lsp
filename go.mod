@@ -12,6 +12,7 @@ require (
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0
+	github.com/vifraa/gopom v1.0.0
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel/trace v1.11.2
 	google.golang.org/grpc v1.54.0
