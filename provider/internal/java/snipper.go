@@ -12,14 +12,14 @@ import (
 )
 
 const (
-	FILE_URI_PREFIX = "konveyor-jdt"
+	JDT_CLASS_FILE_URI_PREFIX = "konveyor-jdt"
 )
 
 var _ engine.CodeSnip = &javaProvider{}
 
 func (p *javaProvider) GetCodeSnip(u uri.URI, loc engine.Location) (string, error) {
 	if !strings.Contains(string(u), uri.FileScheme) {
-		return "", fmt.Errorf("invalid file uri, must be for %s", FILE_URI_PREFIX)
+		return "", fmt.Errorf("invalid file uri, must be for %s", JDT_CLASS_FILE_URI_PREFIX)
 	}
 	snip, err := p.scanFile(u.Filename(), loc)
 	if err != nil {

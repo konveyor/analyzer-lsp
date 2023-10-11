@@ -137,7 +137,7 @@ func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protoco
 		locationRange = protocol.Range{}
 	}
 
-	if strings.Contains(locationURI, FILE_URI_PREFIX) {
+	if strings.Contains(locationURI, JDT_CLASS_FILE_URI_PREFIX) {
 		return []protocol.Location{
 			{
 				URI:   locationURI,

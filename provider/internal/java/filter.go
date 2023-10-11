@@ -144,7 +144,7 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 	}
 
 	lineNumber := int(locationRange.Start.Line) + 1
-  
+
 	incident := provider.IncidentContext{
 		FileURI:    u,
 		LineNumber: &lineNumber,
@@ -155,6 +155,12 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 			FILE_KEY:        u,
 		},
 	}
+
+	// based on original URI we got, we can tell if this incident appeared in a dep
+	if locationURI != "" && strings.HasPrefix(locationURI, JDT_CLASS_FILE_URI_PREFIX) {
+		incident.IsDependencyIncident = true
+	}
+
 	if locationRange.Start.Line == 0 && locationRange.Start.Character == 0 && locationRange.End.Line == 0 && locationRange.End.Character == 0 {
 		return incident, nil
 	}
@@ -185,6 +191,12 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 			FILE_KEY:        u,
 		},
 	}
+
+	// based on original URI we got, we can tell if this incident appeared in a dep
+	if strings.HasPrefix(ref.URI, JDT_CLASS_FILE_URI_PREFIX) {
+		incident.IsDependencyIncident = true
+	}
+
 	if ref.Range.Start.Line == 0 && ref.Range.Start.Character == 0 && ref.Range.End.Line == 0 && ref.Range.End.Character == 0 {
 		return incident, nil
 	}
@@ -207,7 +219,7 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 }
 
 func (p *javaServiceClient) getURI(refURI string) (uri.URI, error) {
-	if !strings.HasPrefix(refURI, FILE_URI_PREFIX) {
+	if !strings.HasPrefix(refURI, JDT_CLASS_FILE_URI_PREFIX) {
 		return uri.Parse(refURI)
 	}
 

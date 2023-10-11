@@ -183,7 +183,8 @@ func Test_matchDepLabelSelector(t *testing.T) {
 			name:          "label selector matches",
 			labelSelector: "konveyor.io/dep-source=open-source",
 			incident: IncidentContext{
-				FileURI: "file://test-file-uri/test-file",
+				FileURI:              "file://test-file-uri/test-file",
+				IsDependencyIncident: true,
 			},
 			deps: map[uri.URI][]*konveyor.Dep{
 				"pom.xml": {
@@ -204,7 +205,8 @@ func Test_matchDepLabelSelector(t *testing.T) {
 			name:          "label selector does not match",
 			labelSelector: "!konveyor.io/dep-source=exclude",
 			incident: IncidentContext{
-				FileURI: "file://test-file-uri/test-file",
+				FileURI:              "file://test-file-uri/test-file",
+				IsDependencyIncident: true,
 			},
 			deps: map[uri.URI][]*konveyor.Dep{
 				"pom.xml": {

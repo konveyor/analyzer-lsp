@@ -197,12 +197,13 @@ type ProviderEvaluateResponse struct {
 }
 
 type IncidentContext struct {
-	FileURI      uri.URI                `yaml:"fileURI"`
-	Effort       *int                   `yaml:"effort,omitempty"`
-	LineNumber   *int                   `yaml:"lineNumber,omitempty"`
-	Variables    map[string]interface{} `yaml:"variables,omitempty"`
-	Links        []ExternalLinks        `yaml:"externalLink,omitempty"`
-	CodeLocation *Location              `yaml:"location,omitempty"`
+	FileURI              uri.URI                `yaml:"fileURI"`
+	Effort               *int                   `yaml:"effort,omitempty"`
+	LineNumber           *int                   `yaml:"lineNumber,omitempty"`
+	Variables            map[string]interface{} `yaml:"variables,omitempty"`
+	Links                []ExternalLinks        `yaml:"externalLink,omitempty"`
+	CodeLocation         *Location              `yaml:"location,omitempty"`
+	IsDependencyIncident bool
 }
 
 type Location struct {
@@ -471,7 +472,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 // matchDepLabelSelector evaluates the dep label selector on incident
 func matchDepLabelSelector(s *labels.LabelSelector[*Dep], inc IncidentContext, deps map[uri.URI][]*konveyor.Dep) (bool, error) {
 	// always match non dependency URIs or when there are no deps or no dep selector
-	if s == nil || deps == nil || len(deps) == 0 || inc.FileURI == "" {
+	if !inc.IsDependencyIncident || s == nil || deps == nil || len(deps) == 0 || inc.FileURI == "" {
 		return true, nil
 	}
 	matched := false
