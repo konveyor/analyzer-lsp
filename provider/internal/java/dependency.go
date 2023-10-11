@@ -99,7 +99,11 @@ func getMavenLocalRepoPath(mvnSettingsFile string) string {
 func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, location string) (map[uri.URI][]*provider.Dep, error) {
 	deps := []*provider.Dep{}
 
-	path := p.findPom()
+	path, err := filepath.Abs(p.findPom())
+	if err != nil {
+		return nil, err
+	}
+
 	if location != "" {
 		path = location
 	}
