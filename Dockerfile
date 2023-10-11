@@ -21,6 +21,7 @@ FROM jaegertracing/all-in-one:latest AS jaeger-builder
 # The unofficial base image w/ jdtls and gopls installed
 FROM quay.io/konveyor/jdtls-server-base
 
+RUN microdnf install gcc-c++ python-devel python3-devel -y
 RUN python3 -m ensurepip --upgrade
 RUN python3 -m pip install python-lsp-server
 
