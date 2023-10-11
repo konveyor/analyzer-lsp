@@ -10,11 +10,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 
-	"github.com/antchfx/xmlquery"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -58,12 +56,12 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 	} else {
 		ll, err = p.GetDependenciesDAG(ctx)
 		if err != nil {
-			p.log.Info("unable to get dependencies using fallback", "error", err)
-			return p.GetDependencyFallback(ctx)
+			p.log.Info("unable to get dependencies, using fallback", "error", err)
+			return p.GetDependenciesFallback(ctx, "")
 		}
 		if len(ll) == 0 {
-			p.log.Info("unable to get dependencies non found  using fallback")
-			return p.GetDependencyFallback(ctx)
+			p.log.Info("unable to get dependencies (none found), using fallback")
+			return p.GetDependenciesFallback(ctx, "")
 		}
 	}
 	for f, ds := range ll {
@@ -98,52 +96,65 @@ func getMavenLocalRepoPath(mvnSettingsFile string) string {
 	return string(outb.String())
 }
 
-func (p *javaServiceClient) GetDependencyFallback(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
-	pomDependencyQuery := "//dependencies/dependency/*"
-	path := p.findPom()
-	file := uri.File(path)
-
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	f, err := os.Open(absPath)
-	if err != nil {
-		return nil, err
-	}
-	doc, err := xmlquery.Parse(f)
-	if err != nil {
-		return nil, err
-	}
-	list, err := xmlquery.QueryAll(doc, pomDependencyQuery)
-	if err != nil {
-		return nil, err
-	}
+func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, location string) (map[uri.URI][]*provider.Dep, error) {
 	deps := []*provider.Dep{}
-	dep := &provider.Dep{}
-	// TODO this is comically janky
-	for _, node := range list {
-		if node.Data == "groupId" {
-			if dep.Name != "" {
-				deps = append(deps, dep)
-				dep = &provider.Dep{}
+
+	path := p.findPom()
+	if location != "" {
+		path = location
+	}
+	pom, err := gopom.Parse(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// have to get both <dependencies> and <dependencyManagement> dependencies (if present)
+	var pomDeps []gopom.Dependency
+	if pom.Dependencies != nil {
+		pomDeps = append(pomDeps, *pom.Dependencies...)
+	}
+	if pom.DependencyManagement != nil {
+		pomDeps = append(pomDeps, *pom.DependencyManagement.Dependencies...)
+	}
+
+	// add each dependency found
+	for _, d := range pomDeps {
+		dep := provider.Dep{}
+		dep.Name = fmt.Sprintf("%s.%s", *d.GroupID, *d.ArtifactID)
+		if *d.Version != "" {
+			if strings.Contains(*d.Version, "$") {
+				version := strings.TrimSuffix(strings.TrimPrefix(*d.Version, "${"), "}")
+				version = pom.Properties.Entries[version]
+				if version != "" {
+					dep.Version = version
+				}
+			} else {
+				dep.Version = *d.Version
 			}
-			dep.Name = node.InnerText()
-		} else if node.Data == "artifactId" {
-			dep.Name += "." + node.InnerText()
-		} else if node.Data == "version" {
-			dep.Version = node.InnerText()
 		}
-		// Ignore the others
+		deps = append(deps, &dep)
 	}
-	if !reflect.DeepEqual(dep, provider.Dep{}) {
-		dep.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal)}
-		deps = append(deps, dep)
-	}
+
 	m := map[uri.URI][]*provider.Dep{}
-	m[file] = deps
+	m[uri.File(path)] = deps
 	p.depsCache = m
+
+	// recursively find deps in submodules
+	if pom.Modules != nil {
+		for _, mod := range *pom.Modules {
+			mPath := fmt.Sprintf("%s/%s/pom.xml", filepath.Dir(path), mod)
+			moreDeps, err := p.GetDependenciesFallback(ctx, mPath)
+			if err != nil {
+				return nil, err
+			}
+
+			// add found dependencies to map
+			for depPath := range moreDeps {
+				m[depPath] = moreDeps[depPath]
+			}
+		}
+	}
+
 	return m, nil
 }
 
