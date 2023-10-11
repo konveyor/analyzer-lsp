@@ -157,7 +157,7 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 	}
 
 	// based on original URI we got, we can tell if this incident appeared in a dep
-	if locationURI != "" && strings.HasPrefix(locationURI, FILE_URI_PREFIX) {
+	if locationURI != "" && strings.HasPrefix(locationURI, JDT_CLASS_FILE_URI_PREFIX) {
 		incident.IsDependencyIncident = true
 	}
 
@@ -193,7 +193,7 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 	}
 
 	// based on original URI we got, we can tell if this incident appeared in a dep
-	if strings.HasPrefix(ref.URI, FILE_URI_PREFIX) {
+	if strings.HasPrefix(ref.URI, JDT_CLASS_FILE_URI_PREFIX) {
 		incident.IsDependencyIncident = true
 	}
 
@@ -219,7 +219,7 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 }
 
 func (p *javaServiceClient) getURI(refURI string) (uri.URI, error) {
-	if !strings.HasPrefix(refURI, FILE_URI_PREFIX) {
+	if !strings.HasPrefix(refURI, JDT_CLASS_FILE_URI_PREFIX) {
 		return uri.Parse(refURI)
 	}
 
