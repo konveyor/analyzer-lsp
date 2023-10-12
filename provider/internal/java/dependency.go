@@ -240,6 +240,7 @@ func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]k
 		deps:        ll,
 		depToLabels: p.depToLabels,
 		m2RepoPath:  getMavenLocalRepoPath(p.mvnSettingsFile),
+		seen:        map[string]bool{},
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
@@ -248,6 +249,7 @@ type walker struct {
 	deps        map[uri.URI][]provider.DepDAGItem
 	depToLabels map[string]*depLabelItem
 	m2RepoPath  string
+	seen        map[string]bool
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -258,6 +260,11 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		return filepath.WalkDir(filepath.Join(path, info.Name()), w.walkDirForJar)
 	}
 	if strings.HasSuffix(info.Name(), ".jar") {
+		seenKey := filepath.Base(info.Name())
+		if _, ok := w.seen[seenKey]; ok {
+			return nil
+		}
+		w.seen[seenKey] = true
 		d := provider.Dep{
 			Name: info.Name(),
 		}
