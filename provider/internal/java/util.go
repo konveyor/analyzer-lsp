@@ -57,11 +57,12 @@ const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
 `
 
 type javaArtifact struct {
-	packaging  string
-	GroupId    string
-	ArtifactId string
-	Version    string
-	sha1       string
+	foundOnline bool
+	packaging   string
+	GroupId     string
+	ArtifactId  string
+	Version     string
+	sha1        string
 }
 
 type decompileFilter interface {
@@ -322,27 +323,42 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 		case strings.HasSuffix(f.Name, JavaArchive):
 			dep, err := toDependency(ctx, filePath)
 			if err != nil {
-				log.Error(err, "failed to add dep", "file", filePath)
+				log.V(3).Error(err, "failed to add dep", "file", filePath)
 				// when we fail to identify a dep we will fallback to
 				// decompiling it ourselves and adding as source
-				outputPath := filepath.Join(
-					filepath.Dir(filePath), fmt.Sprintf("%s-decompiled",
-						strings.TrimSuffix(f.Name, JavaArchive)), filepath.Base(f.Name))
-				// TODO(djzager): Is it possible for the javaArtifact be empty
-				// it is not an issue right now, but if we used a decompileFilter
-				// javaArtifact has to be accurate for filter to work
-				decompileJobs = append(decompileJobs, decompileJob{
-					inputPath:  filePath,
-					outputPath: outputPath,
-					artifact: javaArtifact{
-						packaging:  JavaArchive,
-						GroupId:    dep.GroupId,
-						ArtifactId: dep.ArtifactId,
-					},
-				})
+				if (dep != javaArtifact{}) {
+					outputPath := filepath.Join(
+						filepath.Dir(filePath), fmt.Sprintf("%s-decompiled",
+							strings.TrimSuffix(f.Name, JavaArchive)), filepath.Base(f.Name))
+					decompileJobs = append(decompileJobs, decompileJob{
+						inputPath:  filePath,
+						outputPath: outputPath,
+						artifact: javaArtifact{
+							packaging:  JavaArchive,
+							GroupId:    dep.GroupId,
+							ArtifactId: dep.ArtifactId,
+						},
+					})
+				}
 			}
 			if (dep != javaArtifact{}) {
-				dependencies = append(dependencies, dep)
+				if dep.foundOnline {
+					dependencies = append(dependencies, dep)
+				} else {
+					// when it isn't found online, decompile it
+					outputPath := filepath.Join(
+						filepath.Dir(filePath), fmt.Sprintf("%s-decompiled",
+							strings.TrimSuffix(f.Name, JavaArchive)), filepath.Base(f.Name))
+					decompileJobs = append(decompileJobs, decompileJob{
+						inputPath:  filePath,
+						outputPath: outputPath,
+						artifact: javaArtifact{
+							packaging:  JavaArchive,
+							GroupId:    dep.GroupId,
+							ArtifactId: dep.ArtifactId,
+						},
+					})
+				}
 			}
 		}
 	}
@@ -393,7 +409,22 @@ func moveFile(srcPath string, destPath string) error {
 	return nil
 }
 
+// toDependency returns javaArtifact constructed for a jar
 func toDependency(ctx context.Context, jarFile string) (javaArtifact, error) {
+	// attempt to lookup java artifact in maven
+	dep, err := constructArtifactFromSHA(jarFile)
+	if err == nil {
+		return dep, nil
+	}
+	// if we fail to lookup on maven, construct it from pom
+	dep, err = constructArtifactFromPom(jarFile)
+	if err == nil {
+		return dep, nil
+	}
+	return dep, err
+}
+
+func constructArtifactFromPom(jarFile string) (javaArtifact, error) {
 	dep := javaArtifact{}
 	jar, err := zip.OpenReader(jarFile)
 	if err != nil {
@@ -431,8 +462,12 @@ func toDependency(ctx context.Context, jarFile string) (javaArtifact, error) {
 			return dep, err
 		}
 	}
+	return dep, fmt.Errorf("failed to construct artifact from pom properties")
+}
 
-	// we didn't find a pom.properties. Look it up in maven
+func constructArtifactFromSHA(jarFile string) (javaArtifact, error) {
+	dep := javaArtifact{}
+	// we look up the jar in maven
 	file, err := os.Open(jarFile)
 	if err != nil {
 		return dep, err
@@ -484,7 +519,14 @@ func toDependency(ctx context.Context, jarFile string) (javaArtifact, error) {
 		dep.ArtifactId = jarInfo["a"].(string)
 		dep.Version = jarInfo["v"].(string)
 		dep.sha1 = sha1sum
+		dep.foundOnline = true
 		return dep, nil
+	} else if numFound > 1 {
+		dep, err = constructArtifactFromPom(jarFile)
+		if err == nil {
+			dep.foundOnline = true
+			return dep, nil
+		}
 	}
-	return dep, fmt.Errorf("failed to construct artifact from jar")
+	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
 }
