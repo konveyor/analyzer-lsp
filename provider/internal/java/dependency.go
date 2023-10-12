@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -111,6 +112,10 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 	if err != nil {
 		return nil, err
 	}
+	// If the pom object is empty then parse failed silently.
+	if reflect.DeepEqual(*pom, gopom.Project{}) {
+		return nil, nil
+	}
 
 	// have to get both <dependencies> and <dependencyManagement> dependencies (if present)
 	var pomDeps []gopom.Dependency
@@ -125,6 +130,9 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 
 	// add each dependency found
 	for _, d := range pomDeps {
+		if d.GroupID == nil || d.Version == nil || d.ArtifactID == nil {
+			continue
+		}
 		dep := provider.Dep{}
 		dep.Name = fmt.Sprintf("%s.%s", *d.GroupID, *d.ArtifactID)
 		if *d.Version != "" {
