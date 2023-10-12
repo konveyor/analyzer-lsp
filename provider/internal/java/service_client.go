@@ -50,6 +50,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}
 
 	symbols := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location)
+	p.log.Info("Symbols retrieved", "symbols", symbols)
 
 	incidents := []provider.IncidentContext{}
 	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
@@ -71,7 +72,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	case 9:
 		incidents, err = p.filterVariableDeclaration(symbols)
 	case 10:
-		incidents, err = p.filterTypeReferences(ctx, symbols)
+		incidents, err = p.filterDefault(symbols)
 	case 11:
 		incidents, err = p.filterDefault(symbols)
 	default:
