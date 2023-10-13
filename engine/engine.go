@@ -432,9 +432,12 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 
 			for _, cv := range rule.CustomVariables {
 				match := cv.Pattern.FindStringSubmatch(originalCodeSnip)
-				if cv.NameOfCaptureGroup != "" && cv.Pattern.SubexpIndex(cv.NameOfCaptureGroup) < len(match) {
+				if cv.NameOfCaptureGroup != "" && cv.Pattern.SubexpIndex(cv.NameOfCaptureGroup) >= 0 &&
+					cv.Pattern.SubexpIndex(cv.NameOfCaptureGroup) < len(match) {
+
 					m.Variables[cv.Name] = strings.TrimSpace(match[cv.Pattern.SubexpIndex(cv.NameOfCaptureGroup)])
 					continue
+
 				} else {
 					switch len(match) {
 					case 0:
