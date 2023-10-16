@@ -5,6 +5,10 @@ import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefin
 public class App 
 {
 
+    /**
+     * {@link CustomResourceDefinition}
+     * @param args
+     */
     public static void main( String[] args )
     {
         CustomResourceDefinition crd = new CustomResourceDefinition();
