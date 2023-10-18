@@ -55,7 +55,9 @@ func (g *grpcProvider) ProviderInit(ctx context.Context) error {
 }
 
 func (g *grpcProvider) Capabilities() []provider.Capability {
-	r, err := g.Client.Capabilities(context.TODO(), &emptypb.Empty{})
+	// Capabilities requests happen at the start of the analyzer-lsp, so it makes
+	// sens to wait until the connection is ready.
+	r, err := g.Client.Capabilities(context.TODO(), &emptypb.Empty{}, grpc.WaitForReady(true))
 	if err != nil {
 		// Handle this smarter in the future, for now log and return empty
 		g.log.V(5).Error(err, "grpc unable to get info")
