@@ -724,8 +724,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 
 	if capability == "dependency" && !r.NoDependencyRules {
 		depCondition := provider.DependencyCondition{
-			Client:        client,
-			LabelSelector: r.DepLabelSelector,
+			Client: client,
 		}
 
 		fullCondition, ok := value.(map[interface{}]interface{})
