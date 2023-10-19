@@ -525,8 +525,6 @@ type DependencyCondition struct {
 	NameRegex string
 
 	Client Client
-
-	LabelSelector *labels.LabelSelector[*Dep]
 }
 
 func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
@@ -549,16 +547,6 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	matchedDeps := []matchedDep{}
 	for u, ds := range deps {
 		for _, dep := range ds {
-			if dc.LabelSelector != nil {
-				got, err := dc.LabelSelector.Matches(dep)
-				if err != nil {
-					return resp, err
-				}
-				if !got {
-					continue
-				}
-			}
-
 			if dep.Name == dc.Name {
 				matchedDeps = append(matchedDeps, matchedDep{dep: dep, uri: u})
 				break
