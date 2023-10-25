@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -326,6 +327,8 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	}
 	defer mvnOutput.Close()
 
+	log.V(5).Info("resolving dependency sources")
+
 	pomPath := fmt.Sprintf("%s/pom.xml", location)
 	pom, err := gopom.Parse(pomPath)
 	if err != nil {
@@ -335,7 +338,6 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	args := []string{
 		"dependency:sources",
 		"-Djava.net.useSystemProxies=true",
-		fmt.Sprintf("-DoutputFile=%s", mvnOutput.Name()),
 	}
 	if pom.Modules != nil {
 		args = append([]string{"compile"}, args...)
@@ -346,10 +348,18 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	}
 	cmd := exec.CommandContext(ctx, "mvn", args...)
 	cmd.Dir = location
-	err = cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
 	}
+
+	if _, err = mvnOutput.Write(output); err != nil {
+		return err
+	}
+	if _, err = mvnOutput.Seek(0, 0); err != nil {
+		return err
+	}
+
 	artifacts, err := parseUnresolvedSources(mvnOutput)
 	if err != nil {
 		return err
@@ -359,6 +369,8 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 		return nil
 	}
 	for _, artifact := range artifacts {
+		log.V(5).WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
+
 		groupDirs := filepath.Join(strings.Split(artifact.GroupId, ".")...)
 		artifactDirs := filepath.Join(strings.Split(artifact.ArtifactId, ".")...)
 		jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
@@ -384,23 +396,76 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	return nil
 }
 
+// filterExistingSubmodules takes a list of artifacts and takes out the ones existing in a pom's modules list
+func filterExistingSubmodules(artifacts []javaArtifact, pom *gopom.Project) []javaArtifact {
+	if pom.Modules == nil {
+		return artifacts
+	}
+
+	var filtered []javaArtifact
+	for _, artifact := range artifacts {
+		found := false
+		for _, module := range *pom.Modules {
+			if artifact.ArtifactId == module {
+				found = true
+				break
+			}
+		}
+		if !found {
+			filtered = append(filtered, artifact)
+		}
+	}
+
+	return filtered
+}
+
 func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
 	artifacts := []javaArtifact{}
 	scanner := bufio.NewScanner(output)
+
+	sourcesPluginSeparatorSeen := false
 	unresolvedSeparatorSeen := false
+	sourcesPluginRegex := regexp.MustCompile(`maven-dependency-plugin:[\d\.]+:sources`)
+	unresolvedRegex := regexp.MustCompile(`The following files have NOT been resolved`)
 	for scanner.Scan() {
 		line := scanner.Text()
-		line = strings.TrimLeft(line, " ")
-		if strings.HasPrefix(line, "The following files have NOT been resolved:") {
+		line = strings.TrimLeft(line, "[INFO] ")
+
+		if sourcesPluginRegex.Find([]byte(line)) != nil {
+			sourcesPluginSeparatorSeen = true
+			unresolvedSeparatorSeen = false
+		} else if unresolvedRegex.Find([]byte(line)) != nil {
 			unresolvedSeparatorSeen = true
-		} else if unresolvedSeparatorSeen {
+		} else if sourcesPluginSeparatorSeen && unresolvedSeparatorSeen {
+			line, _, _ = strings.Cut(line, "--") // ie: "org.apache.derby:derby:jar:10.14.2.0:test -- module derby (auto)"
+
 			parts := strings.Split(line, ":")
-			if len(parts) != 6 {
+			if len(parts) != 6 && len(parts) != 5 {
 				continue
 			}
+
+			// sometimes maven puts here artifacts that are not sources; don't count those as unresolved (ie: spring-petclinic project)
+			if len(parts) == 6 {
+				classifier := parts[3]
+				if classifier != "sources" {
+					continue
+				}
+			} else if len(parts) == 5 {
+				classifier := parts[2]
+				if classifier != "sources" {
+					continue
+				}
+			}
+
+			var version string
 			groupId := parts[0]
 			artifactId := parts[1]
-			version := parts[4]
+			if len(parts) == 6 {
+				version = parts[4]
+			} else {
+				version = parts[3]
+			}
+
 			artifacts = append(artifacts,
 				javaArtifact{
 					packaging:  JavaArchive,

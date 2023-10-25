@@ -195,7 +195,6 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	args := []string{
 		"dependency:tree",
 		"-Djava.net.useSystemProxies=true",
-		fmt.Sprintf("-DoutputFile=%s", f.Name()),
 	}
 	if pom.Modules != nil {
 		args = append([]string{"compile"}, args...)
@@ -204,11 +203,16 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	if p.mvnSettingsFile != "" {
 		args = append(args, "-s", p.mvnSettingsFile)
 	}
+
 	// get the graph output
 	cmd := exec.Command("mvn", args...)
 	cmd.Dir = moddir
-	err = cmd.Run()
+	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
+		return nil, err
+	}
+
+	if _, err = f.Write(mvnOutput); err != nil {
 		return nil, err
 	}
 
@@ -218,16 +222,15 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	}
 
 	lines := strings.Split(string(b), "\n")
+	submoduleTrees := extractSubmoduleTrees(lines)
 
-	// strip first and last line of the output
-	// first line is the base package, last line empty
-	if len(lines) > 2 {
-		lines = lines[1 : len(lines)-1]
-	}
-
-	pomDeps, err := p.parseMavenDepLines(lines, localRepoPath)
-	if err != nil {
-		return nil, err
+	var pomDeps []provider.DepDAGItem
+	for _, tree := range submoduleTrees {
+		submoduleDeps, err := p.parseMavenDepLines(tree, localRepoPath)
+		if err != nil {
+			return nil, err
+		}
+		pomDeps = append(pomDeps, submoduleDeps...)
 	}
 
 	m := map[uri.URI][]provider.DepDAGItem{}
@@ -239,6 +242,37 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	}
 
 	return m, nil
+}
+
+// extractSubmoduleTrees creates an array of lines for each submodule tree found in the mvn dependency:tree output
+func extractSubmoduleTrees(lines []string) [][]string {
+	submoduleTrees := [][]string{}
+
+	beginRegex := regexp.MustCompile(`maven-dependency-plugin:[\d\.]+:tree`)
+	endRegex := regexp.MustCompile(`\[INFO\] -*$`)
+
+	submod := 0
+	gather, skipmod := false, true
+	for _, line := range lines {
+		if beginRegex.Find([]byte(line)) != nil {
+			gather = true
+			submoduleTrees = append(submoduleTrees, []string{})
+		} else if gather {
+			if endRegex.Find([]byte(line)) != nil {
+				gather, skipmod = false, true
+				submod++
+			} else {
+				if skipmod { // we ignore the first module (base module)
+					skipmod = false
+				} else {
+					line = strings.TrimLeft(line, "[INFO] ")
+					submoduleTrees[submod] = append(submoduleTrees[submod], line)
+				}
+			}
+		}
+	}
+
+	return submoduleTrees
 }
 
 // discoverDepsFromJars walks given path to discover dependencies embedded as JARs
