@@ -364,6 +364,10 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	if err != nil {
 		return err
 	}
+
+	// remove unresolved sources if they are an actual module in the project
+	artifacts = filterExistingSubmodules(artifacts, pom)
+
 	m2Repo := getMavenLocalRepoPath(mavenSettings)
 	if m2Repo == "" {
 		return nil
@@ -396,7 +400,7 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	return nil
 }
 
-// filterExistingSubmodules takes a list of artifacts and takes out the ones existing in a pom's modules list
+// filterExistingSubmodules takes a list of artifacts and removes the ones existing in the given pom's modules list
 func filterExistingSubmodules(artifacts []javaArtifact, pom *gopom.Project) []javaArtifact {
 	if pom.Modules == nil {
 		return artifacts
