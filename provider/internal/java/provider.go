@@ -253,7 +253,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		workspace,
 	}
 	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
-		args = append(args, fmt.Sprintf("-Xmx=%s", val))
+		args = append(args, fmt.Sprintf("-Xmx%s", val))
 	}
 
 	cmd := exec.CommandContext(ctx, lspServerPath, args...)

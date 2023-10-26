@@ -85,6 +85,7 @@ Here's an example config for `java` provider that is currently in-tree and does 
                     "package1.test",
                     "package2.test"
                 ],
+                "jvmMaxMem": "2048m",
             }
         }
     ]
@@ -104,6 +105,8 @@ The `java` provider also takes following options in `providerSpecificConfig`:
 * `mavenSettingsFile`: Path to maven settings file (settings.xml) to use.
 
 * `excludePackages`: List of dependency packages on which to add exclude label.
+
+* `jvmMaxMem`: Max memory for JVM, value is passed as-is using `-Xmx` option. _Note that the default `-Xms` value set on JVM is `1G`, therefore, `jvmMaxMem` value less than `1G` has no effect_
 
 #### Builtin Provider
 
