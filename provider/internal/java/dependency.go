@@ -178,13 +178,6 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	path := p.findPom()
 	file := uri.File(path)
 
-	//Create temp file to use
-	f, err := os.CreateTemp("", "*")
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(f.Name())
-
 	moddir := filepath.Dir(path)
 
 	pom, err := gopom.Parse(path)
@@ -212,16 +205,7 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 		return nil, err
 	}
 
-	if _, err = f.Write(mvnOutput); err != nil {
-		return nil, err
-	}
-
-	b, err := os.ReadFile(f.Name())
-	if err != nil {
-		return nil, err
-	}
-
-	lines := strings.Split(string(b), "\n")
+	lines := strings.Split(string(mvnOutput), "\n")
 	submoduleTrees := extractSubmoduleTrees(lines)
 
 	var pomDeps []provider.DepDAGItem

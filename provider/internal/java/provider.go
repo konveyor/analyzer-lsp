@@ -2,6 +2,7 @@ package java
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -321,11 +322,6 @@ func (p *javaProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]pr
 // deps that don't have sources attached and decompiles them
 func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSettings string) error {
 	decompileJobs := []decompileJob{}
-	mvnOutput, err := os.CreateTemp("", "mvn-sources-")
-	if err != nil {
-		return err
-	}
-	defer mvnOutput.Close()
 
 	log.V(5).Info("resolving dependency sources")
 
@@ -348,19 +344,13 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	}
 	cmd := exec.CommandContext(ctx, "mvn", args...)
 	cmd.Dir = location
-	output, err := cmd.CombinedOutput()
+	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
 	}
 
-	if _, err = mvnOutput.Write(output); err != nil {
-		return err
-	}
-	if _, err = mvnOutput.Seek(0, 0); err != nil {
-		return err
-	}
-
-	artifacts, err := parseUnresolvedSources(mvnOutput)
+	reader := bytes.NewReader(mvnOutput)
+	artifacts, err := parseUnresolvedSources(reader)
 	if err != nil {
 		return err
 	}
