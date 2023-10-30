@@ -50,7 +50,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}
 
 	symbols := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location)
-	p.log.Info("Symbols retrieved", "symbols", symbols)
+	p.log.V(5).Info("Symbols retrieved", "symbols", symbols)
 
 	incidents := []provider.IncidentContext{}
 	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {

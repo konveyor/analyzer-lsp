@@ -33,6 +33,7 @@ const (
 	BUNDLES_INIT_OPTION           = "bundles"
 	WORKSPACE_INIT_OPTION         = "workspace"
 	MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
+	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 )
 
 // Rule Location to location that the bundle understands
@@ -244,13 +245,18 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		os.Setenv(k, v)
 	}
 
-	cmd := exec.CommandContext(ctx, lspServerPath,
+	args := []string{
 		"-Djava.net.useSystemProxies=true",
 		"-configuration",
 		"./",
 		"-data",
 		workspace,
-	)
+	}
+	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
+		args = append(args, fmt.Sprintf("-Xmx%s", val))
+	}
+
+	cmd := exec.CommandContext(ctx, lspServerPath, args...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		cancelFunc()

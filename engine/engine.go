@@ -253,7 +253,7 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 			// skip rule when doesn't match any selector
 			if !matchesAllSelectors(rule.RuleMeta, selectors...) {
 				mapRuleSets[ruleSet.Name].Skipped = append(mapRuleSets[ruleSet.Name].Skipped, rule.RuleID)
-				r.logger.Info("one or more selectors did not match for rule, skipping", "rule", rule.RuleMeta)
+				r.logger.V(5).Info("one or more selectors did not match for rule, skipping", "ruleID", rule.RuleID)
 				continue
 			}
 
@@ -425,7 +425,7 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 			for scanner.Scan() {
 				if incident.LineNumber != nil && strings.HasPrefix(strings.TrimSpace(scanner.Text()), fmt.Sprintf("%v", *incident.LineNumber)) {
 					originalCodeSnip = strings.TrimSpace(re.ReplaceAllString(scanner.Text(), "$2"))
-					r.logger.Info("found orignalCodeSnip", "lineNuber", incident.LineNumber, "orignal", originalCodeSnip)
+					r.logger.V(5).Info("found originalCodeSnip", "lineNuber", incident.LineNumber, "original", originalCodeSnip)
 					break
 				}
 			}
