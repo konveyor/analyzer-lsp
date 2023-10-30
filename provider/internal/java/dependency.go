@@ -241,18 +241,22 @@ func extractSubmoduleTrees(lines []string) [][]string {
 		if beginRegex.Find([]byte(line)) != nil {
 			gather = true
 			submoduleTrees = append(submoduleTrees, []string{})
-		} else if gather {
+			continue
+		}
+
+		if gather {
 			if endRegex.Find([]byte(line)) != nil {
 				gather, skipmod = false, true
 				submod++
-			} else {
-				if skipmod { // we ignore the first module (base module)
-					skipmod = false
-				} else {
-					line = strings.TrimLeft(line, "[INFO] ")
-					submoduleTrees[submod] = append(submoduleTrees[submod], line)
-				}
+				continue
 			}
+			if skipmod { // we ignore the first module (base module)
+				skipmod = false
+				continue
+			}
+
+			line = strings.TrimLeft(line, "[INFO] ")
+			submoduleTrees[submod] = append(submoduleTrees[submod], line)
 		}
 	}
 
