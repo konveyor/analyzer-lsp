@@ -130,7 +130,7 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 					ctx, "java", "-jar", "/bin/fernflower.jar", job.inputPath, outputPathDir)
 				err := cmd.Run()
 				if err != nil {
-					log.V(5).Error(err, "failed to decompile file", "file", job.inputPath, job.outputPath)
+					log.V(5).Error(err, "failed to decompile file", "file", job.inputPath)
 				} else {
 					log.V(5).Info("decompiled file", "source", job.inputPath, "dest", job.outputPath)
 				}
