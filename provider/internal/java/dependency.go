@@ -202,6 +202,7 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	moddir := filepath.Dir(path)
 
 	args := []string{
+		"-B",
 		"dependency:tree",
 		"-Djava.net.useSystemProxies=true",
 	}
