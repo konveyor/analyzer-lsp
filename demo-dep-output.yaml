@@ -894,18 +894,202 @@
 - fileURI: file:///analyzer-lsp/examples/java/pom.xml
   provider: java
   dependencies:
-  - name: io.fabric8.kubernetes-client-api
-    version: 6.0.0
+  - name: com.fasterxml.jackson.core.jackson-core
+    version: 2.13.3
     type: compile
-    resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
+    resolvedIdentifier: a27014716e4421684416e5fa83d896ddb87002da
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.13.3
+  - name: com.fasterxml.jackson.core.jackson-databind
+    version: 2.13.3
+    type: compile
+    resolvedIdentifier: 56deb9ea2c93a7a556b3afbedd616d342963464e
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.13.3
+  - name: com.fasterxml.jackson.datatype.jackson-datatype-jsr310
+    version: 2.13.3
+    type: compile
+    resolvedIdentifier: ad2f4c61aeb9e2a8bb5e4a3ed782cfddec52d972
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.13.3
+  - name: com.fasterxml.jackson.dataformat.jackson-dataformat-yaml
+    version: 2.13.3
+    type: compile
+    resolvedIdentifier: 9363ded5441b1fee62d5be0604035690ca759a2a
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.13.3
+  - name: org.yaml.snakeyaml
+    version: "1.30"
+    type: compile
+    indirect: true
+    resolvedIdentifier: 8fde7fe2586328ac3c68db92045e1c8759125000
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.30
+  - name: org.slf4j.slf4j-api
+    version: 1.7.36
+    type: compile
+    resolvedIdentifier: 6c62681a2f655b49963a5983b8b0950a6120ae14
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/slf4j/slf4j-api/1.7.36
+  - name: io.fabric8.kubernetes-model-node
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 972706f6dffa518e11c94647cf47e188db6115f6
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-node/6.0.0
+  - name: io.fabric8.kubernetes-model-storageclass
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 6ffa61f9021d07a4a9d785e83a513955a3c48073
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-storageclass/6.0.0
+  - name: io.fabric8.kubernetes-model-scheduling
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: a5fae7294f5c39fb9d7cffb7280b55ca458c9128
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-scheduling/6.0.0
+  - name: io.fabric8.kubernetes-model-policy
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 15b3011eb5ff48b9fc2bd8bcc4db697ca9ec30e4
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-policy/6.0.0
+  - name: io.fabric8.kubernetes-model-metrics
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 1a400f8f7915bd2a68fa075605768d762aaad4cb
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-metrics/6.0.0
+  - name: io.fabric8.kubernetes-model-networking
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: c87e11bebb26bb48660765b42a68f9577336b799
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-networking/6.0.0
+  - name: io.fabric8.kubernetes-model-flowcontrol
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 3b01d9eab7e7d7c9d46d8828202bff78fbdaa7d9
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-flowcontrol/6.0.0
+  - name: io.fabric8.kubernetes-model-extensions
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 60c9e43f1f34ab9c145798471926c07e13e45ecf
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-extensions/6.0.0
+  - name: io.fabric8.kubernetes-model-events
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 204c2c78a4a8e0b5f5ebc1b788c9f22a8c1b14ab
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-events/6.0.0
+  - name: io.fabric8.kubernetes-model-discovery
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 246ad448a1868b3c601394e21350a9602adef24c
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-discovery/6.0.0
+  - name: io.fabric8.kubernetes-model-coordination
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: cd454532158351d8ff37616dc33749ca2a85c8d1
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-coordination/6.0.0
+  - name: io.fabric8.kubernetes-model-certificates
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 33f5a3f386cddda55003e1616303ab924fcd3ca5
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-certificates/6.0.0
+  - name: io.fabric8.kubernetes-model-batch
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 9f14cbfc75d172fa81f3f6ad793bdd45a2decaec
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-batch/6.0.0
+  - name: io.fabric8.kubernetes-model-apiextensions
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: eac63b8dec80e96c4356c91ed0a332415efcb75e
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apiextensions/6.0.0
+  - name: io.fabric8.kubernetes-model-autoscaling
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: b353e45133fbc80791d676b16203ec94c0958b7d
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-autoscaling/6.0.0
+  - name: io.fabric8.kubernetes-model-apps
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 4dbda6401058a5fd3a4c6be88fc1bf4f99296c4f
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apps/6.0.0
+  - name: io.fabric8.kubernetes-model-admissionregistration
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 9e3b0d4caa3d033fa0f71c71d8a535a748b280ba
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-admissionregistration/6.0.0
+  - name: io.fabric8.kubernetes-model-rbac
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 03ad461761d775ff9c252d2b26a4977d22dd0f3a
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-rbac/6.0.0
   - name: io.fabric8.kubernetes-model-core
     version: 6.0.0
     type: compile
-    indirect: true
     resolvedIdentifier: 73469e4a7baec7600455d7f4a121c6680e80bf35
     labels:
     - konveyor.io/dep-source=open-source
@@ -929,222 +1113,14 @@
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
     prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.13.3
-  - name: io.fabric8.kubernetes-model-rbac
+  - name: io.fabric8.kubernetes-client-api
     version: 6.0.0
     type: compile
-    indirect: true
-    resolvedIdentifier: 03ad461761d775ff9c252d2b26a4977d22dd0f3a
+    resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-rbac/6.0.0
-  - name: io.fabric8.kubernetes-model-admissionregistration
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 9e3b0d4caa3d033fa0f71c71d8a535a748b280ba
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-admissionregistration/6.0.0
-  - name: io.fabric8.kubernetes-model-apps
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 4dbda6401058a5fd3a4c6be88fc1bf4f99296c4f
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apps/6.0.0
-  - name: io.fabric8.kubernetes-model-autoscaling
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: b353e45133fbc80791d676b16203ec94c0958b7d
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-autoscaling/6.0.0
-  - name: io.fabric8.kubernetes-model-apiextensions
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: eac63b8dec80e96c4356c91ed0a332415efcb75e
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apiextensions/6.0.0
-  - name: io.fabric8.kubernetes-model-batch
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 9f14cbfc75d172fa81f3f6ad793bdd45a2decaec
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-batch/6.0.0
-  - name: io.fabric8.kubernetes-model-certificates
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 33f5a3f386cddda55003e1616303ab924fcd3ca5
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-certificates/6.0.0
-  - name: io.fabric8.kubernetes-model-coordination
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: cd454532158351d8ff37616dc33749ca2a85c8d1
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-coordination/6.0.0
-  - name: io.fabric8.kubernetes-model-discovery
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 246ad448a1868b3c601394e21350a9602adef24c
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-discovery/6.0.0
-  - name: io.fabric8.kubernetes-model-events
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 204c2c78a4a8e0b5f5ebc1b788c9f22a8c1b14ab
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-events/6.0.0
-  - name: io.fabric8.kubernetes-model-extensions
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 60c9e43f1f34ab9c145798471926c07e13e45ecf
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-extensions/6.0.0
-  - name: io.fabric8.kubernetes-model-flowcontrol
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 3b01d9eab7e7d7c9d46d8828202bff78fbdaa7d9
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-flowcontrol/6.0.0
-  - name: io.fabric8.kubernetes-model-networking
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: c87e11bebb26bb48660765b42a68f9577336b799
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-networking/6.0.0
-  - name: io.fabric8.kubernetes-model-metrics
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 1a400f8f7915bd2a68fa075605768d762aaad4cb
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-metrics/6.0.0
-  - name: io.fabric8.kubernetes-model-policy
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 15b3011eb5ff48b9fc2bd8bcc4db697ca9ec30e4
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-policy/6.0.0
-  - name: io.fabric8.kubernetes-model-scheduling
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: a5fae7294f5c39fb9d7cffb7280b55ca458c9128
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-scheduling/6.0.0
-  - name: io.fabric8.kubernetes-model-storageclass
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 6ffa61f9021d07a4a9d785e83a513955a3c48073
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-storageclass/6.0.0
-  - name: io.fabric8.kubernetes-model-node
-    version: 6.0.0
-    type: compile
-    indirect: true
-    resolvedIdentifier: 972706f6dffa518e11c94647cf47e188db6115f6
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-node/6.0.0
-  - name: org.slf4j.slf4j-api
-    version: 1.7.36
-    type: compile
-    indirect: true
-    resolvedIdentifier: 6c62681a2f655b49963a5983b8b0950a6120ae14
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/slf4j/slf4j-api/1.7.36
-  - name: com.fasterxml.jackson.dataformat.jackson-dataformat-yaml
-    version: 2.13.3
-    type: compile
-    indirect: true
-    resolvedIdentifier: 9363ded5441b1fee62d5be0604035690ca759a2a
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.13.3
-  - name: org.yaml.snakeyaml
-    version: "1.30"
-    type: compile
-    indirect: true
-    resolvedIdentifier: 8fde7fe2586328ac3c68db92045e1c8759125000
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.30
-  - name: com.fasterxml.jackson.datatype.jackson-datatype-jsr310
-    version: 2.13.3
-    type: compile
-    indirect: true
-    resolvedIdentifier: ad2f4c61aeb9e2a8bb5e4a3ed782cfddec52d972
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.13.3
-  - name: com.fasterxml.jackson.core.jackson-databind
-    version: 2.13.3
-    type: compile
-    indirect: true
-    resolvedIdentifier: 56deb9ea2c93a7a556b3afbedd616d342963464e
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.13.3
-  - name: com.fasterxml.jackson.core.jackson-core
-    version: 2.13.3
-    type: compile
-    indirect: true
-    resolvedIdentifier: a27014716e4421684416e5fa83d896ddb87002da
-    labels:
-    - konveyor.io/dep-source=open-source
-    - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.13.3
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
   - name: io.fabric8.kubernetes-client
     version: 6.0.0
     type: compile

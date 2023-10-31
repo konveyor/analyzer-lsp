@@ -678,11 +678,16 @@ func deduplicateDependencies(dependencies map[uri.URI][]*Dep) map[uri.URI][]*Dep
 			if depSeen[id+"direct"] != nil {
 				// We've already seen it and it's direct, nothing to do
 				continue
-			} else if depSeen[id+"indirect"] != nil && !dep.Indirect {
-				// We've seen it as an indirect, need to update the dep in
-				// the list to reflect that it's actually a direct dependency
-				deduped[uri][*depSeen[id+"indirect"]].Indirect = false
-				depSeen[id+"direct"] = depSeen[id+"indirect"]
+			} else if depSeen[id+"indirect"] != nil {
+				if !dep.Indirect {
+					// We've seen it as an indirect, need to update the dep in
+					// the list to reflect that it's actually a direct dependency
+					deduped[uri][*depSeen[id+"indirect"]].Indirect = false
+					depSeen[id+"direct"] = depSeen[id+"indirect"]
+				} else {
+					// Otherwise, we've just already seen it
+					continue
+				}
 			} else {
 				// We haven't seen this before and need to update the dedup
 				// list and mark that we've seen it
