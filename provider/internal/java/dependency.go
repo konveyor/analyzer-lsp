@@ -201,17 +201,9 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 
 	moddir := filepath.Dir(path)
 
-	pom, err := gopom.Parse(path)
-	if err != nil {
-		return nil, err
-	}
-
 	args := []string{
 		"dependency:tree",
 		"-Djava.net.useSystemProxies=true",
-	}
-	if pom.Modules != nil {
-		args = append([]string{"compile"}, args...)
 	}
 
 	if p.mvnSettingsFile != "" {
