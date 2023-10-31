@@ -219,8 +219,10 @@ func (l *Link) cmpLess(other *Link) bool {
 }
 
 type Dep struct {
-	Name               string                 `json:"name,omitempty" yaml:"name,omitempty"`
-	Version            string                 `json:"version,omitempty" yaml:"version,omitempty"`
+	Name       string `json:"name,omitempty" yaml:"name,omitempty"`
+	Version    string `json:"version,omitempty" yaml:"version,omitempty"`
+	Classifier string `json:"classifier,omitempty" yaml:"classifier,omitempty"`
+	// TODO The so-called "type" is the "scope" in Maven speak
 	Type               string                 `json:"type,omitempty" yaml:"type,omitempty"`
 	Indirect           bool                   `json:"indirect,omitempty" yaml:"indirect,omitempty"`
 	ResolvedIdentifier string                 `json:"resolvedIdentifier,omitempty" yaml:"resolvedIdentifier,omitempty"`

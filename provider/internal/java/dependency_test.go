@@ -41,6 +41,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 +- junit:junit:jar:4.11:test
 |  \- org.hamcrest:hamcrest-core:jar:1.3:test
 +- io.fabric8:kubernetes-client:jar:6.0.0:compile
+|  +- io.netty:netty-transport-native-epoll:jar:linux-aarch_64:4.1.76.Final:runtime
 |  +- io.fabric8:kubernetes-httpclient-okhttp:jar:6.0.0:runtime
 |  |  +- com.squareup.okhttp3:okhttp:jar:3.12.12:runtime
 |  |  |  \- com.squareup.okio:okio:jar:1.15.0:runtime
@@ -106,6 +107,26 @@ func Test_parseMavenDepLines(t *testing.T) {
 						FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
+						{
+							Dep: provider.Dep{
+								Name:               "io.netty.netty-transport-native-epoll",
+								Version:            "4.1.76.Final",
+								Type:               "runtime",
+								Classifier:         "linux-aarch_64",
+								Indirect:           true,
+								ResolvedIdentifier: "e1ee2a9c5f63b1b71260caf127a1e50667d62854",
+								Labels: []string{
+									labels.AsString(provider.DepSourceLabel, "internal"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
+								},
+								Extras: map[string]interface{}{
+									groupIdKey:    "io.netty",
+									artifactIdKey: "netty-transport-native-epoll",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/io/netty/netty-transport-native-epoll/4.1.76.Final",
+							},
+						},
 						{
 							Dep: provider.Dep{
 								Name:               "io.fabric8.kubernetes-httpclient-okhttp",
