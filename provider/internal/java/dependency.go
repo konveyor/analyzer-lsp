@@ -224,7 +224,7 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 func extractSubmoduleTrees(lines []string) [][]string {
 	submoduleTrees := [][]string{}
 
-	beginRegex := regexp.MustCompile(`maven-dependency-plugin:[\d\.]+:tree`)
+	beginRegex := regexp.MustCompile(`(maven-)*dependency(-plugin)*:[\d\.]+:tree`)
 	endRegex := regexp.MustCompile(`\[INFO\] -*$`)
 
 	submod := 0
