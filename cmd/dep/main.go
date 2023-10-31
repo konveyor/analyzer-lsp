@@ -21,6 +21,7 @@ var (
 	treeOutput       bool
 	outputFile       string
 	depLabelSelector string
+	logLevel         int
 
 	rootCmd = &cobra.Command{
 		Use:   "analyze",
@@ -34,6 +35,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
 	rootCmd.Flags().StringVar(&outputFile, "output-file", "output.yaml", "path to output file")
 	rootCmd.Flags().StringVar(&depLabelSelector, "dep-label-selector", "", "an expression to select dependencies based on labels provided by the provider")
+	rootCmd.Flags().IntVar(&logLevel, "verbose", 9, "level for logging output")
 }
 
 func main() {
@@ -44,6 +46,7 @@ func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
+	logrusLog.SetLevel(logrus.Level(logLevel))
 	log := logrusr.New(logrusLog)
 
 	err := validateFlags()
