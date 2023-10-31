@@ -350,12 +350,32 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 	// Split string on ":" must have 5 parts.
 	// For now we ignore Type as it appears most everything is a jar
 	parts := strings.Split(dep, ":")
-	if len(parts) != 5 {
-		return d, fmt.Errorf("unable to split dependency string %s", dep)
+	if len(parts) >= 3 {
+		// Its always <groupId>:<artifactId>:<Packaging>: ... then
+		d.Type = parts[2]
+		if len(parts) == 6 {
+			// parts[5] is the <scope>
+			// parts[3] is the <classifier>
+			d.Version = parts[4]
+		} else if len(parts) == 5 {
+			// parts[4] is the <scope>
+			d.Version = parts[3]
+		} else {
+			p.log.Info("Cannot derive version from dependency string", "dependency", dep)
+			d.Version = "Unknown"
+		}
+	} else {
+		p.log.Info("unable to analyze dependency", "dependency", dep)
+		d.Name = "Unknown"
+		d.Version = "Unknown"
+		d.Type = "Unknown"
+		d.Labels = []string{""}
+		d.FileURIPrefix = ""
+		d.ResolvedIdentifier = ""
+
+		return d, nil
 	}
 	d.Name = fmt.Sprintf("%s.%s", parts[0], parts[1])
-	d.Version = parts[3]
-	d.Type = parts[4]
 
 	fp := filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
 	b, err := os.ReadFile(fp)
