@@ -111,6 +111,9 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 		path = location
 	}
 	pom, err := gopom.Parse(path)
+	p.log.V(10).Info("Analyzing POM",
+		"POM", fmt.Sprintf("%s:%s:%s", pomCoordinate(pom.GroupID), pomCoordinate(pom.ArtifactID), pomCoordinate(pom.Version)),
+		"error", err)
 	if err != nil {
 		return nil, err
 	}
@@ -140,9 +143,20 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 		if *d.Version != "" {
 			if strings.Contains(*d.Version, "$") {
 				version := strings.TrimSuffix(strings.TrimPrefix(*d.Version, "${"), "}")
-				version = pom.Properties.Entries[version]
-				if version != "" {
+				p.log.V(10).Info("Searching for property in properties",
+					"property", version,
+					"properties", pom.Properties)
+				if pom.Properties == nil {
+					p.log.Info("Cannot resolve version property value as POM does not have properties",
+						"POM", fmt.Sprintf("%s.%s", pomCoordinate(pom.GroupID), pomCoordinate(pom.ArtifactID)),
+						"property", version,
+						"dependency", dep.Name)
 					dep.Version = version
+				} else {
+					version = pom.Properties.Entries[version]
+					if version != "" {
+						dep.Version = version
+					}
 				}
 			} else {
 				dep.Version = *d.Version
@@ -176,6 +190,13 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 	}
 
 	return m, nil
+}
+
+func pomCoordinate(value *string) string {
+	if value != nil {
+		return *value
+	}
+	return "unknown"
 }
 
 func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
