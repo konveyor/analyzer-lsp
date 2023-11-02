@@ -341,9 +341,6 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 		"dependency:sources",
 		"-Djava.net.useSystemProxies=true",
 	}
-	if pom.Modules != nil {
-		args = append([]string{"compile"}, args...)
-	}
 
 	if mavenSettings != "" {
 		args = append(args, "-s", mavenSettings)
