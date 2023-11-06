@@ -2,9 +2,23 @@
 
 The analyzer rules are a set of instructions that are used to analyze source code and detect issues. Rules are fundamental pieces that codify modernization knowledge.
 
-The analyzer parses user provided rules, evaluates them and generates _Violations_ for matched rules. A collection of one or more rules form a [_Ruleset_](#ruleset). _Rulesets_ provide an opionated way of organizing multiple rules that achieve a common goal. The analyzer CLI takes a set of rulesets as input arguments.
+The analyzer parses user provided rules, evaluates them against input source code and generates _Violations_ for matched rules. A collection of one or more rules form a [Ruleset](#ruleset). _Rulesets_ provide an opionated way of organizing multiple rules that achieve a common goal.
 
-## Rule
+## Table of Contents
+
+1. [Rule Format](#rule)
+    1. [Rule Metadata](#rule-metadata)
+    2. [Rule Actions](#rule-actions)
+        1. [Tag Action](#tag-action)
+        2. [Message Action](#message-action)
+    3. [Rule Conditions](#rule-conditions)
+        1. [Provider Condition](#provider-condition)
+        2. [And Condition](#and-condition)
+        3. [Or Condition](#or-condition)
+2. [Ruleset Format](#ruleset)
+3. [Passing rules / rulesets as input](#passing-rules-as-input)
+
+## Rule 
 
 A Rule is written in YAML. It consists of metadata, conditions and actions. It instructs analyzer to take specified actions when given conditions match.
 
@@ -13,40 +27,72 @@ A Rule is written in YAML. It consists of metadata, conditions and actions. It i
 Rule metadata contains general information about a rule:
 
 ```yaml
-# id must be unique among a Ruleset
-ruleId: "unique_id"
-# violations have pre-defined categories
-category: "potential|information|mandatory"
-# labels are key=value pairs attached to rules, value
-# can be empty or omitted, keys can be subdomain prefixed
-labels:
-  # key=value pair
+ruleID: "unique_id" (1)
+labels: (2)
   - "label1=val1"
-  # valid label with value omitted
-  - "label2"
-  # valid label with empty value
-  - "label3="
-  # subdomain prefixed key
-  - "konveyor.io/label1=val1"
-# effort is an integer value to indicate level of 
-# effort needed to fix this issue
-effort: 1
+effort: 1 (3)
+category: mandatory (4)
 ```
 
-See [labels doc](./labels.md) for more details on `labels` field.
+1. **ruleID**: This is a unique ID for the rule. It must be unique within the ruleset.
+2. **labels**: A list of string labels associated with the rule. (See [Labels](./labels.md))
+3. **effort**: Effort is an integer value that indicates the level of effort needed to fix this issue.
+4. **category**: Category describes severity of the issue for migration. Values can be one of _mandatory_, _potential_ or _optional_. (See [Categories](#rule-categories))
+
+#### Rule Categories
+
+* mandatory
+  * The issue must be resolved for a successful migration. If the changes are not made, the resulting application will not build or run successfully. Examples include replacement of proprietary APIs that are not supported in the target platform. 
+* optional
+  * If the issue is not resolved, the application should work, but the results may not be optimal. If the change is not made at the time of migration, it is recommended to put it on the schedule soon after your migration is completed.
+* potential
+  * The issue should be examined during the migration process, but there is not enough detailed information to determine if the task is mandatory for the migration to succeed.
+
 
 ### Rule Actions
 
-A rule has `message` and `tag` actions.
+A rule has two actions - `tag` and `message`. Either one or two of these actions can be defined on a rule.
 
-The `message` action generates a message for every violation created when rule matches. The message also supports templating in that the custom data exported by providers can be used in the message.
+#### Tag Action
+
+A tag action is used to create one or more tags for an application when the rule matches. It takes a list of string tags as its fields:
 
 ```yaml
-# when a match is found, analyzer generates a violation with this message
+tag:
+  # tags can be comma separated
+  - "tag1,tag2,tag3"
+  # optionally, tags can be assigned categories
+  - "Category=tag4,tag5"
+```
+
+When a tag is a key=val pair, the keys are treated as category of that tag. For instance, `Backend=Java` is a valid tag with `Backend` being the category of tag `Java`.
+
+> Any rule that has a tag action in it is referred to as a "tagging rule".
+
+#### Message Action
+
+A message action is used to create an issue with the specified message when a rule matches:
+
+```yaml
+# when a match is found, analyzer generates incidents each having this message
 message: "helpful message about the violation"
 ```
 
-Optionally, hyperlinks can be provided along with a message to give relevant information about the found issue: 
+Message can also be templated to include information about the match interpolated via custom variables on the rule (See [Custom Variables](#custom-variables)):
+
+```
+- ruleID: lang-ref-004
+   customVariables:
+   - pattern: '([A-z]+)\.get\(\)'
+      name: VariableName
+    message: "Found generic call - {{ VariableName }}"
+  when:
+    <CONDITION>
+```
+
+##### Links
+
+Hyperlinks can be provided along with a `message` or `tag` action to provide relevant information about the found issue: 
 
 ```yaml
 # links point to external hyperlinks
@@ -57,171 +103,138 @@ links:
     title: "short title for the link"
 ```
 
-The `tag` action allows generating tags for the application. Each string in the tag can be a comma separated list of tags. Optionally, tags can have categories.
-
-```yaml
-# when a match is found, analyzer generates these tags for the application
-tag:
-  # tags can be comma separated
-  - "tag1,tag2,tag3"
-  # optionally, tags can be assigned categories
-  - "Category=tag4,tag5"
-```
-
 ### Rule Conditions
 
-Finally, a rule contains a `when` block to specify a condition:
+Every rule has a `when` block that contains exactly one condition. A condition defines a search query to be evaluated against the input source code. 
 
 ```yaml
 when:
   <condition>
-    <nested-condition>
 ```
 
-`When` has exactly one condition. Multiple conditions can be nested within the top-level condition.
+There are three types of conditions - _and_, _or_ and _provider_. While the _provider_ condition is responsible for performing an actual search in the source code, the _and_ and _or_ conditions are logical constructs provided by the engine to form a complex condition from the results of multiple other conditions.
 
-#### Provider Conditions
+#### Provider Condition
 
-A "provider" knows how to analyse the source code of a technology. It publishes what it can do with the source code in terms of "capabilities". 
+The analyzer engine enables multi-language source code analysis via something called as “providers”. A "provider" knows how to analyse the source code of a technology. It publishes what it can do with the source code in terms of "capabilities".
 
 A provider condition instructs the analyzer to invoke a specific "provider" and use one of its "capabilities". In general, it is of the form `<provider_name>.<capability>`:
 
-```yaml
-when:
-  <provider>.<capability>:
-    <input_fields>
-``` 
-
-Analyzer currently supports `builtin`, `java` and `go` providers.
-
-##### Builtin Provider
-
-`builtin` is an in-tree provider that can work with vaious different files and internal metadata generated by the engine. It has `file`, `filecontent`, `xml`, `json` and `hasTags` capabilities.
-
-###### file
-
-`file` capability enables the provider to find files in the source code that match a given pattern:
-
-```yaml
-when:
-  builtin.file:
-    pattern: "<regex_to_match_filenames>"
-```
-
-###### filecontent
-
-`filecontent` capability enables the provider to search for content that matches a given pattern:
-
-```yaml
-when:
-  builtin.filecontent:
-    filePattern: "<regex_to_match_filenames_to_scope_search>"
-    pattern: "<regex_to_match_content_in_the_matching_files>"
-```
-
-###### xml
-
-`xml` capability enables the provider to query XPath expressions on a list of provided XML files. Unlike providers discussed so far, `xml` takes two input parameters:
-
-```yaml
-when:
-  builtin.xml:
-    # xpath must be a valid xpath expression
-    xpath: "<xpath_expressions>"
-    # filepaths is a list of files to scope xpath query to
-    filepaths:
-      - "/src/file1.xml"
-      - "/src/file2.xml"
-```
-
-###### json
-
-`json` capability enables the provider to query XPath expressions on a list of provided JSON files. Unlike `xml`, currently `json` only takes xpath as input and performs the search on all json files in the codebase:
-
-```yaml
-when:
-  builtin.json:
-    # xpath must be a valid xpath expression
-    xpath: "<xpath_expressions>"
-```
-
-#### hasTags
-
-`hasTags` enables the provider to query application tags. It doesn't deal with the source code, instead it queries the internal data structure to check whether given tags are present for the application:
-
-```yaml
-when:
-  # when more than one tags are given, a logical AND is implied
-  hasTags:
-    - "tag1"
-    - "tag2"
-```
-
-###### Java Provider
-
-Java provider can work with Java source code and provides capabilities `referenced` and `dependency`.
-
-###### referenced
-
-`referenced` capability enables the provider to find references in the source code. It takes two input parameters:
+For instance, the `java` provider provides `referenced` capability. To search through Java source code, we can write a `java.referenced` condition:
 
 ```yaml
 when:
   java.referenced:
-    # regex pattern to match
-    pattern: "<pattern>"
-    # location defines the exact location where
-    # pattern should be matched
-    location: CONTRUCTOR_CALL
+    pattern: org.kubernetes.*
+    location: IMPORT
 ```
 
-The supported locations are:
-- CONSTRUCTOR_CALL
-- TYPE
-- INHERITANCE
-- METHOD_CALL
-- ANNOTATION
-- IMPLEMENTS_TYPE
-- ENUM_CONSTANT
-- RETURN_TYPE
-- IMPORT
-- VARIABLE_DECLARATION
+Note that depending on the provider, the fields of the condition (for instance, pattern and location above) will change.
 
-###### Go Provider
-
-Go provider can work with Golang source code and provides capabilities `referenced` and `dependency`.
-
-###### referenced
-
-`referenced` capability enables the provider to find references in the source code:
+Some providers have _dependency_ capability. It means that the provider can generate a list of dependencies for a given application. A dependency condition can be used to query this list and check whether a certain dependency (with a version range) exists for the application. For instance, to check if a Java application has a certain dependency, we can write a `java.dependency` condition:
 
 ```yaml
 when:
-  go.referenced: "<regex_to_find_reference>"
+  java.dependency:
+    name: junit.junit
+    upperbound: 4.12.2
+    lowerbound: 4.4.0
 ```
 
-###### dependency
+Analyzer currently supports `builtin`, `java`, `go` and `generic` providers. Here is the table that summarizes all the providers and their capabilities:
 
-The `dependency` capability enables the provider to find dependencies for an application:
+| Provider Name | Capabilities                                                  | Description                                                                       |
+| ------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| java          | referenced                                                    | Find references of a pattern with an optional code location for detailed searches |
+|               | dependency                                                    | Check whether app has a given dependency                                          |
+| builtin       | xml                                                           | Search XML files using xpath queries                                              |
+|               | json                                                          | Search JSON files using jsonpath queries                                          |
+|               | filecontent                                                   | Search content in regular files using regex patterns                              |
+|               | file                                                          | Find files with names matching a given pattern                                    |
+|               | hasTags                                                       | Check whether a tag is created for the app via a tagging rule                     |
+| go            | referenced                                                    | Find references of a pattern                                                      |
+|               | dependency                                                    | Check whether app has a given dependency                                          |
+
+Based on the table above, we should be able to create the first part of the condition that doesn’t contain any of the condition fields. For instance, to create a `java` provider condition that uses `referenced` capability:
 
 ```yaml
 when:
-  go.dependency:
-    # name of the dependency to search
-    name: "<dependency_name>"
-    # upper bound on version of the depedency
-    upperbound: "<version_string>"
-    # lower bound on version of the dependency
-    lowerbound: "<version_string>"
+  java.referenced:
+    <fields>
 ```
 
-A match is found when the given application has a dependency that falls within the given range of versions.
+Depending on the _provider_ and the _capability_, there will be different `<fields>` in the condition. Following table summarizes available providers, their capabilities and all of their fields:
 
-#### Logical Conditions
+| Provider | Capability  | Fields     | Required | Description                                                   |
+|----------|-------------|------------|----------|---------------------------------------------------------------|
+| java     | referenced  | pattern    | Yes      | Regex pattern                                                 |
+|          |             | location   | No       | Source code location (See [Java Locations](#java-locations))  |
+|          | dependency  | name       | Yes      | Name of the dependency                                        |
+|          |             | nameregex  | No       | Regex pattern to match the name                               |
+|          |             | upperbound | No       | Match versions lower than or equal to                         |
+|          |             | lowerbound | No       | Match versions greater than or equal to                       |
+| builtin  | xml         | xpath      | Yes      | Xpath query                                                   |
+|          |             | namespaces | No       | A map to scope down query to namespaces                       |
+|          |             | filepaths  | No       | Optional list of files to scope down search                   |
+|          | json        | xpath      | Yes      | Xpath query                                                   |
+|          |             | filepaths  | No       | Optional list of files to scope down search                   |
+|          | filecontent | pattern    | Yes      | Regex pattern to match in content                             |
+|          |             | filePattern| No       | Only search in files with names matching this pattern         |
+|          | file        | pattern    | Yes      | Find files with names matching this pattern                   |
+|          | hasTags     |            |          | This is an inline list of string tags. See [Tag Action](#tag-action)|
+| go       | referenced  | pattern    | Yes      | Regex pattern                                                 |
+|          | dependency  | name       | Yes      | Name of the dependency                                        |
+|          |             | nameregex  | No       | Regex pattern to match the name                               |
+|          |             | upperbound | No       | Match versions lower than or equal to                         |
+|          |             | lowerbound | No       | Match versions greater than or equal to                       |
 
-Analyzers provide two basic logical conditions that are useful in making more complex queries by aggregating results of other conditions.
 
-##### And Condition
+With the information above, we should be able to complete `java` condition we created earlier. We will search for references of a package:
+
+```yaml
+when:
+  java.referenced:
+    location: PACKAGE
+    pattern: org.jboss.*
+```
+
+##### Java Locations
+
+The java provider allows scoping the search down to certain source code locations. Any one of the following search locations can be used to scope down java searches:
+
+* CONSTRUCTOR_CALL
+* TYPE
+* INHERITANCE
+* METHOD_CALL
+* ANNOTATION
+* IMPLEMENTS_TYPE
+* ENUM_CONSTANT
+* RETURN_TYPE
+* IMPORT
+* VARIABLE_DECLARATION
+
+
+##### Custom Variables
+
+Provider conditions can have associated "custom variables". Custom variables are used to capture relevant information from the matched line in the source code. The values of these variables will be interpolated with data matched in the source code. These values can be used to generate detailed templated messages in a rule’s action (See [Message action](#message-action)). They can be added to a rule in the `customVariables` field:
+
+```yaml
+- ruleID: lang-ref-004
+   customVariables:
+   - pattern: '([A-z]+)\.get\(\)' (1)
+      name: VariableName (2)
+    message: "Found generic call - {{ VariableName }}" (3)
+  when:
+      java.referenced:
+          location: METHOD_CALL
+          pattern: com.example.apps.GenericClass.get
+```
+
+1. **pattern**:  This is a regex pattern that will be matched on the source code line when a match is found.
+2. **name**:  This is the name of the variable that can be used in templates.
+3. **message**: This is how to template a message using a custom variable.
+
+#### And Condition
 
 The `And` condition takes an array of conditions and performs a logical 
 "and" operation on their results:
@@ -259,7 +272,7 @@ when:
   - go.referenced: "*CustomResourceDefinition*"
 ```
 
-##### Or Condition
+#### Or Condition
 
 The `Or` condition takes an array of other conditions and performs a logical "or" operation on their results:
 
@@ -274,19 +287,38 @@ when:
 
 A set of Rules form a Ruleset. Rulesets are an opionated way of passing Rules to Rules Engine.
 
-Each Ruleset is stored in its own directory with a `ruleset.yaml` file at the directory root that stores metadata of the Ruleset.
+A ruleset is created by placing one or more YAML rules files in a directory and creating a `ruleset.yaml` (golden file) file in it. 
+
+The golden file stores metadata of the Ruleset.
 
 ```yaml
-# name has to be unique within the provided rulesets
-# doesn't necessarily has to be unique globally
-name: "Name of the ruleset"
-description: "Describes the ruleset"
-# additional labels for ruleset
-# labels help filter rulesets
-labels:
-  - awesome_rules1
+name: my-ruleset (1)
+description: Text description about ruleset (2)
+labels: (3)
+- key=val
 ```
 
-Labels on a Ruleset are inherited by all the rules in it.
+1. **name**: A unique name for the ruleset.
+2. **description**: Text description about the ruleset.
+3. **labels**: A list of string labels for the ruleset. The labels on a ruleset are automatically inherted by all rules in the ruleset. (See Labels)
 
-Rulesets provide a good way of organizing multiple rules that achieve a common goal.
+## Passing rules as input
+
+The analyzer CLI provides `--rules` option to specify a YAML file containing rules or a ruleset directory:
+
+- It can be a file:
+  ```sh
+  konveyor-analyzer --rules rules-file.yaml ...
+  ```
+  It is assumed that the file contains a list of YAML rules. The engine will automatically associate all rules in it with a default _Ruleset_.
+
+- It can be a directory:
+  ```sh
+  konveyor-analyzer --rules /ruleset/directory/ ...
+  ```
+  It is assumed that the directory contains a _Ruleset_. (See [Ruleset](#ruleset))
+
+- It can be given more than once with a mix of rules files and rulesets:
+  ```sh
+  konveyor-analyzer --rules /ruleset/directory/ --rules rules-file.yaml ...
+  ```
