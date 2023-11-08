@@ -356,7 +356,9 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 		// Set some default or empty resolved identifier for the dependency.
 		d.ResolvedIdentifier = ""
 	} else {
-		d.ResolvedIdentifier = string(b)
+		// sometimes sha file contains name of the jar followed by the actual sha
+		sha, _, _ := strings.Cut(string(b), " ")
+		d.ResolvedIdentifier = sha
 	}
 
 	d.Labels = addDepLabels(p.depToLabels, d.Name)
