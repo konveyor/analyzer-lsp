@@ -247,7 +247,14 @@ func extractSubmoduleTrees(lines []string) [][]string {
 				continue
 			}
 
-			line = strings.TrimLeft(line, "[INFO] ")
+			line = strings.TrimPrefix(line, "[INFO] ")
+			line = strings.Trim(line, " ")
+
+			// output contains progress report lines that are not deps, skip those
+			if !(strings.HasPrefix(line, "+") || strings.HasPrefix(line, "|") || strings.HasPrefix(line, "\\")) {
+				continue
+			}
+
 			submoduleTrees[submod] = append(submoduleTrees[submod], line)
 		}
 	}

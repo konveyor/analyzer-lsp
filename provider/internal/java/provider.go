@@ -431,7 +431,8 @@ func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
 	unresolvedRegex := regexp.MustCompile(`The following files have NOT been resolved`)
 	for scanner.Scan() {
 		line := scanner.Text()
-		line = strings.TrimLeft(line, "[INFO] ")
+		line = strings.TrimPrefix(line, "[INFO] ")
+		line = strings.Trim(line, " ")
 
 		if sourcesPluginRegex.Find([]byte(line)) != nil {
 			sourcesPluginSeparatorSeen = true
@@ -444,6 +445,11 @@ func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
 			unresolvedSeparatorSeen = false
 		} else if sourcesPluginSeparatorSeen && (unresolvedSeparatorSeen || resolvedSeparatorSeen) {
 			line, _, _ = strings.Cut(line, " --") // ie: "org.apache.derby:derby:jar:10.14.2.0:test -- module derby (auto)"
+
+			// this is the last line which coincidently has 5 parts separated by :
+			if strings.Contains(line, "Finished") {
+				continue
+			}
 
 			parts := strings.Split(line, ":")
 			if len(parts) != 5 {
