@@ -100,6 +100,8 @@ func getMavenLocalRepoPath(mvnSettingsFile string) string {
 func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, location string) (map[uri.URI][]*provider.Dep, error) {
 	deps := []*provider.Dep{}
 
+	m2Repo := getMavenLocalRepoPath(p.mvnSettingsFile)
+
 	path, err := filepath.Abs(p.findPom())
 	if err != nil {
 		return nil, err
@@ -144,6 +146,10 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 				}
 			} else {
 				dep.Version = *d.Version
+			}
+			if m2Repo != "" && d.ArtifactID != nil && d.GroupID != nil {
+				dep.FileURIPrefix = filepath.Join(m2Repo,
+					strings.Replace(*d.GroupID, ".", "/", -1), *d.ArtifactID, dep.Version)
 			}
 		}
 		deps = append(deps, &dep)
