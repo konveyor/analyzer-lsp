@@ -337,10 +337,9 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 		return err
 	}
 
-	// TODO(jmle): multi-module projects will still fail on this
 	args := []string{
 		"-B",
-		"dependency:sources",
+		"org.apache.maven.plugins:maven-dependency-plugin:3.6.2-SNAPSHOT:sources",
 		"-Djava.net.useSystemProxies=true",
 	}
 
@@ -427,7 +426,7 @@ func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
 
 	sourcesPluginSeparatorSeen := false
 	resolvedSeparatorSeen, unresolvedSeparatorSeen := false, false
-	sourcesPluginRegex := regexp.MustCompile(`dependency:[\d\.]+:sources`)
+	sourcesPluginRegex := regexp.MustCompile(`dependency:[\w.\-]+:sources`)
 	resolvedRegex := regexp.MustCompile(`The following files have been resolved`)
 	unresolvedRegex := regexp.MustCompile(`The following files have NOT been resolved`)
 	for scanner.Scan() {
