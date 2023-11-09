@@ -338,6 +338,20 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	}
 
 	args := []string{
+		"dependency:go-offline",
+		"-Djava.net.useSystemProxies=true",
+	}
+	if mavenSettings != "" {
+		args = append(args, "-s", mavenSettings)
+	}
+	cmd := exec.CommandContext(ctx, "mvn", args...)
+	cmd.Dir = location
+	err = cmd.Run()
+	if err != nil {
+		log.V(5).Error(err, "failed to download dependencies, continuing to download sources")
+	}
+
+	args = []string{
 		"-B",
 		"org.apache.maven.plugins:maven-dependency-plugin:3.6.2-SNAPSHOT:sources",
 		"-Djava.net.useSystemProxies=true",
@@ -346,7 +360,7 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	if mavenSettings != "" {
 		args = append(args, "-s", mavenSettings)
 	}
-	cmd := exec.CommandContext(ctx, "mvn", args...)
+	cmd = exec.CommandContext(ctx, "mvn", args...)
 	cmd.Dir = location
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
@@ -387,9 +401,12 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	// move decompiled files to base location of the jar
 	for _, decompileJob := range decompileJobs {
 		jarName := strings.TrimSuffix(filepath.Base(decompileJob.inputPath), ".jar")
-		moveFile(decompileJob.outputPath,
+		err = moveFile(decompileJob.outputPath,
 			filepath.Join(filepath.Dir(decompileJob.inputPath),
 				fmt.Sprintf("%s-sources.jar", jarName)))
+		if err != nil {
+			log.V(5).Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
+		}
 	}
 	return nil
 }
