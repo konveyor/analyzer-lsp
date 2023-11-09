@@ -6,6 +6,7 @@ package jsonrpc2
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 )
@@ -113,26 +114,20 @@ func (f FileHandler) Cancel(ctx context.Context, conn *Conn, id ID, cancelled bo
 }
 
 func (f FileHandler) Request(ctx context.Context, conn *Conn, direction Direction, r *WireRequest) context.Context {
-	yaml := "jsonrpc: 2.0\n" +
-		"method: " + r.Method + "\n" +
-		"params: " + string(*r.Params) + "\n" +
-		"id: " + fmt.Sprint(r.ID.Number) + "\n"
+	b, _ := json.Marshal(r)
 
-	fmt.Fprintf(f.File, "conn %p response %s:\n%s\n",
-		conn, direction.String(), yaml,
+	fmt.Fprintf(f.File, "conn %p response %s:\n%s\n\n",
+		conn, direction.String(), string(b),
 	)
 
 	return ctx
 }
 
 func (f FileHandler) Response(ctx context.Context, conn *Conn, direction Direction, r *WireResponse) context.Context {
-	yaml := "jsonrpc: 2.0\n" +
-		"result: " + string(*r.Result) + "\n" +
-		"error: " + fmt.Sprint(r.Error) + "\n" +
-		"id: " + fmt.Sprint(r.ID.Number) + "\n"
+	b, _ := json.Marshal(r)
 
-	fmt.Fprintf(f.File, "conn %p response %s:\n%s\n",
-		conn, direction.String(), yaml,
+	fmt.Fprintf(f.File, "conn %p response %s:\n%s\n\n",
+		conn, direction.String(), string(b),
 	)
 
 	return ctx
