@@ -28,6 +28,13 @@ const (
 	providerSpecificConfigExcludePackagesKey   = "excludePackages"
 )
 
+// keys used in dep.Extras for extra information about a dep
+const (
+	artifactIdKey = "artifactId"
+	groupIdKey    = "groupId"
+	pomPathKey    = "pomPath"
+)
+
 // TODO implement this for real
 func (p *javaServiceClient) findPom() string {
 	var depPath string
@@ -44,9 +51,13 @@ func (p *javaServiceClient) findPom() string {
 }
 
 func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
-	if p.depsCache != nil {
-		return p.depsCache, nil
+	p.depsMutex.RLock()
+	val := p.depsCache
+	p.depsMutex.RUnlock()
+	if val != nil {
+		return val, nil
 	}
+
 	var err error
 	var ll map[uri.URI][]konveyor.DepDAGItem
 	m := map[uri.URI][]*provider.Dep{}
@@ -74,7 +85,9 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		}
 		m[f] = deps
 	}
+	p.depsMutex.Lock()
 	p.depsCache = m
+	p.depsMutex.Unlock()
 	return m, nil
 }
 
@@ -140,6 +153,11 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 		}
 		dep := provider.Dep{}
 		dep.Name = fmt.Sprintf("%s.%s", *d.GroupID, *d.ArtifactID)
+		dep.Extras = map[string]interface{}{
+			groupIdKey:    *d.GroupID,
+			artifactIdKey: *d.ArtifactID,
+			pomPathKey:    path,
+		}
 		if *d.Version != "" {
 			if strings.Contains(*d.Version, "$") {
 				version := strings.TrimSuffix(strings.TrimPrefix(*d.Version, "${"), "}")
@@ -171,7 +189,9 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 
 	m := map[uri.URI][]*provider.Dep{}
 	m[uri.File(path)] = deps
+	p.depsMutex.Lock()
 	p.depsCache = m
+	p.depsMutex.Unlock()
 
 	// recursively find deps in submodules
 	if pom.Modules != nil {
@@ -229,7 +249,7 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 
 	var pomDeps []provider.DepDAGItem
 	for _, tree := range submoduleTrees {
-		submoduleDeps, err := p.parseMavenDepLines(tree, localRepoPath)
+		submoduleDeps, err := p.parseMavenDepLines(tree, localRepoPath, path)
 		if err != nil {
 			return nil, err
 		}
@@ -349,7 +369,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 
 // parseDepString parses a java dependency string
 // assumes format <group>:<name>:<type>:<version>:<scope>
-func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.Dep, error) {
+func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (provider.Dep, error) {
 	d := provider.Dep{}
 	// remove all the pretty print characters.
 	dep = strings.TrimFunc(dep, func(r rune) bool {
@@ -385,6 +405,12 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 	d.Labels = addDepLabels(p.depToLabels, d.Name)
 	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
 
+	d.Extras = map[string]interface{}{
+		groupIdKey:    parts[0],
+		artifactIdKey: parts[1],
+		pomPathKey:    pomPath,
+	}
+
 	return d, nil
 }
 
@@ -412,10 +438,10 @@ func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string
 }
 
 // parseMavenDepLines recursively parses output lines from maven dependency tree
-func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath string) ([]provider.DepDAGItem, error) {
+func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath, pomPath string) ([]provider.DepDAGItem, error) {
 	if len(lines) > 0 {
 		baseDepString := lines[0]
-		baseDep, err := p.parseDepString(baseDepString, localRepoPath)
+		baseDep, err := p.parseDepString(baseDepString, localRepoPath, pomPath)
 		if err != nil {
 			return nil, err
 		}
@@ -425,7 +451,7 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath str
 		idx := 1
 		// indirect deps are separated by 3 or more spaces after the direct dep
 		for idx < len(lines) && strings.Count(lines[idx], " ") > 2 {
-			transitiveDep, err := p.parseDepString(lines[idx], localRepoPath)
+			transitiveDep, err := p.parseDepString(lines[idx], localRepoPath, pomPath)
 			if err != nil {
 				return nil, err
 			}
@@ -433,7 +459,7 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath str
 			item.AddedDeps = append(item.AddedDeps, provider.DepDAGItem{Dep: transitiveDep})
 			idx += 1
 		}
-		ds, err := p.parseMavenDepLines(lines[idx:], localRepoPath)
+		ds, err := p.parseMavenDepLines(lines[idx:], localRepoPath, pomPath)
 		if err != nil {
 			return nil, err
 		}

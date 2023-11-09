@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
@@ -18,17 +19,19 @@ import (
 )
 
 type javaServiceClient struct {
-	rpc              *jsonrpc2.Conn
-	cancelFunc       context.CancelFunc
-	config           provider.InitConfig
-	log              logr.Logger
-	cmd              *exec.Cmd
-	bundles          []string
-	workspace        string
-	depToLabels      map[string]*depLabelItem
-	isLocationBinary bool
-	mvnSettingsFile  string
-	depsCache        map[uri.URI][]*provider.Dep
+	rpc               *jsonrpc2.Conn
+	cancelFunc        context.CancelFunc
+	config            provider.InitConfig
+	log               logr.Logger
+	cmd               *exec.Cmd
+	bundles           []string
+	workspace         string
+	depToLabels       map[string]*depLabelItem
+	isLocationBinary  bool
+	mvnSettingsFile   string
+	depsMutex         sync.RWMutex
+	depsCache         map[uri.URI][]*provider.Dep
+	depsLocationCache map[string]int
 }
 
 type depLabelItem struct {
