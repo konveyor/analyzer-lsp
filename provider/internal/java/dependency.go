@@ -100,6 +100,8 @@ func getMavenLocalRepoPath(mvnSettingsFile string) string {
 func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, location string) (map[uri.URI][]*provider.Dep, error) {
 	deps := []*provider.Dep{}
 
+	m2Repo := getMavenLocalRepoPath(p.mvnSettingsFile)
+
 	path, err := filepath.Abs(p.findPom())
 	if err != nil {
 		return nil, err
@@ -144,6 +146,10 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 				}
 			} else {
 				dep.Version = *d.Version
+			}
+			if m2Repo != "" && d.ArtifactID != nil && d.GroupID != nil {
+				dep.FileURIPrefix = filepath.Join(m2Repo,
+					strings.Replace(*d.GroupID, ".", "/", -1), *d.ArtifactID, dep.Version)
 			}
 		}
 		deps = append(deps, &dep)
@@ -247,7 +253,14 @@ func extractSubmoduleTrees(lines []string) [][]string {
 				continue
 			}
 
-			line = strings.TrimLeft(line, "[INFO] ")
+			line = strings.TrimPrefix(line, "[INFO] ")
+			line = strings.Trim(line, " ")
+
+			// output contains progress report lines that are not deps, skip those
+			if !(strings.HasPrefix(line, "+") || strings.HasPrefix(line, "|") || strings.HasPrefix(line, "\\")) {
+				continue
+			}
+
 			submoduleTrees[submod] = append(submoduleTrees[submod], line)
 		}
 	}
@@ -343,7 +356,9 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 		// Set some default or empty resolved identifier for the dependency.
 		d.ResolvedIdentifier = ""
 	} else {
-		d.ResolvedIdentifier = string(b)
+		// sometimes sha file contains name of the jar followed by the actual sha
+		sha, _, _ := strings.Cut(string(b), " ")
+		d.ResolvedIdentifier = sha
 	}
 
 	d.Labels = addDepLabels(p.depToLabels, d.Name)

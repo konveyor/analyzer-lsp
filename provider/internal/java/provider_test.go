@@ -16,14 +16,16 @@ func Test_parseUnresolvedSources(t *testing.T) {
 		{
 			name: "valid sources output",
 			mvnOutput: `
-[INFO] --- maven-dependency-plugin:3.5.0:sources (default-cli) @ spring-petclinic ---
+[INFO] --- dependency:3.5.0:sources (default-cli) @ spring-petclinic ---
 [INFO] The following files have been resolved:
-[INFO]    org.springframework.boot:spring-boot-starter-actuator:jar:sources:3.1.0 -- module spring.boot.starter.actuator [auto]
-[INFO]    org.springframework.boot:spring-boot-starter:jar:sources:3.1.0 -- module spring.boot.starter [auto]
-[INFO]    org.springframework.boot:spring-boot-starter-logging:jar:sources:3.1.0 -- module spring.boot.starter.logging [auto]
+[INFO]    org.apache.tomcat:tomcat-servlet-api:jar:sources:9.0.46 -- module tomcat.servlet.api (auto)
+[INFO]    com.fasterxml.jackson.core:jackson-core:jar:sources:2.12.3
+[INFO]    com.fasterxml.jackson.core:jackson-databind:jar:sources:2.12.3
 [INFO] The following files have NOT been resolved:
-[INFO]    org.springframework.boot:spring-boot-starter-logging:jar:3.1.0:compile -- module spring.boot.starter.logging [auto]
-[INFO]    io.konveyor.demo:config-utils:jar:sources:1.0.0:compile
+[INFO]    org.apache.tomcat:tomcat-servlet-api:jar:9.0.46:provided -- module java.servlet
+[INFO]    com.fasterxml.jackson.core:jackson-core:jar:2.12.3:compile -- module com.fasterxml.jackson.core
+[INFO]    com.fasterxml.jackson.core:jackson-databind:jar:2.12.3:compile -- module com.fasterxml.jackson.databind
+[INFO]    io.konveyor.demo:config-utils:jar:1.0.0:compile -- module config.utils (auto)
 [INFO] --- maven-dependency-plugin:3.5.0:sources (default-cli) @ spring-petclinic ---
 [INFO] -----------------------------------------------------------------------------
 [INFO] The following files have NOT been resolved:
@@ -36,12 +38,6 @@ func Test_parseUnresolvedSources(t *testing.T) {
 					GroupId:    "io.konveyor.demo",
 					ArtifactId: "config-utils",
 					Version:    "1.0.0",
-				},
-				{
-					packaging:  JavaArchive,
-					GroupId:    "org.springframework.boot",
-					ArtifactId: "spring-boot-actuator",
-					Version:    "3.1.0",
 				},
 			},
 		},

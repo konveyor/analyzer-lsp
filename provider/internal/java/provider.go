@@ -338,7 +338,8 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	}
 
 	args := []string{
-		"dependency:sources",
+		"-B",
+		"org.apache.maven.plugins:maven-dependency-plugin:3.6.2-SNAPSHOT:sources",
 		"-Djava.net.useSystemProxies=true",
 	}
 
@@ -416,61 +417,92 @@ func filterExistingSubmodules(artifacts []javaArtifact, pom *gopom.Project) []ja
 	return filtered
 }
 
+// parseUnresolvedSources takes the output from mvn dependency:sources and returns the artifacts whose sources
+// could not be found.
 func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
-	artifacts := []javaArtifact{}
+	unresolvedArtifacts := []javaArtifact{}
+	resolvedArtifacts := []javaArtifact{}
 	scanner := bufio.NewScanner(output)
 
 	sourcesPluginSeparatorSeen := false
-	unresolvedSeparatorSeen := false
-	sourcesPluginRegex := regexp.MustCompile(`maven-dependency-plugin:[\d\.]+:sources`)
+	resolvedSeparatorSeen, unresolvedSeparatorSeen := false, false
+	sourcesPluginRegex := regexp.MustCompile(`dependency:[\w.\-]+:sources`)
+	resolvedRegex := regexp.MustCompile(`The following files have been resolved`)
 	unresolvedRegex := regexp.MustCompile(`The following files have NOT been resolved`)
 	for scanner.Scan() {
 		line := scanner.Text()
-		line = strings.TrimLeft(line, "[INFO] ")
+		line = strings.TrimPrefix(line, "[INFO] ")
+		line = strings.Trim(line, " ")
 
 		if sourcesPluginRegex.Find([]byte(line)) != nil {
 			sourcesPluginSeparatorSeen = true
 			unresolvedSeparatorSeen = false
 		} else if unresolvedRegex.Find([]byte(line)) != nil {
 			unresolvedSeparatorSeen = true
-		} else if sourcesPluginSeparatorSeen && unresolvedSeparatorSeen {
-			line, _, _ = strings.Cut(line, "--") // ie: "org.apache.derby:derby:jar:10.14.2.0:test -- module derby (auto)"
+			resolvedSeparatorSeen = false
+		} else if resolvedRegex.Find([]byte(line)) != nil {
+			resolvedSeparatorSeen = true
+			unresolvedSeparatorSeen = false
+		} else if sourcesPluginSeparatorSeen && (unresolvedSeparatorSeen || resolvedSeparatorSeen) {
+			line, _, _ = strings.Cut(line, " --") // ie: "org.apache.derby:derby:jar:10.14.2.0:test -- module derby (auto)"
 
-			parts := strings.Split(line, ":")
-			if len(parts) != 6 && len(parts) != 5 {
+			// this is the last line which coincidently has 5 parts separated by :
+			if strings.Contains(line, "Finished") {
 				continue
 			}
 
-			// sometimes maven puts here artifacts that are not sources; don't count those as unresolved (ie: spring-petclinic project)
-			if len(parts) == 6 {
-				classifier := parts[3]
-				if classifier != "sources" {
-					continue
-				}
-			} else if len(parts) == 5 {
-				classifier := parts[2]
-				if classifier != "sources" {
-					continue
-				}
+			parts := strings.Split(line, ":")
+			if len(parts) != 5 {
+				continue
 			}
 
 			var version string
 			groupId := parts[0]
 			artifactId := parts[1]
-			if len(parts) == 6 {
-				version = parts[4]
-			} else {
+			if unresolvedSeparatorSeen {
 				version = parts[3]
+			} else {
+				version = parts[4]
 			}
 
-			artifacts = append(artifacts,
-				javaArtifact{
-					packaging:  JavaArchive,
-					ArtifactId: artifactId,
-					GroupId:    groupId,
-					Version:    version,
-				})
+			artifact := javaArtifact{
+				packaging:  JavaArchive,
+				ArtifactId: artifactId,
+				GroupId:    groupId,
+				Version:    version,
+			}
+
+			if unresolvedSeparatorSeen {
+				unresolvedArtifacts = append(unresolvedArtifacts, artifact)
+			} else {
+				resolvedArtifacts = append(resolvedArtifacts, artifact)
+			}
 		}
 	}
-	return artifacts, scanner.Err()
+
+	// Not resolved artifacts many times have actually been resolved, but for some reason
+	// they appear as not resolved, so the difference between the not resolved and the resolved
+	// is what we look for
+	result := []javaArtifact{}
+	for _, artifact := range unresolvedArtifacts {
+		if !contains(resolvedArtifacts, artifact) {
+			result = append(result, artifact)
+		}
+	}
+
+	return result, scanner.Err()
+}
+
+func contains(artifacts []javaArtifact, artifactToFind javaArtifact) bool {
+	if len(artifacts) == 0 {
+		return false
+	}
+
+	for _, artifact := range artifacts {
+		if artifact == artifactToFind {
+			return true
+		}
+	}
+
+	return false
 }
