@@ -27,7 +27,6 @@ jobs:
       - name: run demo image and ensure dependency output unchanged
         run: |
           podman run --entrypoint /usr/bin/konveyor-analyzer-dep -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z localhost/testing:latest --output-file=demo-dep-output.yaml
-          podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
           diff \
             <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
