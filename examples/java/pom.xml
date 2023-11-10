@@ -7,15 +7,20 @@
   <groupId>com.example.apps</groupId>
   <artifactId>java</artifactId>
   <version>1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
 
   <name>java</name>
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
+  <modules>
+    <module>dummy</module>
+  </modules>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
+    <javaee-api.version>7.0</javaee-api.version>
   </properties>
 
   <dependencies>
@@ -38,7 +43,7 @@
     <dependency>
       <groupId>javax</groupId>
       <artifactId>javaee-api</artifactId>
-      <version>7.0</version>
+      <version>${javaee-api.version}</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
