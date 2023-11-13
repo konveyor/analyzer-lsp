@@ -331,13 +331,35 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 
 	log.V(5).Info("resolving dependency sources")
 
+	m2Repo := getMavenLocalRepoPath(mavenSettings)
+	if m2Repo == "" {
+		return fmt.Errorf("unable to decompile sources due to empty local repo path")
+	}
+
+	log.V(6).Info("installing custom dependency plugin")
+	// install custom plugin required to pull sources
+	args := []string{
+		"-r",
+		"/root/.m2/repository/org",
+		m2Repo,
+	}
+	if filepath.Clean(m2Repo) != "/root/.m2/repository" {
+		cmd := exec.CommandContext(ctx, "cp", args...)
+		err := cmd.Run()
+		if err != nil {
+			return fmt.Errorf("failed to install custom dependency plugin - %w", err)
+		}
+	} else {
+		log.V(6).Info("skipping installation as local mvn repo is same as plugin")
+	}
+
 	pomPath := fmt.Sprintf("%s/pom.xml", location)
 	pom, err := gopom.Parse(pomPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse pom file - %w", err)
 	}
 
-	args := []string{
+	args = []string{
 		"dependency:go-offline",
 		"-Djava.net.useSystemProxies=true",
 	}
@@ -351,6 +373,7 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 		log.V(5).Error(err, "failed to download dependencies, continuing to download sources")
 	}
 
+	log.V(6).Info("downloading sources")
 	args = []string{
 		"-B",
 		"org.apache.maven.plugins:maven-dependency-plugin:3.6.2-SNAPSHOT:sources",
@@ -364,22 +387,18 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	cmd.Dir = location
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to download sources - %w", err)
 	}
 
 	reader := bytes.NewReader(mvnOutput)
 	artifacts, err := parseUnresolvedSources(reader)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse sources output - %w", err)
 	}
 
 	// remove unresolved sources if they are an actual module in the project
 	artifacts = filterExistingSubmodules(artifacts, pom)
 
-	m2Repo := getMavenLocalRepoPath(mavenSettings)
-	if m2Repo == "" {
-		return nil
-	}
 	for _, artifact := range artifacts {
 		log.V(5).WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
 
@@ -396,7 +415,7 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	}
 	err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, "")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to decompile sources -%w", err)
 	}
 	// move decompiled files to base location of the jar
 	for _, decompileJob := range decompileJobs {
