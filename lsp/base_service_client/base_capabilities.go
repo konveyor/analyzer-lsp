@@ -60,7 +60,7 @@ func EvaluateReferenced[T base](t T, ctx ctx, cap string, info []byte) (resp, er
 	for _, s := range symbols {
 		references := sc.GetAllReferences(ctx, s.Location.Value.(protocol.Location))
 
-	ITERATE_REFERENCES:
+		breakEarly := false
 		for _, ref := range references {
 			// Look for things that are in the location loaded,
 			// Note may need to filter out vendor at some point
@@ -74,8 +74,13 @@ func EvaluateReferenced[T base](t T, ctx ctx, cap string, info []byte) (resp, er
 				}
 
 				if strings.Contains(ref.URI, substr) {
-					continue ITERATE_REFERENCES
+					breakEarly = true
+					break
 				}
+			}
+
+			if breakEarly {
+				break
 			}
 
 			u, err := uri.Parse(ref.URI)
