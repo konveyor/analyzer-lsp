@@ -99,9 +99,9 @@ func NewGenericServiceClient(ctx context.Context, log logr.Logger, c provider.In
 
 // Tidy aliases
 
-type scFn = base.LSPServiceClientFunc[*GenericServiceClient]
+type serviceClientFn = base.LSPServiceClientFunc[*GenericServiceClient]
 
-func scTc(v any) openapi3.SchemaRef {
+func serviceClientTemplateContext(v any) openapi3.SchemaRef {
 	r, _ := openapi3gen.NewSchemaRefForValue(v, nil)
 	return *r
 }
@@ -109,18 +109,18 @@ func scTc(v any) openapi3.SchemaRef {
 var GenericServiceClientCapabilities = []base.LSPServiceClientCapability{
 	{
 		Name:            "referenced",
-		TemplateContext: scTc(base.ReferencedCondition{}),
-		Fn:              scFn(base.EvaluateReferenced[*GenericServiceClient]),
+		TemplateContext: serviceClientTemplateContext(base.ReferencedCondition{}),
+		Fn:              serviceClientFn(base.EvaluateReferenced[*GenericServiceClient]),
 	},
 	{
 		Name:            "dependency",
-		TemplateContext: scTc(base.NoOpCondition{}),
-		Fn:              scFn(base.EvaluateNoOp[*GenericServiceClient]),
+		TemplateContext: serviceClientTemplateContext(base.NoOpCondition{}),
+		Fn:              serviceClientFn(base.EvaluateNoOp[*GenericServiceClient]),
 	},
 	{
 		Name:            "echo",
-		TemplateContext: scTc(echoCondition{}),
-		Fn:              scFn((*GenericServiceClient).EvaluateEcho),
+		TemplateContext: serviceClientTemplateContext(echoCondition{}),
+		Fn:              serviceClientFn((*GenericServiceClient).EvaluateEcho),
 	},
 }
 

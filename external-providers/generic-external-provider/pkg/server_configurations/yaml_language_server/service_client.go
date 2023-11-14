@@ -111,9 +111,9 @@ func NewYamlServiceClient(ctx context.Context, log logr.Logger, c provider.InitC
 }
 
 // Tidy alias
-type scFn = base.LSPServiceClientFunc[*YamlServiceClient]
+type serviceClientFn = base.LSPServiceClientFunc[*YamlServiceClient]
 
-func scTc(v any) openapi3.SchemaRef {
+func serviceClientTemplateContext(v any) openapi3.SchemaRef {
 	r, _ := openapi3gen.NewSchemaRefForValue(v, nil)
 	return *r
 }
@@ -121,13 +121,13 @@ func scTc(v any) openapi3.SchemaRef {
 var YamlServiceClientCapabilities = []base.LSPServiceClientCapability{
 	{
 		Name:            "referenced",
-		TemplateContext: scTc(referencedCondition{}),
-		Fn:              scFn((*YamlServiceClient).EvaluateReferenced),
+		TemplateContext: serviceClientTemplateContext(referencedCondition{}),
+		Fn:              serviceClientFn((*YamlServiceClient).EvaluateReferenced),
 	},
 	{
 		Name:            "dependency",
-		TemplateContext: scTc(base.NoOpCondition{}),
-		Fn:              scFn(base.EvaluateNoOp[*YamlServiceClient]),
+		TemplateContext: serviceClientTemplateContext(base.NoOpCondition{}),
+		Fn:              serviceClientFn(base.EvaluateNoOp[*YamlServiceClient]),
 	},
 }
 

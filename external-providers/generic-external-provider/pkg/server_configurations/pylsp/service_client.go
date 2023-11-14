@@ -76,9 +76,9 @@ func NewPythonServiceClient(ctx context.Context, log logr.Logger, c provider.Ini
 
 // Tidy aliases
 
-type scFn = base.LSPServiceClientFunc[*PythonServiceClient]
+type serviceClientFn = base.LSPServiceClientFunc[*PythonServiceClient]
 
-func scTc(v any) openapi3.SchemaRef {
+func serviceClientTemplateContext(v any) openapi3.SchemaRef {
 	r, _ := openapi3gen.NewSchemaRefForValue(v, nil)
 	return *r
 }
@@ -86,12 +86,12 @@ func scTc(v any) openapi3.SchemaRef {
 var PythonServiceClientCapabilities = []base.LSPServiceClientCapability{
 	{
 		Name:            "referenced",
-		TemplateContext: scTc(base.ReferencedCondition{}),
-		Fn:              scFn(base.EvaluateReferenced[*PythonServiceClient]),
+		TemplateContext: serviceClientTemplateContext(base.ReferencedCondition{}),
+		Fn:              serviceClientFn(base.EvaluateReferenced[*PythonServiceClient]),
 	},
 	{
 		Name:            "dependency",
-		TemplateContext: scTc(base.NoOpCondition{}),
-		Fn:              scFn(base.EvaluateNoOp[*PythonServiceClient]),
+		TemplateContext: serviceClientTemplateContext(base.NoOpCondition{}),
+		Fn:              serviceClientFn(base.EvaluateNoOp[*PythonServiceClient]),
 	},
 }

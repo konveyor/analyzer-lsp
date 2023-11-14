@@ -88,9 +88,9 @@ func NewNodeServiceClient(ctx context.Context, log logr.Logger, c provider.InitC
 
 // Tidy aliases
 
-type scFn = base.LSPServiceClientFunc[*NodeServiceClient]
+type serviceClientFn = base.LSPServiceClientFunc[*NodeServiceClient]
 
-func scTc(v any) openapi3.SchemaRef {
+func serviceClientTemplateContext(v any) openapi3.SchemaRef {
 	r, _ := openapi3gen.NewSchemaRefForValue(v, nil)
 	return *r
 }
@@ -98,13 +98,13 @@ func scTc(v any) openapi3.SchemaRef {
 var NodeServiceClientCapabilities = []base.LSPServiceClientCapability{
 	{
 		Name:            "referenced",
-		TemplateContext: scTc(referencedCondition{}),
-		Fn:              scFn((*NodeServiceClient).EvaluateReferenced),
+		TemplateContext: serviceClientTemplateContext(referencedCondition{}),
+		Fn:              serviceClientFn((*NodeServiceClient).EvaluateReferenced),
 	},
 	{
 		Name:            "dependency",
-		TemplateContext: scTc(base.NoOpCondition{}),
-		Fn:              scFn(base.EvaluateNoOp[*NodeServiceClient]),
+		TemplateContext: serviceClientTemplateContext(base.NoOpCondition{}),
+		Fn:              serviceClientFn(base.EvaluateNoOp[*NodeServiceClient]),
 	},
 }
 
@@ -130,14 +130,14 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return resp{}, fmt.Errorf("unable to get query info")
 	}
 
-	// f, err := os.ReadFile("/home/jonah/Projects/analyzer-lsp/examples/nodejs/test.ts")
+	// f, err := os.ReadFile("/path/to/test.ts")
 	// if err != nil {
 	// 	panic(err)
 	// }
 
 	// p := protocol.DidOpenTextDocumentParams{
 	// 	TextDocument: protocol.TextDocumentItem{
-	// 		URI:        "file:///home/jonah/Projects/analyzer-lsp/examples/nodejs/test.ts",
+	// 		URI:        "file:///path/to/test.ts",
 	// 		LanguageID: "typescript",
 	// 		Version:    0,
 	// 		Text:       string(f),
