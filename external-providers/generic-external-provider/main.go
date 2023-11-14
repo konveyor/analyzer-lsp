@@ -14,7 +14,7 @@ import (
 
 var (
 	port          = flag.Int("port", 0, "Port must be set")
-	lspServerName = flag.String("name", "generic", "lsp server name")
+	lspServerName = flag.String("name", "", "lsp server name")
 )
 
 func main() {
@@ -41,6 +41,10 @@ func main() {
 	// We could "fix" this by doing generic requests like
 	// "generic.gopls.referenced" or something, but that ruins the whole
 	// interchangeability aspect of the providers
+	if lspServerName == nil || *lspServerName == "" {
+		panic(fmt.Errorf("must pass in the name of the lsp server"))
+	}
+
 	client := generic_external_provider.NewGenericProvider(*lspServerName)
 
 	if port == nil || *port == 0 {

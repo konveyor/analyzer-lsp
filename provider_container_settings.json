@@ -35,13 +35,31 @@
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
-                "lspServerName": "generic",
+                "lspServerName": "pylsp",
                 "lspServerPath": "/usr/local/bin/pylsp",
                 "lspServerArgs": [],
                 "lspServerInitializationOptions": "",
 
                 "workspaceFolders": ["file:///analyzer-lsp/examples/python"],
                 "dependencyFolders": ["examples/python/__pycache__", "examples/python/.venv"],
+
+                "dependencyProviderPath": ""
+            }
+        }]
+    },
+    {
+        "name": "nodejs",
+        "binaryPath": "/usr/bin/generic-external-provider",
+        "initConfig": [{
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "nodejs",
+                "lspServerPath": "/usr/local/bin/typescript-language-server",
+                "lspServerArgs": ["--stdio"],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/nodejs"],
+                "dependencyFolders": [""],
 
                 "dependencyProviderPath": ""
             }

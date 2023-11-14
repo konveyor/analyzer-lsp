@@ -132,7 +132,17 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		cmd := exec.CommandContext(ctx, g.config.BinaryPath, "--port", fmt.Sprintf("%v", port))
+
+		// For the generic external provider
+		name := "generic"
+		ic := g.config.InitConfig
+		if len(ic) != 0 {
+			if newName, ok := ic[0].ProviderSpecificConfig["lspServerName"].(string); ok {
+				name = newName
+			}
+		}
+
+		cmd := exec.CommandContext(ctx, g.config.BinaryPath, "--port", fmt.Sprintf("%v", port), "--name", name)
 		// TODO: For each output line, log that line here, allows the server's to output to the main log file. Make sure we name this correctly
 		// cmd will exit with the ending of the ctx.
 		out, err := cmd.StdoutPipe()
