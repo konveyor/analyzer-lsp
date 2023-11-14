@@ -54,6 +54,7 @@ jobs:
 
   e2e:
     needs: test
-    uses: konveyor/ci/.github/workflows/global-ci.yml@main
+    uses: konveyor/ci/.github/workflows/global-ci.yml@maven-secrets-patch-1
     with:
       component_name: tackle2-addon-analyzer
+    secrets: inherit
