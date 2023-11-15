@@ -16,28 +16,24 @@ func Test_parseUnresolvedSources(t *testing.T) {
 		{
 			name: "valid sources output",
 			mvnOutput: `
-[INFO] --- dependency:3.5.0:sources (default-cli) @ spring-petclinic ---
-[INFO] The following files have been resolved:
-[INFO]    org.apache.tomcat:tomcat-servlet-api:jar:sources:9.0.46 -- module tomcat.servlet.api (auto)
-[INFO]    com.fasterxml.jackson.core:jackson-core:jar:sources:2.12.3
-[INFO]    com.fasterxml.jackson.core:jackson-databind:jar:sources:2.12.3
-[INFO] The following files have NOT been resolved:
-[INFO]    org.apache.tomcat:tomcat-servlet-api:jar:9.0.46:provided -- module java.servlet
-[INFO]    com.fasterxml.jackson.core:jackson-core:jar:2.12.3:compile -- module com.fasterxml.jackson.core
-[INFO]    com.fasterxml.jackson.core:jackson-databind:jar:2.12.3:compile -- module com.fasterxml.jackson.databind
-[INFO]    io.konveyor.demo:config-utils:jar:1.0.0:compile -- module config.utils (auto)
-[INFO] --- maven-dependency-plugin:3.5.0:sources (default-cli) @ spring-petclinic ---
-[INFO] -----------------------------------------------------------------------------
-[INFO] The following files have NOT been resolved:
-[INFO]    org.springframework.boot:spring-boot-actuator:jar:sources:3.1.0:compile
+[INFO] Downloaded from central: https://repo.maven.apache.org/maven2/com/vladsch/flexmark/flexmark-util/0.42.14/flexmark-util-0.42.14.jar (385 kB at 301 kB/s)
+[INFO] Downloaded from central: https://repo.maven.apache.org/maven2/javax/enterprise/cdi-api/1.2/cdi-api-1.2.jar (71 kB at 56 kB/s)
+[INFO] Downloaded from central: https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcore/4.4.14/httpcore-4.4.14.jar (328 kB at 253 kB/s)
+[WARNING] The following artifacts could not be resolved: antlr:antlr:jar:sources:2.7.7 (absent), io.konveyor.demo:config-utils:jar:1.0.0 (absent), io.konveyor.demo:config-utils:jar:sources:1.0.0 (absent): Could not find artifact antlr:antlr:jar:sources:2.7.7 in central (https://repo.maven.apache.org/maven2)
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  16.485 s
+[INFO] Finished at: 2023-11-15T12:52:59Z
+[INFO] ------------------------------------------------------------------------
 `,
 			wantErr: false,
 			wantList: []javaArtifact{
 				{
 					packaging:  JavaArchive,
-					GroupId:    "io.konveyor.demo",
-					ArtifactId: "config-utils",
-					Version:    "1.0.0",
+					GroupId:    "antlr",
+					ArtifactId: "antlr",
+					Version:    "2.7.7",
 				},
 			},
 		},
