@@ -2,6 +2,8 @@ package konveyor
 
 import (
 	"encoding/json"
+	"sort"
+	"strings"
 
 	"go.lsp.dev/uri"
 )
@@ -30,6 +32,14 @@ type RuleSet struct {
 	Unmatched []string `yaml:"unmatched,omitempty" json:"unmatched,omitempty"`
 	// Skipped is a list of rule IDs that were skipped
 	Skipped []string `yaml:"skipped,omitempty" json:"skipped,omitempty"`
+}
+
+func (r RuleSet) MarshalYAML() (interface{}, error) {
+	sort.Strings(r.Tags)
+	sort.Strings(r.Unmatched)
+	sort.Strings(r.Skipped)
+
+	return r, nil
 }
 
 type Category string
@@ -73,6 +83,42 @@ type Violation struct {
 	Effort *int `yaml:"effort,omitempty" json:"effort,omitempty"`
 }
 
+func (v Violation) MarshalYAML() (interface{}, error) {
+	sort.Strings(v.Labels)
+	sort.SliceStable(v.Incidents, func(i, j int) bool {
+		if v.Incidents[i].URI != v.Incidents[j].URI {
+			return v.Incidents[i].URI < v.Incidents[j].URI
+		}
+
+		if v.Incidents[i].Message != v.Incidents[j].Message {
+			return v.Incidents[i].Message < v.Incidents[j].Message
+		}
+
+		if v.Incidents[i].CodeSnip != v.Incidents[j].CodeSnip {
+			return v.Incidents[i].CodeSnip < v.Incidents[j].CodeSnip
+		}
+
+		if *v.Incidents[i].LineNumber != *v.Incidents[j].LineNumber {
+			return *v.Incidents[i].LineNumber < *v.Incidents[j].LineNumber
+		}
+
+		return false
+	})
+	sort.SliceStable(v.Links, func(i, j int) bool {
+		if v.Links[i].URL != v.Links[j].URL {
+			return v.Links[i].URL < v.Links[j].URL
+		}
+
+		if v.Links[i].Title != v.Links[j].Title {
+			return v.Links[i].Title < v.Links[j].Title
+		}
+
+		return false
+	})
+
+	return v, nil
+}
+
 // Incident defines instance of a violation
 type Incident struct {
 	// URI defines location in the codebase where violation is found
@@ -102,6 +148,46 @@ type Dep struct {
 	Extras             map[string]interface{} `json:"extras,omitempty" yaml:"extras,omitempty"`
 	Labels             []string               `json:"labels,omitempty" yaml:"labels,omitempty"`
 	FileURIPrefix      string                 `json:"prefix,omitempty" yaml:"prefix,omitempty"`
+}
+
+func (d Dep) MarshalYAML() (interface{}, error) {
+	sort.Strings(d.Labels)
+
+	return d, nil
+}
+
+func (d Dep) cmpLess(other Dep) bool {
+	if d.Name != other.Name {
+		return d.Name < other.Name
+	}
+
+	if d.Version != other.Version {
+		return d.Version < other.Version
+	}
+
+	if d.Type != other.Type {
+		return d.Type < other.Type
+	}
+
+	if d.Indirect != other.Indirect {
+		return !d.Indirect && other.Indirect
+	}
+
+	if d.ResolvedIdentifier != other.ResolvedIdentifier {
+		return d.ResolvedIdentifier < other.ResolvedIdentifier
+	}
+
+	dLabels := strings.Join(d.Labels, ",")
+	otherLabels := strings.Join(other.Labels, ",")
+	if dLabels != otherLabels {
+		return dLabels < otherLabels
+	}
+
+	if d.FileURIPrefix != other.FileURIPrefix {
+		return d.FileURIPrefix < other.FileURIPrefix
+	}
+
+	return false
 }
 
 func (d *Dep) GetLabels() []string {
