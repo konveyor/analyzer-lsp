@@ -234,7 +234,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		isBinary = true
 	}
 
-	if mode == provider.SourceOnlyAnalysisMode {
+	if mode == provider.FullAnalysisMode {
 		// we attempt to decompile JARs of dependencies that don't have a sources JAR attached
 		// we need to do this for jdtls to correctly recognize source attachment for dep
 		err := resolveSourcesJars(ctx, log, config.Location, mavenSettingsFile)
