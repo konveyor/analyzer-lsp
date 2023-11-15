@@ -18,7 +18,6 @@ import (
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/vifraa/gopom"
 	"go.lsp.dev/uri"
 )
 
@@ -331,14 +330,10 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 
 	log.V(5).Info("resolving dependency sources")
 
-	pomPath := fmt.Sprintf("%s/pom.xml", location)
-	pom, err := gopom.Parse(pomPath)
-	if err != nil {
-		return err
-	}
-
 	args := []string{
-		"dependency:go-offline",
+		"-B",
+		"de.qaware.maven:go-offline-maven-plugin:resolve-dependencies",
+		"-DdownloadSources",
 		"-Djava.net.useSystemProxies=true",
 	}
 	if mavenSettings != "" {
@@ -346,35 +341,18 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	}
 	cmd := exec.CommandContext(ctx, "mvn", args...)
 	cmd.Dir = location
-	err = cmd.Run()
-	if err != nil {
-		log.V(5).Error(err, "failed to download dependencies, continuing to download sources")
-	}
-
-	args = []string{
-		"-B",
-		"org.apache.maven.plugins:maven-dependency-plugin:3.6.2-SNAPSHOT:sources",
-		"-Djava.net.useSystemProxies=true",
-	}
-
-	if mavenSettings != "" {
-		args = append(args, "-s", mavenSettings)
-	}
-	cmd = exec.CommandContext(ctx, "mvn", args...)
-	cmd.Dir = location
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
 	}
+
+	log.V(8).WithValues("output", mvnOutput).Info("got maven output")
 
 	reader := bytes.NewReader(mvnOutput)
 	artifacts, err := parseUnresolvedSources(reader)
 	if err != nil {
 		return err
 	}
-
-	// remove unresolved sources if they are an actual module in the project
-	artifacts = filterExistingSubmodules(artifacts, pom)
 
 	m2Repo := getMavenLocalRepoPath(mavenSettings)
 	if m2Repo == "" {
@@ -411,100 +389,60 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 	return nil
 }
 
-// filterExistingSubmodules takes a list of artifacts and removes the ones existing in the given pom's modules list
-func filterExistingSubmodules(artifacts []javaArtifact, pom *gopom.Project) []javaArtifact {
-	if pom.Modules == nil {
-		return artifacts
-	}
-
-	var filtered []javaArtifact
-	for _, artifact := range artifacts {
-		found := false
-		for _, module := range *pom.Modules {
-			if artifact.ArtifactId == module {
-				found = true
-				break
-			}
-		}
-		if !found {
-			filtered = append(filtered, artifact)
-		}
-	}
-
-	return filtered
-}
-
-// parseUnresolvedSources takes the output from mvn dependency:sources and returns the artifacts whose sources
+// parseUnresolvedSources takes the output from the go-offline maven plugin and returns the artifacts whose sources
 // could not be found.
 func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
+	unresolvedSources := []javaArtifact{}
 	unresolvedArtifacts := []javaArtifact{}
-	resolvedArtifacts := []javaArtifact{}
+
 	scanner := bufio.NewScanner(output)
 
-	sourcesPluginSeparatorSeen := false
-	resolvedSeparatorSeen, unresolvedSeparatorSeen := false, false
-	sourcesPluginRegex := regexp.MustCompile(`dependency:[\w.\-]+:sources`)
-	resolvedRegex := regexp.MustCompile(`The following files have been resolved`)
-	unresolvedRegex := regexp.MustCompile(`The following files have NOT been resolved`)
+	unresolvedRegex := regexp.MustCompile(`\[WARNING] The following artifacts could not be resolved`)
+	artifactRegex := regexp.MustCompile(`([\w\.]+):([\w\-]+):\w+:([\w\.]+):?([\w\.]+)?`)
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		line = strings.TrimPrefix(line, "[INFO] ")
-		line = strings.Trim(line, " ")
 
-		if sourcesPluginRegex.Find([]byte(line)) != nil {
-			sourcesPluginSeparatorSeen = true
-			unresolvedSeparatorSeen = false
-		} else if unresolvedRegex.Find([]byte(line)) != nil {
-			unresolvedSeparatorSeen = true
-			resolvedSeparatorSeen = false
-		} else if resolvedRegex.Find([]byte(line)) != nil {
-			resolvedSeparatorSeen = true
-			unresolvedSeparatorSeen = false
-		} else if sourcesPluginSeparatorSeen && (unresolvedSeparatorSeen || resolvedSeparatorSeen) {
-			line, _, _ = strings.Cut(line, " --") // ie: "org.apache.derby:derby:jar:10.14.2.0:test -- module derby (auto)"
+		if unresolvedRegex.Find([]byte(line)) != nil {
+			gavs := artifactRegex.FindAllStringSubmatch(line, -1)
+			for _, gav := range gavs {
+				// dependency jar (not sources) also not found
+				if len(gav) == 5 && gav[3] != "sources" {
+					artifact := javaArtifact{
+						packaging:  JavaArchive,
+						GroupId:    gav[1],
+						ArtifactId: gav[2],
+						Version:    gav[3],
+					}
+					unresolvedArtifacts = append(unresolvedArtifacts, artifact)
+					continue
+				}
 
-			// this is the last line which coincidently has 5 parts separated by :
-			if strings.Contains(line, "Finished") {
-				continue
-			}
+				var v string
+				if len(gav) == 4 {
+					v = gav[3]
+				} else {
+					v = gav[4]
+				}
+				artifact := javaArtifact{
+					packaging:  JavaArchive,
+					GroupId:    gav[1],
+					ArtifactId: gav[2],
+					Version:    v,
+				}
 
-			parts := strings.Split(line, ":")
-			if len(parts) != 5 {
-				continue
-			}
-
-			var version string
-			groupId := parts[0]
-			artifactId := parts[1]
-			if unresolvedSeparatorSeen {
-				version = parts[3]
-			} else {
-				version = parts[4]
-			}
-
-			artifact := javaArtifact{
-				packaging:  JavaArchive,
-				ArtifactId: artifactId,
-				GroupId:    groupId,
-				Version:    version,
-			}
-
-			if unresolvedSeparatorSeen {
-				unresolvedArtifacts = append(unresolvedArtifacts, artifact)
-			} else {
-				resolvedArtifacts = append(resolvedArtifacts, artifact)
+				unresolvedSources = append(unresolvedSources, artifact)
 			}
 		}
 	}
 
-	// Not resolved artifacts many times have actually been resolved, but for some reason
-	// they appear as not resolved, so the difference between the not resolved and the resolved
-	// is what we look for
+	// if we don't have the dependency itself available, we can't even decompile
 	result := []javaArtifact{}
-	for _, artifact := range unresolvedArtifacts {
-		if !contains(resolvedArtifacts, artifact) {
-			result = append(result, artifact)
+	for _, artifact := range unresolvedSources {
+		if contains(unresolvedArtifacts, artifact) || contains(result, artifact) {
+			continue
 		}
+		result = append(result, artifact)
 	}
 
 	return result, scanner.Err()
