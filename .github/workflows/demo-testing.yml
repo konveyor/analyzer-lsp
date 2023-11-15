@@ -27,7 +27,6 @@ jobs:
       - name: run demo image and ensure dependency output unchanged
         run: |
           podman run --entrypoint /usr/bin/konveyor-analyzer-dep -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z localhost/testing:latest --output-file=demo-dep-output.yaml
-          podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
           diff \
             <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)))) \
             <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))))
@@ -54,7 +53,7 @@ jobs:
 
   e2e:
     needs: test
-    uses: konveyor/ci/.github/workflows/global-ci.yml@maven-secrets-patch-1
+    uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
       component_name: tackle2-addon-analyzer
     secrets: inherit
