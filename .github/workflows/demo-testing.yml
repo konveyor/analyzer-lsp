@@ -32,19 +32,28 @@ jobs:
             <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)))) \
             <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))))
 
-      - name: save image
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          repository: konveyor/tackle2-addon-analyzer
+          ref: main
+          path: tackle2-addon-analyzer
+
+      - name: Build addon and save image
+        working-directory: tackle2-addon-analyzer
         run: |
-          podman save -o /tmp/analyzer-lsp.tar quay.io/konveyor/analyzer-lsp:latest
+          IMG=quay.io/konveyor/tackle2-addon-analyzer:latest make image-podman
+          podman save -o /tmp/tackle2-addon-analyzer.tar quay.io/konveyor/tackle2-addon-analyzer:latest
 
       - name: Upload image as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: analyzer-lsp
-          path: /tmp/analyzer-lsp.tar
+          name: tackle2-addon-analyzer
+          path: /tmp/tackle2-addon-analyzer.tar
           retention-days: 1
 
   e2e:
     needs: test
     uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
-      component_name: analyzer-lsp
+      component_name: tackle2-addon-analyzer
