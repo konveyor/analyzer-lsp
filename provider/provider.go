@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/cbroglie/mustache"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -336,6 +337,10 @@ type ServiceClient interface {
 	GetDependenciesDAG(ctx context.Context) (map[uri.URI][]DepDAGItem, error)
 }
 
+type DependencyLocationResolver interface {
+	GetLocation(ctx context.Context, dep konveyor.Dep) (engine.Location, error)
+}
+
 type Dep = konveyor.Dep
 type DepDAGItem = konveyor.DepDAGItem
 type Startable interface {
@@ -561,17 +566,33 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		return resp, nil
 	}
 
+	var depLocationResolver DependencyLocationResolver
+	depLocationResolver, _ = dc.Client.(DependencyLocationResolver)
+
 	for _, matchedDep := range matchedDeps {
 		if matchedDep.dep.Version == "" || (dc.Lowerbound == "" && dc.Upperbound == "") {
-			resp.Matched = true
-			resp.Incidents = append(resp.Incidents, engine.IncidentContext{
+			incident := engine.IncidentContext{
 				FileURI: matchedDep.uri,
 				Variables: map[string]interface{}{
 					"name":    matchedDep.dep.Name,
 					"version": matchedDep.dep.Version,
 					"type":    matchedDep.dep.Type,
 				},
-			})
+			}
+			if depLocationResolver != nil {
+				// this is a best-effort step and we don't want to block if resolver misbehaves
+				timeoutContext, cancelFunc := context.WithTimeout(ctx, time.Second*3)
+				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
+				if err == nil {
+					incident.LineNumber = &location.StartPosition.Line
+					incident.CodeLocation = &location
+				} else {
+					log.V(7).Error(err, "failed to get location for dependency", "dep", matchedDep.dep.Name)
+				}
+				cancelFunc()
+			}
+			resp.Matched = true
+			resp.Incidents = append(resp.Incidents, incident)
 			// For now, lets leave this TODO to figure out what we should be setting in the context
 			resp.TemplateContext = map[string]interface{}{
 				"name":    matchedDep.dep.Name,
@@ -612,13 +633,26 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		}
 
 		resp.Matched = constraints.Check(depVersion)
-		resp.Incidents = append(resp.Incidents, engine.IncidentContext{
+		incident := engine.IncidentContext{
 			FileURI: matchedDep.uri,
 			Variables: map[string]interface{}{
 				"name":    matchedDep.dep.Name,
 				"version": matchedDep.dep.Version,
 			},
-		})
+		}
+		if depLocationResolver != nil {
+			// this is a best-effort step and we don't want to block if resolver misbehaves
+			timeoutContext, cancelFunc := context.WithTimeout(context.Background(), time.Second*3)
+			location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
+			if err == nil {
+				incident.LineNumber = &location.StartPosition.Line
+				incident.CodeLocation = &location
+			} else {
+				log.V(7).Error(err, "failed to get location for dependency", "dep", matchedDep.dep.Name)
+			}
+			cancelFunc()
+		}
+		resp.Incidents = append(resp.Incidents, incident)
 		resp.TemplateContext = map[string]interface{}{
 			"name":    matchedDep.dep.Name,
 			"version": matchedDep.dep.Version,

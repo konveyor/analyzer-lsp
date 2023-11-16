@@ -12,120 +12,160 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+        codeSnip: "14  \n15    <properties>\n16      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n17      <maven.compiler.source>1.7</maven.compiler.source>\n18      <maven.compiler.target>1.7</maven.compiler.target>\n19    </properties>\n20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>"
+        lineNumber: 23
         variables:
           data: dependency
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
           matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
+        codeSnip: "20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>"
+        lineNumber: 29
         variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
+        codeSnip: "25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>\n41      <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->\n42        <plugins>\n43          <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->\n44          <plugin>\n45            <artifactId>maven-clean-plugin</artifactId>"
+        lineNumber: 34
         variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
+        codeSnip: "36  \t\t\t<id>demo-config</id>\n37  \t\t\t<name>Azure DevOps</name>\n38  \t\t\t<url>https://pkgs.dev.azure.com/ShawnHurley21/demo-config-utils/_packaging/demo-config/maven/v1</url>\n39  \t\t</repository>\n40  \t</repositories>\n41  \n42  \t<dependencyManagement>\n43  \t\t<dependencies>\n44  \t\t\t<dependency>\n45  \t\t\t\t<groupId>com.fasterxml.jackson</groupId>\n46  \t\t\t\t<artifactId>jackson-bom</artifactId>\n47  \t\t\t\t<version>${jackson.version}</version>\n48  \t\t\t\t<scope>import</scope>\n49  \t\t\t\t<type>pom</type>\n50  \t\t\t</dependency>\n51  \t\t\t<dependency>\n52  \t\t\t\t<groupId>org.springframework.data</groupId>\n53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>"
+        lineNumber: 45
         variables:
           data: dependency
           innerText: "\n\t\t\t\tcom.fasterxml.jackson\n\t\t\t\tjackson-bom\n\t\t\t\t${jackson.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
           matchingXML: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
+        codeSnip: "43  \t\t<dependencies>\n44  \t\t\t<dependency>\n45  \t\t\t\t<groupId>com.fasterxml.jackson</groupId>\n46  \t\t\t\t<artifactId>jackson-bom</artifactId>\n47  \t\t\t\t<version>${jackson.version}</version>\n48  \t\t\t\t<scope>import</scope>\n49  \t\t\t\t<type>pom</type>\n50  \t\t\t</dependency>\n51  \t\t\t<dependency>\n52  \t\t\t\t<groupId>org.springframework.data</groupId>\n53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>\n57  \t\t\t</dependency>\n58  \t\t</dependencies>\n59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>"
+        lineNumber: 52
         variables:
           data: dependency
           innerText: "\n\t\t\t\torg.springframework.data\n\t\t\t\tspring-data-bom\n\t\t\t\t${spring-data.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
+        codeSnip: "53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>\n57  \t\t\t</dependency>\n58  \t\t</dependencies>\n59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>"
+        lineNumber: 62
         variables:
           data: dependency
           innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-servlet-api\n\t\t\t${tomcat.version}\n\t\t\tprovided\n\t\t"
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
+        codeSnip: "59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  "
+        lineNumber: 68
         variables:
           data: dependency
           innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-core\n\t\t"
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
+        codeSnip: "63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>"
+        lineNumber: 72
         variables:
           data: dependency
           innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-databind\n\t\t"
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
+        codeSnip: "67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>"
+        lineNumber: 76
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework.data\n\t\t\tspring-data-jpa\n\t\t"
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
+        codeSnip: "72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>"
+        lineNumber: 81
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-jdbc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>\n93  \t\t\t<version>${spring-framework.version}</version>\n94  \t\t</dependency>\n95  \t\t<dependency>\n96  \t\t\t<groupId>org.springframework.boot</groupId>\n97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
+        lineNumber: 86
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
+        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>\n93  \t\t\t<version>${spring-framework.version}</version>\n94  \t\t</dependency>\n95  \t\t<dependency>\n96  \t\t\t<groupId>org.springframework.boot</groupId>\n97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
+        lineNumber: 86
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-web\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
+        codeSnip: " 87  \t\t\t<artifactId>spring-webmvc</artifactId>\n 88  \t\t\t<version>${spring-framework.version}</version>\n 89  \t\t</dependency>\n 90  \t\t<dependency>\n 91  \t\t\t<groupId>org.springframework</groupId>\n 92  \t\t\t<artifactId>spring-web</artifactId>\n 93  \t\t\t<version>${spring-framework.version}</version>\n 94  \t\t</dependency>\n 95  \t\t<dependency>\n 96  \t\t\t<groupId>org.springframework.boot</groupId>\n 97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>\n 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>"
+        lineNumber: 96
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework.boot\n\t\t\tspring-boot-starter-actuator\n\t\t\t2.5.0\n\t\t"
           matchingXML: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
+        codeSnip: " 92  \t\t\t<artifactId>spring-web</artifactId>\n 93  \t\t\t<version>${spring-framework.version}</version>\n 94  \t\t</dependency>\n 95  \t\t<dependency>\n 96  \t\t\t<groupId>org.springframework.boot</groupId>\n 97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>\n 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>"
+        lineNumber: 101
         variables:
           data: dependency
           innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-jdbc\n\t\t\t${tomcat.version}\n\t\t\truntime\n\t\t"
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
+        codeSnip: " 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>"
+        lineNumber: 107
         variables:
           data: dependency
           innerText: "\n\t\t\torg.hibernate\n\t\t\thibernate-entitymanager\n\t\t\t${hibernate.version}\n\t\t"
           matchingXML: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
+        codeSnip: "103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>"
+        lineNumber: 112
         variables:
           data: dependency
           innerText: "\n\t\t\torg.hibernate.validator\n\t\t\thibernate-validator\n\t\t\t${hibernate-validator.version}\n\t\t"
           matchingXML: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
+        codeSnip: "108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>"
+        lineNumber: 117
         variables:
           data: dependency
           innerText: "\n\t\t\tch.qos.logback\n\t\t\tlogback-classic\n\t\t\t1.1.7\n\t\t"
           matchingXML: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
+        codeSnip: "113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>"
+        lineNumber: 122
         variables:
           data: dependency
           innerText: "\n\t\t\tcom.oracle.database.jdbc\n\t\t\tojdbc8\n\t\t\t21.1.0.0\n\t\t"
           matchingXML: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
+        codeSnip: "118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>\n134  \t\t\t<artifactId>config-utils</artifactId>\n135  \t\t\t<version>1.0.0</version>\n136  \t\t</dependency>\n137  \n138  \t</dependencies>"
+        lineNumber: 127
         variables:
           data: dependency
           innerText: "\n\t\t\torg.postgresql\n\t\t\tpostgresql\n\t\t\t42.2.23\n\t\t"
           matchingXML: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
+        codeSnip: "124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>\n134  \t\t\t<artifactId>config-utils</artifactId>\n135  \t\t\t<version>1.0.0</version>\n136  \t\t</dependency>\n137  \n138  \t</dependencies>\n139  \t<build>\n140  \t\t<plugins>\n141  \t\t\t<plugin>\n142  \t\t\t\t<groupId>org.apache.maven.plugins</groupId>\n143  \t\t\t\t<artifactId>maven-compiler-plugin</artifactId>\n144  \t\t\t\t<version>${maven-compiler-plugin.version}</version>"
+        lineNumber: 133
         variables:
           data: dependency
           innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"
@@ -189,11 +229,15 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: dependency junit.junit with 4.11 is bad and you should feel bad for using it
+        codeSnip: "14  \n15    <properties>\n16      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n17      <maven.compiler.source>1.7</maven.compiler.source>\n18      <maven.compiler.target>1.7</maven.compiler.target>\n19    </properties>\n20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>"
+        lineNumber: 23
         variables:
           name: junit.junit
           version: "4.11"
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you should feel bad for using it
+        codeSnip: "20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>"
+        lineNumber: 29
         variables:
           name: io.fabric8.kubernetes-client
           version: 6.0.0
@@ -362,120 +406,160 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>'
+        codeSnip: "14  \n15    <properties>\n16      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n17      <maven.compiler.source>1.7</maven.compiler.source>\n18      <maven.compiler.target>1.7</maven.compiler.target>\n19    </properties>\n20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>"
+        lineNumber: 23
         variables:
           data: dependency
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
           matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>'
+        codeSnip: "20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>"
+        lineNumber: 29
         variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>'
+        codeSnip: "25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>\n41      <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->\n42        <plugins>\n43          <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->\n44          <plugin>\n45            <artifactId>maven-clean-plugin</artifactId>"
+        lineNumber: 34
         variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>'
+        codeSnip: "36  \t\t\t<id>demo-config</id>\n37  \t\t\t<name>Azure DevOps</name>\n38  \t\t\t<url>https://pkgs.dev.azure.com/ShawnHurley21/demo-config-utils/_packaging/demo-config/maven/v1</url>\n39  \t\t</repository>\n40  \t</repositories>\n41  \n42  \t<dependencyManagement>\n43  \t\t<dependencies>\n44  \t\t\t<dependency>\n45  \t\t\t\t<groupId>com.fasterxml.jackson</groupId>\n46  \t\t\t\t<artifactId>jackson-bom</artifactId>\n47  \t\t\t\t<version>${jackson.version}</version>\n48  \t\t\t\t<scope>import</scope>\n49  \t\t\t\t<type>pom</type>\n50  \t\t\t</dependency>\n51  \t\t\t<dependency>\n52  \t\t\t\t<groupId>org.springframework.data</groupId>\n53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>"
+        lineNumber: 45
         variables:
           data: dependency
           innerText: "\n\t\t\t\tcom.fasterxml.jackson\n\t\t\t\tjackson-bom\n\t\t\t\t${jackson.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
           matchingXML: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>'
+        codeSnip: "43  \t\t<dependencies>\n44  \t\t\t<dependency>\n45  \t\t\t\t<groupId>com.fasterxml.jackson</groupId>\n46  \t\t\t\t<artifactId>jackson-bom</artifactId>\n47  \t\t\t\t<version>${jackson.version}</version>\n48  \t\t\t\t<scope>import</scope>\n49  \t\t\t\t<type>pom</type>\n50  \t\t\t</dependency>\n51  \t\t\t<dependency>\n52  \t\t\t\t<groupId>org.springframework.data</groupId>\n53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>\n57  \t\t\t</dependency>\n58  \t\t</dependencies>\n59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>"
+        lineNumber: 52
         variables:
           data: dependency
           innerText: "\n\t\t\t\torg.springframework.data\n\t\t\t\tspring-data-bom\n\t\t\t\t${spring-data.version}\n\t\t\t\timport\n\t\t\t\tpom\n\t\t\t"
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>'
+        codeSnip: "53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>\n57  \t\t\t</dependency>\n58  \t\t</dependencies>\n59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>"
+        lineNumber: 62
         variables:
           data: dependency
           innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-servlet-api\n\t\t\t${tomcat.version}\n\t\t\tprovided\n\t\t"
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>'
+        codeSnip: "59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  "
+        lineNumber: 68
         variables:
           data: dependency
           innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-core\n\t\t"
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>'
+        codeSnip: "63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>"
+        lineNumber: 72
         variables:
           data: dependency
           innerText: "\n\t\t\tcom.fasterxml.jackson.core\n\t\t\tjackson-databind\n\t\t"
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>'
+        codeSnip: "67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>"
+        lineNumber: 76
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework.data\n\t\t\tspring-data-jpa\n\t\t"
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>'
+        codeSnip: "72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>"
+        lineNumber: 81
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-jdbc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>'
+        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>\n93  \t\t\t<version>${spring-framework.version}</version>\n94  \t\t</dependency>\n95  \t\t<dependency>\n96  \t\t\t<groupId>org.springframework.boot</groupId>\n97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
+        lineNumber: 86
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>'
+        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>\n93  \t\t\t<version>${spring-framework.version}</version>\n94  \t\t</dependency>\n95  \t\t<dependency>\n96  \t\t\t<groupId>org.springframework.boot</groupId>\n97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
+        lineNumber: 86
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-web\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>'
+        codeSnip: " 87  \t\t\t<artifactId>spring-webmvc</artifactId>\n 88  \t\t\t<version>${spring-framework.version}</version>\n 89  \t\t</dependency>\n 90  \t\t<dependency>\n 91  \t\t\t<groupId>org.springframework</groupId>\n 92  \t\t\t<artifactId>spring-web</artifactId>\n 93  \t\t\t<version>${spring-framework.version}</version>\n 94  \t\t</dependency>\n 95  \t\t<dependency>\n 96  \t\t\t<groupId>org.springframework.boot</groupId>\n 97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>\n 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>"
+        lineNumber: 96
         variables:
           data: dependency
           innerText: "\n\t\t\torg.springframework.boot\n\t\t\tspring-boot-starter-actuator\n\t\t\t2.5.0\n\t\t"
           matchingXML: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>'
+        codeSnip: " 92  \t\t\t<artifactId>spring-web</artifactId>\n 93  \t\t\t<version>${spring-framework.version}</version>\n 94  \t\t</dependency>\n 95  \t\t<dependency>\n 96  \t\t\t<groupId>org.springframework.boot</groupId>\n 97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>\n 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>"
+        lineNumber: 101
         variables:
           data: dependency
           innerText: "\n\t\t\torg.apache.tomcat\n\t\t\ttomcat-jdbc\n\t\t\t${tomcat.version}\n\t\t\truntime\n\t\t"
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>'
+        codeSnip: " 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>"
+        lineNumber: 107
         variables:
           data: dependency
           innerText: "\n\t\t\torg.hibernate\n\t\t\thibernate-entitymanager\n\t\t\t${hibernate.version}\n\t\t"
           matchingXML: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>'
+        codeSnip: "103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>"
+        lineNumber: 112
         variables:
           data: dependency
           innerText: "\n\t\t\torg.hibernate.validator\n\t\t\thibernate-validator\n\t\t\t${hibernate-validator.version}\n\t\t"
           matchingXML: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>'
+        codeSnip: "108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>"
+        lineNumber: 117
         variables:
           data: dependency
           innerText: "\n\t\t\tch.qos.logback\n\t\t\tlogback-classic\n\t\t\t1.1.7\n\t\t"
           matchingXML: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>'
+        codeSnip: "113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>"
+        lineNumber: 122
         variables:
           data: dependency
           innerText: "\n\t\t\tcom.oracle.database.jdbc\n\t\t\tojdbc8\n\t\t\t21.1.0.0\n\t\t"
           matchingXML: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>'
+        codeSnip: "118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>\n134  \t\t\t<artifactId>config-utils</artifactId>\n135  \t\t\t<version>1.0.0</version>\n136  \t\t</dependency>\n137  \n138  \t</dependencies>"
+        lineNumber: 127
         variables:
           data: dependency
           innerText: "\n\t\t\torg.postgresql\n\t\t\tpostgresql\n\t\t\t42.2.23\n\t\t"
           matchingXML: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>'
+        codeSnip: "124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>\n134  \t\t\t<artifactId>config-utils</artifactId>\n135  \t\t\t<version>1.0.0</version>\n136  \t\t</dependency>\n137  \n138  \t</dependencies>\n139  \t<build>\n140  \t\t<plugins>\n141  \t\t\t<plugin>\n142  \t\t\t\t<groupId>org.apache.maven.plugins</groupId>\n143  \t\t\t\t<artifactId>maven-compiler-plugin</artifactId>\n144  \t\t\t\t<version>${maven-compiler-plugin.version}</version>"
+        lineNumber: 133
         variables:
           data: dependency
           innerText: "\n\t\t\tio.konveyor.demo\n\t\t\tconfig-utils\n\t\t\t1.0.0\n\t\t"

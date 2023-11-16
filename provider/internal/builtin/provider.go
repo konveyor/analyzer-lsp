@@ -128,6 +128,8 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 		config:                             config,
 		tags:                               p.tags,
 		UnimplementedDependenciesComponent: provider.UnimplementedDependenciesComponent{},
+		locationCache:                      make(map[string]float64),
+		log:                                log,
 	}, nil
 }
 
