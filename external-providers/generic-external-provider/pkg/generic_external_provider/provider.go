@@ -74,8 +74,9 @@ func (p *genericProvider) Capabilities() []provider.Capability {
 func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
 	lspServerName, ok := c.ProviderSpecificConfig["lspServerName"].(string)
 	if !ok {
-		return nil, fmt.Errorf("need lspServerName")
+		lspServerName = "generic"
 	}
+
 	if p.lspServerName != lspServerName {
 		return nil, fmt.Errorf("lspServerName must be the same for each instantiation of the generic-external-provider (%s != %s)", p.lspServerName, lspServerName)
 	}

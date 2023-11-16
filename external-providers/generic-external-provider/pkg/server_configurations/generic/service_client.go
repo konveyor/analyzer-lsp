@@ -64,7 +64,17 @@ func NewGenericServiceClient(ctx context.Context, log logr.Logger, c provider.In
 	// TODO(jsussman): Support more than one folder. This hack with only taking
 	// the first item in WorkspaceFolders is littered throughout.
 	params := protocol.InitializeParams{}
-	params.RootURI = sc.Config.WorkspaceFolders[0]
+
+	if c.Location != "" {
+		sc.Config.WorkspaceFolders = []string{c.Location}
+	}
+
+	if len(sc.Config.WorkspaceFolders) == 0 {
+		params.RootURI = ""
+	} else {
+		params.RootURI = sc.Config.WorkspaceFolders[0]
+	}
+
 	params.Capabilities = protocol.ClientCapabilities{}
 
 	var InitializationOptions map[string]any

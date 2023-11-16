@@ -144,6 +144,8 @@ type LSPServiceClientBase struct {
 
 	ServerCapabilities protocol.ServerCapabilities
 	ServerInfo         *protocol.PServerInfoMsg_initialize
+
+	TempDir string
 }
 
 func NewLSPServiceClientBase(
@@ -161,13 +163,23 @@ func NewLSPServiceClientBase(
 		return nil, err
 	}
 
-	// Ensure everything is ok in the config
 	if sc.BaseConfig.LspServerPath == "" {
 		return nil, fmt.Errorf("must provide lspServerPath")
 	}
 
 	if sc.BaseConfig.LspServerName == "" {
-		return nil, fmt.Errorf("must provide LspServerName")
+		sc.BaseConfig.LspServerName = "generic"
+		// return nil, fmt.Errorf("must provide LspServerName")
+	}
+
+	if initializeParams.RootURI == "" && len(initializeParams.WorkspaceFolders) == 0 {
+		TempDir, err := os.MkdirTemp("", "tmp")
+		if err != nil {
+			return nil, err
+		}
+
+		sc.TempDir = TempDir
+		initializeParams.RootURI = "file://" + TempDir
 	}
 
 	// Create the ctx, cancelFunc, and log
@@ -233,6 +245,10 @@ func (sc *LSPServiceClientBase) GetLSPServiceClientBase() *LSPServiceClientBase 
 func (sc *LSPServiceClientBase) Stop() {
 	sc.CancelFunc()
 	sc.Conn.Close()
+
+	if sc.TempDir != "" {
+		os.RemoveAll(sc.TempDir)
+	}
 }
 
 // This GetDependencies method was the one that was present in the

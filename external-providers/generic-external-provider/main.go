@@ -42,7 +42,9 @@ func main() {
 	// "generic.gopls.referenced" or something, but that ruins the whole
 	// interchangeability aspect of the providers
 	if lspServerName == nil || *lspServerName == "" {
-		panic(fmt.Errorf("must pass in the name of the lsp server"))
+		x := "generic"
+		lspServerName = &x
+		// panic(fmt.Errorf("must pass in the name of the lsp server"))
 	}
 
 	client := generic_external_provider.NewGenericProvider(*lspServerName)
