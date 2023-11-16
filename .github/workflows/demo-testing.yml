@@ -21,39 +21,30 @@ jobs:
         run: |
           podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
           diff \
-            <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)))) \
-            <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))))
+            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)) \
+            <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))
 
       - name: run demo image and ensure dependency output unchanged
         run: |
           podman run --entrypoint /usr/bin/konveyor-analyzer-dep -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z localhost/testing:latest --output-file=demo-dep-output.yaml
           podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
           diff \
-            <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)))) \
-            <(sort <(sed 's/incidents\.[0-9]\+/incidents\.x/g' <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))))
+            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
+            <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
 
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          repository: konveyor/tackle2-addon-analyzer
-          ref: main
-          path: tackle2-addon-analyzer
-
-      - name: Build addon and save image
-        working-directory: tackle2-addon-analyzer
+      - name: save image
         run: |
-          IMG=quay.io/konveyor/tackle2-addon-analyzer:latest make image-podman
-          podman save -o /tmp/tackle2-addon-analyzer.tar quay.io/konveyor/tackle2-addon-analyzer:latest
+          podman save -o /tmp/analyzer-lsp.tar quay.io/konveyor/analyzer-lsp:latest
 
       - name: Upload image as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: tackle2-addon-analyzer
-          path: /tmp/tackle2-addon-analyzer.tar
+          name: analyzer-lsp
+          path: /tmp/analyzer-lsp.tar
           retention-days: 1
 
   e2e:
     needs: test
     uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
-      component_name: tackle2-addon-analyzer
+      component_name: analyzer-lsp

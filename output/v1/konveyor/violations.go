@@ -53,6 +53,13 @@ func (r RuleSet) MarshalYAML() (interface{}, error) {
 	return r, nil
 }
 
+// NOTE(jsussman): Might have some performance issues.
+//
+// MarshalYAML's return value is (interface{}, error), meaning it simply
+// propagates the object forward, unmarshalling whatever you return.
+// MarshalJSON's return value is ([]byte, error), meaning you have to build the
+// JSON yourself. You'd think we can simply call r.sortFields and then
+// json.Marshal(r) like MarshalYAML, but that causes infinite recursion.
 func (r RuleSet) MarshalJSON() ([]byte, error) {
 	b, err := yaml.Marshal(r)
 	if err != nil {
