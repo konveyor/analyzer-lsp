@@ -153,7 +153,6 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 	// Need a better name for this thing
 	ret := make(chan response)
 
-	var totalRules int32
 	var matchedRules int32
 	var unmatchedRules int32
 	var failedRules int32
@@ -195,8 +194,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 							rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
 						}
 					}
-					atomic.AddInt32(&totalRules, 1)
-					r.logger.V(5).Info("rule response received", "total", totalRules, "failed", failedRules, "matched", matchedRules, "unmatched", unmatchedRules)
+					r.logger.V(5).Info("rule response received", "total", len(otherRules), "failed", failedRules, "matched", matchedRules, "unmatched", unmatchedRules)
 
 				}()
 			case <-ctx.Done():
