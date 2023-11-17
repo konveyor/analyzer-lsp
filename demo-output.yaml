@@ -146,26 +146,94 @@
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+      - uri: file:///analyzer-lsp/examples/java/dummy/pom.xml
+        message: |-
+          <groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
+                           as the property cannot be resolved here but only in the parent POM --><version>${javaee-api.version}</version><scope>provided</scope>
+        variables:
+          data: dependency
+          innerText: "\n            javax\n            javaee-api\n            \n            ${javaee-api.version}\n            provided\n        "
+          matchingXML: |-
+            <groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
+                             as the property cannot be resolved here but only in the parent POM --><version>${javaee-api.version}</version><scope>provided</scope>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
-        codeSnip: "25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>\n41      <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->\n42        <plugins>\n43          <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->\n44          <plugin>\n45            <artifactId>maven-clean-plugin</artifactId>"
-        lineNumber: 34
+        codeSnip: |-
+          30        <version>4.11</version>
+          31        <scope>test</scope>
+          32      </dependency>
+          33      <dependency>
+          34        <groupId>io.fabric8</groupId>
+          35        <artifactId>kubernetes-client</artifactId>
+          36        <version>6.0.0</version>
+          37      </dependency>
+          38      <dependency>
+          39        <groupId>io.fabric8</groupId>
+          40        <artifactId>kubernetes-client-api</artifactId>
+          41        <version>6.0.0</version>
+          42      </dependency>
+          43      <dependency>
+          44        <groupId>javax</groupId>
+          45        <artifactId>javaee-api</artifactId>
+          46        <version>${javaee-api.version}</version>
+          47        <scope>provided</scope>
+          48      </dependency>
+          49      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
+          50      <dependency>
+        lineNumber: 39
         variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
-        codeSnip: "20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>"
-        lineNumber: 29
+        codeSnip: "25  \n26    <dependencies>\n27      <dependency>\n28        <groupId>junit</groupId>\n29        <artifactId>junit</artifactId>\n30        <version>4.11</version>\n31        <scope>test</scope>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38      <dependency>\n39        <groupId>io.fabric8</groupId>\n40        <artifactId>kubernetes-client-api</artifactId>\n41        <version>6.0.0</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>javax</groupId>\n45        <artifactId>javaee-api</artifactId>"
+        lineNumber: 34
         variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: <groupId>io.netty</groupId><artifactId>netty-transport-native-epoll</artifactId><version>4.1.76.Final</version><classifier>linux-x86_64</classifier><scope>runtime</scope>
+        codeSnip: "42      </dependency>\n43      <dependency>\n44        <groupId>javax</groupId>\n45        <artifactId>javaee-api</artifactId>\n46        <version>${javaee-api.version}</version>\n47        <scope>provided</scope>\n48      </dependency>\n49      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->\n50      <dependency>\n51        <groupId>io.netty</groupId>\n52        <artifactId>netty-transport-native-epoll</artifactId>\n53        <version>4.1.76.Final</version>\n54        <classifier>linux-x86_64</classifier>\n55        <scope>runtime</scope>\n56      </dependency>\n57    </dependencies>\n58  \n59    <build>\n60      <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->\n61        <plugins>\n62          <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->"
+        lineNumber: 51
+        variables:
+          data: dependency
+          innerText: "\n      io.netty\n      netty-transport-native-epoll\n      4.1.76.Final\n      linux-x86_64\n      runtime\n    "
+          matchingXML: <groupId>io.netty</groupId><artifactId>netty-transport-native-epoll</artifactId><version>4.1.76.Final</version><classifier>linux-x86_64</classifier><scope>runtime</scope>
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: <groupId>javax</groupId><artifactId>javaee-api</artifactId><version>${javaee-api.version}</version><scope>provided</scope>
+        codeSnip: |-
+          35        <artifactId>kubernetes-client</artifactId>
+          36        <version>6.0.0</version>
+          37      </dependency>
+          38      <dependency>
+          39        <groupId>io.fabric8</groupId>
+          40        <artifactId>kubernetes-client-api</artifactId>
+          41        <version>6.0.0</version>
+          42      </dependency>
+          43      <dependency>
+          44        <groupId>javax</groupId>
+          45        <artifactId>javaee-api</artifactId>
+          46        <version>${javaee-api.version}</version>
+          47        <scope>provided</scope>
+          48      </dependency>
+          49      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
+          50      <dependency>
+          51        <groupId>io.netty</groupId>
+          52        <artifactId>netty-transport-native-epoll</artifactId>
+          53        <version>4.1.76.Final</version>
+          54        <classifier>linux-x86_64</classifier>
+          55        <scope>runtime</scope>
+        lineNumber: 44
+        variables:
+          data: dependency
+          innerText: "\n      javax\n      javaee-api\n      ${javaee-api.version}\n      provided\n    "
+          matchingXML: <groupId>javax</groupId><artifactId>javaee-api</artifactId><version>${javaee-api.version}</version><scope>provided</scope>
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
-        codeSnip: "14  \n15    <properties>\n16      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n17      <maven.compiler.source>1.7</maven.compiler.source>\n18      <maven.compiler.target>1.7</maven.compiler.target>\n19    </properties>\n20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>"
-        lineNumber: 23
+        codeSnip: "19    <properties>\n20      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n21      <maven.compiler.source>1.7</maven.compiler.source>\n22      <maven.compiler.target>1.7</maven.compiler.target>\n23      <javaee-api.version>7.0</javaee-api.version>\n24    </properties>\n25  \n26    <dependencies>\n27      <dependency>\n28        <groupId>junit</groupId>\n29        <artifactId>junit</artifactId>\n30        <version>4.11</version>\n31        <scope>test</scope>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38      <dependency>\n39        <groupId>io.fabric8</groupId>"
+        lineNumber: 28
         variables:
           data: dependency
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
@@ -229,15 +297,15 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you should feel bad for using it
-        codeSnip: "20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>"
-        lineNumber: 29
+        codeSnip: "25  \n26    <dependencies>\n27      <dependency>\n28        <groupId>junit</groupId>\n29        <artifactId>junit</artifactId>\n30        <version>4.11</version>\n31        <scope>test</scope>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38      <dependency>\n39        <groupId>io.fabric8</groupId>\n40        <artifactId>kubernetes-client-api</artifactId>\n41        <version>6.0.0</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>javax</groupId>\n45        <artifactId>javaee-api</artifactId>"
+        lineNumber: 34
         variables:
           name: io.fabric8.kubernetes-client
           version: 6.0.0
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: dependency junit.junit with 4.11 is bad and you should feel bad for using it
-        codeSnip: "14  \n15    <properties>\n16      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n17      <maven.compiler.source>1.7</maven.compiler.source>\n18      <maven.compiler.target>1.7</maven.compiler.target>\n19    </properties>\n20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>"
-        lineNumber: 23
+        codeSnip: "19    <properties>\n20      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n21      <maven.compiler.source>1.7</maven.compiler.source>\n22      <maven.compiler.target>1.7</maven.compiler.target>\n23      <javaee-api.version>7.0</javaee-api.version>\n24    </properties>\n25  \n26    <dependencies>\n27      <dependency>\n28        <groupId>junit</groupId>\n29        <artifactId>junit</artifactId>\n30        <version>4.11</version>\n31        <scope>test</scope>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38      <dependency>\n39        <groupId>io.fabric8</groupId>"
+        lineNumber: 28
         variables:
           name: junit.junit
           version: "4.11"
@@ -250,55 +318,6 @@
         lineNumber: 10
         variables:
           file: file:///analyzer-lsp/examples/golang/main.go
-      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
-        lineNumber: 3
-        variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Module
-          name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
-      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
-        lineNumber: 14
-        variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Method
-          name: main
-    lang-ref-003:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:14
-        codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
-        lineNumber: 14
-        variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Method
-          name: main
-      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java:3
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
-        lineNumber: 3
-        variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Module
-          name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
-    lang-ref-004:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-        message: found generic call
-        codeSnip: " 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
-        lineNumber: 18
-        variables:
-          VariableName: element
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/App.java
-          kind: Method
-          name: main
     multiple-actions-001:
       description: ""
       category: potential
@@ -345,46 +364,6 @@
         lineNumber: 27
         variables:
           file: file:///analyzer-lsp/examples/python/main.py
-    singleton-sessionbean-00001:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
-        message: condition entries should evaluate out of order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 6
-        variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
-          kind: Class
-          name: Singleton
-      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
-        message: condition entries should evaluate out of order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 7
-        variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
-          kind: Class
-          name: Bean
-    singleton-sessionbean-00002:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
-        message: condition entries should evaluate in order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 6
-        variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
-          kind: Class
-          name: Singleton
-      - uri: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
-        message: condition entries should evaluate in order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 7
-        variables:
-          file: file:///analyzer-lsp/examples/java/src/main/java/com/example/apps/Singleton.java
-          kind: Class
-          name: Bean
     tech-tag-001:
       description: ""
       category: potential
@@ -540,26 +519,94 @@
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+      - uri: file:///analyzer-lsp/examples/java/dummy/pom.xml
+        message: |-
+          POM XML dependencies - '<groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
+                           as the property cannot be resolved here but only in the parent POM --><version>${javaee-api.version}</version><scope>provided</scope>'
+        variables:
+          data: dependency
+          innerText: "\n            javax\n            javaee-api\n            \n            ${javaee-api.version}\n            provided\n        "
+          matchingXML: |-
+            <groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
+                             as the property cannot be resolved here but only in the parent POM --><version>${javaee-api.version}</version><scope>provided</scope>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>'
-        codeSnip: "25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>\n41      <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->\n42        <plugins>\n43          <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->\n44          <plugin>\n45            <artifactId>maven-clean-plugin</artifactId>"
-        lineNumber: 34
+        codeSnip: |-
+          30        <version>4.11</version>
+          31        <scope>test</scope>
+          32      </dependency>
+          33      <dependency>
+          34        <groupId>io.fabric8</groupId>
+          35        <artifactId>kubernetes-client</artifactId>
+          36        <version>6.0.0</version>
+          37      </dependency>
+          38      <dependency>
+          39        <groupId>io.fabric8</groupId>
+          40        <artifactId>kubernetes-client-api</artifactId>
+          41        <version>6.0.0</version>
+          42      </dependency>
+          43      <dependency>
+          44        <groupId>javax</groupId>
+          45        <artifactId>javaee-api</artifactId>
+          46        <version>${javaee-api.version}</version>
+          47        <scope>provided</scope>
+          48      </dependency>
+          49      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
+          50      <dependency>
+        lineNumber: 39
         variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client-api\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>'
-        codeSnip: "20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client-api</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38    </dependencies>\n39  \n40    <build>"
-        lineNumber: 29
+        codeSnip: "25  \n26    <dependencies>\n27      <dependency>\n28        <groupId>junit</groupId>\n29        <artifactId>junit</artifactId>\n30        <version>4.11</version>\n31        <scope>test</scope>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38      <dependency>\n39        <groupId>io.fabric8</groupId>\n40        <artifactId>kubernetes-client-api</artifactId>\n41        <version>6.0.0</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>javax</groupId>\n45        <artifactId>javaee-api</artifactId>"
+        lineNumber: 34
         variables:
           data: dependency
           innerText: "\n      io.fabric8\n      kubernetes-client\n      6.0.0\n    "
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: POM XML dependencies - '<groupId>io.netty</groupId><artifactId>netty-transport-native-epoll</artifactId><version>4.1.76.Final</version><classifier>linux-x86_64</classifier><scope>runtime</scope>'
+        codeSnip: "42      </dependency>\n43      <dependency>\n44        <groupId>javax</groupId>\n45        <artifactId>javaee-api</artifactId>\n46        <version>${javaee-api.version}</version>\n47        <scope>provided</scope>\n48      </dependency>\n49      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->\n50      <dependency>\n51        <groupId>io.netty</groupId>\n52        <artifactId>netty-transport-native-epoll</artifactId>\n53        <version>4.1.76.Final</version>\n54        <classifier>linux-x86_64</classifier>\n55        <scope>runtime</scope>\n56      </dependency>\n57    </dependencies>\n58  \n59    <build>\n60      <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->\n61        <plugins>\n62          <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->"
+        lineNumber: 51
+        variables:
+          data: dependency
+          innerText: "\n      io.netty\n      netty-transport-native-epoll\n      4.1.76.Final\n      linux-x86_64\n      runtime\n    "
+          matchingXML: <groupId>io.netty</groupId><artifactId>netty-transport-native-epoll</artifactId><version>4.1.76.Final</version><classifier>linux-x86_64</classifier><scope>runtime</scope>
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: POM XML dependencies - '<groupId>javax</groupId><artifactId>javaee-api</artifactId><version>${javaee-api.version}</version><scope>provided</scope>'
+        codeSnip: |-
+          35        <artifactId>kubernetes-client</artifactId>
+          36        <version>6.0.0</version>
+          37      </dependency>
+          38      <dependency>
+          39        <groupId>io.fabric8</groupId>
+          40        <artifactId>kubernetes-client-api</artifactId>
+          41        <version>6.0.0</version>
+          42      </dependency>
+          43      <dependency>
+          44        <groupId>javax</groupId>
+          45        <artifactId>javaee-api</artifactId>
+          46        <version>${javaee-api.version}</version>
+          47        <scope>provided</scope>
+          48      </dependency>
+          49      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
+          50      <dependency>
+          51        <groupId>io.netty</groupId>
+          52        <artifactId>netty-transport-native-epoll</artifactId>
+          53        <version>4.1.76.Final</version>
+          54        <classifier>linux-x86_64</classifier>
+          55        <scope>runtime</scope>
+        lineNumber: 44
+        variables:
+          data: dependency
+          innerText: "\n      javax\n      javaee-api\n      ${javaee-api.version}\n      provided\n    "
+          matchingXML: <groupId>javax</groupId><artifactId>javaee-api</artifactId><version>${javaee-api.version}</version><scope>provided</scope>
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>'
-        codeSnip: "14  \n15    <properties>\n16      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n17      <maven.compiler.source>1.7</maven.compiler.source>\n18      <maven.compiler.target>1.7</maven.compiler.target>\n19    </properties>\n20  \n21    <dependencies>\n22      <dependency>\n23        <groupId>junit</groupId>\n24        <artifactId>junit</artifactId>\n25        <version>4.11</version>\n26        <scope>test</scope>\n27      </dependency>\n28      <dependency>\n29        <groupId>io.fabric8</groupId>\n30        <artifactId>kubernetes-client</artifactId>\n31        <version>6.0.0</version>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>"
-        lineNumber: 23
+        codeSnip: "19    <properties>\n20      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n21      <maven.compiler.source>1.7</maven.compiler.source>\n22      <maven.compiler.target>1.7</maven.compiler.target>\n23      <javaee-api.version>7.0</javaee-api.version>\n24    </properties>\n25  \n26    <dependencies>\n27      <dependency>\n28        <groupId>junit</groupId>\n29        <artifactId>junit</artifactId>\n30        <version>4.11</version>\n31        <scope>test</scope>\n32      </dependency>\n33      <dependency>\n34        <groupId>io.fabric8</groupId>\n35        <artifactId>kubernetes-client</artifactId>\n36        <version>6.0.0</version>\n37      </dependency>\n38      <dependency>\n39        <groupId>io.fabric8</groupId>"
+        lineNumber: 28
         variables:
           data: dependency
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
@@ -571,3 +618,7 @@
   unmatched:
   - file-002
   - lang-ref-002
+  - lang-ref-003
+  - lang-ref-004
+  - singleton-sessionbean-00001
+  - singleton-sessionbean-00002
