@@ -228,6 +228,7 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	moddir := filepath.Dir(path)
 
 	args := []string{
+		"-B",
 		"dependency:tree",
 		"-Djava.net.useSystemProxies=true",
 	}
@@ -368,7 +369,6 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 }
 
 // parseDepString parses a java dependency string
-// assumes format <group>:<name>:<type>:<version>:<scope>
 func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (provider.Dep, error) {
 	d := provider.Dep{}
 	// remove all the pretty print characters.
@@ -382,14 +382,30 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 	// Split string on ":" must have 5 parts.
 	// For now we ignore Type as it appears most everything is a jar
 	parts := strings.Split(dep, ":")
-	if len(parts) != 5 {
+	if len(parts) >= 3 {
+		// Its always <groupId>:<artifactId>:<Packaging>: ... then
+		if len(parts) == 6 {
+			d.Classifier = parts[3]
+			d.Version = parts[4]
+			d.Type = parts[5]
+		} else if len(parts) == 5 {
+			d.Version = parts[3]
+			d.Type = parts[4]
+		} else {
+			p.log.Info("Cannot derive version from dependency string", "dependency", dep)
+			d.Version = "Unknown"
+		}
+	} else {
 		return d, fmt.Errorf("unable to split dependency string %s", dep)
 	}
 	d.Name = fmt.Sprintf("%s.%s", parts[0], parts[1])
-	d.Version = parts[3]
-	d.Type = parts[4]
 
-	fp := filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
+	var fp string
+	if d.Classifier == "" {
+		fp = filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
+	} else {
+		fp = filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v-%v.jar.sha1", parts[1], d.Version, d.Classifier))
+	}
 	b, err := os.ReadFile(fp)
 	if err != nil {
 		// Log the error and continue with the next dependency.
