@@ -4,5 +4,5 @@ import javax.ejb.SessionBean;
 import javax.ejb.Singleton;
 
 @Singleton
-public class Bean implements SessionBean {
+public abstract class Bean implements SessionBean {
 }

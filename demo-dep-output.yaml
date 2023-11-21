@@ -1165,6 +1165,7 @@
   - name: com.fasterxml.jackson.core.jackson-core
     version: 2.13.3
     type: compile
+    indirect: true
     resolvedIdentifier: a27014716e4421684416e5fa83d896ddb87002da
     extras:
       artifactId: jackson-core
@@ -1177,6 +1178,7 @@
   - name: com.fasterxml.jackson.core.jackson-databind
     version: 2.13.3
     type: compile
+    indirect: true
     resolvedIdentifier: 56deb9ea2c93a7a556b3afbedd616d342963464e
     extras:
       artifactId: jackson-databind
@@ -1189,6 +1191,7 @@
   - name: com.fasterxml.jackson.dataformat.jackson-dataformat-yaml
     version: 2.13.3
     type: compile
+    indirect: true
     resolvedIdentifier: 9363ded5441b1fee62d5be0604035690ca759a2a
     extras:
       artifactId: jackson-dataformat-yaml
@@ -1201,6 +1204,7 @@
   - name: com.fasterxml.jackson.datatype.jackson-datatype-jsr310
     version: 2.13.3
     type: compile
+    indirect: true
     resolvedIdentifier: ad2f4c61aeb9e2a8bb5e4a3ed782cfddec52d972
     extras:
       artifactId: jackson-datatype-jsr310
@@ -1249,6 +1253,19 @@
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
     prefix: file:///root/.m2/repository/com/squareup/okio/okio/1.15.0
+  - name: com.sun.mail.javax.mail
+    version: 1.5.0
+    type: provided
+    indirect: true
+    resolvedIdentifier: ec2410fdf7e0a3022e7c2a2e6241039d1abc1e98
+    extras:
+      artifactId: javax.mail
+      groupId: com.sun.mail
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/sun/mail/javax.mail/1.5.0
   - name: io.fabric8.kubernetes-client
     version: 6.0.0
     type: compile
@@ -1289,6 +1306,7 @@
   - name: io.fabric8.kubernetes-model-admissionregistration
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 9e3b0d4caa3d033fa0f71c71d8a535a748b280ba
     extras:
       artifactId: kubernetes-model-admissionregistration
@@ -1301,6 +1319,7 @@
   - name: io.fabric8.kubernetes-model-apiextensions
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: eac63b8dec80e96c4356c91ed0a332415efcb75e
     extras:
       artifactId: kubernetes-model-apiextensions
@@ -1313,6 +1332,7 @@
   - name: io.fabric8.kubernetes-model-apps
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 4dbda6401058a5fd3a4c6be88fc1bf4f99296c4f
     extras:
       artifactId: kubernetes-model-apps
@@ -1325,6 +1345,7 @@
   - name: io.fabric8.kubernetes-model-autoscaling
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: b353e45133fbc80791d676b16203ec94c0958b7d
     extras:
       artifactId: kubernetes-model-autoscaling
@@ -1337,6 +1358,7 @@
   - name: io.fabric8.kubernetes-model-batch
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 9f14cbfc75d172fa81f3f6ad793bdd45a2decaec
     extras:
       artifactId: kubernetes-model-batch
@@ -1349,6 +1371,7 @@
   - name: io.fabric8.kubernetes-model-certificates
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 33f5a3f386cddda55003e1616303ab924fcd3ca5
     extras:
       artifactId: kubernetes-model-certificates
@@ -1374,6 +1397,7 @@
   - name: io.fabric8.kubernetes-model-coordination
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: cd454532158351d8ff37616dc33749ca2a85c8d1
     extras:
       artifactId: kubernetes-model-coordination
@@ -1386,6 +1410,7 @@
   - name: io.fabric8.kubernetes-model-core
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 73469e4a7baec7600455d7f4a121c6680e80bf35
     extras:
       artifactId: kubernetes-model-core
@@ -1398,6 +1423,7 @@
   - name: io.fabric8.kubernetes-model-discovery
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 246ad448a1868b3c601394e21350a9602adef24c
     extras:
       artifactId: kubernetes-model-discovery
@@ -1410,6 +1436,7 @@
   - name: io.fabric8.kubernetes-model-events
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 204c2c78a4a8e0b5f5ebc1b788c9f22a8c1b14ab
     extras:
       artifactId: kubernetes-model-events
@@ -1422,6 +1449,7 @@
   - name: io.fabric8.kubernetes-model-extensions
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 60c9e43f1f34ab9c145798471926c07e13e45ecf
     extras:
       artifactId: kubernetes-model-extensions
@@ -1434,6 +1462,7 @@
   - name: io.fabric8.kubernetes-model-flowcontrol
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 3b01d9eab7e7d7c9d46d8828202bff78fbdaa7d9
     extras:
       artifactId: kubernetes-model-flowcontrol
@@ -1446,6 +1475,7 @@
   - name: io.fabric8.kubernetes-model-metrics
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 1a400f8f7915bd2a68fa075605768d762aaad4cb
     extras:
       artifactId: kubernetes-model-metrics
@@ -1458,6 +1488,7 @@
   - name: io.fabric8.kubernetes-model-networking
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: c87e11bebb26bb48660765b42a68f9577336b799
     extras:
       artifactId: kubernetes-model-networking
@@ -1470,6 +1501,7 @@
   - name: io.fabric8.kubernetes-model-node
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 972706f6dffa518e11c94647cf47e188db6115f6
     extras:
       artifactId: kubernetes-model-node
@@ -1482,6 +1514,7 @@
   - name: io.fabric8.kubernetes-model-policy
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 15b3011eb5ff48b9fc2bd8bcc4db697ca9ec30e4
     extras:
       artifactId: kubernetes-model-policy
@@ -1494,6 +1527,7 @@
   - name: io.fabric8.kubernetes-model-rbac
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 03ad461761d775ff9c252d2b26a4977d22dd0f3a
     extras:
       artifactId: kubernetes-model-rbac
@@ -1506,6 +1540,7 @@
   - name: io.fabric8.kubernetes-model-scheduling
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: a5fae7294f5c39fb9d7cffb7280b55ca458c9128
     extras:
       artifactId: kubernetes-model-scheduling
@@ -1518,6 +1553,7 @@
   - name: io.fabric8.kubernetes-model-storageclass
     version: 6.0.0
     type: compile
+    indirect: true
     resolvedIdentifier: 6ffa61f9021d07a4a9d785e83a513955a3c48073
     extras:
       artifactId: kubernetes-model-storageclass
@@ -1540,6 +1576,117 @@
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
     prefix: file:///root/.m2/repository/io/fabric8/zjsonpatch/0.3.0
+  - name: io.netty.netty-buffer
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: 231f5042a5050773eb22a918e84daff3f00892f2
+    extras:
+      artifactId: netty-buffer
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-buffer/4.1.76.Final
+  - name: io.netty.netty-common
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: 38d0b500f098dc89497b6e608d7427186f533cf0
+    extras:
+      artifactId: netty-common
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-common/4.1.76.Final
+  - name: io.netty.netty-resolver
+    version: 4.1.76.Final
+    type: runtime
+    indirect: true
+    resolvedIdentifier: e0b225a33772cb7bba73dc296cccefa6826ab8cc
+    extras:
+      artifactId: netty-resolver
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-resolver/4.1.76.Final
+  - name: io.netty.netty-transport
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: f01d2f935005b6fdb2fedc23114d2ae717749c36
+    extras:
+      artifactId: netty-transport
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-transport/4.1.76.Final
+  - name: io.netty.netty-transport-classes-epoll
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: 921b92a76116674218af3dc4bbf43d73884e4146
+    extras:
+      artifactId: netty-transport-classes-epoll
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-transport-classes-epoll/4.1.76.Final
+  - name: io.netty.netty-transport-native-epoll
+    version: 4.1.76.Final
+    classifier: linux-x86_64
+    type: runtime
+    resolvedIdentifier: e1ee2a9c5f63b1b71260caf127a1e50667d62854
+    extras:
+      artifactId: netty-transport-native-epoll
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-transport-native-epoll/4.1.76.Final
+  - name: io.netty.netty-transport-native-unix-common
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: d5ed8c4be9680203c53f7ed788225c12c4d87ee0
+    extras:
+      artifactId: netty-transport-native-unix-common
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-transport-native-unix-common/4.1.76.Final
+  - name: javax.activation.activation
+    version: "1.1"
+    type: provided
+    indirect: true
+    resolvedIdentifier: e6cb541461c2834bdea3eb920f1884d1eb508b50
+    extras:
+      artifactId: activation
+      groupId: javax.activation
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/activation/activation/1.1
+  - name: javax.javaee-api
+    version: "7.0"
+    type: provided
+    resolvedIdentifier: 51399f902cc27a808122edcbebfaa1ad989954ba
+    extras:
+      artifactId: javaee-api
+      groupId: javax
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/javaee-api/7.0
   - name: junit.junit
     version: "4.11"
     type: test
@@ -1568,6 +1715,7 @@
   - name: org.slf4j.slf4j-api
     version: 1.7.36
     type: compile
+    indirect: true
     resolvedIdentifier: 6c62681a2f655b49963a5983b8b0950a6120ae14
     extras:
       artifactId: slf4j-api
