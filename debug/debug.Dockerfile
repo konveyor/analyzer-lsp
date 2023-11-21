@@ -1,18 +1,18 @@
 FROM golang:1.19 as builder
 WORKDIR /analyzer-lsp
 
-COPY  cmd /analyzer-lsp/cmd
-COPY  engine /analyzer-lsp/engine
-COPY  output /analyzer-lsp/output
-COPY  jsonrpc2 /analyzer-lsp/jsonrpc2
-COPY  lsp /analyzer-lsp/lsp
-COPY  parser /analyzer-lsp/parser
-COPY  provider /analyzer-lsp/provider
-COPY  tracing /analyzer-lsp/tracing
-COPY  external-providers /analyzer-lsp/external-providers
-COPY  go.mod /analyzer-lsp/go.mod
-COPY  go.sum /analyzer-lsp/go.sum
-COPY  Makefile /analyzer-lsp/Makefile
+COPY  ../cmd /analyzer-lsp/cmd
+COPY  ../engine /analyzer-lsp/engine
+COPY  ../output /analyzer-lsp/output
+COPY  ../jsonrpc2 /analyzer-lsp/jsonrpc2
+COPY  ../lsp /analyzer-lsp/lsp
+COPY  ../parser /analyzer-lsp/parser
+COPY  ../provider /analyzer-lsp/provider
+COPY  ../tracing /analyzer-lsp/tracing
+COPY  ../external-providers /analyzer-lsp/external-providers
+COPY  ../go.mod /analyzer-lsp/go.mod
+COPY  ../go.sum /analyzer-lsp/go.sum
+COPY  ../Makefile /analyzer-lsp/Makefile
 
 # Install delve (go debugger)
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
@@ -36,7 +36,7 @@ COPY --from=builder /analyzer-lsp/external-providers/golang-dependency-provider/
 
 COPY --from=builder /go/bin/dlv /
 
-COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
+COPY ../provider_container_settings.json /analyzer-lsp/provider_settings.json
 
 WORKDIR /analyzer-lsp
 
