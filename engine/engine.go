@@ -300,7 +300,7 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
 				rs.Errors[rule.RuleID] = err.Error()
 			}
-		} else if response.Matched {
+		} else if response.Matched && len(response.Incidents) > 0 {
 			r.logger.V(5).Info("info rule was matched", "ruleID", rule.RuleID)
 			tags := map[string]bool{}
 			for _, tagString := range rule.Perform.Tag {
