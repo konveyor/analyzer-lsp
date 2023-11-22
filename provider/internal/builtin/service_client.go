@@ -141,47 +141,19 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		if query == nil || err != nil {
 			return response, fmt.Errorf("Could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
 		}
-		//TODO(fabianvf): how should we scope the files searched here?
-		var xmlFiles []string
-		patterns := []string{"*.xml", "*.xhtml"}
-		xmlFiles, err = provider.GetFiles(p.config.Location, cond.XML.Filepaths, patterns...)
+		xmlFiles, err := findXMLFiles(p.config.Location, cond.XMLPublicID.Filepaths)
 		if err != nil {
-			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", patterns, err)
+			return response, fmt.Errorf("Unable to find XML files: %v", err)
 		}
 
 		for _, file := range xmlFiles {
-
-			f, err := os.Open(file)
+			nodes, err := queryXMLFile(file, query)
 			if err != nil {
-				fmt.Printf("unable to open file '%s': %v\n", file, err)
 				continue
 			}
-			// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
-			var doc *xmlquery.Node
-			doc, err = xmlquery.ParseWithOptions(f, xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
-			if err != nil {
-				if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
-					// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
-					b, err := os.ReadFile(file)
-					if err != nil {
-						fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
-						continue
-					}
-					docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
-					doc, err = xmlquery.Parse(strings.NewReader(docString))
-					if err != nil {
-						fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
-						continue
-					}
-				} else {
-					fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
-					continue
-				}
-			}
-			list := xmlquery.QuerySelectorAll(doc, query)
-			if len(list) != 0 {
+			if len(nodes) != 0 {
 				response.Matched = true
-				for _, node := range list {
+				for _, node := range nodes {
 					ab, err := filepath.Abs(file)
 					if err != nil {
 						ab = file
@@ -204,49 +176,22 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		if err != nil {
 			return response, fmt.Errorf("Could not parse provided public-id regex '%s': %v", cond.XMLPublicID.Regex, err)
 		}
-		query, err := xpath.CompileWithNS("//*[@public-id]", cond.XML.Namespaces)
+		query, err := xpath.CompileWithNS("//*[@public-id]", cond.XMLPublicID.Namespaces)
 		if query == nil || err != nil {
 			return response, fmt.Errorf("Could not parse public-id xml query '%s': %v", cond.XML.XPath, err)
 		}
-		// TODO(fabianvf): how should we scope the files searched here?
-		var xmlFiles []string
-		patterns := []string{"*.xml", "*.xhtml"}
-		xmlFiles, err = provider.GetFiles(p.config.Location, cond.XML.Filepaths, patterns...)
+		xmlFiles, err := findXMLFiles(p.config.Location, cond.XMLPublicID.Filepaths)
 		if err != nil {
-			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", patterns, err)
+			return response, fmt.Errorf("Unable to find XML files: %v", err)
 		}
 
 		for _, file := range xmlFiles {
-
-			f, err := os.Open(file)
+			nodes, err := queryXMLFile(file, query)
 			if err != nil {
-				fmt.Printf("unable to open file '%s': %v\n", file, err)
 				continue
 			}
-			// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
-			var doc *xmlquery.Node
-			doc, err = xmlquery.ParseWithOptions(f, xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
-			if err != nil {
-				if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
-					// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
-					b, err := os.ReadFile(file)
-					if err != nil {
-						fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
-						continue
-					}
-					docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
-					doc, err = xmlquery.Parse(strings.NewReader(docString))
-					if err != nil {
-						fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
-						continue
-					}
-				} else {
-					fmt.Printf("unable to parse xml file '%s': %v\n", file, err)
-					continue
-				}
-			}
-			list := xmlquery.QuerySelectorAll(doc, query)
-			for _, node := range list {
+
+			for _, node := range nodes {
 				// public-id attribute regex match check
 				for _, attr := range node.Attr {
 					if attr.Name.Local == "public-id" {
@@ -355,4 +300,45 @@ func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 		return nil
 	})
 	return matches, err
+}
+
+func findXMLFiles(baseLocation string, filePaths []string) (xmlFiles []string, err error) {
+	patterns := []string{"*.xml", "*.xhtml"}
+	// TODO(fabianvf): how should we scope the files searched here?
+	xmlFiles, err = provider.GetFiles(baseLocation, filePaths, patterns...)
+	return
+}
+
+func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		fmt.Printf("unable to open file '%s': %v\n", filePath, err)
+		return
+	}
+	defer f.Close()
+	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
+	var doc *xmlquery.Node
+	doc, err = xmlquery.ParseWithOptions(f, xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
+	if err != nil {
+		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
+			// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
+			var b []byte
+			b, err = os.ReadFile(filePath)
+			if err != nil {
+				fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
+				return
+			}
+			docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
+			doc, err = xmlquery.Parse(strings.NewReader(docString))
+			if err != nil {
+				fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
+				return
+			}
+		} else {
+			fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
+			return
+		}
+	}
+	nodes = xmlquery.QuerySelectorAll(doc, query)
+	return
 }
