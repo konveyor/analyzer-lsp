@@ -28,15 +28,15 @@ func (t testProvider) Init(ctx context.Context, log logr.Logger, config provider
 	return nil, nil
 }
 
-func (t testProvider) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+func (t testProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	return provider.ProviderEvaluateResponse{}, nil
 }
 
-func (t testProvider) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
+func (t testProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	return nil, nil
 }
 
-func (t testProvider) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
+func (t testProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	return nil, nil
 }
 
@@ -353,7 +353,7 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 			ShouldErr:    true,
-			ErrorMessage: "unable to find provider for :builtin",
+			ErrorMessage: "unable to find provider for: builtin",
 		},
 		{
 			Name:         "rule no conditions",

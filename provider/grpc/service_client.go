@@ -11,20 +11,19 @@ import (
 
 type grpcServiceClient struct {
 	id     int64
-	ctx    context.Context
 	config provider.InitConfig
 	client pb.ProviderServiceClient
 }
 
 var _ provider.ServiceClient = &grpcServiceClient{}
 
-func (g *grpcServiceClient) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+func (g *grpcServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	m := pb.EvaluateRequest{
 		Cap:           cap,
 		ConditionInfo: string(conditionInfo),
 		Id:            g.id,
 	}
-	r, err := g.client.Evaluate(g.ctx, &m)
+	r, err := g.client.Evaluate(ctx, &m)
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, err
 	}
@@ -85,8 +84,8 @@ func (g *grpcServiceClient) Evaluate(cap string, conditionInfo []byte) (provider
 }
 
 // We don't have dependencies
-func (g *grpcServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
-	d, err := g.client.GetDependencies(g.ctx, &pb.ServiceRequest{Id: g.id})
+func (g *grpcServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	d, err := g.client.GetDependencies(ctx, &pb.ServiceRequest{Id: g.id})
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +139,8 @@ func recreateDAGAddedItems(items []*pb.DependencyDAGItem) []provider.DepDAGItem 
 }
 
 // We don't have dependencies
-func (g *grpcServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
-	d, err := g.client.GetDependenciesDAG(g.ctx, &pb.ServiceRequest{Id: g.id})
+func (g *grpcServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	d, err := g.client.GetDependenciesDAG(ctx, &pb.ServiceRequest{Id: g.id})
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/cbroglie/mustache"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -53,12 +54,12 @@ func init() {
 type UnimplementedDependenciesComponent struct{}
 
 // We don't have dependencies
-func (p *UnimplementedDependenciesComponent) GetDependencies() (map[uri.URI][]*Dep, error) {
+func (p *UnimplementedDependenciesComponent) GetDependencies(ctx context.Context) (map[uri.URI][]*Dep, error) {
 	return nil, nil
 }
 
 // We don't have dependencies
-func (p *UnimplementedDependenciesComponent) GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error) {
+func (p *UnimplementedDependenciesComponent) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]DepDAGItem, error) {
 	return nil, nil
 }
 
@@ -68,11 +69,12 @@ type Capability struct {
 }
 
 type Config struct {
-	Name       string       `yaml:"name,omitempty" json:"name,omitempty"`
-	BinaryPath string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
-	Address    string       `yaml:"address,omitempty" json:"address,omitempty"`
-	Proxy      *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
-	InitConfig []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
+	Name         string       `yaml:"name,omitempty" json:"name,omitempty"`
+	BinaryPath   string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
+	Address      string       `yaml:"address,omitempty" json:"address,omitempty"`
+	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
+	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
+	ContextLines int
 }
 
 type Proxy httpproxy.Config
@@ -101,11 +103,24 @@ const (
 type InitConfig struct {
 	// This is the location of the code base that the
 	// Provider will be responisble for parsing
+	// TODO: rootUri, which is what this maps to in the LSP spec, is deprecated.
+	// We should instead use workspaceFolders.
 	Location string `yaml:"location,omitempty" json:"location,omitempty"`
 
 	// This is the path to look for the dependencies for the project.
 	// It is relative to the Location
+	// TODO: This only allows for one directory for dependencies. Use DependencyFolders instead
 	DependencyPath string `yaml:"dependencyPath,omitempty" json:"dependencyPath,omitempty"`
+
+	// It would be nice to get workspacefolders working
+
+	// // The folders for the workspace. Maps to workspaceFolders in the LSP spec
+	// WorkspaceFolders []string `yaml:"workspaceFolders,omitempty" json:"workspaceFolders,omitempty"`
+
+	// // The folders for the dependencies. Also maps to workspaceFolders in the LSP
+	// // spec. These folders will not be inlcuded in search results for things like
+	// // 'referenced'.
+	// DependencyFolders []string `yaml:"dependencyFolders,omitempty" json:"dependencyFolders,omitempty"`
 
 	AnalysisMode AnalysisMode `yaml:"analysisMode" json:"analysisMode"`
 
@@ -183,12 +198,13 @@ type ProviderEvaluateResponse struct {
 }
 
 type IncidentContext struct {
-	FileURI      uri.URI                `yaml:"fileURI"`
-	Effort       *int                   `yaml:"effort,omitempty"`
-	LineNumber   *int                   `yaml:"lineNumber,omitempty"`
-	Variables    map[string]interface{} `yaml:"variables,omitempty"`
-	Links        []ExternalLinks        `yaml:"externalLink,omitempty"`
-	CodeLocation *Location              `yaml:"location,omitempty"`
+	FileURI              uri.URI                `yaml:"fileURI"`
+	Effort               *int                   `yaml:"effort,omitempty"`
+	LineNumber           *int                   `yaml:"lineNumber,omitempty"`
+	Variables            map[string]interface{} `yaml:"variables,omitempty"`
+	Links                []ExternalLinks        `yaml:"externalLink,omitempty"`
+	CodeLocation         *Location              `yaml:"location,omitempty"`
+	IsDependencyIncident bool
 }
 
 type Location struct {
@@ -235,14 +251,14 @@ func HasCapability(caps []Capability, name string) bool {
 	return false
 }
 
-func FullResponseFromServiceClients(clients []ServiceClient, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error) {
+func FullResponseFromServiceClients(ctx context.Context, clients []ServiceClient, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error) {
 	fullResp := ProviderEvaluateResponse{
 		Matched:         false,
 		Incidents:       []IncidentContext{},
 		TemplateContext: map[string]interface{}{},
 	}
 	for _, c := range clients {
-		r, err := c.Evaluate(cap, conditionInfo)
+		r, err := c.Evaluate(ctx, cap, conditionInfo)
 		if err != nil {
 			return fullResp, err
 		}
@@ -257,10 +273,10 @@ func FullResponseFromServiceClients(clients []ServiceClient, cap string, conditi
 	return fullResp, nil
 }
 
-func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]*Dep, error) {
+func FullDepsResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI][]*Dep, error) {
 	deps := map[uri.URI][]*Dep{}
 	for _, c := range clients {
-		r, err := c.GetDependencies()
+		r, err := c.GetDependencies(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -272,10 +288,10 @@ func FullDepsResponse(clients []ServiceClient) (map[uri.URI][]*Dep, error) {
 	return deps, nil
 }
 
-func FullDepDAGResponse(clients []ServiceClient) (map[uri.URI][]DepDAGItem, error) {
+func FullDepDAGResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI][]DepDAGItem, error) {
 	deps := map[uri.URI][]DepDAGItem{}
 	for _, c := range clients {
-		r, err := c.GetDependenciesDAG()
+		r, err := c.GetDependenciesDAG(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -309,16 +325,20 @@ type BaseClient interface {
 
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
 type ServiceClient interface {
-	Evaluate(cap string, conditionInfo []byte) (ProviderEvaluateResponse, error)
+	Evaluate(ctx context.Context, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error)
 
 	Stop()
 
 	// GetDependencies will get the dependencies
 	// It is the responsibility of the provider to determine how that is done
-	GetDependencies() (map[uri.URI][]*Dep, error)
+	GetDependencies(ctx context.Context) (map[uri.URI][]*Dep, error)
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
-	GetDependenciesDAG() (map[uri.URI][]DepDAGItem, error)
+	GetDependenciesDAG(ctx context.Context) (map[uri.URI][]DepDAGItem, error)
+}
+
+type DependencyLocationResolver interface {
+	GetLocation(ctx context.Context, dep konveyor.Dep) (engine.Location, error)
 }
 
 type Dep = konveyor.Dep
@@ -352,12 +372,12 @@ type ProviderCondition struct {
 	DepLabelSelector *labels.LabelSelector[*Dep]
 }
 
-func (p *ProviderCondition) Ignorable() bool {
+func (p ProviderCondition) Ignorable() bool {
 	return p.Ignore
 }
 
-func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
-	_, span := tracing.StartNewSpan(
+func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
+	ctx, span := tracing.StartNewSpan(
 		ctx, "provider-condition", attribute.Key("cap").String(p.Capability))
 	defer span.End()
 
@@ -385,7 +405,7 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 		panic(err)
 	}
 	span.SetAttributes(attribute.Key("condition").String(string(templatedInfo)))
-	resp, err := p.Client.Evaluate(p.Capability, templatedInfo)
+	resp, err := p.Client.Evaluate(ctx, p.Capability, templatedInfo)
 	if err != nil {
 		// If an error always just return the empty
 		return engine.ConditionResponse{}, err
@@ -393,7 +413,7 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 
 	var deps map[uri.URI][]*Dep
 	if p.DepLabelSelector != nil {
-		deps, err = p.Client.GetDependencies()
+		deps, err = p.Client.GetDependencies(ctx)
 		if err != nil {
 			return engine.ConditionResponse{}, err
 		}
@@ -457,8 +477,7 @@ func (p *ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condC
 // matchDepLabelSelector evaluates the dep label selector on incident
 func matchDepLabelSelector(s *labels.LabelSelector[*Dep], inc IncidentContext, deps map[uri.URI][]*konveyor.Dep) (bool, error) {
 	// always match non dependency URIs or when there are no deps or no dep selector
-	if s == nil || deps == nil || len(deps) == 0 ||
-		strings.HasPrefix(string(inc.FileURI), uri.FileScheme) || inc.FileURI == "" {
+	if !inc.IsDependencyIncident || s == nil || deps == nil || len(deps) == 0 || inc.FileURI == "" {
 		return true, nil
 	}
 	matched := false
@@ -511,13 +530,14 @@ type DependencyCondition struct {
 	NameRegex string
 
 	Client Client
-
-	LabelSelector *labels.LabelSelector[*Dep]
 }
 
 func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx engine.ConditionContext) (engine.ConditionResponse, error) {
+	_, span := tracing.StartNewSpan(ctx, "dep-condition")
+	defer span.End()
+
 	resp := engine.ConditionResponse{}
-	deps, err := dc.Client.GetDependencies()
+	deps, err := dc.Client.GetDependencies(ctx)
 	if err != nil {
 		return resp, err
 	}
@@ -532,16 +552,6 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	matchedDeps := []matchedDep{}
 	for u, ds := range deps {
 		for _, dep := range ds {
-			if dc.LabelSelector != nil {
-				got, err := dc.LabelSelector.Matches(dep)
-				if err != nil {
-					return resp, err
-				}
-				if !got {
-					continue
-				}
-			}
-
 			if dep.Name == dc.Name {
 				matchedDeps = append(matchedDeps, matchedDep{dep: dep, uri: u})
 				break
@@ -556,17 +566,33 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		return resp, nil
 	}
 
+	var depLocationResolver DependencyLocationResolver
+	depLocationResolver, _ = dc.Client.(DependencyLocationResolver)
+
 	for _, matchedDep := range matchedDeps {
 		if matchedDep.dep.Version == "" || (dc.Lowerbound == "" && dc.Upperbound == "") {
-			resp.Matched = true
-			resp.Incidents = append(resp.Incidents, engine.IncidentContext{
+			incident := engine.IncidentContext{
 				FileURI: matchedDep.uri,
 				Variables: map[string]interface{}{
 					"name":    matchedDep.dep.Name,
 					"version": matchedDep.dep.Version,
 					"type":    matchedDep.dep.Type,
 				},
-			})
+			}
+			if depLocationResolver != nil {
+				// this is a best-effort step and we don't want to block if resolver misbehaves
+				timeoutContext, cancelFunc := context.WithTimeout(ctx, time.Second*3)
+				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
+				if err == nil {
+					incident.LineNumber = &location.StartPosition.Line
+					incident.CodeLocation = &location
+				} else {
+					log.V(7).Error(err, "failed to get location for dependency", "dep", matchedDep.dep.Name)
+				}
+				cancelFunc()
+			}
+			resp.Matched = true
+			resp.Incidents = append(resp.Incidents, incident)
 			// For now, lets leave this TODO to figure out what we should be setting in the context
 			resp.TemplateContext = map[string]interface{}{
 				"name":    matchedDep.dep.Name,
@@ -607,13 +633,26 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		}
 
 		resp.Matched = constraints.Check(depVersion)
-		resp.Incidents = append(resp.Incidents, engine.IncidentContext{
+		incident := engine.IncidentContext{
 			FileURI: matchedDep.uri,
 			Variables: map[string]interface{}{
 				"name":    matchedDep.dep.Name,
 				"version": matchedDep.dep.Version,
 			},
-		})
+		}
+		if depLocationResolver != nil {
+			// this is a best-effort step and we don't want to block if resolver misbehaves
+			timeoutContext, cancelFunc := context.WithTimeout(context.Background(), time.Second*3)
+			location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
+			if err == nil {
+				incident.LineNumber = &location.StartPosition.Line
+				incident.CodeLocation = &location
+			} else {
+				log.V(7).Error(err, "failed to get location for dependency", "dep", matchedDep.dep.Name)
+			}
+			cancelFunc()
+		}
+		resp.Incidents = append(resp.Incidents, incident)
 		resp.TemplateContext = map[string]interface{}{
 			"name":    matchedDep.dep.Name,
 			"version": matchedDep.dep.Version,
@@ -673,11 +712,16 @@ func deduplicateDependencies(dependencies map[uri.URI][]*Dep) map[uri.URI][]*Dep
 			if depSeen[id+"direct"] != nil {
 				// We've already seen it and it's direct, nothing to do
 				continue
-			} else if depSeen[id+"indirect"] != nil && !dep.Indirect {
-				// We've seen it as an indirect, need to update the dep in
-				// the list to reflect that it's actually a direct dependency
-				deduped[uri][*depSeen[id+"indirect"]].Indirect = false
-				depSeen[id+"direct"] = depSeen[id+"indirect"]
+			} else if depSeen[id+"indirect"] != nil {
+				if !dep.Indirect {
+					// We've seen it as an indirect, need to update the dep in
+					// the list to reflect that it's actually a direct dependency
+					deduped[uri][*depSeen[id+"indirect"]].Indirect = false
+					depSeen[id+"direct"] = depSeen[id+"indirect"]
+				} else {
+					// Otherwise, we've just already seen it
+					continue
+				}
 			} else {
 				// We haven't seen this before and need to update the dedup
 				// list and mark that we've seen it

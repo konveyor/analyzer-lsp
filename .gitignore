@@ -1,11 +1,14 @@
 .vscode
+.idea
+.settings/
+.classpath
+.project
+target/
 *.metadata*
 jdt.ls-java-project
 examples/java/*.project
-examples/java/target
-examples/java/.settings
-examples/java/.classpath
-examples/java/.project
+examples/python/.venv
+examples/python/__pycache__
 org.eclipse.core*
 org.eclipse.osgi*
 org.eclipse.equinox*
@@ -14,3 +17,6 @@ konveyor-analyzer
 konveyor-analyzer-dep
 go.work
 go.work.sum
+
+external-providers/generic-external-provider/generic-external-provider
+external-providers/golang-dependency-provider/golang-dependency-provider

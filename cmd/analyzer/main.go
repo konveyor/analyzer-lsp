@@ -38,6 +38,7 @@ var (
 	limitCodeSnips    int
 	analysisMode      string
 	noDependencyRules bool
+	contextLines      int
 
 	rootCmd = &cobra.Command{
 		Use:   "analyze",
@@ -60,11 +61,14 @@ func init() {
 	rootCmd.Flags().IntVar(&limitCodeSnips, "limit-code-snips", 20, "limit the number code snippets that are retrieved for a file while evaluating a rule, 0 means no limit")
 	rootCmd.Flags().StringVar(&analysisMode, "analysis-mode", "", "select one of full or source-only to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
 	rootCmd.Flags().BoolVar(&noDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
+	rootCmd.Flags().IntVar(&contextLines, "context-lines", 10, "When violation occurs, A part of source code is added to the output, So this flag configures the number of source code lines to be printed to the output.")
 }
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
 		println(err.Error())
+	} else if rootCmd.Flags().Changed("help") {
+		return
 	}
 
 	// This will globally prevent the yaml library from auto-wrapping lines at 80 characters
@@ -134,11 +138,13 @@ func main() {
 		log,
 		engine.WithIncidentLimit(limitIncidents),
 		engine.WithCodeSnipLimit(limitCodeSnips),
+		engine.WithContextLines(contextLines),
 	)
 
 	providers := map[string]provider.InternalProviderClient{}
 
 	for _, config := range configs {
+		config.ContextLines = contextLines
 		// IF analsyis mode is set from the CLI, then we will override this for each init config
 		if analysisMode != "" {
 			inits := []provider.InitConfig{}
@@ -207,7 +213,11 @@ func main() {
 		os.Exit(EXIT_ON_ERROR_CODE)
 	}
 
-	os.WriteFile(outputViolations, b, 0644)
+	err = os.WriteFile(outputViolations, b, 0644)
+	if err != nil {
+		log.Error(err, "error writing output file", "file", outputViolations)
+		os.Exit(1) // Treat the error as a fatal error
+	}	
 }
 
 func validateFlags() error {

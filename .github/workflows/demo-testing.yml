@@ -14,29 +14,45 @@ jobs:
       - name: build demo image
         run: podman build -f demo.Dockerfile -t localhost/testing:latest
 
+      - name: install yq for testing
+        run: go install github.com/mikefarah/yq/v4@latest
+
       - name: run demo image and ensure violations output unchanged
         run: |
           podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
-          git diff --exit-code demo-output.yaml
+          diff \
+            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)) \
+            <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))
 
       - name: run demo image and ensure dependency output unchanged
         run: |
           podman run --entrypoint /usr/bin/konveyor-analyzer-dep -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z localhost/testing:latest --output-file=demo-dep-output.yaml
-          git diff --exit-code demo-dep-output.yaml
+          diff \
+            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
+            <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
 
-      - name: save image
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          repository: konveyor/tackle2-addon-analyzer
+          ref: main
+          path: tackle2-addon-analyzer
+
+      - name: Build addon and save image
+        working-directory: tackle2-addon-analyzer
         run: |
-          podman save -o /tmp/analyzer-lsp.tar quay.io/konveyor/analyzer-lsp:latest
+          IMG=quay.io/konveyor/tackle2-addon-analyzer:latest make image-podman
+          podman save -o /tmp/tackle2-addon-analyzer.tar quay.io/konveyor/tackle2-addon-analyzer:latest
 
       - name: Upload image as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: analyzer-lsp
-          path: /tmp/analyzer-lsp.tar
+          name: tackle2-addon-analyzer
+          path: /tmp/tackle2-addon-analyzer.tar
           retention-days: 1
 
   e2e:
     needs: test
     uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
-      component_name: analyzer-lsp
+      component_name: tackle2-addon-analyzer

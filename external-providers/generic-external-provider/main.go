@@ -17,6 +17,7 @@ var (
 )
 
 func main() {
+
 	flag.Parse()
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)

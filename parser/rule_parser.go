@@ -706,7 +706,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 	// Here there can only be a single provider.
 	client, ok := r.ProviderNameToClient[langProvider]
 	if !ok {
-		return nil, nil, fmt.Errorf("unable to find provider for :%v", langProvider)
+		return nil, nil, fmt.Errorf("unable to find provider for: %v", langProvider)
 	}
 
 	if !provider.HasCapability(client.Capabilities(), capability) {
@@ -724,8 +724,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 
 	if capability == "dependency" && !r.NoDependencyRules {
 		depCondition := provider.DependencyCondition{
-			Client:        client,
-			LabelSelector: r.DepLabelSelector,
+			Client: client,
 		}
 
 		fullCondition, ok := value.(map[interface{}]interface{})
@@ -778,7 +777,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 		selector = r.DepLabelSelector
 	}
 
-	return &provider.ProviderCondition{
+	return provider.ProviderCondition{
 		Client:           client,
 		Capability:       capability,
 		ConditionInfo:    value,

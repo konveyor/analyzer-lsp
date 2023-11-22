@@ -20,12 +20,6 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
-const (
-	// TODO: make this configurable in the future
-	// We may or may not need to do this so holding off for now.
-	CONTEXT_LINES = 10
-)
-
 type RuleEngine interface {
 	RunRules(context context.Context, rules []RuleSet, selectors ...RuleSelector) []konveyor.RuleSet
 	Stop()
@@ -55,6 +49,7 @@ type ruleEngine struct {
 
 	incidentLimit int
 	codeSnipLimit int
+	contextLines  int
 }
 
 type Option func(engine *ruleEngine)
@@ -62,6 +57,12 @@ type Option func(engine *ruleEngine)
 func WithIncidentLimit(i int) Option {
 	return func(engine *ruleEngine) {
 		engine.incidentLimit = i
+	}
+}
+
+func WithContextLines(i int) Option {
+	return func(engine *ruleEngine) {
+		engine.contextLines = i
 	}
 }
 
@@ -152,7 +153,6 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 	// Need a better name for this thing
 	ret := make(chan response)
 
-	var totalRules int32
 	var matchedRules int32
 	var unmatchedRules int32
 	var failedRules int32
@@ -174,7 +174,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()
 						}
 					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
-						violation, err := r.createViolation(response.ConditionResponse, response.Rule)
+						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule)
 						if err != nil {
 							r.logger.Error(err, "unable to create violation from response")
 						}
@@ -194,8 +194,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 							rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
 						}
 					}
-					atomic.AddInt32(&totalRules, 1)
-					r.logger.V(5).Info("rule response received", "total", totalRules, "failed", failedRules, "matched", matchedRules, "unmatched", unmatchedRules)
+					r.logger.V(5).Info("rule response received", "total", len(otherRules), "failed", failedRules, "matched", matchedRules, "unmatched", unmatchedRules)
 
 				}()
 			case <-ctx.Done():
@@ -252,7 +251,7 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 			// skip rule when doesn't match any selector
 			if !matchesAllSelectors(rule.RuleMeta, selectors...) {
 				mapRuleSets[ruleSet.Name].Skipped = append(mapRuleSets[ruleSet.Name].Skipped, rule.RuleID)
-				r.logger.Info("one or more selectors did not match for rule, skipping", "rule", rule.RuleMeta)
+				r.logger.V(5).Info("one or more selectors did not match for rule, skipping", "ruleID", rule.RuleID)
 				continue
 			}
 
@@ -301,7 +300,7 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
 				rs.Errors[rule.RuleID] = err.Error()
 			}
-		} else if response.Matched {
+		} else if response.Matched && len(response.Incidents) > 0 {
 			r.logger.V(5).Info("info rule was matched", "ruleID", rule.RuleID)
 			tags := map[string]bool{}
 			for _, tagString := range rule.Perform.Tag {
@@ -387,7 +386,7 @@ func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log l
 
 }
 
-func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule Rule) (konveyor.Violation, error) {
+func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse ConditionResponse, rule Rule) (konveyor.Violation, error) {
 	incidents := []konveyor.Incident{}
 	fileCodeSnipCount := map[string]int{}
 	incidentsSet := map[string]struct{}{} // Set of incidents
@@ -405,19 +404,10 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			lineNumber := *m.LineNumber
 			incident.LineNumber = &lineNumber
 		}
-		links := []konveyor.Link{}
-		if len(m.Links) > 0 {
-			for _, l := range m.Links {
-				links = append(links, konveyor.Link{
-					URL:   l.URL,
-					Title: l.Title,
-				})
-			}
-		}
 		// Some violations may not have a location in code.
 		limitSnip := (r.codeSnipLimit != 0 && fileCodeSnipCount[string(m.FileURI)] == r.codeSnipLimit)
 		if !limitSnip {
-			codeSnip, err := r.getCodeLocation(m, rule)
+			codeSnip, err := r.getCodeLocation(ctx, m, rule)
 			if err != nil || codeSnip == "" {
 				r.logger.V(6).Error(err, "unable to get code location")
 			} else {
@@ -431,32 +421,31 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 			re := regexp.MustCompile(`^(\s*[0-9]+  )?(.*)`)
 			scanner := bufio.NewScanner(strings.NewReader(incident.CodeSnip))
 			for scanner.Scan() {
-				originalCodeSnip = originalCodeSnip + re.ReplaceAllString(scanner.Text(), "$2")
+				if incident.LineNumber != nil && strings.HasPrefix(strings.TrimSpace(scanner.Text()), fmt.Sprintf("%v", *incident.LineNumber)) {
+					originalCodeSnip = strings.TrimSpace(re.ReplaceAllString(scanner.Text(), "$2"))
+					r.logger.V(5).Info("found originalCodeSnip", "lineNuber", incident.LineNumber, "original", originalCodeSnip)
+					break
+				}
 			}
 
 			for _, cv := range rule.CustomVariables {
 				match := cv.Pattern.FindStringSubmatch(originalCodeSnip)
-				switch len(match) {
-				case 0:
-					m.Variables[cv.Name] = cv.DefaultValue
+				if cv.NameOfCaptureGroup != "" && cv.Pattern.SubexpIndex(cv.NameOfCaptureGroup) >= 0 &&
+					cv.Pattern.SubexpIndex(cv.NameOfCaptureGroup) < len(match) {
+
+					m.Variables[cv.Name] = strings.TrimSpace(match[cv.Pattern.SubexpIndex(cv.NameOfCaptureGroup)])
 					continue
-				case 1:
-					m.Variables[cv.Name] = match[0]
-					continue
-				case 2:
-					m.Variables[cv.Name] = match[1]
-				default:
-					// if more than 1 match, then we have to look up the names.
-					found := false
-					for i, n := range cv.Pattern.SubexpNames() {
-						if n == cv.NameOfCaptureGroup {
-							m.Variables[cv.Name] = match[i]
-							found = true
-							break
-						}
-					}
-					if !found {
+
+				} else {
+					switch len(match) {
+					case 0:
 						m.Variables[cv.Name] = cv.DefaultValue
+						continue
+					case 1:
+						m.Variables[cv.Name] = strings.TrimSpace(match[0])
+						continue
+					case 2:
+						m.Variables[cv.Name] = strings.TrimSpace(match[1])
 					}
 				}
 			}
@@ -491,6 +480,8 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 		}
 	}
 
+	rule.Labels = deduplicateLabels(rule.Labels)
+
 	return konveyor.Violation{
 		Description: rule.Description,
 		Labels:      rule.Labels,
@@ -502,7 +493,7 @@ func (r *ruleEngine) createViolation(conditionResponse ConditionResponse, rule R
 	}, nil
 }
 
-func (r *ruleEngine) getCodeLocation(m IncidentContext, rule Rule) (codeSnip string, err error) {
+func (r *ruleEngine) getCodeLocation(ctx context.Context, m IncidentContext, rule Rule) (codeSnip string, err error) {
 	if m.CodeLocation == nil {
 		r.logger.V(6).Info("unable to get the code snip", "URI", m.FileURI)
 		return "", nil
@@ -520,13 +511,13 @@ func (r *ruleEngine) getCodeLocation(m IncidentContext, rule Rule) (codeSnip str
 		scanner := bufio.NewScanner(readFile)
 		lineNumber := 0
 		codeSnip := ""
-		paddingSize := len(strconv.Itoa(m.CodeLocation.EndPosition.Line + CONTEXT_LINES))
+		paddingSize := len(strconv.Itoa(m.CodeLocation.EndPosition.Line + r.contextLines))
 		for scanner.Scan() {
-			if (lineNumber - CONTEXT_LINES) == m.CodeLocation.EndPosition.Line {
+			if (lineNumber - r.contextLines) == m.CodeLocation.EndPosition.Line {
 				codeSnip = codeSnip + fmt.Sprintf("%*d  %v", paddingSize, lineNumber+1, scanner.Text())
 				break
 			}
-			if (lineNumber + CONTEXT_LINES) >= m.CodeLocation.StartPosition.Line {
+			if (lineNumber + r.contextLines) >= m.CodeLocation.StartPosition.Line {
 				codeSnip = codeSnip + fmt.Sprintf("%*d  %v\n", paddingSize, lineNumber+1, scanner.Text())
 			}
 			lineNumber += 1
@@ -556,4 +547,19 @@ func matchesAllSelectors(m RuleMeta, selectors ...RuleSelector) bool {
 		}
 	}
 	return true
+}
+
+func deduplicateLabels(labels []string) []string {
+	present := map[string]bool{}
+	uniquelabels := []string{}
+
+	for _, label := range labels {
+		if !present[label] {
+			present[label] = true
+			uniquelabels = append(uniquelabels, label)
+		}
+	}
+
+	return uniquelabels
+
 }

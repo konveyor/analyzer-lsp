@@ -2,7 +2,6 @@ package jsonrpc2
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -129,7 +128,7 @@ func (b *BackoffHandler) Done(ctx context.Context, err error) {
 	b.failedRequestsMu.Lock()
 	// handle clean up in back off if we need to .
 	if err == nil {
-		fmt.Printf("deleting request key")
+		b.logger.V(7).Info("deleting request key")
 		delete(b.failedRequests, requestKey)
 	}
 	b.failedRequestsMu.Unlock()

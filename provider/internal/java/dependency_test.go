@@ -41,6 +41,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 +- junit:junit:jar:4.11:test
 |  \- org.hamcrest:hamcrest-core:jar:1.3:test
 +- io.fabric8:kubernetes-client:jar:6.0.0:compile
+|  +- io.netty:netty-transport-native-epoll:jar:linux-aarch_64:4.1.76.Final:runtime
 |  +- io.fabric8:kubernetes-httpclient-okhttp:jar:6.0.0:runtime
 |  |  +- com.squareup.okhttp3:okhttp:jar:3.12.12:runtime
 |  |  |  \- com.squareup.okio:okio:jar:1.15.0:runtime
@@ -58,7 +59,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 							labels.AsString(provider.DepSourceLabel, "internal"),
 							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
-						FileURIPrefix: "konveyor-jdt://contentstestdata/junit/junit/4.11",
+						Extras: map[string]interface{}{
+							groupIdKey:    "junit",
+							artifactIdKey: "junit",
+							pomPathKey:    "pom.xml",
+						},
+						FileURIPrefix: "file://testdata/junit/junit/4.11",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -72,7 +78,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/org/hamcrest/hamcrest-core/1.3",
+								Extras: map[string]interface{}{
+									groupIdKey:    "org.hamcrest",
+									artifactIdKey: "hamcrest-core",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
 							},
 						},
 					},
@@ -88,9 +99,34 @@ func Test_parseMavenDepLines(t *testing.T) {
 							labels.AsString(provider.DepSourceLabel, "internal"),
 							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
-						FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-client/6.0.0",
+						Extras: map[string]interface{}{
+							groupIdKey:    "io.fabric8",
+							artifactIdKey: "kubernetes-client",
+							pomPathKey:    "pom.xml",
+						},
+						FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
+						{
+							Dep: provider.Dep{
+								Name:               "io.netty.netty-transport-native-epoll",
+								Version:            "4.1.76.Final",
+								Type:               "runtime",
+								Classifier:         "linux-aarch_64",
+								Indirect:           true,
+								ResolvedIdentifier: "e1ee2a9c5f63b1b71260caf127a1e50667d62854",
+								Labels: []string{
+									labels.AsString(provider.DepSourceLabel, "internal"),
+									labels.AsString(provider.DepLanguageLabel, "java"),
+								},
+								Extras: map[string]interface{}{
+									groupIdKey:    "io.netty",
+									artifactIdKey: "netty-transport-native-epoll",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/io/netty/netty-transport-native-epoll/4.1.76.Final",
+							},
+						},
 						{
 							Dep: provider.Dep{
 								Name:               "io.fabric8.kubernetes-httpclient-okhttp",
@@ -102,7 +138,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
+								Extras: map[string]interface{}{
+									groupIdKey:    "io.fabric8",
+									artifactIdKey: "kubernetes-httpclient-okhttp",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
 						},
 						{
@@ -116,7 +157,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/okhttp/3.12.12",
+								Extras: map[string]interface{}{
+									groupIdKey:    "com.squareup.okhttp3",
+									artifactIdKey: "okhttp",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
 							},
 						},
 						{
@@ -130,7 +176,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okio/okio/1.15.0",
+								Extras: map[string]interface{}{
+									groupIdKey:    "com.squareup.okio",
+									artifactIdKey: "okio",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
 							},
 						},
 						{
@@ -144,7 +195,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
+								Extras: map[string]interface{}{
+									groupIdKey:    "com.squareup.okhttp3",
+									artifactIdKey: "logging-interceptor",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
 						},
 						{
@@ -158,7 +214,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/zjsonpatch/0.3.0",
+								Extras: map[string]interface{}{
+									groupIdKey:    "io.fabric8",
+									artifactIdKey: "zjsonpatch",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
 							},
 						},
 					},
@@ -193,7 +254,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 							labels.AsString(provider.DepSourceLabel, "open-source"),
 							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
-						FileURIPrefix: "konveyor-jdt://contentstestdata/junit/junit/4.11",
+						Extras: map[string]interface{}{
+							groupIdKey:    "junit",
+							artifactIdKey: "junit",
+							pomPathKey:    "pom.xml",
+						},
+						FileURIPrefix: "file://testdata/junit/junit/4.11",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -208,7 +274,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/org/hamcrest/hamcrest-core/1.3",
+								Extras: map[string]interface{}{
+									groupIdKey:    "org.hamcrest",
+									artifactIdKey: "hamcrest-core",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
 							},
 						},
 					},
@@ -224,7 +295,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 							labels.AsString(provider.DepSourceLabel, "internal"),
 							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
-						FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-client/6.0.0",
+						Extras: map[string]interface{}{
+							groupIdKey:    "io.fabric8",
+							artifactIdKey: "kubernetes-client",
+							pomPathKey:    "pom.xml",
+						},
+						FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -238,7 +314,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
+								Extras: map[string]interface{}{
+									groupIdKey:    "io.fabric8",
+									artifactIdKey: "kubernetes-httpclient-okhttp",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
 						},
 						{
@@ -252,7 +333,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/okhttp/3.12.12",
+								Extras: map[string]interface{}{
+									groupIdKey:    "com.squareup.okhttp3",
+									artifactIdKey: "okhttp",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
 							},
 						},
 						{
@@ -266,7 +352,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okio/okio/1.15.0",
+								Extras: map[string]interface{}{
+									groupIdKey:    "com.squareup.okio",
+									artifactIdKey: "okio",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
 							},
 						},
 						{
@@ -280,7 +371,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
+								Extras: map[string]interface{}{
+									groupIdKey:    "com.squareup.okhttp3",
+									artifactIdKey: "logging-interceptor",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
 						},
 						{
@@ -294,7 +390,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 									labels.AsString(provider.DepSourceLabel, "internal"),
 									labels.AsString(provider.DepLanguageLabel, "java"),
 								},
-								FileURIPrefix: "konveyor-jdt://contentstestdata/io/fabric8/zjsonpatch/0.3.0",
+								Extras: map[string]interface{}{
+									groupIdKey:    "io.fabric8",
+									artifactIdKey: "zjsonpatch",
+									pomPathKey:    "pom.xml",
+								},
+								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
 							},
 						},
 					},
@@ -322,7 +423,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 			}
 			// we are not testing dep init here, so ignore error
 			p.depInit()
-			if deps, err = p.parseMavenDepLines(lines[1:], "testdata"); (err != nil) != tt.wantErr {
+			if deps, err = p.parseMavenDepLines(lines[1:], "testdata", "pom.xml"); (err != nil) != tt.wantErr {
 				t.Errorf("parseMavenDepLines() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if len(tt.wantDeps) != len(deps) {

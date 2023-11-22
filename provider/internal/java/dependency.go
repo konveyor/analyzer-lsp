@@ -3,6 +3,7 @@ package java
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -13,10 +14,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/antchfx/xmlquery"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/vifraa/gopom"
 	"go.lsp.dev/uri"
 )
 
@@ -25,6 +26,13 @@ const (
 	javaDepSourceOpenSource                    = "open-source"
 	providerSpecificConfigOpenSourceDepListKey = "depOpenSourceLabelsFile"
 	providerSpecificConfigExcludePackagesKey   = "excludePackages"
+)
+
+// keys used in dep.Extras for extra information about a dep
+const (
+	artifactIdKey = "artifactId"
+	groupIdKey    = "groupId"
+	pomPathKey    = "pomPath"
 )
 
 // TODO implement this for real
@@ -42,10 +50,14 @@ func (p *javaServiceClient) findPom() string {
 	return f
 }
 
-func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, error) {
-	if p.depsCache != nil {
-		return p.depsCache, nil
+func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	p.depsMutex.RLock()
+	val := p.depsCache
+	p.depsMutex.RUnlock()
+	if val != nil {
+		return val, nil
 	}
+
 	var err error
 	var ll map[uri.URI][]konveyor.DepDAGItem
 	m := map[uri.URI][]*provider.Dep{}
@@ -54,12 +66,14 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 		// for binaries we only find JARs embedded in archive
 		p.discoverDepsFromJars(p.config.DependencyPath, ll)
 	} else {
-		ll, err = p.GetDependenciesDAG()
+		ll, err = p.GetDependenciesDAG(ctx)
 		if err != nil {
-			return p.GetDependencyFallback()
+			p.log.Info("unable to get dependencies, using fallback", "error", err)
+			return p.GetDependenciesFallback(ctx, "")
 		}
 		if len(ll) == 0 {
-			return p.GetDependencyFallback()
+			p.log.Info("unable to get dependencies (none found), using fallback")
+			return p.GetDependenciesFallback(ctx, "")
 		}
 	}
 	for f, ds := range ll {
@@ -71,16 +85,18 @@ func (p *javaServiceClient) GetDependencies() (map[uri.URI][]*provider.Dep, erro
 		}
 		m[f] = deps
 	}
+	p.depsMutex.Lock()
 	p.depsCache = m
+	p.depsMutex.Unlock()
 	return m, nil
 }
 
-func (p *javaServiceClient) getLocalRepoPath() string {
+func getMavenLocalRepoPath(mvnSettingsFile string) string {
 	args := []string{
 		"help:evaluate", "-Dexpression=settings.localRepository", "-q", "-DforceStdout",
 	}
-	if p.mvnSettingsFile != "" {
-		args = append(args, "-s", p.mvnSettingsFile)
+	if mvnSettingsFile != "" {
+		args = append(args, "-s", mvnSettingsFile)
 	}
 	cmd := exec.Command("mvn", args...)
 	var outb bytes.Buffer
@@ -94,123 +110,223 @@ func (p *javaServiceClient) getLocalRepoPath() string {
 	return string(outb.String())
 }
 
-func (p *javaServiceClient) GetDependencyFallback() (map[uri.URI][]*provider.Dep, error) {
-	pomDependencyQuery := "//dependencies/dependency/*"
-	path := p.findPom()
-	file := uri.File(path)
-
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	f, err := os.Open(absPath)
-	if err != nil {
-		return nil, err
-	}
-	doc, err := xmlquery.Parse(f)
-	if err != nil {
-		return nil, err
-	}
-	list, err := xmlquery.QueryAll(doc, pomDependencyQuery)
-	if err != nil {
-		return nil, err
-	}
+func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, location string) (map[uri.URI][]*provider.Dep, error) {
 	deps := []*provider.Dep{}
-	dep := &provider.Dep{}
-	// TODO this is comedically janky
-	for _, node := range list {
-		if node.Data == "groupId" {
-			if dep.Name != "" {
-				deps = append(deps, dep)
-				dep = &provider.Dep{}
-			}
-			dep.Name = node.InnerText()
-		} else if node.Data == "artifactId" {
-			dep.Name += "." + node.InnerText()
-		} else if node.Data == "version" {
-			dep.Version = node.InnerText()
+
+	m2Repo := getMavenLocalRepoPath(p.mvnSettingsFile)
+
+	path, err := filepath.Abs(p.findPom())
+	if err != nil {
+		return nil, err
+	}
+
+	if location != "" {
+		path = location
+	}
+	pom, err := gopom.Parse(path)
+	p.log.V(10).Info("Analyzing POM",
+		"POM", fmt.Sprintf("%s:%s:%s", pomCoordinate(pom.GroupID), pomCoordinate(pom.ArtifactID), pomCoordinate(pom.Version)),
+		"error", err)
+	if err != nil {
+		return nil, err
+	}
+	// If the pom object is empty then parse failed silently.
+	if reflect.DeepEqual(*pom, gopom.Project{}) {
+		return nil, nil
+	}
+
+	// have to get both <dependencies> and <dependencyManagement> dependencies (if present)
+	var pomDeps []gopom.Dependency
+	if pom.Dependencies != nil {
+		pomDeps = append(pomDeps, *pom.Dependencies...)
+	}
+	if pom.DependencyManagement != nil {
+		if pom.DependencyManagement.Dependencies != nil {
+			pomDeps = append(pomDeps, *pom.DependencyManagement.Dependencies...)
 		}
-		// Ignore the others
 	}
-	if !reflect.DeepEqual(dep, provider.Dep{}) {
-		dep.Labels = []string{fmt.Sprintf("%v=%v", provider.DepSourceLabel, javaDepSourceInternal)}
-		deps = append(deps, dep)
+
+	// add each dependency found
+	for _, d := range pomDeps {
+		if d.GroupID == nil || d.Version == nil || d.ArtifactID == nil {
+			continue
+		}
+		dep := provider.Dep{}
+		dep.Name = fmt.Sprintf("%s.%s", *d.GroupID, *d.ArtifactID)
+		dep.Extras = map[string]interface{}{
+			groupIdKey:    *d.GroupID,
+			artifactIdKey: *d.ArtifactID,
+			pomPathKey:    path,
+		}
+		if *d.Version != "" {
+			if strings.Contains(*d.Version, "$") {
+				version := strings.TrimSuffix(strings.TrimPrefix(*d.Version, "${"), "}")
+				p.log.V(10).Info("Searching for property in properties",
+					"property", version,
+					"properties", pom.Properties)
+				if pom.Properties == nil {
+					p.log.Info("Cannot resolve version property value as POM does not have properties",
+						"POM", fmt.Sprintf("%s.%s", pomCoordinate(pom.GroupID), pomCoordinate(pom.ArtifactID)),
+						"property", version,
+						"dependency", dep.Name)
+					dep.Version = version
+				} else {
+					version = pom.Properties.Entries[version]
+					if version != "" {
+						dep.Version = version
+					}
+				}
+			} else {
+				dep.Version = *d.Version
+			}
+			if m2Repo != "" && d.ArtifactID != nil && d.GroupID != nil {
+				dep.FileURIPrefix = filepath.Join(m2Repo,
+					strings.Replace(*d.GroupID, ".", "/", -1), *d.ArtifactID, dep.Version)
+			}
+		}
+		deps = append(deps, &dep)
 	}
+
 	m := map[uri.URI][]*provider.Dep{}
-	m[file] = deps
+	m[uri.File(path)] = deps
+	p.depsMutex.Lock()
 	p.depsCache = m
+	p.depsMutex.Unlock()
+
+	// recursively find deps in submodules
+	if pom.Modules != nil {
+		for _, mod := range *pom.Modules {
+			mPath := fmt.Sprintf("%s/%s/pom.xml", filepath.Dir(path), mod)
+			moreDeps, err := p.GetDependenciesFallback(ctx, mPath)
+			if err != nil {
+				return nil, err
+			}
+
+			// add found dependencies to map
+			for depPath := range moreDeps {
+				m[depPath] = moreDeps[depPath]
+			}
+		}
+	}
+
 	return m, nil
 }
 
-func (p *javaServiceClient) GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
-	localRepoPath := p.getLocalRepoPath()
+func pomCoordinate(value *string) string {
+	if value != nil {
+		return *value
+	}
+	return "unknown"
+}
+
+func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	localRepoPath := getMavenLocalRepoPath(p.mvnSettingsFile)
 
 	path := p.findPom()
 	file := uri.File(path)
 
-	//Create temp file to use
-	f, err := os.CreateTemp("", "*")
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(f.Name())
-
 	moddir := filepath.Dir(path)
+
 	args := []string{
+		"-B",
 		"dependency:tree",
 		"-Djava.net.useSystemProxies=true",
-		fmt.Sprintf("-DoutputFile=%s", f.Name()),
 	}
+
 	if p.mvnSettingsFile != "" {
 		args = append(args, "-s", p.mvnSettingsFile)
 	}
+
 	// get the graph output
 	cmd := exec.Command("mvn", args...)
 	cmd.Dir = moddir
-	err = cmd.Run()
+	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := os.ReadFile(f.Name())
-	if err != nil {
-		return nil, err
-	}
+	lines := strings.Split(string(mvnOutput), "\n")
+	submoduleTrees := extractSubmoduleTrees(lines)
 
-	lines := strings.Split(string(b), "\n")
-
-	// strip first and last line of the output
-	// first line is the base package, last line empty
-	if len(lines) > 2 {
-		lines = lines[1 : len(lines)-1]
-	}
-
-	pomDeps, err := p.parseMavenDepLines(lines, localRepoPath)
-	if err != nil {
-		return nil, err
+	var pomDeps []provider.DepDAGItem
+	for _, tree := range submoduleTrees {
+		submoduleDeps, err := p.parseMavenDepLines(tree, localRepoPath, path)
+		if err != nil {
+			return nil, err
+		}
+		pomDeps = append(pomDeps, submoduleDeps...)
 	}
 
 	m := map[uri.URI][]provider.DepDAGItem{}
 	m[file] = pomDeps
 
-	// also grab the embedded deps
-	p.discoverDepsFromJars(moddir, m)
+	if len(m) == 0 {
+		// grab the embedded deps
+		p.discoverDepsFromJars(moddir, m)
+	}
 
 	return m, nil
+}
+
+// extractSubmoduleTrees creates an array of lines for each submodule tree found in the mvn dependency:tree output
+func extractSubmoduleTrees(lines []string) [][]string {
+	submoduleTrees := [][]string{}
+
+	beginRegex := regexp.MustCompile(`(maven-)*dependency(-plugin)*:[\d\.]+:tree`)
+	endRegex := regexp.MustCompile(`\[INFO\] -*$`)
+
+	submod := 0
+	gather, skipmod := false, true
+	for _, line := range lines {
+		if beginRegex.Find([]byte(line)) != nil {
+			gather = true
+			submoduleTrees = append(submoduleTrees, []string{})
+			continue
+		}
+
+		if gather {
+			if endRegex.Find([]byte(line)) != nil {
+				gather, skipmod = false, true
+				submod++
+				continue
+			}
+			if skipmod { // we ignore the first module (base module)
+				skipmod = false
+				continue
+			}
+
+			line = strings.TrimPrefix(line, "[INFO] ")
+			line = strings.Trim(line, " ")
+
+			// output contains progress report lines that are not deps, skip those
+			if !(strings.HasPrefix(line, "+") || strings.HasPrefix(line, "|") || strings.HasPrefix(line, "\\")) {
+				continue
+			}
+
+			submoduleTrees[submod] = append(submoduleTrees[submod], line)
+		}
+	}
+
+	return submoduleTrees
 }
 
 // discoverDepsFromJars walks given path to discover dependencies embedded as JARs
 func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem) {
 	// for binaries we only find JARs embedded in archive
 	w := walker{
-		deps: ll,
+		deps:        ll,
+		depToLabels: p.depToLabels,
+		m2RepoPath:  getMavenLocalRepoPath(p.mvnSettingsFile),
+		seen:        map[string]bool{},
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
 
 type walker struct {
-	deps map[uri.URI][]provider.DepDAGItem
+	deps        map[uri.URI][]provider.DepDAGItem
+	depToLabels map[string]*depLabelItem
+	m2RepoPath  string
+	seen        map[string]bool
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -221,9 +337,28 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		return filepath.WalkDir(filepath.Join(path, info.Name()), w.walkDirForJar)
 	}
 	if strings.HasSuffix(info.Name(), ".jar") {
+		seenKey := filepath.Base(info.Name())
+		if _, ok := w.seen[seenKey]; ok {
+			return nil
+		}
+		w.seen[seenKey] = true
 		d := provider.Dep{
 			Name: info.Name(),
 		}
+		artifact, _ := toDependency(context.TODO(), path)
+		if (artifact != javaArtifact{}) {
+			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
+			d.Version = artifact.Version
+			d.Labels = addDepLabels(w.depToLabels, d.Name)
+			d.ResolvedIdentifier = artifact.sha1
+			// when we can successfully get javaArtifact from a jar
+			// we added it to the pom and it should be in m2Repo path
+			if w.m2RepoPath != "" {
+				d.FileURIPrefix = filepath.Join(w.m2RepoPath,
+					strings.Replace(artifact.GroupId, ".", "/", -1), artifact.ArtifactId, artifact.Version)
+			}
+		}
+
 		w.deps[uri.URI(filepath.Join(path, info.Name()))] = []provider.DepDAGItem{
 			{
 				Dep: d,
@@ -234,8 +369,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 }
 
 // parseDepString parses a java dependency string
-// assumes format <group>:<name>:<type>:<version>:<scope>
-func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.Dep, error) {
+func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (provider.Dep, error) {
 	d := provider.Dep{}
 	// remove all the pretty print characters.
 	dep = strings.TrimFunc(dep, func(r rune) bool {
@@ -248,14 +382,30 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 	// Split string on ":" must have 5 parts.
 	// For now we ignore Type as it appears most everything is a jar
 	parts := strings.Split(dep, ":")
-	if len(parts) != 5 {
+	if len(parts) >= 3 {
+		// Its always <groupId>:<artifactId>:<Packaging>: ... then
+		if len(parts) == 6 {
+			d.Classifier = parts[3]
+			d.Version = parts[4]
+			d.Type = parts[5]
+		} else if len(parts) == 5 {
+			d.Version = parts[3]
+			d.Type = parts[4]
+		} else {
+			p.log.Info("Cannot derive version from dependency string", "dependency", dep)
+			d.Version = "Unknown"
+		}
+	} else {
 		return d, fmt.Errorf("unable to split dependency string %s", dep)
 	}
 	d.Name = fmt.Sprintf("%s.%s", parts[0], parts[1])
-	d.Version = parts[3]
-	d.Type = parts[4]
 
-	fp := filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
+	var fp string
+	if d.Classifier == "" {
+		fp = filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
+	} else {
+		fp = filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v-%v.jar.sha1", parts[1], d.Version, d.Classifier))
+	}
 	b, err := os.ReadFile(fp)
 	if err != nil {
 		// Log the error and continue with the next dependency.
@@ -263,18 +413,26 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath string) (provider.
 		// Set some default or empty resolved identifier for the dependency.
 		d.ResolvedIdentifier = ""
 	} else {
-		d.ResolvedIdentifier = string(b)
+		// sometimes sha file contains name of the jar followed by the actual sha
+		sha, _, _ := strings.Cut(string(b), " ")
+		d.ResolvedIdentifier = sha
 	}
 
-	d.Labels = p.addDepLabels(d.Name)
-	d.FileURIPrefix = fmt.Sprintf("%v://contents%v", FILE_URI_PREFIX, filepath.Dir(fp))
+	d.Labels = addDepLabels(p.depToLabels, d.Name)
+	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
+
+	d.Extras = map[string]interface{}{
+		groupIdKey:    parts[0],
+		artifactIdKey: parts[1],
+		pomPathKey:    pomPath,
+	}
 
 	return d, nil
 }
 
-func (p *javaServiceClient) addDepLabels(depName string) []string {
+func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string {
 	m := map[string]interface{}{}
-	for _, d := range p.depToLabels {
+	for _, d := range depToLabels {
 		if d.r.Match([]byte(depName)) {
 			for label, _ := range d.labels {
 				m[label] = nil
@@ -296,10 +454,10 @@ func (p *javaServiceClient) addDepLabels(depName string) []string {
 }
 
 // parseMavenDepLines recursively parses output lines from maven dependency tree
-func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath string) ([]provider.DepDAGItem, error) {
+func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath, pomPath string) ([]provider.DepDAGItem, error) {
 	if len(lines) > 0 {
 		baseDepString := lines[0]
-		baseDep, err := p.parseDepString(baseDepString, localRepoPath)
+		baseDep, err := p.parseDepString(baseDepString, localRepoPath, pomPath)
 		if err != nil {
 			return nil, err
 		}
@@ -309,7 +467,7 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath str
 		idx := 1
 		// indirect deps are separated by 3 or more spaces after the direct dep
 		for idx < len(lines) && strings.Count(lines[idx], " ") > 2 {
-			transitiveDep, err := p.parseDepString(lines[idx], localRepoPath)
+			transitiveDep, err := p.parseDepString(lines[idx], localRepoPath, pomPath)
 			if err != nil {
 				return nil, err
 			}
@@ -317,7 +475,7 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath str
 			item.AddedDeps = append(item.AddedDeps, provider.DepDAGItem{Dep: transitiveDep})
 			idx += 1
 		}
-		ds, err := p.parseMavenDepLines(lines[idx:], localRepoPath)
+		ds, err := p.parseMavenDepLines(lines[idx:], localRepoPath, pomPath)
 		if err != nil {
 			return nil, err
 		}
@@ -373,6 +531,7 @@ func (p *javaServiceClient) initOpenSourceDepLabels() error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	return loadDepLabelItems(file, p.depToLabels,
 		labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource))
 }

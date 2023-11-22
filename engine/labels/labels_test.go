@@ -90,6 +90,22 @@ func Test_getBooleanExpression(t *testing.T) {
 			},
 			want: "( true || true ) && false && true",
 		},
+		{
+			name: "values with version ranges",
+			expr: "(konveyor.io/target=Spring Beans12  && konveyor.io/target=hibernate6.1)",
+			compareLabels: map[string][]string{
+				"konveyor.io/target": {"hibernate6-", "Spring Beans11+"},
+			},
+			want: "( true && false )",
+		},
+		{
+			name: "values with version ranges",
+			expr: "(konveyor.io/target=Spring Beans12  && konveyor.io/target=hibernate6.1)",
+			compareLabels: map[string][]string{
+				"konveyor.io/target": {"hibernate6+", "Spring Beans11-"},
+			},
+			want: "( false && true )",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -158,6 +174,24 @@ func TestParseLabel(t *testing.T) {
 			label:   "konveyor.io/fact=Spring Beans",
 			wantKey: "konveyor.io/fact",
 			wantVal: "Spring Beans",
+		},
+		{
+			name:    "absolte version in value",
+			label:   "konveyor.io/fact=Spring Beans12",
+			wantKey: "konveyor.io/fact",
+			wantVal: "Spring Beans12",
+		},
+		{
+			name:    "version range + in value",
+			label:   "konveyor.io/fact=Spring Beans12+",
+			wantKey: "konveyor.io/fact",
+			wantVal: "Spring Beans12+",
+		},
+		{
+			name:    "version range - in value",
+			label:   "konveyor.io/fact=Spring Beans12-",
+			wantKey: "konveyor.io/fact",
+			wantVal: "Spring Beans12-",
 		},
 	}
 	for _, tt := range tests {
@@ -326,12 +360,131 @@ func Test_ruleSelector_Matches(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "rule has a explicit include=always label",
+			expr: "konveyor.io/source=test",
+			ruleLabels: []string{
+				"konveyor.io/include=always",
+				"konveyor.io/source=noTest", // this should make the selector not match, but 'always' selector takes precedance
+			},
+			want: true,
+		},
+		{
+			name: "rule has a explicit include=never label",
+			expr: "konveyor.io/source=test",
+			ruleLabels: []string{
+				"konveyor.io/include=never",
+				"konveyor.io/source=test", // this should make the selector match, but 'never' selector takes precedance
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s, _ := NewLabelSelector[*engine.RuleMeta](tt.expr)
 			if got, _ := s.Matches(&engine.RuleMeta{Labels: tt.ruleLabels}); got != tt.want {
 				t.Errorf("ruleSelector.Matches() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_labelValueMatches(t *testing.T) {
+	tests := []struct {
+		name      string
+		candidate string
+		matchWith string
+		want      bool
+	}{
+		{
+			name:      "no version range test",
+			candidate: "eap",
+			matchWith: "eap",
+			want:      true,
+		},
+		{
+			name:      "name mismatch test",
+			candidate: "eap",
+			matchWith: "javaee",
+			want:      false,
+		},
+		{
+			name:      "absolute version test",
+			candidate: "eap6",
+			matchWith: "eap6",
+			want:      true,
+		},
+		{
+			name:      "version range test for '+'",
+			candidate: "eap6",
+			matchWith: "eap5+",
+			want:      true,
+		},
+		{
+			name:      "version range test for '+'",
+			candidate: "eap5",
+			matchWith: "eap5+",
+			want:      true,
+		},
+		{
+			name:      "version range test for '-'",
+			candidate: "eap7",
+			matchWith: "eap8-",
+			want:      true,
+		},
+		{
+			name:      "version range negative test for '-'",
+			candidate: "eap9",
+			matchWith: "eap8-",
+			want:      false,
+		},
+		{
+			name:      "version range negative test for '+'",
+			candidate: "eap7",
+			matchWith: "eap8+",
+			want:      false,
+		},
+		{
+			name:      "complex value version range test",
+			candidate: "Golang Version",
+			matchWith: "Golang Version11+",
+			want:      true,
+		},
+		{
+			name:      "match any version test",
+			candidate: "eap",
+			matchWith: "eap6+",
+			want:      true,
+		},
+		{
+			name:      "match any version test negative",
+			candidate: "eap6",
+			matchWith: "eap",
+			want:      false,
+		},
+		{
+			name:      "float value absolute match",
+			candidate: "hibernate5.1",
+			matchWith: "hibernate5.1",
+			want:      true,
+		},
+		{
+			name:      "float value range symbol '+' match",
+			candidate: "hibernate5.2",
+			matchWith: "hibernate5.1+",
+			want:      true,
+		},
+		{
+			name:      "float value range symbol '+' negative match",
+			candidate: "hibernate5.0.12",
+			matchWith: "hibernate5.1+",
+			want:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := labelValueMatches(tt.matchWith, tt.candidate); got != tt.want {
+				t.Errorf("versionRangeMatches() = %v, want %v", got, tt.want)
 			}
 		})
 	}

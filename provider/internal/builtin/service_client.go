@@ -1,36 +1,42 @@
 package builtin
 
 import (
+	"bufio"
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/antchfx/jsonquery"
 	"github.com/antchfx/xmlquery"
 	"github.com/antchfx/xpath"
+	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
-type builtintServiceClient struct {
+type builtinServiceClient struct {
 	config provider.InitConfig
 	tags   map[string]bool
 	provider.UnimplementedDependenciesComponent
+	log logr.Logger
+
+	cacheMutex    sync.RWMutex
+	locationCache map[string]float64
 }
 
-var _ provider.ServiceClient = &builtintServiceClient{}
+var _ provider.ServiceClient = &builtinServiceClient{}
 
-func (p *builtintServiceClient) Stop() {
-	return
-}
+func (p *builtinServiceClient) Stop() {}
 
-func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond builtinCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
@@ -78,53 +84,30 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		if c.Pattern == "" {
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
-		var outputBytes []byte
-		grep := exec.Command("grep", "-o", "-n", "-R", "-E", c.Pattern, p.config.Location)
-		outputBytes, err := grep.Output()
+		patternRegex, err := regexp.Compile(c.Pattern)
 		if err != nil {
-			if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
-				return response, nil
-			}
-			return response, fmt.Errorf("could not run grep with provided pattern %+v", err)
+			return response, err
 		}
-
-		matches := []string{}
-		outputString := strings.TrimSpace(string(outputBytes))
-		if outputString != "" {
-			matches = append(matches, strings.Split(outputString, "\n")...)
+		matches, err := parallelWalk(p.config.Location, patternRegex)
+		if err != nil {
+			return response, err
 		}
 
 		for _, match := range matches {
 			//TODO(fabianvf): This will not work if there is a `:` in the filename, do we care?
-			pieces := strings.SplitN(match, ":", 3)
-			if len(pieces) != 3 {
-				//TODO(fabianvf): Just log or return?
-				//(shawn-hurley): I think the return is good personally
-				return response, fmt.Errorf(
-					"malformed response from grep, cannot parse grep output '%s' with pattern {filepath}:{lineNumber}:{matchingText}", match)
-			}
-
-			containsFile, err := provider.FilterFilePattern(c.FilePattern, pieces[0])
+			containsFile, err := provider.FilterFilePattern(c.FilePattern, match.positionParams.TextDocument.URI)
 			if err != nil {
 				return response, err
 			}
 			if !containsFile {
 				continue
 			}
-
-			ab, err := filepath.Abs(pieces[0])
-			if err != nil {
-				ab = pieces[0]
-			}
-			lineNumber, err := strconv.Atoi(pieces[1])
-			if err != nil {
-				return response, fmt.Errorf("Cannot convert line number string to integer")
-			}
+			lineNumber := int(match.positionParams.Position.Line)
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
-				FileURI:    uri.File(ab),
+				FileURI:    uri.URI(match.positionParams.TextDocument.URI),
 				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
-					"matchingText": pieces[2],
+					"matchingText": match.match,
 				},
 				CodeLocation: &provider.Location{
 					StartPosition: provider.Position{Line: float64(lineNumber)},
@@ -139,7 +122,7 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 	case "xml":
 		query, err := xpath.CompileWithNS(cond.XML.XPath, cond.XML.Namespaces)
 		if query == nil || err != nil {
-			return response, fmt.Errorf("Could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
+			return response, fmt.Errorf("could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
 		}
 		xmlFiles, err := findXMLFiles(p.config.Location, cond.XMLPublicID.Filepaths)
 		if err != nil {
@@ -158,14 +141,21 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 					if err != nil {
 						ab = file
 					}
-					response.Incidents = append(response.Incidents, provider.IncidentContext{
+					incident := provider.IncidentContext{
 						FileURI: uri.File(ab),
 						Variables: map[string]interface{}{
 							"matchingXML": node.OutputXML(false),
 							"innerText":   node.InnerText(),
 							"data":        node.Data,
 						},
-					})
+					}
+					location, err := p.getLocation(ctx, ab, node.InnerText())
+					if err == nil {
+						incident.CodeLocation = &location
+						lineNo := int(location.StartPosition.Line)
+						incident.LineNumber = &lineNo
+					}
+					response.Incidents = append(response.Incidents, incident)
 				}
 			}
 		}
@@ -220,16 +210,24 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 	case "json":
 		query := cond.JSON.XPath
 		if query == "" {
-			return response, fmt.Errorf("Could not parse provided xpath query as string: %v", conditionInfo)
+			return response, fmt.Errorf("could not parse provided xpath query as string: %v", conditionInfo)
 		}
 		pattern := "*.json"
 		jsonFiles, err := provider.GetFiles(p.config.Location, cond.JSON.Filepaths, pattern)
 		if err != nil {
-			return response, fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
+			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
+			if err != nil {
+				p.log.V(5).Error(err, "error opening json file", "file", file)
+				continue
+			}
 			doc, err := jsonquery.Parse(f)
+			if err != nil {
+				p.log.V(5).Error(err, "error parsing json file", "file", file)
+				continue
+			}
 			list, err := jsonquery.QueryAll(doc, query)
 			if err != nil {
 				return response, err
@@ -241,13 +239,20 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 					if err != nil {
 						ab = file
 					}
-					response.Incidents = append(response.Incidents, provider.IncidentContext{
+					incident := provider.IncidentContext{
 						FileURI: uri.File(ab),
 						Variables: map[string]interface{}{
 							"matchingJSON": node.InnerText(),
 							"data":         node.Data,
 						},
-					})
+					}
+					location, err := p.getLocation(ctx, ab, node.InnerText())
+					if err == nil {
+						incident.CodeLocation = &location
+						lineNo := int(location.StartPosition.Line)
+						incident.LineNumber = &lineNo
+					}
+					response.Incidents = append(response.Incidents, incident)
 				}
 			}
 		}
@@ -275,6 +280,68 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 		return response, fmt.Errorf("capability must be one of %v, not %s", capabilities, cap)
 	}
 }
+
+// getLocation attempts to get code location for given content in JSON / XML files
+func (b *builtinServiceClient) getLocation(ctx context.Context, path, content string) (provider.Location, error) {
+	ctx, span := tracing.StartNewSpan(ctx, "getLocation")
+	defer span.End()
+	location := provider.Location{}
+
+	parts := strings.Split(content, "\n")
+	if len(parts) < 1 {
+		return location, fmt.Errorf("unable to get code location, empty content")
+	} else if len(parts) > 5 {
+		// limit content to search
+		parts = parts[:5]
+	}
+	lines := []string{}
+	for _, part := range parts {
+		line := strings.Trim(part, " ")
+		line = strings.ReplaceAll(line, "\t", "")
+		line = regexp.QuoteMeta(line)
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	if len(lines) < 1 {
+		return location, fmt.Errorf("unable to get code location, no-op content")
+	}
+	pattern := fmt.Sprintf(".*?%s", strings.Join(lines, ".*?"))
+
+	cacheKey := fmt.Sprintf("%s-%s", path, pattern)
+	b.cacheMutex.RLock()
+	val, exists := b.locationCache[cacheKey]
+	b.cacheMutex.RUnlock()
+	if exists {
+		if val == -1 {
+			return location, fmt.Errorf("unable to get location due to a previous error")
+		}
+		return provider.Location{
+			StartPosition: provider.Position{
+				Line: float64(val),
+			},
+			EndPosition: provider.Position{
+				Line: float64(val),
+			},
+		}, nil
+	}
+
+	defer func() {
+		b.cacheMutex.Lock()
+		b.locationCache[cacheKey] = location.StartPosition.Line
+		b.cacheMutex.Unlock()
+	}()
+
+	location.StartPosition.Line = -1
+	lineNumber, err := provider.MultilineGrep(ctx, len(lines), path, pattern)
+	if err != nil || lineNumber == -1 {
+		return location, fmt.Errorf("unable to get location in file %s - %w", path, err)
+	}
+	location.StartPosition.Line = float64(lineNumber)
+	location.EndPosition.Line = float64(lineNumber)
+	return location, nil
+}
+
 func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 	var regex *regexp.Regexp
 	// if the regex doesn't compile, we'll default to using filepath.Match on the pattern directly
@@ -341,4 +408,86 @@ func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, e
 	}
 	nodes = xmlquery.QuerySelectorAll(doc, query)
 	return
+}
+
+type walkResult struct {
+	positionParams protocol.TextDocumentPositionParams
+	match          string
+}
+
+func parallelWalk(location string, regex *regexp.Regexp) ([]walkResult, error) {
+	var positions []walkResult
+	positionsChan := make(chan walkResult)
+	wg := &sync.WaitGroup{}
+
+	go func() {
+		err := filepath.Walk(location, func(path string, f os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if f.Mode().IsRegular() {
+				wg.Add(1)
+				go processFile(path, regex, positionsChan, wg)
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return
+		}
+
+		wg.Wait()
+		close(positionsChan)
+	}()
+
+	for pos := range positionsChan {
+		positions = append(positions, pos)
+	}
+
+	return positions, nil
+}
+
+func processFile(path string, regex *regexp.Regexp, positionsChan chan<- walkResult, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	// Must go through each line,
+	forceFullFileScan := false
+	if strings.Contains(regex.String(), "^") {
+		forceFullFileScan = true
+	}
+
+	if regex.Match(content) || forceFullFileScan {
+		scanner := bufio.NewScanner(strings.NewReader(string(content)))
+		lineNumber := 1
+		for scanner.Scan() {
+			matchLocations := regex.FindAllStringIndex(scanner.Text(), -1)
+			matchStrings := regex.FindAllString(scanner.Text(), -1)
+			for i, loc := range matchLocations {
+				absPath, err := filepath.Abs(path)
+				if err != nil {
+					return
+				}
+				positionsChan <- walkResult{
+					positionParams: protocol.TextDocumentPositionParams{
+						TextDocument: protocol.TextDocumentIdentifier{
+							URI: fmt.Sprintf("file://%s", absPath),
+						},
+						Position: protocol.Position{
+							Line:      uint32(lineNumber),
+							Character: uint32(loc[1]),
+						},
+					},
+					match: matchStrings[i],
+				}
+			}
+			lineNumber++
+		}
+	}
 }
