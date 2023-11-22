@@ -200,9 +200,9 @@ func (p *builtintServiceClient) Evaluate(cap string, conditionInfo []byte) (prov
 
 		return response, nil
 	case "xmlPublicid":
-		regex, err := regexp.Compile(cond.XMLPublicid.Regex)
+		regex, err := regexp.Compile(cond.XMLPublicID.Regex)
 		if err != nil {
-			return response, fmt.Errorf("Could not parse provided public-id regex '%s': %v", cond.XMLPublicid.Regex, err)
+			return response, fmt.Errorf("Could not parse provided public-id regex '%s': %v", cond.XMLPublicID.Regex, err)
 		}
 		query, err := xpath.CompileWithNS("//*[@public-id]", cond.XML.Namespaces)
 		if query == nil || err != nil {
