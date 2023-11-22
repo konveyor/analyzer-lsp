@@ -1,204 +1,28 @@
-- message: all go files
-  ruleID: file-001
-  description: "Testing that we can get all the go files in the project"
-  links:
-  - title: "Golang"
-    url: "https://go.dev"
+- message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-001
+  description: "Check for usage of deprecated Kubernetes API versions"
   labels:
-  - "testing"
-  - "test"
+    - "deprecated-in=v1.9.0"
+    - "removed-in=v1.16.0"
   category: potential
-  effort: 3
+  effort: 2
   when:
-    builtin.file:
-      pattern: "*.go"
-- message: not any go files
-  ruleID: file-002
+    yaml.k8sResourceMatched:
+        apiVersion: "extensions/v1beta1"
+        kind: "Deploymet"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+- message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-002
+  description: "Check for usage of deprecated Kubernetes API versions"
+  labels:
+    - "deprecated-in=v1.9.0"
+    - "removed-in=v1.16.0"
+  category: potential
+  effort: 2
   when:
-    builtin.file:
-      pattern:  "*.go"
-    not: true
-- message: POM XML dependencies - '{{{matchingXML}}}'
-  ruleID: xml-pom-001
-  when:
-    builtin.xml:
-      xpath: "//dependencies/dependency"
-- message: '{{{matchingXML}}}'
-  ruleID: chain-pom-001
-  when:
-    or:
-    - builtin.xml:
-        xpath: "//dependencies/dependency"
-        filepaths: "{{poms.filepaths}}"
-      from: poms
-    - builtin.file:
-        pattern: pom.xml
-      as: poms
-      ignore: true
-- message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-  ruleID: lang-ref-001
-  when:
-    or:
-    - java.referenced:
-        pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
-        location: TYPE
-    - go.referenced:
-        pattern: "v1beta1.CustomResourceDefinition"
-- message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
-  ruleID: go-lang-ref-001
-  when:
-    go.referenced:
-        pattern: "v1beta1.CustomResourceDefinition"
-- message: testing nested conditions
-  ruleID: lang-ref-002
-  when:
-    # This is purposfully failing, the golang reference will not
-    # find anything. testing that `and` will work correctly
-    and:
-    - go.referenced:
-          pattern: "*CustomResourceDefinition*"
-    - java.referenced:
-          pattern: "*CustomResourceDefinition*"
-          location: TYPE
-- message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
-  ruleID: lang-ref-003
-  when:
-    java.referenced:
-      pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
-      location: TYPE
-- tag:
-    - License={{matchingText}}
-  ruleID: tag-license
-  when:
-    builtin.filecontent:
-      pattern: "Apache"
-- tag:
-    - Language=Golang
-  ruleID: tag-go-000
-  when:
-    builtin.file:
-      pattern: "go.mod"
-- tag:
-    - Infra=Kubernetes
-  ruleID: tag-k8s-000
-  when:
-    builtin.filecontent:
-      pattern: ".*k8s.io/.*"
-      filePattern: ".*go.mod"
-- tag:
-    - Java
-  ruleID: tag-java-000
-  when:
-    or:
-      - builtin.file:
-          pattern: "pom.xml"
-      - builtin.file:
-          pattern: "*.ear"
-      - builtin.file:
-          pattern: "*.jar"
-      - builtin.file:
-          pattern: "*.war"
-- message: "Tags {{tags}} found"
-  ruleID: tech-tag-001
-  when:
-    or:
-    - builtin.hasTags:
-      - Golang
-      - Kubernetes
-    - builtin.hasTags:
-      - Java
-- message: "dependency {{name}} with {{version}} is bad and you should feel bad for using it"
-  ruleID: golang-gomod-dependencies
-  when:
-    and:
-      - go.dependency:
-          name: golang.org/x/text
-          upperbound: v0.3.8
-      - go.dependency:
-          name: k8s.io/apimachinery
-          lowerbound: v0.24.3
-      - go.dependency:
-          name: sigs.k8s.io/structured-merge-diff/v4
-          lowerbound: v4.2.0
-          upperbound: v4.2.2
-- message: "dependency {{name}} with {{version}} is bad and you should feel bad for using it"
-  ruleID: java-pomxml-dependencies
-  when:
-    and:
-      - java.dependency:
-          name: junit.junit
-          upperbound: 4.12.2
-          lowerbound: 4.4.0
-      - java.dependency:
-          name: io.fabric8.kubernetes-client
-          lowerbound: 5.0.100
-- message: "found generic call"
-  ruleID: lang-ref-004
-  customVariables:
-   - pattern: '([A-z]+)\.get\(\)'
-     name: VariableName
-  when:
-    java.referenced:
-      location: METHOD_CALL
-      pattern: com.example.apps.GenericClass.get
-- message: condition entries should evaluate out of order
-  ruleID: singleton-sessionbean-00001
-  when:
-    or:
-    - as: sessionbean
-      from: singleton
-      java.referenced:
-        location: IMPLEMENTS_TYPE
-        pattern: javax.ejb.SessionBean
-    - as: singleton
-      java.referenced:
-        location: ANNOTATION
-        pattern: javax.ejb.Singleton
-- message: condition entries should evaluate in order
-  ruleID: singleton-sessionbean-00002
-  when:
-    or:
-    - as: singleton
-      java.referenced:
-        location: ANNOTATION
-        pattern: javax.ejb.Singleton
-    - as: sessionbean
-      from: singleton
-      java.referenced:
-        location: IMPLEMENTS_TYPE
-        pattern: javax.ejb.SessionBean
-- message: "error test"
-  ruleID: error-rule-001
-  when:
-    builtin.xml:
-      xpath:
-        invalid-query: "test"
-- message: "Tags {{tags}} found, creating message and new tag both"
-  ruleID: multiple-actions-001
-  tag:
-  - Backend=Golang
-  when:
-    builtin.hasTags:
-    - Golang
-- message: "Found usage of openjdk base image"
-  ruleID: filecontent-codesnip-test
-  when:
-    builtin.filecontent:
-      pattern: "^.*openjdk-11.*"
-      filePattern: "Dockerfile"
-
-- message: python sample rule 001
-  ruleID: python-sample-rule-001
-  when:
-    python.referenced:
-      pattern: "hello_world"
-- message: python sample rule 002
-  ruleID: python-sample-rule-002
-  when:
-    python.referenced:
-      pattern: "speak"
-- message: python sample rule 003
-  ruleID: python-sample-rule-003
-  when:
-    python.referenced:
-      pattern: "create_custom_resource_definition"
+    yaml.k8sResourceMatched:
+        apiVersion: "extensions/v1beta1"
+        kind: "ReplicaSet"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
