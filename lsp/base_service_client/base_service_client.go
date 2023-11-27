@@ -169,7 +169,6 @@ func NewLSPServiceClientBase(
 
 	if sc.BaseConfig.LspServerName == "" {
 		sc.BaseConfig.LspServerName = "generic"
-		// return nil, fmt.Errorf("must provide LspServerName")
 	}
 
 	if initializeParams.RootURI == "" && len(initializeParams.WorkspaceFolders) == 0 {
