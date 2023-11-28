@@ -47,8 +47,6 @@ type referenceCondition struct {
 
 func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
 
-	log.V(5).Info("ITS THE INIT FUNCTION OF GENERIC PROVIDER", c)
-
 	if c.AnalysisMode != provider.FullAnalysisMode {
 		return nil, fmt.Errorf("only full analysis is supported")
 	}
