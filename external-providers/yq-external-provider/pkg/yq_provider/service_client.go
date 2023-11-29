@@ -1,4 +1,4 @@
-package generic
+package yq_provider
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type genericServiceClient struct {
+type yqServiceClient struct {
 	rpc        *jsonrpc2.Conn
 	cancelFunc context.CancelFunc
 	log        logr.Logger
@@ -45,15 +45,15 @@ const GITHUB_K8S_API_URL = "https://api.github.com/repos/kubernetes/kubernetes/r
 
 var default_k8s_version = "v1.28.4"
 
-var _ provider.ServiceClient = &genericServiceClient{}
+var _ provider.ServiceClient = &yqServiceClient{}
 
-func (p *genericServiceClient) Stop() {
+func (p *yqServiceClient) Stop() {
 	p.cancelFunc()
 	p.cmd.Wait()
 }
 
-func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	var cond genericCondition
+func (p *yqServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	var cond yqCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info")
@@ -130,7 +130,7 @@ func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	}, nil
 }
 
-func (p *genericServiceClient) GetAllValuesForKey(ctx context.Context, query []string) ([]k8sOutput, error) {
+func (p *yqServiceClient) GetAllValuesForKey(ctx context.Context, query []string) ([]k8sOutput, error) {
 	var results []k8sOutput
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -202,7 +202,7 @@ func (p *genericServiceClient) GetAllValuesForKey(ctx context.Context, query []s
 	return results, nil
 }
 
-func (p *genericServiceClient) ExecuteCmd(cmd *exec.Cmd, input string) ([]string, error) {
+func (p *yqServiceClient) ExecuteCmd(cmd *exec.Cmd, input string) ([]string, error) {
 	cmd.Stdin = strings.NewReader(input)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -216,7 +216,7 @@ func (p *genericServiceClient) ExecuteCmd(cmd *exec.Cmd, input string) ([]string
 	return output, nil
 }
 
-func (p *genericServiceClient) ConstructYQCommand(query []string) *exec.Cmd {
+func (p *yqServiceClient) ConstructYQCommand(query []string) *exec.Cmd {
 
 	yqCmd := &exec.Cmd{
 		Path:   p.cmd.Path,
@@ -243,7 +243,7 @@ var httpClient = &http.Client{
 	Timeout: 10 * time.Second,
 }
 
-func (p *genericServiceClient) getLatestStableKubernetesVersion() (string, error) {
+func (p *yqServiceClient) getLatestStableKubernetesVersion() (string, error) {
 	resp, err := httpClient.Get(GITHUB_K8S_API_URL)
 	if err != nil {
 		return "", err
@@ -278,7 +278,7 @@ func (p *genericServiceClient) getLatestStableKubernetesVersion() (string, error
 	return "", fmt.Errorf("no stable Kubernetes versions found")
 }
 
-func (p *genericServiceClient) isDeprecatedIn(targetVersion string, deprecatedIn string) bool {
+func (p *yqServiceClient) isDeprecatedIn(targetVersion string, deprecatedIn string) bool {
 	if !semver.IsValid(targetVersion) {
 		p.log.Info(fmt.Sprintf("targetVersion %s is not valid semVer", targetVersion))
 		return false
@@ -297,7 +297,7 @@ func (p *genericServiceClient) isDeprecatedIn(targetVersion string, deprecatedIn
 	return comparison >= 0
 }
 
-func (p *genericServiceClient) isRemovedIn(targetVersion string, removedIn string) bool {
+func (p *yqServiceClient) isRemovedIn(targetVersion string, removedIn string) bool {
 	if !semver.IsValid(targetVersion) {
 		p.log.Info(fmt.Sprintf("targetVersion %s is not valid semVer", targetVersion))
 		return false

@@ -1,4 +1,4 @@
-package generic
+package yq_provider
 
 import "strings"
 

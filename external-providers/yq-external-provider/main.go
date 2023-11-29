@@ -8,7 +8,7 @@ import (
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/yq-external-provider/pkg/generic"
+	"github.com/konveyor/yq-external-provider/pkg/yq_provider"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +27,7 @@ func main() {
 
 	log := logrusr.New(logrusLog)
 
-	client := generic.NewYqProvider()
+	client := yq_provider.NewYqProvider()
 
 	if port == nil || *port == 0 {
 		panic(fmt.Errorf("must pass in the port for the external provider"))

@@ -1,4 +1,4 @@
-package generic
+package yq_provider
 
 import (
 	"context"
@@ -26,22 +26,13 @@ func NewYqProvider() *yqProvider {
 func (p *yqProvider) Capabilities() []provider.Capability {
 	return []provider.Capability{
 		{
-			Name:            "referenced",
-			TemplateContext: openapi3.SchemaRef{},
-		},
-		{
-			Name:            "dependency",
-			TemplateContext: openapi3.SchemaRef{},
-		},
-		{
 			Name:            "k8sResourceMatched",
 			TemplateContext: openapi3.SchemaRef{},
 		},
 	}
 }
 
-type genericCondition struct {
-	Referenced         referenceCondition   `yaml:"referenced"`
+type yqCondition struct {
 	K8sResourceMatched k8sResourceCondition `yaml:"k8sResourceMatched"`
 }
 
@@ -114,7 +105,7 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 		}
 	}()
 
-	svcClient := genericServiceClient{
+	svcClient := yqServiceClient{
 		cancelFunc: cancelFunc,
 		log:        log,
 		cmd:        cmd,
