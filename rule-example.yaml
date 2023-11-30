@@ -184,7 +184,7 @@
   ruleID: filecontent-codesnip-test
   when:
     builtin.filecontent:
-      pattern: "^.*openjdk-11.*"
+      pattern: "^FROM.*openjdk-11.*"
       filePattern: "Dockerfile"
 
 - message: python sample rule 001
