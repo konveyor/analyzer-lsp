@@ -161,7 +161,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		return response, nil
-	case "xmlPublicid":
+	case "xmlPublicID":
 		regex, err := regexp.Compile(cond.XMLPublicID.Regex)
 		if err != nil {
 			return response, fmt.Errorf("Could not parse provided public-id regex '%s': %v", cond.XMLPublicID.Regex, err)

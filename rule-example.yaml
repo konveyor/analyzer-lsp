@@ -173,7 +173,7 @@
     builtin.xml:
       xpath:
         invalid-query: "test"
-- message: "Found jboss in XML public-id for eap7/eap5"
+- message: "JBoss 5.x EAR descriptor (jboss-app.xml) was found with public-id"
   ruleID: jboss-eap5-7-xml-02000
   when:
     builtin.xmlPublicID:

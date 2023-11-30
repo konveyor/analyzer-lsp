@@ -41,6 +41,10 @@ var capabilities = []provider.Capability{
 		TemplateContext: openapi3.SchemaRef{},
 	},
 	{
+		Name:            "xmlPublicID",
+		TemplateContext: openapi3.SchemaRef{},
+	},
+	{
 		Name:            "json",
 		TemplateContext: openapi3.SchemaRef{},
 	},
