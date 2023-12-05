@@ -1,23 +1,17 @@
 - message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
   ruleID: k8s-deprecated-api-001
   description: "Check for usage of deprecated Kubernetes API versions"
-  labels:
-    - "deprecated-in=v1.9.0"
-    - "removed-in=v1.16.0"
   category: potential
   effort: 2
   when:
     yaml.k8sResourceMatched:
         apiVersion: "extensions/v1beta1"
-        kind: "Deploymet"
+        kind: "Deployment"
         deprecatedIn: "v1.9.0"
         removedIn: "v1.16.0"
 - message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
   ruleID: k8s-deprecated-api-002
   description: "Check for usage of deprecated Kubernetes API versions"
-  labels:
-    - "deprecated-in=v1.9.0"
-    - "removed-in=v1.16.0"
   category: potential
   effort: 2
   when:

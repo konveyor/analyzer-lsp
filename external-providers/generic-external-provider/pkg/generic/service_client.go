@@ -92,8 +92,11 @@ func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditi
 						"file": ref.URI,
 					},
 				}
-				b, _ := json.Marshal(incident)
-
+				b, err := json.Marshal(incident)
+				if err != nil {
+					fmt.Printf("Marshalling error= %v", err)
+				}
+				fmt.Printf("INCIDENT= %v", b)
 				incidentsMap[string(b)] = incident
 			}
 		}

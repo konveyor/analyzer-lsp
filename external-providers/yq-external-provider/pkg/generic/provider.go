@@ -104,17 +104,18 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 	}
 	cmd := exec.CommandContext(ctx, lspServerPath, args...)
 
-	go func() {
-		err := cmd.Start()
-		if err != nil {
-			fmt.Printf("cmd failed - %v", err)
-			// TODO: Probably should cancel the ctx here, to shut everything down
-			return
-		}
-	}()
+	// go func() {
+	// 	err := cmd.Run()
+	// 	if err != nil {
+	// 		fmt.Printf("cmd failed - %v", err)
+	// 		// TODO: Probably should cancel the ctx here, to shut everything down
+	// 		return
+	// 	}
+	// }()
 
 	svcClient := genericServiceClient{
 		cancelFunc: cancelFunc,
+		log:        log,
 		cmd:        cmd,
 		config:     c,
 	}
