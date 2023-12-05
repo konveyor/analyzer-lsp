@@ -21,7 +21,7 @@
 - message: POM XML dependencies - '{{{matchingXML}}}'
   ruleID: xml-pom-001
   when:
-    builtin.xml: 
+    builtin.xml:
       xpath: "//dependencies/dependency"
 - message: '{{{matchingXML}}}'
   ruleID: chain-pom-001
@@ -42,12 +42,12 @@
     - java.referenced:
         pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
         location: TYPE
-    - go.referenced: 
+    - go.referenced:
         pattern: "v1beta1.CustomResourceDefinition"
 - message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
   when:
-    go.referenced: 
+    go.referenced:
         pattern: "v1beta1.CustomResourceDefinition"
 - message: testing nested conditions
   ruleID: lang-ref-002
@@ -55,7 +55,7 @@
     # This is purposfully failing, the golang reference will not
     # find anything. testing that `and` will work correctly
     and:
-    - go.referenced: 
+    - go.referenced:
           pattern: "*CustomResourceDefinition*"
     - java.referenced:
           pattern: "*CustomResourceDefinition*"
@@ -63,7 +63,7 @@
 - message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: lang-ref-003
   when:
-    java.referenced: 
+    java.referenced:
       pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
       location: TYPE
 - tag:
@@ -82,7 +82,7 @@
     - Infra=Kubernetes
   ruleID: tag-k8s-000
   when:
-    builtin.filecontent: 
+    builtin.filecontent:
       pattern: ".*k8s.io/.*"
       filePattern: ".*go.mod"
 - tag:
@@ -92,7 +92,7 @@
     or:
       - builtin.file:
           pattern: "pom.xml"
-      - builtin.file: 
+      - builtin.file:
           pattern: "*.ear"
       - builtin.file:
           pattern: "*.jar"
@@ -190,15 +190,45 @@
 - message: python sample rule 001
   ruleID: python-sample-rule-001
   when:
-    python.referenced: 
+    python.referenced:
       pattern: "hello_world"
 - message: python sample rule 002
   ruleID: python-sample-rule-002
   when:
-    python.referenced: 
+    python.referenced:
       pattern: "speak"
 - message: python sample rule 003
   ruleID: python-sample-rule-003
   when:
-    python.referenced: 
+    python.referenced:
       pattern: "create_custom_resource_definition"
+- message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-004
+  description: "Check for usage of deprecated Kubernetes API versions"
+  labels:
+    - "deprecated-in=v1.9.0"
+    - "removed-in=v1.16.0"
+  category: potential
+  effort: 2
+  when:
+    and:
+    - yaml.k8sResourceMatched:
+        apiVersion: "extensions/v1beta1"
+        kind: "Deploymet"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+- message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-004
+  description: "Check for usage of deprecated Kubernetes API versions"
+  labels:
+    - "deprecated-in=v1.9.0"
+    - "removed-in=v1.16.0"
+  category: potential
+  effort: 2
+  when:
+    and:
+    - yaml.k8sResourceMatched:
+        apiVersion: "apps/v1beta1"
+        kind: "StatefulSet"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"

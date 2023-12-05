@@ -11,6 +11,9 @@ external-generic:
 golang-dependency-provider:
 	( cd external-providers/golang-dependency-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy && go build -o golang-dependency-provider main.go)
 
+yq-external-provider:
+	( cd external-providers/yq-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy && go build -o yq-external-provider main.go)
+
 deps:
 	go build -o konveyor-analyzer-dep ./cmd/dep/main.go
 
