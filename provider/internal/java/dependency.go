@@ -137,7 +137,7 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 
 	// have to get both <dependencies> and <dependencyManagement> dependencies (if present)
 	var pomDeps []gopom.Dependency
-	if pom.Dependencies != nil {
+	if pom.Dependencies != nil && *pom.Dependencies != nil {
 		pomDeps = append(pomDeps, *pom.Dependencies...)
 	}
 	if pom.DependencyManagement != nil {
