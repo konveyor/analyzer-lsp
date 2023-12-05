@@ -4,22 +4,23 @@
       description: Check for usage of deprecated Kubernetes API versions
       category: potential
       incidents:
-      - uri: file:///yaml/k8s.yaml
-        message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
+      - uri: file:///analyzer-lsp/examples/yaml/k8s.yaml
+        message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'Deployment'. Consider using 'apps/v1'.
         lineNumber: 16
         variables:
           apiVersion: extensions/v1beta1
-          deprecatedIn: v1.9.0
-          file: file://examples/yaml/k8s.yaml
+          deprecated-in: v1.9.0
           kind: Deployment
+          removed-in: v1.16.0
           removedIn: v1.16.0
+          replacement-API: apps/v1
       effort: 2
-    k8s-deprecated-api-002:
+    k8s-deprecated-api-014:
       description: Check for usage of deprecated Kubernetes API versions
       category: potential
       incidents:
-      - uri: file:///yaml/k8s.yaml
-        message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
+      - uri: file:///analyzer-lsp/examples/yaml/k8s.yaml
+        message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'ReplicaSet'. Consider using 'apps/v1'.
         lineNumber: 38
         variables:
           matchingText: FROM maven:3.8-openjdk-11 as build

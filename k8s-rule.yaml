@@ -1,0 +1,1034 @@
+- message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'Deployment'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-001
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "extensions/v1beta1"
+        kind: "Deployment"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"
+- message: Deprecated/removed Kubernetes API version 'apps/v1beta2' is used for 'Deployment'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-002
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "apps/v1beta2"
+        kind: "Deployment"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"
+- message: Deprecated/removed Kubernetes API version 'apps/v1beta1' is used for 'Deployment'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-003
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "apps/v1beta1"
+        kind: "Deployment"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"
+- message: Deprecated/removed Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-004
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "apps/v1beta1"
+        kind: "StatefulSet"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"
+- message: Deprecated/removed Kubernetes API version 'apps/v1beta2' is used for 'StatefulSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-005
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "apps/v1beta2"
+        kind: "StatefulSet"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"
+- message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'NetworkPolicy'. Consider using 'networking.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-006
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "extensions/v1beta1"
+        kind: "NetworkPolicy"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+        replacementAPI: "networking.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'Ingress'. Consider using 'networking.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-007
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "extensions/v1beta1"
+        kind: "Ingress"
+        deprecatedIn: "v1.14.0"
+        removedIn: "v1.22.0"
+        replacementAPI: "networking.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'networking.k8s.io/v1beta1' is used for 'Ingress'. Consider using 'networking.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-008
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "networking.k8s.io/v1beta1"
+        kind: "Ingress"
+        deprecatedIn: "v1.19.0"
+        removedIn: "v1.22.0"
+        replacementAPI: "networking.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'networking.k8s.io/v1beta1' is used for 'IngressClass'. Consider using 'networking.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-09
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "networking.k8s.io/v1beta1"
+        kind: "IngressClass"
+        deprecatedIn: "v1.19.0"
+        removedIn: "v1.22.0"
+        replacementAPI: "networking.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'apps/v1beta2' is used for 'DaemonSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-010
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "apps/v1beta2"
+        kind: "DaemonSet"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"
+- message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'DaemonSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-011
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "extensions/v1beta1"
+        kind: "DaemonSet"
+        deprecatedIn: "v1.9.0"
+        removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"
+- message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'PodSecurityPolicy'. Consider using 'policy/v1beta1'.
+  ruleID: k8s-deprecated-api-012
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "extensions/v1beta1"
+        kind: "PodSecurityPolicy"
+        deprecatedIn: "v1.10.0"
+        removedIn: "v1.16.0"
+        replacementAPI: "policy/v1beta1"
+- message: Deprecated/removed Kubernetes API version 'policy/v1beta1' is used for 'PodSecurityPolicy'. Consider checking for a replacement API.
+  ruleID: k8s-deprecated-api-013
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "policy/v1beta1"
+        kind: "PodSecurityPolicy"
+        deprecatedIn: "v1.21.0"
+        removedIn: "v1.25.0"
+        replacementAPI: ""
+- message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'ReplicaSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-014
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "extensions/v1beta1"
+        kind: "ReplicaSet"
+        deprecatedIn: ""
+        removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"
+- message: Deprecated/removed Kubernetes API version 'apps/v1beta1' is used for 'ReplicaSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-015
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "apps/v1beta1"
+        kind: "ReplicaSet"
+        deprecatedIn: ""
+        removedIn: "v1.16.0"
+- message: Deprecated/removed Kubernetes API version 'apps/v1beta2' is used for 'ReplicaSet'. Consider using 'apps/v1'.
+  ruleID: k8s-deprecated-api-016
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "apps/v1beta2"
+        kind: "ReplicaSet"
+        deprecatedIn: ""
+        removedIn: "v1.16.0"
+- message: Deprecated/removed Kubernetes API version 'scheduling.k8s.io/v1beta1' is used for 'PriorityClass'. Consider using 'scheduling.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-017
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "scheduling.k8s.io/v1beta1"
+        kind: "PriorityClass"
+        deprecatedIn: "v1.14.0"
+        removedIn: "v1.22.0"
+        replacementAPI: "scheduling.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'scheduling.k8s.io/v1alpha1' is used for 'PriorityClass'. Consider using 'scheduling.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-018
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "scheduling.k8s.io/v1alpha1"
+        kind: "PriorityClass"
+        deprecatedIn: "v1.14.0"
+        removedIn: "v1.17.0"
+        replacementAPI: "scheduling.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'apiextensions.k8s.io/v1beta1' is used for 'CustomResourceDefinition'. Consider using 'apiextensions.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-019
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "apiextensions.k8s.io/v1beta1"
+        kind: "CustomResourceDefinition"
+        deprecatedIn: "v1.16.0"
+        removedIn: "v1.22.0"
+        replacementAPI: "apiextensions.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'admissionregistration.k8s.io/v1beta1' is used for 'MutatingWebhookConfiguration'. Consider using 'admissionregistration.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-020
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "admissionregistration.k8s.io/v1beta1"
+        kind: "MutatingWebhookConfiguration"
+        deprecatedIn: "v1.16.0"
+        removedIn: "v1.22.0"
+        replacementAPI: "admissionregistration.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'admissionregistration.k8s.io/v1beta1' is used for 'ValidatingWebhookConfiguration'. Consider using 'admissionregistration.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-021
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "admissionregistration.k8s.io/v1beta1"
+        kind: "ValidatingWebhookConfiguration"
+        deprecatedIn: "v1.16.0"
+        removedIn: "v1.22.0"
+        replacementAPI: "admissionregistration.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1alpha1' is used for 'ClusterRoleBinding'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-022
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "rbac.authorization.k8s.io/v1alpha1"
+        kind: "ClusterRoleBinding"
+        deprecatedIn: "v1.17.0"
+        removedIn: "v1.22.0"
+        replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1alpha1' is used for 'ClusterRole'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-023
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+        apiVersion: "rbac.authorization.k8s.io/v1alpha1"
+        kind: "ClusterRole"
+        deprecatedIn: "v1.17.0"
+        removedIn: "v1.22.0"
+        replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1alpha1' is used for 'ClusterRoleBindingList'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-024
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1alpha1"
+      kind: "ClusterRoleBindingList"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1alpha1' is used for 'ClusterRoleList'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-025
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1alpha1"
+      kind: "ClusterRoleList"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1alpha1' is used for 'Role'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-026
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1alpha1"
+      kind: "Role"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+      replacementAvailableIn: "v1.8.0"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1alpha1' is used for 'RoleBinding'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-027
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1alpha1"
+      kind: "RoleBinding"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+      replacementAvailableIn: "v1.8.0"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1alpha1' is used for 'RoleList'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-028
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1alpha1"
+      kind: "RoleList"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1alpha1' is used for 'RoleBindingList'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-029
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1alpha1"
+      kind: "RoleBindingList"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1beta1' is used for 'ClusterRoleBinding'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-030
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1beta1"
+      kind: "ClusterRoleBinding"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1beta1' is used for 'ClusterRole'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-031
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1beta1"
+      kind: "ClusterRole"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1beta1' is used for 'Role'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-032
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1beta1"
+      kind: "Role"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1beta1' is used for 'RoleBinding'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-033
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1beta1"
+      kind: "RoleBinding"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1beta1' is used for 'RoleList'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-034
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1beta1"
+      kind: "RoleList"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'rbac.authorization.k8s.io/v1beta1' is used for 'RoleBindingList'. Consider using 'rbac.authorization.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-035
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.authorization.k8s.io/v1beta1"
+      kind: "RoleBindingList"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "rbac.authorization.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'node.k8s.io/v1beta1' is used for 'RuntimeClass'. Consider using 'node.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-036
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "node.k8s.io/v1beta1"
+      kind: "RuntimeClass"
+      deprecatedIn: "v1.22.0"
+      removedIn: "v1.25.0"
+      replacementAPI: "node.k8s.io/v1"
+      replacementAvailableIn: "v1.20.0"
+- message: Deprecated/removed Kubernetes API version 'policy/v1beta1' is used for 'PodDisruptionBudget'. Consider using 'policy/v1'.
+  ruleID: k8s-deprecated-api-037
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "policy/v1beta1"
+      kind: "PodDisruptionBudget"
+      deprecatedIn: "v1.21.0"
+      removedIn: "v1.25.0"
+      replacementAPI: "policy/v1"
+      replacementAvailableIn: "v1.21.0"
+- message: Deprecated/removed Kubernetes API version 'policy/v1beta1' is used for 'PodDisruptionBudgetList'. Consider using 'policy/v1'.
+  ruleID: k8s-deprecated-api-038
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "policy/v1beta1"
+      kind: "PodDisruptionBudgetList"
+      deprecatedIn: "v1.21.0"
+      removedIn: "v1.25.0"
+      replacementAPI: "policy/v1"
+- message: Deprecated/removed Kubernetes API version 'autoscaling/v2beta1' is used for 'HorizontalPodAutoscaler'. Consider using 'autoscaling/v2'.
+  ruleID: k8s-deprecated-api-039
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "autoscaling/v2beta1"
+      kind: "HorizontalPodAutoscaler"
+      deprecatedIn: "v1.22.0"
+      removedIn: "v1.25.0"
+      replacementAPI: "autoscaling/v2"
+      replacementAvailableIn: "v1.23.0"
+- message: Deprecated/removed Kubernetes API version 'autoscaling/v2beta1' is used for 'HorizontalPodAutoscalerList'. Consider using 'autoscaling/v2'.
+  ruleID: k8s-deprecated-api-040
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "autoscaling/v2beta1"
+      kind: "HorizontalPodAutoscalerList"
+      deprecatedIn: "v1.22.0"
+      removedIn: "v1.25.0"
+      replacementAPI: "autoscaling/v2"
+- message: Deprecated/removed Kubernetes API version 'autoscaling/v2beta2' is used for 'HorizontalPodAutoscaler'. Consider using 'autoscaling/v2'.
+  ruleID: k8s-deprecated-api-041
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "autoscaling/v2beta2"
+      kind: "HorizontalPodAutoscaler"
+      deprecatedIn: "v1.23.0"
+      removedIn: "v1.26.0"
+      replacementAPI: "autoscaling/v2"
+- message: Deprecated/removed Kubernetes API version 'autoscaling/v2beta2' is used for 'HorizontalPodAutoscalerList'. Consider using 'autoscaling/v2'.
+  ruleID: k8s-deprecated-api-042
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "autoscaling/v2beta2"
+      kind: "HorizontalPodAutoscalerList"
+      deprecatedIn: "v1.23.0"
+      removedIn: "v1.26.0"
+      replacementAPI: "autoscaling/v2"
+- message: Deprecated/removed Kubernetes API version 'batch/v1beta1' is used for 'CronJob'. Consider using 'batch/v1'.
+  ruleID: k8s-deprecated-api-043
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "batch/v1beta1"
+      kind: "CronJob"
+      deprecatedIn: "v1.21.0"
+      removedIn: "v1.25.0"
+      replacementAPI: "batch/v1"
+- message: Deprecated/removed Kubernetes API version 'batch/v1beta1' is used for 'CronJobList'. Consider using 'batch/v1'.
+  ruleID: k8s-deprecated-api-044
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "batch/v1beta1"
+      kind: "CronJobList"
+      deprecatedIn: "v1.21.0"
+      removedIn: "v1.25.0"
+      replacementAPI: "batch/v1"
+- message: Deprecated/removed Kubernetes API version 'storage.k8s.io/v1beta1' is used for 'CSINode'. Consider using 'storage.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-045
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "storage.k8s.io/v1beta1"
+      kind: "CSINode"
+      deprecatedIn: "v1.17.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "storage.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'storage.k8s.io/v1beta1' is used for 'CSIDriver'. Consider using 'storage.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-046
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "storage.k8s.io/v1beta1"
+      kind: "CSIDriver"
+      deprecatedIn: "v1.19.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "storage.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'storage.k8s.io/v1beta1' is used for 'CSIStorageCapacity'. Consider using 'storage.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-047
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "storage.k8s.io/v1beta1"
+      kind: "CSIStorageCapacity"
+      deprecatedIn: "v1.24.0"
+      removedIn: "v1.27.0"
+      replacementAPI: "storage.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'storage.k8s.io/v1beta1' is used for 'StorageClass'. Consider using 'storage.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-048
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "storage.k8s.io/v1beta1"
+      kind: "StorageClass"
+      deprecatedIn: "v1.6.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "storage.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'storage.k8s.io/v1beta1' is used for 'VolumeAttachment'. Consider using 'storage.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-049
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "storage.k8s.io/v1beta1"
+      kind: "VolumeAttachment"
+      deprecatedIn: "v1.13.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "storage.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'apiregistration.k8s.io/v1beta1' is used for 'APIService'. Consider using 'apiregistration.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-050
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "apiregistration.k8s.io/v1beta1"
+      kind: "APIService"
+      deprecatedIn: "v1.10.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "apiregistration.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'authentication.k8s.io/v1beta1' is used for 'TokenReview'. Consider using 'authentication.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-051
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "authentication.k8s.io/v1beta1"
+      kind: "TokenReview"
+      deprecatedIn: "v1.6.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "authentication.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'certificates.k8s.io/v1beta1' is used for 'CertificateSigningRequest'. Consider using 'certificates.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-052
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "certificates.k8s.io/v1beta1"
+      kind: "CertificateSigningRequest"
+      deprecatedIn: "v1.19.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "certificates.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'coordination.k8s.io/v1beta1' is used for 'Lease'. Consider using 'coordination.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-053
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "coordination.k8s.io/v1beta1"
+      kind: "Lease"
+      deprecatedIn: "v1.14.0"
+      removedIn: "v1.22.0"
+      replacementAPI: "coordination.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'events.k8s.io/v1beta1' is used for 'Event'. Consider using 'events.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-054
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "events.k8s.io/v1beta1"
+      kind: "Event"
+      deprecatedIn: "v1.19.0"
+      removedIn: "v1.25.0"
+      replacementAPI: "events.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'discovery.k8s.io/v1beta1' is used for 'EndpointSlice'. Consider using 'discovery.k8s.io/v1'.
+  ruleID: k8s-deprecated-api-055
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "discovery.k8s.io/v1beta1"
+      kind: "EndpointSlice"
+      deprecatedIn: "v1.21.0"
+      removedIn: "v1.25.0"
+      replacementAPI: "discovery.k8s.io/v1"
+- message: Deprecated/removed Kubernetes API version 'flowcontrol.apiserver.k8s.io/v1beta1' is used for 'FlowControl'. Consider using 'flowcontrol.apiserver.k8s.io/v1beta2'.
+  ruleID: k8s-deprecated-api-056
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "flowcontrol.apiserver.k8s.io/v1beta1"
+      kind: "FlowControl"
+      deprecatedIn: "v1.23.0"
+      removedIn: "v1.26.0"
+      replacementAPI: "flowcontrol.apiserver.k8s.io/v1beta2"
+- message: Deprecated/removed Kubernetes API version 'rbac.istio.io' is used for 'AuthorizationPolicies'. Consider using 'security.istio.io/v1beta1'.
+  ruleID: k8s-deprecated-api-057
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "rbac.istio.io"
+      kind: "AuthorizationPolicies"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.4.0"
+      replacementAPI: "security.istio.io/v1beta1"
+- message: Deprecated/removed Kubernetes API version 'authentication.istio.io/v1alpha1' is used. Consider using 'security.istio.io/v1beta1'.
+  ruleID: k8s-deprecated-api-058
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "authentication.istio.io/v1alpha1"
+      deprecatedIn: "v1.5.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "security.istio.io/v1beta1"
+- message: Deprecated/removed Kubernetes API version 'certmanager.k8s.io/v1alpha1' is used for 'Certificate'. Consider using 'cert-manager.io/v1alpha2'.
+  ruleID: k8s-deprecated-api-059
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "certmanager.k8s.io/v1alpha1"
+      kind: "Certificate"
+      deprecatedIn: "v0.11.0"
+      removedIn: "v0.11.0"
+      replacementAPI: "cert-manager.io/v1alpha2"
+- message: Deprecated/removed Kubernetes API version 'certmanager.k8s.io/v1alpha1' is used for 'Issuer'. Consider using 'cert-manager.io/v1alpha2'.
+  ruleID: k8s-deprecated-api-060
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "certmanager.k8s.io/v1alpha1"
+      kind: "Issuer"
+      deprecatedIn: "v0.11.0"
+      removedIn: "v0.11.0"
+      replacementAPI: "cert-manager.io/v1alpha2"
+- message: Deprecated/removed Kubernetes API version 'certmanager.k8s.io/v1alpha1' is used for 'ClusterIssuer'. Consider using 'cert-manager.io/v1alpha2'.
+  ruleID: k8s-deprecated-api-061
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "certmanager.k8s.io/v1alpha1"
+      kind: "ClusterIssuer"
+      deprecatedIn: "v0.11.0"
+      removedIn: "v0.11.0"
+      replacementAPI: "cert-manager.io/v1alpha2"
+- message: Deprecated/removed Kubernetes API version 'certmanager.k8s.io/v1alpha1' is used for 'CertificateRequest'. Consider using 'cert-manager.io/v1alpha2'.
+  ruleID: k8s-deprecated-api-062
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "certmanager.k8s.io/v1alpha1"
+      kind: "CertificateRequest"
+      deprecatedIn: "v0.11.0"
+      removedIn: "v0.11.0"
+      replacementAPI: "cert-manager.io/v1alpha2"
+- message: Deprecated/removed Kubernetes API version 'certmanager.k8s.io/v1alpha1' is used for 'Order'. Consider using 'cert-manager.io/v1alpha2'.
+  ruleID: k8s-deprecated-api-063
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "certmanager.k8s.io/v1alpha1"
+      kind: "Order"
+      deprecatedIn: "v0.11.0"
+      removedIn: "v0.11.0"
+      replacementAPI: "cert-manager.io/v1alpha2"
+- message: Deprecated/removed Kubernetes API version 'certmanager.k8s.io/v1alpha1' is used for 'Challenge'. Consider using 'cert-manager.io/v1alpha2'.
+  ruleID: k8s-deprecated-api-064
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "certmanager.k8s.io/v1alpha1"
+      kind: "Challenge"
+      deprecatedIn: "v0.11.0"
+      removedIn: "v0.11.0"
+      replacementAPI: "cert-manager.io/v1alpha2"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1alpha2' is used for 'Certificate'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-065
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1alpha2"
+      kind: "Certificate"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1alpha3' is used for 'Certificate'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-066
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1alpha3"
+      kind: "Certificate"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1beta1' is used for 'Certificate'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-067
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1beta1"
+      kind: "Certificate"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1alpha2' is used for 'Issuer'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-068
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1alpha2"
+      kind: "Issuer"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1alpha3' is used for 'Issuer'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-069
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1alpha3"
+      kind: "Issuer"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1beta1' is used for 'Issuer'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-070
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1beta1"
+      kind: "Issuer"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1alpha2' is used for 'ClusterIssuer'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-071
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1alpha2"
+      kind: "ClusterIssuer"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1alpha3' is used for 'ClusterIssuer'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-072
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1alpha3"
+      kind: "ClusterIssuer"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1beta1' is used for 'ClusterIssuer'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-073
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1beta1"
+      kind: "ClusterIssuer"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1alpha2' is used for 'CertificateRequest'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-074
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1alpha2"
+      kind: "CertificateRequest"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1alpha3' is used for 'CertificateRequest'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-075
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1alpha3"
+      kind: "CertificateRequest"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'cert-manager.io/v1beta1' is used for 'CertificateRequest'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-076
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "cert-manager.io/v1beta1"
+      kind: "CertificateRequest"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'acme.cert-manager.io/v1alpha2' is used for 'Order'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-077
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "acme.cert-manager.io/v1alpha2"
+      kind: "Order"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'acme.cert-manager.io/v1alpha3' is used for 'Order'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-078
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "acme.cert-manager.io/v1alpha3"
+      kind: "Order"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'acme.cert-manager.io/v1beta1' is used for 'Order'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-079
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "acme.cert-manager.io/v1beta1"
+      kind: "Order"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'acme.cert-manager.io/v1alpha2' is used for 'Challenge'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-080
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "acme.cert-manager.io/v1alpha2"
+      kind: "Challenge"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'acme.cert-manager.io/v1alpha3' is used for 'Challenge'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-081
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "acme.cert-manager.io/v1alpha3"
+      kind: "Challenge"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'acme.cert-manager.io/v1beta1' is used for 'Challenge'. Consider using 'cert-manager.io/v1'.
+  ruleID: k8s-deprecated-api-082
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "acme.cert-manager.io/v1beta1"
+      kind: "Challenge"
+      deprecatedIn: "v1.4.0"
+      removedIn: "v1.6.0"
+      replacementAPI: "cert-manager.io/v1"
+- message: Deprecated/removed Kubernetes API version 'flowcontrol.apiserver.k8s.io/v1beta2' is used for 'FlowSchema'. Consider using 'flowcontrol.apiserver.k8s.io/v1beta3'.
+  ruleID: k8s-deprecated-api-083
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "flowcontrol.apiserver.k8s.io/v1beta2"
+      kind: "FlowSchema"
+      deprecatedIn: "v1.24.0"
+      removedIn: "v1.29.0"
+      replacementAPI: "flowcontrol.apiserver.k8s.io/v1beta3"
+- message: Deprecated/removed Kubernetes API version 'flowcontrol.apiserver.k8s.io/v1beta2' is used for 'PriorityLevelConfiguration'. Consider using 'flowcontrol.apiserver.k8s.io/v1beta3'.
+  ruleID: k8s-deprecated-api-084
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "flowcontrol.apiserver.k8s.io/v1beta2"
+      kind: "PriorityLevelConfiguration"
+      deprecatedIn: "v1.24.0"
+      removedIn: "v1.29.0"
+      replacementAPI: "flowcontrol.apiserver.k8s.io/v1beta3"
+- message: Deprecated/removed Kubernetes API version 'flowcontrol.apiserver.k8s.io/v1beta1' is used for 'PriorityLevelConfiguration'. Consider using 'flowcontrol.apiserver.k8s.io/v1beta3'.
+  ruleID: k8s-deprecated-api-085
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "flowcontrol.apiserver.k8s.io/v1beta1"
+      kind: "PriorityLevelConfiguration"
+      deprecatedIn: "v1.24.0"
+      removedIn: "v1.29.0"
+      replacementAPI: "flowcontrol.apiserver.k8s.io/v1beta3"
+- message: Deprecated/removed Kubernetes API version 'flowcontrol.apiserver.k8s.io/v1beta1' is used for 'FlowSchema'. Consider using 'flowcontrol.apiserver.k8s.io/v1beta3'.
+  ruleID: k8s-deprecated-api-086
+  description: "Check for usage of deprecated Kubernetes API versions"
+  category: potential
+  effort: 2
+  when:
+    yaml.k8sResourceMatched:
+      apiVersion: "flowcontrol.apiserver.k8s.io/v1beta1"
+      kind: "FLowSchema"  # Note: Corrected typo in 'FlowSchema'
+      deprecatedIn: "v1.24.0"
+      removedIn: "v1.29.0"
+      replacementAPI: "flowcontrol.apiserver.k8s.io/v1beta3"

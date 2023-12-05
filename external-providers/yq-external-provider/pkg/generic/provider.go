@@ -52,10 +52,11 @@ type referenceCondition struct {
 }
 
 type k8sResourceCondition struct {
-	ApiVersion   string `yaml:"apiVersion"`
-	Kind         string `yaml:"kind"`
-	DeprecatedIn string `yaml:"deprecatedIn"`
-	RemovedIn    string `yaml:"removedIn"`
+	ApiVersion     string `yaml:"apiVersion"`
+	Kind           string `yaml:"kind"`
+	DeprecatedIn   string `yaml:"deprecatedIn"`
+	RemovedIn      string `yaml:"removedIn"`
+	ReplacementAPI string `yaml:"replacementAPI"`
 }
 
 type k8sOutput struct {
@@ -104,14 +105,14 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 	}
 	cmd := exec.CommandContext(ctx, lspServerPath, args...)
 
-	// go func() {
-	// 	err := cmd.Run()
-	// 	if err != nil {
-	// 		fmt.Printf("cmd failed - %v", err)
-	// 		// TODO: Probably should cancel the ctx here, to shut everything down
-	// 		return
-	// 	}
-	// }()
+	go func() {
+		err := cmd.Run()
+		if err != nil {
+			fmt.Printf("cmd failed - %v", err)
+			// TODO: Probably should cancel the ctx here, to shut everything down
+			return
+		}
+	}()
 
 	svcClient := genericServiceClient{
 		cancelFunc: cancelFunc,

@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -39,7 +41,9 @@ type Release struct {
 
 const APIVERSION = "apiVersion"
 const KIND = "kind"
-const GithubK8sAPIURL = "https://api.github.com/repos/kubernetes/kubernetes/releases"
+const GITHUB_K8S_API_URL = "https://api.github.com/repos/kubernetes/kubernetes/releases"
+
+var default_k8s_version = "v1.28.4"
 
 var _ provider.ServiceClient = &genericServiceClient{}
 
@@ -63,34 +67,32 @@ func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get the kind of k8s yaml to be matched")
 	}
 	deprecatedIn := cond.K8sResourceMatched.DeprecatedIn
-	if deprecatedIn == "" {
-		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get the kubernetes version in which apiVersion: %v is depreacated for resource: %v", apiVersion, kind)
+	removedIn := cond.K8sResourceMatched.RemovedIn
+	if deprecatedIn == "" && removedIn == "" {
+		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get the kubernetes version in which apiVersion: %v is depreacated or removed for resource: %v", apiVersion, kind)
 	}
 
 	query := []string{APIVERSION, KIND}
 
-	values, err := p.GetAllValuesForKey2(ctx, query)
+	values, err := p.GetAllValuesForKey(ctx, query)
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("can't find any value for query: %v, error=%v", query, err)
 	}
-	p.log.Info("VALUES FORM GetAllValuesForKey", values)
 
 	incidents := []provider.IncidentContext{}
 	incidentsMap := make(map[string]provider.IncidentContext) // To remove duplicates
 
 	for _, v := range values {
-		p.log.Info("INSIDE THE FOR LOOP OF VALUES")
 		targetVersion, err := p.getLatestStableKubernetesVersion()
 		if err != nil {
-			return provider.ProviderEvaluateResponse{}, err
+			targetVersion = default_k8s_version
+			p.log.V(5).Error(err, fmt.Sprintf("Cant get the latest k8s stable version, using the default version %s", default_k8s_version))
 		}
-		p.log.Info("STABLE KUBERNETES VERSION", targetVersion)
 
-		comparison := p.isDeprecatedIn(targetVersion, deprecatedIn)
+		deprecatedComparison := p.isDeprecatedIn(targetVersion, deprecatedIn)
 		removedInComparison := p.isRemovedIn(targetVersion, cond.K8sResourceMatched.RemovedIn)
 
-		if v.ApiVersion.Value == apiVersion && v.Kind.Value == kind && comparison {
-			p.log.Info("GOT A MATCHING KEY VALUE", v.ApiVersion.Value, v.Kind.Value)
+		if v.ApiVersion.Value == apiVersion && v.Kind.Value == kind && (deprecatedComparison || removedInComparison) {
 			u, err := uri.Parse(v.URI)
 			if err != nil {
 				return provider.ProviderEvaluateResponse{}, err
@@ -100,10 +102,11 @@ func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				FileURI:    u,
 				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
-					"file":         v.URI,
-					"apiVersion":   v.ApiVersion.Value,
-					"kind":         v.Kind.Value,
-					"deprecatedIn": deprecatedIn,
+					"apiVersion":      v.ApiVersion.Value,
+					"kind":            v.Kind.Value,
+					"deprecated-in":   deprecatedIn,
+					"removed-in":      removedIn,
+					"replacement-API": cond.K8sResourceMatched.ReplacementAPI,
 				},
 			}
 			if removedInComparison {
@@ -111,20 +114,17 @@ func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			}
 
 			b, _ := json.Marshal(incident)
-			p.log.Info("INCIDENT", incident, b)
 
 			incidentsMap[string(b)] = incident
 		}
 	}
 
 	for _, incident := range incidentsMap {
-		p.log.Info("INSIIDE THE incidentsMap FOR LOOP", incident)
 		incidents = append(incidents, incident)
 	}
 
 	if len(incidents) == 0 {
 		// No results were found.
-		p.log.Info("DONT GET ANY INCIDENT")
 		return provider.ProviderEvaluateResponse{Matched: false}, nil
 	}
 	return provider.ProviderEvaluateResponse{
@@ -133,187 +133,20 @@ func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	}, nil
 }
 
-func (p *genericServiceClient) GetAllValuesForKey1(ctx context.Context, query []string) ([]k8sOutput, error) {
-	var results []k8sOutput
-
-	matchingYAMLFiles, xerr := provider.FindFilesMatchingPattern(p.config.Location, "*.yaml")
-	if xerr != nil {
-		fmt.Printf("unable to find any YAML files: %v\n", xerr)
-	}
-	matchingYMLFiles, yerr := provider.FindFilesMatchingPattern(p.config.Location, "*.yml")
-	if yerr != nil {
-		fmt.Printf("unable to find any YML files: %v\n", yerr)
-	}
-	matchingYAMLFiles = append(matchingYAMLFiles, matchingYMLFiles...)
-	if len(matchingYAMLFiles) == 0 {
-		return []k8sOutput{}, fmt.Errorf("unable to find any YAML/YML files: %v, %v", xerr, yerr)
-	}
-
-	resultCh := make(chan k8sOutput)
-	errCh := make(chan error)
-	var wg sync.WaitGroup
-	fmt.Printf("LENGTH OF matchingYAMLFiles- %v\n", len(matchingYAMLFiles))
-	for _, file := range matchingYAMLFiles {
-		p.log.Info("INSIDE THE matchingYAMLFiles FOR LOOP", file)
-		wg.Add(1)
-		go func(file string) {
-			defer wg.Done()
-
-			select {
-			case <-ctx.Done():
-				p.log.Info("CTX DONE 1")
-				return
-			default:
-				fmt.Printf("Reading YAML file: %s\n", file)
-
-				data, err := os.ReadFile(file)
-				if err != nil {
-					p.log.Info("ERROR READING FILE", file)
-					fmt.Printf("Error reading YAML file '%s': %v\n", file, err)
-					errCh <- err
-					return
-				}
-
-				cmd := p.ConstructYQCommand(query)
-				p.log.Info("COMMAND", cmd)
-				result, err := p.ExecuteCmd(cmd, string(data))
-				if err != nil {
-					p.log.Info("ERROR EXECUTING COMMAND ", err)
-					fmt.Printf("Error running 'yq' for file '%s': %v\n", file, err)
-					// errCh <- fmt.Errorf("YQ command: s'''%v'''s ", p.cmd)
-					errCh <- err
-					return
-				}
-
-				fmt.Printf("LENGTH OF RESULT- %v\n", len(result))
-				var count = 0
-				for _, output := range result {
-					count += 1
-					fmt.Printf("INSIDE THE OUTPUT FOR LOOP- %v\n", output)
-					var currentResult k8sOutput
-
-					result := strings.Split(strings.TrimSpace(output), "\n")
-					currentResult.ApiVersion = k8skey{
-						Value:      result[0],
-						LineNumber: result[1],
-					}
-
-					currentResult.Kind = k8skey{
-						Value:      result[2],
-						LineNumber: result[3],
-					}
-					currentResult.URI = fmt.Sprintf("file://%v", file)
-
-					p.log.Info("CURRENT RESULT", currentResult)
-					fmt.Printf("CURRENTRESULT- %v\n", currentResult)
-
-					fmt.Printf("RESULT COUNT= %v\n", count)
-
-					// if resultCh
-					resultCh <- currentResult
-					fmt.Printf("RESULT COUNT1= %v\n", count)
-
-				}
-			}
-		}(file)
-	}
-
-	go func() {
-		p.log.Info("WAITING FOR FINISHING ALL GO ROUTINE")
-		wg.Wait()
-		close(resultCh)
-		close(errCh)
-		p.log.Info("EXEIT THE FO ROUTINE")
-	}()
-
-	for err := range errCh {
-		p.log.Info("INSIDE THE ERRCH FOR LOOP")
-		if err != nil {
-			p.log.Info("ERROR FORM ERRORCHANNEL", err)
-			return nil, err
-		}
-	}
-
-	for result := range resultCh {
-		p.log.Info("INSIDE THE RESULTCH FOR LOOP")
-		results = append(results, result)
-	}
-
-	p.log.Info("ALL RESULTS", results)
-	return results, nil
-}
-
 func (p *genericServiceClient) GetAllValuesForKey(ctx context.Context, query []string) ([]k8sOutput, error) {
-	var results []k8sOutput
-
-	matchingYAMLFiles, xerr := provider.FindFilesMatchingPattern(p.config.Location, "*.yaml")
-	if xerr != nil {
-		fmt.Printf("unable to find any YAML files: %v\n", xerr)
-	}
-	matchingYMLFiles, yerr := provider.FindFilesMatchingPattern(p.config.Location, "*.yml")
-	if yerr != nil {
-		fmt.Printf("unable to find any YML files: %v\n", yerr)
-	}
-	matchingYAMLFiles = append(matchingYAMLFiles, matchingYMLFiles...)
-	if len(matchingYAMLFiles) == 0 {
-		return []k8sOutput{}, fmt.Errorf("unable to find any YAML/YML files: %v, %v", xerr, yerr)
-	}
-
-	for _, file := range matchingYAMLFiles {
-		fmt.Printf("Reading YAML file: %s\n", file)
-
-		data, err := os.ReadFile(file)
-		if err != nil {
-			fmt.Printf("Error reading YAML file '%s': %v\n", file, err)
-			return nil, err
-		}
-
-		cmd := p.ConstructYQCommand(query)
-		result, err := p.ExecuteCmd(cmd, string(data))
-		if err != nil {
-			fmt.Printf("Error running 'yq' for file '%s': %v\n", file, err)
-			return nil, err
-		}
-
-		for _, output := range result {
-			var currentResult k8sOutput
-
-			result := strings.Split(strings.TrimSpace(output), "\n")
-			currentResult.ApiVersion = k8skey{
-				Value:      result[0],
-				LineNumber: result[1],
-			}
-
-			currentResult.Kind = k8skey{
-				Value:      result[2],
-				LineNumber: result[3],
-			}
-			currentResult.URI = fmt.Sprintf("file://%v", file)
-
-			results = append(results, currentResult)
-		}
-	}
-
-	return results, nil
-}
-
-func (p *genericServiceClient) GetAllValuesForKey2(ctx context.Context, query []string) ([]k8sOutput, error) {
 	var results []k8sOutput
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	matchingYAMLFiles, xerr := provider.FindFilesMatchingPattern(p.config.Location, "*.yaml")
-	if xerr != nil {
-		fmt.Printf("unable to find any YAML files: %v\n", xerr)
+	matchingYAMLFiles, err := provider.FindFilesMatchingPattern(p.config.Location, "*.yaml")
+	if err != nil {
+		fmt.Printf("unable to find any YAML files: %v\n", err)
 	}
-	matchingYMLFiles, yerr := provider.FindFilesMatchingPattern(p.config.Location, "*.yml")
-	if yerr != nil {
-		fmt.Printf("unable to find any YML files: %v\n", yerr)
+	matchingYMLFiles, err := provider.FindFilesMatchingPattern(p.config.Location, "*.yml")
+	if err != nil {
+		fmt.Printf("unable to find any YML files: %v\n", err)
 	}
 	matchingYAMLFiles = append(matchingYAMLFiles, matchingYMLFiles...)
-	if len(matchingYAMLFiles) == 0 {
-		return []k8sOutput{}, fmt.Errorf("unable to find any YAML/YML files: %v, %v", xerr, yerr)
-	}
 
 	for _, file := range matchingYAMLFiles {
 		wg.Add(1)
@@ -331,7 +164,7 @@ func (p *genericServiceClient) GetAllValuesForKey2(ctx context.Context, query []
 			cmd := p.ConstructYQCommand(query)
 			result, err := p.ExecuteCmd(cmd, string(data))
 			if err != nil {
-				fmt.Printf("Error running 'yq' for file '%s': %v\n", file, err)
+				p.log.V(5).Error(err, "Error running 'yq' command")
 				return
 			}
 
@@ -351,7 +184,17 @@ func (p *genericServiceClient) GetAllValuesForKey2(ctx context.Context, query []
 					Value:      result[2],
 					LineNumber: result[3],
 				}
-				currentResult.URI = fmt.Sprintf("file://%v", file)
+				absPath, err := filepath.Abs(file)
+				if err != nil {
+					p.log.V(5).Error(err, "error getting abs path of yaml file")
+				}
+				fileURL := url.URL{
+					Scheme: "file",
+					Path:   absPath,
+				}
+
+				fileURI := fileURL.String()
+				currentResult.URI = fileURI
 
 				results = append(results, currentResult)
 			}
@@ -369,17 +212,23 @@ func (p *genericServiceClient) ExecuteCmd(cmd *exec.Cmd, input string) ([]string
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("error running command= %s, error= %s, stdError= %s", cmd, err, &stderr)
+		return nil, fmt.Errorf("error running command= %s, error= %s, stdError= %v", cmd, err, stderr)
 	}
 
 	output := strings.Split(stdout.String(), "---")
-	fmt.Printf("OUTPUT= %v", output)
 	return output, nil
 }
 
 func (p *genericServiceClient) ConstructYQCommand(query []string) *exec.Cmd {
-	yqCmd := *p.cmd
-	// yqCmd := exec.Command("/usr/bin/yq")
+
+	yqCmd := &exec.Cmd{
+		Path:   p.cmd.Path,
+		Args:   append([]string(nil), p.cmd.Args...),
+		Env:    append([]string(nil), p.cmd.Env...),
+		Stdin:  p.cmd.Stdin,
+		Stdout: p.cmd.Stdout,
+		Stderr: p.cmd.Stderr,
+	}
 
 	var queryString string
 	for _, q := range query {
@@ -390,8 +239,7 @@ func (p *genericServiceClient) ConstructYQCommand(query []string) *exec.Cmd {
 
 	yqCmd.Args = append(yqCmd.Args, queryString)
 
-	fmt.Printf("ConstructYQCommand- %v", yqCmd)
-	return &yqCmd
+	return yqCmd
 }
 
 var httpClient = &http.Client{
@@ -399,21 +247,18 @@ var httpClient = &http.Client{
 }
 
 func (p *genericServiceClient) getLatestStableKubernetesVersion() (string, error) {
-	resp, err := httpClient.Get(GithubK8sAPIURL)
+	resp, err := httpClient.Get(GITHUB_K8S_API_URL)
 	if err != nil {
-		fmt.Printf("Error making HTTP request: %v\n", err)
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("HTTP request failed with status code: %d\n", resp.StatusCode)
 		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	var releases []Release
 	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
-		fmt.Printf("Error decoding JSON response: %v\n", err)
 		return "", err
 	}
 
@@ -430,7 +275,6 @@ func (p *genericServiceClient) getLatestStableKubernetesVersion() (string, error
 	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
 
 	if len(versions) > 0 {
-		fmt.Printf("retutning the latest version= %v", versions)
 		return strings.TrimSpace(strings.TrimPrefix(versions[0], "Kubernetes")), nil
 	}
 
@@ -439,7 +283,7 @@ func (p *genericServiceClient) getLatestStableKubernetesVersion() (string, error
 
 func (p *genericServiceClient) isDeprecatedIn(targetVersion string, deprecatedIn string) bool {
 	if !semver.IsValid(targetVersion) {
-		fmt.Printf("targetVersion %s is not valid semVer", targetVersion)
+		p.log.Info(fmt.Sprintf("targetVersion %s is not valid semVer", targetVersion))
 		return false
 	}
 
@@ -448,7 +292,7 @@ func (p *genericServiceClient) isDeprecatedIn(targetVersion string, deprecatedIn
 	}
 
 	if !semver.IsValid(deprecatedIn) {
-		fmt.Printf("deprecated version %s is not valid semVer", deprecatedIn)
+		p.log.Info(fmt.Sprintf("deprecated version %s is not valid semVer", deprecatedIn))
 		return false
 	}
 
@@ -458,7 +302,7 @@ func (p *genericServiceClient) isDeprecatedIn(targetVersion string, deprecatedIn
 
 func (p *genericServiceClient) isRemovedIn(targetVersion string, removedIn string) bool {
 	if !semver.IsValid(targetVersion) {
-		fmt.Printf("targetVersion %s is not valid semVer", targetVersion)
+		p.log.Info(fmt.Sprintf("targetVersion %s is not valid semVer", targetVersion))
 		return false
 	}
 
@@ -467,7 +311,7 @@ func (p *genericServiceClient) isRemovedIn(targetVersion string, removedIn strin
 	}
 
 	if !semver.IsValid(removedIn) {
-		fmt.Printf("removed version %s is not valid semVer", removedIn)
+		p.log.Info(fmt.Sprintf("removed version %s is not valid semVer", removedIn))
 		return false
 	}
 

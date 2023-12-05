@@ -30,7 +30,6 @@ RUN python3 -m pip install python-lsp-server
 
 COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/bin/
 
-# Copy yq from the yq-builder stage to the final image
 COPY --from=yq-builder /usr/bin/yq /usr/bin/yq
 
 COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
