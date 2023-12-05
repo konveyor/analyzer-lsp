@@ -75,7 +75,7 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 
 	lspServerPath, ok := c.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	if !ok || lspServerPath == "" {
-		return nil, fmt.Errorf("invalid lspServerPath provided, unable to init go provider")
+		return nil, fmt.Errorf("invalid lspServerPath provided, unable to init yq provider")
 	}
 
 	ctx, cancelFunc := context.WithCancel(ctx)

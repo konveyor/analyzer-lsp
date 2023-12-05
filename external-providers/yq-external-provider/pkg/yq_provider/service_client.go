@@ -39,9 +39,11 @@ type Release struct {
 	Name string `json:"name"`
 }
 
-const APIVERSION = "apiVersion"
-const KIND = "kind"
-const GITHUB_K8S_API_URL = "https://api.github.com/repos/kubernetes/kubernetes/releases"
+const (
+	APIVERSION         = "apiVersion"
+	KIND               = "kind"
+	GITHUB_K8S_API_URL = "https://api.github.com/repos/kubernetes/kubernetes/releases"
+)
 
 var default_k8s_version = "v1.28.4"
 
