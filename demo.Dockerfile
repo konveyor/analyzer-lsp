@@ -2,7 +2,7 @@ FROM quay.io/konveyor/analyzer-lsp
 
 WORKDIR /analyzer-lsp
 
-COPY k8s-rule.yaml /analyzer-lsp/rule-example.yaml
+COPY rule-example.yaml /analyzer-lsp/rule-example.yaml
 COPY examples /analyzer-lsp/examples
 
 RUN python3 -m venv /analyzer-lsp/examples/python/.venv

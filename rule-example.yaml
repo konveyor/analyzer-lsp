@@ -202,7 +202,7 @@
   when:
     python.referenced:
       pattern: "create_custom_resource_definition"
-- message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
+- message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'Deployment'. Consider using 'apps/v1'.
   ruleID: k8s-deprecated-api-001
   description: "Check for usage of deprecated Kubernetes API versions"
   category: potential
@@ -213,6 +213,7 @@
         kind: "Deployment"
         deprecatedIn: "v1.9.0"
         removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"
 - message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
   ruleID: k8s-deprecated-api-002
   description: "Check for usage of deprecated Kubernetes API versions"
@@ -224,3 +225,4 @@
         kind: "ReplicaSet"
         deprecatedIn: "v1.9.0"
         removedIn: "v1.16.0"
+        replacementAPI: "apps/v1"

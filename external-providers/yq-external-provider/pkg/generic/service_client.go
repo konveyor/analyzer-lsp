@@ -109,9 +109,6 @@ func (p *genericServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					"replacement-API": cond.K8sResourceMatched.ReplacementAPI,
 				},
 			}
-			if removedInComparison {
-				incident.Variables["removedIn"] = cond.K8sResourceMatched.RemovedIn
-			}
 
 			b, _ := json.Marshal(incident)
 
