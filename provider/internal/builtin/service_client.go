@@ -85,7 +85,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 		var outputBytes []byte
-		grep := exec.Command("grep", "-o", "-n", "-R", "-P", c.Pattern, p.config.Location)
+		grep := exec.Command("grep", "-o", "-n", "-R", "--exclude-dir", "target", "-P", c.Pattern, p.config.Location)
 		outputBytes, err := grep.Output()
 		if err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
