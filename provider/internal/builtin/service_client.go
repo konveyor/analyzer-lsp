@@ -392,18 +392,18 @@ func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 	return matches, err
 }
 
-func findXMLFiles(baseLocation string, filePaths []string) (xmlFiles []string, err error) {
+func findXMLFiles(baseLocation string, filePaths []string) ([]string, error) {
 	patterns := []string{"*.xml", "*.xhtml"}
 	// TODO(fabianvf): how should we scope the files searched here?
-	xmlFiles, err = provider.GetFiles(baseLocation, filePaths, patterns...)
-	return
+	xmlFiles, err := provider.GetFiles(baseLocation, filePaths, patterns...)
+	return xmlFiles, err
 }
 
-func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
+func queryXMLFile(filePath string, query *xpath.Expr) ([]*xmlquery.Node, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		fmt.Printf("unable to open file '%s': %v\n", filePath, err)
-		return
+		return nil, err
 	}
 	defer f.Close()
 	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
@@ -416,19 +416,19 @@ func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, e
 			b, err = os.ReadFile(filePath)
 			if err != nil {
 				fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
-				return
+				return nil, err
 			}
 			docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
 			doc, err = xmlquery.Parse(strings.NewReader(docString))
 			if err != nil {
 				fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
-				return
+				return nil, err
 			}
 		} else {
 			fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
-			return
+			return nil, err
 		}
 	}
-	nodes = xmlquery.QuerySelectorAll(doc, query)
-	return
+	nodes := xmlquery.QuerySelectorAll(doc, query)
+	return nodes, err
 }
