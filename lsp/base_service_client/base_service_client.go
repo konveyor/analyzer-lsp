@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
@@ -160,7 +161,7 @@ func NewLSPServiceClientBase(
 	b, _ := yaml.Marshal(c.ProviderSpecificConfig)
 	err := yaml.Unmarshal(b, &sc.BaseConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("base config unmarshal error: %w", err)
 	}
 
 	if sc.BaseConfig.LspServerPath == "" {
@@ -174,11 +175,19 @@ func NewLSPServiceClientBase(
 	if initializeParams.RootURI == "" && len(initializeParams.WorkspaceFolders) == 0 {
 		TempDir, err := os.MkdirTemp("", "tmp")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("tmp dir error: %w", err)
 		}
 
 		sc.TempDir = TempDir
 		initializeParams.RootURI = "file://" + TempDir
+	}
+
+	if !strings.HasPrefix(initializeParams.RootURI, "file://") && len(initializeParams.WorkspaceFolders) == 0 {
+		initializeParams.RootURI = "file://" + initializeParams.RootURI
+	}
+
+	if initializeParams.ProcessID == 0 {
+		initializeParams.ProcessID = int32(os.Getpid())
 	}
 
 	// Create the ctx, cancelFunc, and log
@@ -190,8 +199,10 @@ func NewLSPServiceClientBase(
 		sc.Ctx, sc.BaseConfig.LspServerPath, sc.BaseConfig.LspServerArgs...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new cmd dialer error: %w", err)
 	}
+
+	time.Sleep(5 * time.Second)
 
 	// Create the caches for the various handler stuffs
 	sc.PublishDiagnosticsCache = NewAwaitCache[string, []protocol.Diagnostic]()
@@ -203,13 +214,14 @@ func NewLSPServiceClientBase(
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("jsonrpc2.Dial error: %w", err)
 	}
 
 	var result json.RawMessage
 	err = sc.Conn.Call(sc.Ctx, "initialize", initializeParams).Await(sc.Ctx, &result)
 	if err != nil {
-		return nil, err
+		b, _ := json.Marshal(initializeParams)
+		return nil, fmt.Errorf("initialize request error: %w, result: %s, initializeParams: %s, Dialer: %v", err, string(result), string(b), sc.Dialer)
 	}
 
 	fmt.Printf("%s\n", string(result))
@@ -217,7 +229,7 @@ func NewLSPServiceClientBase(
 	initializeResult := protocol.InitializeResult{}
 	err = json.Unmarshal(result, &initializeResult)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("initialize result unmarshal error: %w", err)
 	}
 
 	sc.ServerCapabilities = initializeResult.Capabilities
@@ -225,7 +237,7 @@ func NewLSPServiceClientBase(
 
 	err = sc.Conn.Notify(sc.Ctx, "initialized", protocol.InitializeParams{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("initialized notification error: %w", err)
 	}
 
 	fmt.Printf("provider connection initialized\n")

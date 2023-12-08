@@ -345,7 +345,7 @@ func (c *Connection) Call(ctx context.Context, method string, params interface{}
 		s.outgoingCalls[ac.id] = ac
 	})
 	if err != nil {
-		ac.retire(&Response{ID: id, Error: err})
+		ac.retire(&Response{ID: id, Error: fmt.Errorf("after updateInFlight: %w", err)})
 		return ac
 	}
 
@@ -356,7 +356,7 @@ func (c *Connection) Call(ctx context.Context, method string, params interface{}
 		c.updateInFlight(func(s *inFlightState) {
 			if s.outgoingCalls[ac.id] == ac {
 				delete(s.outgoingCalls, ac.id)
-				ac.retire(&Response{ID: id, Error: err})
+				ac.retire(&Response{ID: id, Error: fmt.Errorf("sending failed: %w", err)})
 			} else {
 				// ac was already retired by the readIncoming goroutine:
 				// perhaps our write raced with the Read side of the connection breaking.
@@ -413,16 +413,22 @@ func (ac *AsyncCall) retire(response *Response) {
 func (ac *AsyncCall) Await(ctx context.Context, result interface{}) error {
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("ctx.Done error: %w", ctx.Err())
 	case <-ac.ready:
 	}
 	if ac.response.Error != nil {
-		return ac.response.Error
+		return fmt.Errorf("ac.response error: %w", ac.response.Error)
 	}
 	if result == nil {
 		return nil
 	}
-	return json.Unmarshal(ac.response.Result, result)
+
+	err := json.Unmarshal(ac.response.Result, result)
+	if err != nil {
+		return fmt.Errorf("json.Unmarshal error: %w", err)
+	}
+
+	return nil
 }
 
 // Respond delivers a response to an incoming Call.
@@ -528,7 +534,7 @@ func (c *Connection) readIncoming(ctx context.Context, reader Reader, preempter 
 		// Retire any outgoing requests that were still in flight: with the Reader no
 		// longer being processed, they necessarily cannot receive a response.
 		for id, ac := range s.outgoingCalls {
-			ac.retire(&Response{ID: id, Error: err})
+			ac.retire(&Response{ID: id, Error: fmt.Errorf("reader no longer being processed, cannot receive response: %w", err)})
 		}
 		s.outgoingCalls = nil
 	})

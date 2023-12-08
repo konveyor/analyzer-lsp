@@ -56,7 +56,7 @@ func NewGenericServiceClient(ctx context.Context, log logr.Logger, c provider.In
 	b, _ := yaml.Marshal(c.ProviderSpecificConfig)
 	err := yaml.Unmarshal(b, &sc.Config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("generic providerSpecificConfig Unmarshal error: %w", err)
 	}
 
 	// Create the parameters for the `initialize` request
@@ -93,14 +93,14 @@ func NewGenericServiceClient(ctx context.Context, log logr.Logger, c provider.In
 		params,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("base client initialization error: %w", err)
 	}
 	sc.LSPServiceClientBase = scBase
 
 	// Initialize the fancy evaluator (dynamic dispatch ftw)
 	eval, err := base.NewLspServiceClientEvaluator[*GenericServiceClient](sc, GenericServiceClientCapabilities)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lsp service client evaluator error: %w", err)
 	}
 	sc.LSPServiceClientEvaluator = eval
 

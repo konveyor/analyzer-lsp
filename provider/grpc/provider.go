@@ -47,6 +47,7 @@ func (g *grpcProvider) ProviderInit(ctx context.Context) error {
 	for _, c := range g.config.InitConfig {
 		s, err := g.Init(ctx, g.log, c)
 		if err != nil {
+			g.log.Error(err, "Error inside ProviderInit, after g.Init.")
 			return err
 		}
 		g.serviceClients = append(g.serviceClients, s)
@@ -169,6 +170,7 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 			default:
 				caps := g.Capabilities()
 				if len(caps) != 0 {
+					g.log.Error(nil, "Caps found", "caps", caps)
 					return nil
 				}
 				time.Sleep(3 * time.Second)

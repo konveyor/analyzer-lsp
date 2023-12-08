@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
@@ -85,10 +87,16 @@ func main() {
 				os.Exit(1)
 			}
 		}
+
+		time.Sleep(5 * time.Second)
+
 		err = prov.ProviderInit(ctx)
+		b, _ := json.Marshal(config)
 		if err != nil {
-			log.Error(err, "unable to init the providers", "provider", config.Name)
+			log.Error(err, "unable to init the providers", "provider", config.Name, "the-error-is", err, "config", string(b))
 			os.Exit(1)
+		} else {
+			log.Error(err, "init'd provider", "provider", config.Name, "config", string(b))
 		}
 		providers[config.Name] = prov
 

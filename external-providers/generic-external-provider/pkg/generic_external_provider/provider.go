@@ -3,6 +3,7 @@ package generic_external_provider
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -72,12 +73,19 @@ func (p *genericProvider) Capabilities() []provider.Capability {
 // a provider.ServiceClient to the original analyzer process. genericProvider
 // here just sort of... doesn't matter at all
 func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
+	// return nil, fmt.Errorf("nothing")
+
+	log.Error(fmt.Errorf("Nothing"), "Started generic provider init")
+	fmt.Fprintf(os.Stderr, "started generic provider init")
 	lspServerName, ok := c.ProviderSpecificConfig["lspServerName"].(string)
 	if !ok {
 		lspServerName = "generic"
 	}
 
 	if p.lspServerName != lspServerName {
+		log.Error(fmt.Errorf("lspServerName must be the same for each instantiation of the generic-external-provider (%s != %s)", p.lspServerName, lspServerName), "Inside genericProvider init")
+		fmt.Fprintf(os.Stderr, "lspservername blah")
+
 		return nil, fmt.Errorf("lspServerName must be the same for each instantiation of the generic-external-provider (%s != %s)", p.lspServerName, lspServerName)
 	}
 
@@ -85,7 +93,9 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 	// service client
 	sc, err := p.ctor(ctx, log, c)
 	if err != nil {
-		return nil, err
+		log.Error(err, "ctor error")
+		fmt.Fprintf(os.Stderr, "ctor blah")
+		return nil, fmt.Errorf("ctor error: %w", err)
 	}
 
 	return sc, nil

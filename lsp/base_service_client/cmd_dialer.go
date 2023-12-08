@@ -14,61 +14,74 @@ import (
 // NOTE: Dial should only be called once. This is because closing CmdDialer also
 // kills the underlying process
 type CmdDialer struct {
-	cmd    *exec.Cmd
-	stdin  io.WriteCloser
-	stdout io.ReadCloser
+	Cmd    *exec.Cmd
+	Stdin  io.WriteCloser
+	Stdout io.ReadCloser
+
+	err error
 }
 
 // Create a new CmdDialer
 func NewCmdDialer(ctx context.Context, name string, arg ...string) (*CmdDialer, error) {
-	cmd := exec.CommandContext(ctx, name, arg...)
+	cmdDialer := CmdDialer{}
 
-	stdin, err := cmd.StdinPipe()
+	Cmd := exec.CommandContext(ctx, name, arg...)
+
+	Stdin, err := Cmd.StdinPipe()
 	if err != nil {
 		return nil, err
 	}
 
-	stdout, err := cmd.StdoutPipe()
+	Stdout, err := Cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
 	}
 
 	go func() {
-		err := cmd.Start()
+		err := Cmd.Start()
 		// fmt.Printf("pid: %d\n", cmd.Process.Pid)
 
 		if err != nil {
-			fmt.Printf("cmd failed: %v", err)
+			cmdDialer.err = fmt.Errorf("cmd failed: %w", err)
 			return
 		}
 	}()
 
-	return &CmdDialer{
-		cmd:    cmd,
-		stdin:  stdin,
-		stdout: stdout,
-	}, nil
+	cmdDialer.Cmd = Cmd
+	cmdDialer.Stdin = Stdin
+	cmdDialer.Stdout = Stdout
+
+	return &cmdDialer, nil
 }
 
 func (rwc *CmdDialer) Read(p []byte) (int, error) {
-	return rwc.stdout.Read(p)
+	if rwc.err != nil {
+		return 0, fmt.Errorf("cannot read: %w", rwc.err)
+	}
+	return rwc.Stdout.Read(p)
 }
 
 func (rwc *CmdDialer) Write(p []byte) (int, error) {
-	return rwc.stdin.Write(p)
+	if rwc.err != nil {
+		return 0, fmt.Errorf("cannot write: %w", rwc.err)
+	}
+	return rwc.Stdin.Write(p)
 }
 
 func (rwc *CmdDialer) Close() error {
-	err := rwc.cmd.Process.Kill()
+	err := rwc.Cmd.Process.Kill()
 	if err != nil {
 		return err
 	}
 
-	return rwc.cmd.Wait()
+	return rwc.Cmd.Wait()
 }
 
 // CmdDialer.Dial returns itself as a CmdDialer is a ReadWriteCloser.
 func (rwc *CmdDialer) Dial(ctx context.Context) (io.ReadWriteCloser, error) {
 	// TODO(jsussman): Check if already closed
+	if rwc.err != nil {
+		return rwc, fmt.Errorf("cannot close: %w", rwc.err)
+	}
 	return rwc, nil
 }
