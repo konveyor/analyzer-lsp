@@ -1,6 +1,7 @@
 package java
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net/url"
@@ -138,7 +139,7 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 		locationRange = protocol.Range{}
 	}
 
-	u, err := p.getURI(locationURI)
+	n, u, err := p.getURI(locationURI)
 	if err != nil {
 		return provider.IncidentContext{}, err
 	}
@@ -149,10 +150,10 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 		FileURI:    u,
 		LineNumber: &lineNumber,
 		Variables: map[string]interface{}{
-
 			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
 			SYMBOL_NAME_KEY: symbol.Name,
 			FILE_KEY:        u,
+			"package":       n,
 		},
 	}
 
@@ -178,7 +179,7 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 }
 
 func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.WorkspaceSymbol, ref protocol.Location) (provider.IncidentContext, error) {
-	u, err := p.getURI(ref.URI)
+	n, u, err := p.getURI(ref.URI)
 	if err != nil {
 		return provider.IncidentContext{}, err
 	}
@@ -189,6 +190,7 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
 			SYMBOL_NAME_KEY: symbol.Name,
 			FILE_KEY:        u,
+			"package":       n,
 		},
 	}
 
@@ -218,21 +220,40 @@ func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.Wo
 
 }
 
-func (p *javaServiceClient) getURI(refURI string) (uri.URI, error) {
+func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 	if !strings.HasPrefix(refURI, JDT_CLASS_FILE_URI_PREFIX) {
-		return uri.Parse(refURI)
+		u, err := uri.Parse(refURI)
+		if err != nil {
+			return "", uri.URI(""), err
+		}
+		file, err := os.Open(u.Filename())
+		defer file.Close()
+		if err != nil {
+			p.log.V(4).Info("unable to get package name", "err", err)
+			return "", u, nil
+		}
+		scanner := bufio.NewScanner(file)
+		name := ""
+		for scanner.Scan() {
+			if strings.Contains(scanner.Text(), "package") {
+				name = strings.ReplaceAll(scanner.Text(), "package ", "")
+				name = strings.ReplaceAll(name, ";", "")
+				break
+			}
+		}
+		return name, u, nil
+
 	}
 
 	u, err := url.Parse(refURI)
 	if err != nil {
-		return uri.URI(""), err
+		return "", uri.URI(""), err
 	}
-
 	// Decompile the jar
 	sourceRange, err := strconv.ParseBool(u.Query().Get("source-range"))
 	if err != nil {
 		// then we got some response that does not make sense or should not be valid
-		return uri.URI(""), fmt.Errorf("unable to get konveyor-jdt source range query parameter")
+		return "", uri.URI(""), fmt.Errorf("unable to get konveyor-jdt source range query parameter")
 	}
 	packageName := u.Query().Get("packageName")
 
@@ -264,10 +285,24 @@ func (p *javaServiceClient) getURI(refURI string) (uri.URI, error) {
 		err := cmd.Run()
 		if err != nil {
 			fmt.Printf("\n java error%v", err)
-			return "", err
+			return "", "", err
 		}
 	}
-
-	return uri.New(javaFileAbsolutePath), nil
-
+	ui := uri.New(javaFileAbsolutePath)
+	file, err := os.Open(ui.Filename())
+	defer file.Close()
+	if err != nil {
+		p.log.V(4).Info("unable to get package name", "err", err)
+		return "", ui, nil
+	}
+	n := ""
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "package") {
+			n = strings.ReplaceAll(scanner.Text(), "package ", "")
+			n = strings.ReplaceAll(n, ";", "")
+			break
+		}
+	}
+	return n, ui, nil
 }
