@@ -481,6 +481,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Bean
+          package: com.example.apps
     tech-tag-001:
       description: ""
       category: potential

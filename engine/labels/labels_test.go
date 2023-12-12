@@ -117,7 +117,7 @@ func Test_getBooleanExpression(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getBooleanExpression(tt.expr, tt.compareLabels); got != tt.want {
+			if got := getBooleanExpression(tt.expr, tt.compareLabels, matchesAny); got != tt.want {
 				t.Errorf("getBooleanExpression() = %v, want %v", got, tt.want)
 			}
 		})
@@ -280,7 +280,7 @@ func TestNewRuleSelector(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewLabelSelector[internal.VariableLabelSelector](tt.expr)
+			_, err := NewLabelSelector[internal.VariableLabelSelector](tt.expr, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewRuleSelector() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -389,7 +389,7 @@ func Test_ruleSelector_Matches(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewLabelSelector[Labeled](tt.expr)
+			s, _ := NewLabelSelector[Labeled](tt.expr, nil)
 			if got, _ := s.Matches(ruleMeta{Labels: tt.ruleLabels}); got != tt.want {
 				t.Errorf("ruleSelector.Matches() = %v, want %v", got, tt.want)
 			}
