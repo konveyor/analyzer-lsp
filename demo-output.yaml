@@ -319,6 +319,16 @@
         variables:
           name: junit.junit
           version: "4.11"
+    jboss-eap5-7-xml-02000:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/java/jboss-app.xml
+        message: JBoss 5.x EAR descriptor (jboss-app.xml) was found with public-id
+        variables:
+          data: module
+          innerText: "\n        jboss-example-service\n    "
+          matchingXML: <service>jboss-example-service</service>
     lang-ref-001:
       description: ""
       category: potential
