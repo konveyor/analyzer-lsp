@@ -173,6 +173,11 @@
     builtin.xml:
       xpath:
         invalid-query: "test"
+- message: "JBoss 5.x EAR descriptor (jboss-app.xml) was found with public-id"
+  ruleID: jboss-eap5-7-xml-02000
+  when:
+    builtin.xmlPublicID:
+      regex: .*JBoss.+DTD Java EE.+5.*
 - message: "Tags {{tags}} found, creating message and new tag both"
   ruleID: multiple-actions-001
   tag:

@@ -16,6 +16,8 @@ import (
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine/internal"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
@@ -47,9 +49,10 @@ type ruleEngine struct {
 
 	wg *sync.WaitGroup
 
-	incidentLimit int
-	codeSnipLimit int
-	contextLines  int
+	incidentLimit    int
+	codeSnipLimit    int
+	contextLines     int
+	incidentSelector string
 }
 
 type Option func(engine *ruleEngine)
@@ -69,6 +72,12 @@ func WithContextLines(i int) Option {
 func WithCodeSnipLimit(i int) Option {
 	return func(engine *ruleEngine) {
 		engine.codeSnipLimit = i
+	}
+}
+
+func WithIncidentSelector(selector string) Option {
+	return func(engine *ruleEngine) {
+		engine.incidentSelector = selector
 	}
 }
 
@@ -178,13 +187,21 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 						if err != nil {
 							r.logger.Error(err, "unable to create violation from response")
 						}
-						atomic.AddInt32(&matchedRules, 1)
+						if len(violation.Incidents) == 0 {
+							r.logger.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched", "rule", response.Rule.RuleID)
+							atomic.AddInt32(&unmatchedRules, 1)
+							if rs, ok := mapRuleSets[response.RuleSetName]; ok {
+								rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
+							}
+						} else {
+							atomic.AddInt32(&matchedRules, 1)
 
-						rs, ok := mapRuleSets[response.RuleSetName]
-						if !ok {
-							r.logger.Info("this should never happen that we don't find the ruleset")
+							rs, ok := mapRuleSets[response.RuleSetName]
+							if !ok {
+								r.logger.Info("this should never happen that we don't find the ruleset")
+							}
+							rs.Violations[response.Rule.RuleID] = violation
 						}
-						rs.Violations[response.Rule.RuleID] = violation
 					} else {
 						atomic.AddInt32(&unmatchedRules, 1)
 						// Log that rule did not pass
@@ -390,6 +407,14 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 	incidents := []konveyor.Incident{}
 	fileCodeSnipCount := map[string]int{}
 	incidentsSet := map[string]struct{}{} // Set of incidents
+	var incidentSelector *labels.LabelSelector[internal.VariableLabelSelector]
+	var err error
+	if r.incidentSelector != "" {
+		incidentSelector, err = labels.NewLabelSelector[internal.VariableLabelSelector](r.incidentSelector)
+		if err != nil {
+			return konveyor.Violation{}, err
+		}
+	}
 	for _, m := range conditionResponse.Incidents {
 		// Exit loop, we don't care about any incidents past the filter.
 		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
@@ -398,7 +423,9 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 		incident := konveyor.Incident{
 			URI:        m.FileURI,
 			LineNumber: m.LineNumber,
-			Variables:  m.Variables,
+			// This allows us to change m.Variables and it will be set
+			// because it is a pointer.
+			Variables: m.Variables,
 		}
 		if m.LineNumber != nil {
 			lineNumber := *m.LineNumber
@@ -471,6 +498,19 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 			incidentLineNumber = *incident.LineNumber
 		}
 
+		// Deterime if we can filter out based on incident selector.
+		if r.incidentSelector != "" {
+			v := internal.VariableLabelSelector(incident.Variables)
+			b, err := incidentSelector.Matches(v)
+			if err != nil {
+				r.logger.Error(err, "unable to determine if incident should filter out, defautl to adding")
+			}
+			if !b {
+				r.logger.V(8).Info("filtering out incident based on incident selector")
+				continue
+			}
+		}
+
 		incidentString := fmt.Sprintf("%s-%s-%d", incident.URI, incident.Message, incidentLineNumber) // Formating a unique string for an incident
 
 		// Adding it to list  and set if no duplicates found
@@ -478,6 +518,7 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 			incidents = append(incidents, incident)
 			incidentsSet[incidentString] = struct{}{}
 		}
+
 	}
 
 	rule.Labels = deduplicateLabels(rule.Labels)
