@@ -95,7 +95,7 @@ func main() {
 
 	selectors := []engine.RuleSelector{}
 	if labelSelector != "" {
-		selector, err := labels.NewLabelSelector[*engine.RuleMeta](labelSelector)
+		selector, err := labels.NewLabelSelector[*engine.RuleMeta](labelSelector, nil)
 		if err != nil {
 			log.Error(err, "failed to create label selector from expression", "selector", labelSelector)
 			os.Exit(1)
@@ -105,7 +105,7 @@ func main() {
 
 	var dependencyLabelSelector *labels.LabelSelector[*konveyor.Dep]
 	if depLabelSelector != "" {
-		dependencyLabelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector)
+		dependencyLabelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector, nil)
 		if err != nil {
 			log.Error(err, "failed to create label selector from expression", "selector", labelSelector)
 			os.Exit(1)

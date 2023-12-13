@@ -54,7 +54,7 @@ func main() {
 
 	var labelSelector *labels.LabelSelector[*konveyor.Dep]
 	if depLabelSelector != "" {
-		labelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector)
+		labelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector, nil)
 		if err != nil {
 			log.Error(err, "invalid label selector")
 			os.Exit(1)

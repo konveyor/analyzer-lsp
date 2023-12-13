@@ -410,7 +410,7 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 	var incidentSelector *labels.LabelSelector[internal.VariableLabelSelector]
 	var err error
 	if r.incidentSelector != "" {
-		incidentSelector, err = labels.NewLabelSelector[internal.VariableLabelSelector](r.incidentSelector)
+		incidentSelector, err = labels.NewLabelSelector[internal.VariableLabelSelector](r.incidentSelector, internal.MatchVariables)
 		if err != nil {
 			return konveyor.Violation{}, err
 		}

@@ -226,7 +226,7 @@ func Test_matchDepLabelSelector(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			labelSelector, err := labels.NewLabelSelector[*Dep](tt.labelSelector)
+			labelSelector, err := labels.NewLabelSelector[*Dep](tt.labelSelector, nil)
 			if err != nil {
 				t.Errorf("invalid label selector %s", tt.labelSelector)
 				return

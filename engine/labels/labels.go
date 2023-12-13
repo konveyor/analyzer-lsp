@@ -28,6 +28,7 @@ const (
 type LabelSelector[T Labeled] struct {
 	expr     string
 	language gval.Language
+	matchAny MatchAny
 }
 
 // Helper function to refactor key value label manipulation
@@ -49,7 +50,7 @@ func (l *LabelSelector[T]) Matches(v T) (bool, error) {
 			return false, nil
 		}
 	}
-	expr := getBooleanExpression(l.expr, ruleLabels)
+	expr := getBooleanExpression(l.expr, ruleLabels, l.matchAny)
 	val, err := l.language.Evaluate(expr, nil)
 	if err != nil {
 		return false, err
@@ -80,11 +81,13 @@ type Labeled interface {
 	GetLabels() []string
 }
 
+type MatchAny func(elem string, items []string) bool
+
 // NewRuleSelector returns a new rule selector that works on rule labels
 // it enables using string expressions to form complex label queries
 // supports "&&", "||" and "!" operators, "(" ")" for grouping, operands
 // are string labels in key=val format, keys can be subdomain prefixed
-func NewLabelSelector[T Labeled](expr string) (*LabelSelector[T], error) {
+func NewLabelSelector[T Labeled](expr string, match MatchAny) (*LabelSelector[T], error) {
 	language := gval.NewLanguage(
 		gval.Ident(),
 		gval.Parentheses(),
@@ -103,13 +106,17 @@ func NewLabelSelector[T Labeled](expr string) (*LabelSelector[T], error) {
 		gval.InfixBoolOperator("||", func(a, b bool) (interface{}, error) { return a || b, nil }),
 	)
 	// we need this hack to force validation
-	_, err := gval.Evaluate(getBooleanExpression(expr, map[string][]string{}), nil)
+	_, err := gval.Evaluate(getBooleanExpression(expr, map[string][]string{}, matchesAny), nil)
 	if err != nil {
 		return nil, fmt.Errorf("invalid expression '%s'", expr)
+	}
+	if match == nil {
+		match = matchesAny
 	}
 	return &LabelSelector[T]{
 		language: language,
 		expr:     expr,
+		matchAny: match,
 	}, nil
 }
 
@@ -207,7 +214,7 @@ func getLabelsFromExpression(expr string) (map[string][]string, error) {
 // does not understand labels as operands. "konveyor.io/k1=v1 && v2" will look
 // something like "true && false" as a boolean expression depending on passed labels
 // we wouldn't need this if gval supported writing custom operands
-func getBooleanExpression(expr string, compareLabels map[string][]string) string {
+func getBooleanExpression(expr string, compareLabels map[string][]string, matchAny MatchAny) string {
 	exprLabels, err := getLabelsFromExpression(expr)
 	if err != nil {
 		return expr
@@ -221,7 +228,7 @@ func getBooleanExpression(expr string, compareLabels map[string][]string) string
 			}
 			if labelVals, ok := compareLabels[exprLabelKey]; !ok {
 				replaceMap[toReplace] = "false"
-			} else if exprLabelVal != "" && !matchesAny(exprLabelVal, labelVals) {
+			} else if exprLabelVal != "" && !matchAny(exprLabelVal, labelVals) {
 				replaceMap[toReplace] = "false"
 			} else {
 				replaceMap[toReplace] = "true"
@@ -271,7 +278,7 @@ func labelValueMatches(matchWith string, candidate string) bool {
 	mMatch := versionRegex.FindStringSubmatch(matchWith)
 	cMatch := versionRegex.FindStringSubmatch(candidate)
 	if len(mMatch) != 3 {
-		return matchWith == candidate
+		return candidate == matchWith
 	}
 	mName, mVersion, mVersionRangeSymbol :=
 		versionRegex.ReplaceAllString(matchWith, ""), mMatch[1], mMatch[2]
