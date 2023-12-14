@@ -43,6 +43,9 @@ func (p *javaServiceClient) findPom() string {
 	} else {
 		depPath = p.config.DependencyPath
 	}
+	if filepath.IsAbs(depPath) {
+		return depPath
+	}
 	f, err := filepath.Abs(filepath.Join(p.config.Location, depPath))
 	if err != nil {
 		return ""
@@ -124,6 +127,10 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 		path = location
 	}
 	pom, err := gopom.Parse(path)
+	if err != nil {
+		p.log.Error(err, "Analyzing POM")
+		return nil, err
+	}
 	p.log.V(10).Info("Analyzing POM",
 		"POM", fmt.Sprintf("%s:%s:%s", pomCoordinate(pom.GroupID), pomCoordinate(pom.ArtifactID), pomCoordinate(pom.Version)),
 		"error", err)
