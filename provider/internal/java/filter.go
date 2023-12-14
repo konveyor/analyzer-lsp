@@ -235,7 +235,12 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 		scanner := bufio.NewScanner(file)
 		name := ""
 		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "package") {
+			if strings.Contains(scanner.Text(), "package") &&
+				// here we have to handle the work package in license's/copyrights.
+				// Ignoring everyting that looks like a java doc comment.
+				!strings.Contains(scanner.Text(), "//") && !strings.Contains(scanner.Text(), "/*") &&
+				!strings.HasPrefix(strings.TrimSpace(scanner.Text()), "*") {
+
 				name = strings.ReplaceAll(scanner.Text(), "package ", "")
 				name = strings.ReplaceAll(name, ";", "")
 				break
@@ -298,7 +303,12 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 	n := ""
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		if strings.Contains(scanner.Text(), "package") {
+		if strings.Contains(scanner.Text(), "package") &&
+			// here we have to handle the work package in license's/copyrights.
+			// Ignoring everyting that looks like a java doc comment.
+			!strings.Contains(scanner.Text(), "//") && !strings.Contains(scanner.Text(), "/*") &&
+			!strings.HasPrefix(strings.TrimSpace(scanner.Text()), "*") {
+
 			n = strings.ReplaceAll(scanner.Text(), "package ", "")
 			n = strings.ReplaceAll(n, ";", "")
 			break
