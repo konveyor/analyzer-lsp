@@ -460,6 +460,11 @@ func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interfa
 	}
 	rule.Description = description
 
+	message, ok := ruleMap["message"].(string)
+	if ok {
+		rule.RuleMeta.Message = message
+	}
+
 	if rule.Perform.Message.Text != nil {
 		category, ok := ruleMap["category"].(string)
 		if !ok {

@@ -97,6 +97,7 @@ type Rule struct {
 type RuleMeta struct {
 	RuleID      string             `yaml:"ruleID,omitempty" json:"ruleID,omitempty"`
 	Description string             `yaml:"description,omitempty" json:"description,omitempty"`
+	Message     string             `yaml:"message,omitempty" json:"message,omitempty"`
 	Category    *konveyor.Category `yaml:"category,omitempty" json:"category,omitempty"`
 	Labels      []string           `yaml:"labels,omitempty" json:"labels,omitempty"`
 	Effort      *int               `json:"effort,omitempty"`
