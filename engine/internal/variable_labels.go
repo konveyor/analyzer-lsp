@@ -22,20 +22,14 @@ func (v VariableLabelSelector) GetLabels() []string {
 
 func MatchVariables(elem string, items []string) bool {
 	// Adding the trailing . to make sure that com.example.apps matches but not com.example2.apps
-	var containsSearch bool
-	if strings.Contains(elem, ".") {
-		elem = fmt.Sprintf("%v.", elem)
-		containsSearch = true
-	}
 	for _, i := range items {
-		if containsSearch {
-			if strings.Contains(i, elem) {
+		if strings.Contains(elem, ".") {
+			if strings.Contains(i, fmt.Sprintf("%v.", elem)) {
 				return true
 			}
-		} else {
-			if i == elem {
-				return true
-			}
+		}
+		if i == elem {
+			return true
 		}
 	}
 	return false
