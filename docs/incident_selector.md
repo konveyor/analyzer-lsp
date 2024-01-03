@@ -1,0 +1,49 @@
+# Incident Selector
+
+Selecting incidents allows a user, to filter what incidents will be added to the violatied rules, based on the variables that the provider gives. Any given provider can add any variable they want, so you will need to look up that particular provider's variables to determine what to use. Below we will use the built-in java provider, and it's `package` variable to show how to use the incident selector.
+
+## Examples
+
+#### Only include incident's that have a particular package `com.example.apps`
+
+```
+--incident-selector='package=com.example.apps'
+```
+
+When this is used, **only** the incidents that have the variable of package.example.apps will be included. 
+
+Some packages that would be incldued:
+
+* com.example.apps.DAO
+* com.example.apps
+
+Some packages that will not be included:
+
+* com.example
+* com.example.apps2
+
+#### When other providers are used, make sure that their incidents are added
+
+```
+--incident-selector='!package || package=com.example.apps'
+```
+
+When this is used, any incident that does not have a variable `package` or any of the packages described above, will be incldued.
+
+#### Excluding packages
+
+```
+--incident-selector='!package=com.example.apps'
+```
+
+In this example, it will be the oppisite of what is included section above.
+
+Packages incldued:
+
+* com.example
+* com.example.apps2
+
+Packages excluded:
+
+* com.exmaple.apps.DAO
+* com.example.apps
