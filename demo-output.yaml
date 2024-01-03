@@ -319,6 +319,16 @@
         variables:
           name: junit.junit
           version: "4.11"
+    jboss-eap5-7-xml-02000:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/java/jboss-app.xml
+        message: JBoss 5.x EAR descriptor (jboss-app.xml) was found with public-id
+        variables:
+          data: module
+          innerText: "\n        jboss-example-service\n    "
+          matchingXML: <service>jboss-example-service</service>
     k8s-deprecated-api-001:
       description: Check for usage of deprecated Kubernetes API versions
       category: potential
@@ -347,16 +357,6 @@
           removed-in: v1.16.0
           replacement-API: apps/v1
       effort: 2
-    jboss-eap5-7-xml-02000:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///analyzer-lsp/examples/java/jboss-app.xml
-        message: JBoss 5.x EAR descriptor (jboss-app.xml) was found with public-id
-        variables:
-          data: module
-          innerText: "\n        jboss-example-service\n    "
-          matchingXML: <service>jboss-example-service</service>
     lang-ref-001:
       description: ""
       category: potential
@@ -374,6 +374,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
           kind: Module
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+          package: com.example.apps
       - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
         codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
@@ -382,6 +383,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
+          package: com.example.apps
     lang-ref-003:
       description: ""
       category: potential
@@ -394,6 +396,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
+          package: com.example.apps
       - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java:3
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
@@ -402,6 +405,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
           kind: Module
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
+          package: com.example.apps
     lang-ref-004:
       description: ""
       category: potential
@@ -415,6 +419,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
+          package: com.example.apps
     multiple-actions-001:
       description: ""
       category: potential
@@ -473,6 +478,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Singleton
+          package: com.example.apps
       - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/Bean.java
         message: condition entries should evaluate out of order
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8  }\n"
@@ -481,6 +487,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Bean
+          package: com.example.apps
     singleton-sessionbean-00002:
       description: ""
       category: potential
@@ -493,6 +500,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Singleton
+          package: com.example.apps
       - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/Bean.java
         message: condition entries should evaluate in order
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8  }\n"
@@ -501,6 +509,7 @@
           file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Bean
+          package: com.example.apps
     tech-tag-001:
       description: ""
       category: potential
