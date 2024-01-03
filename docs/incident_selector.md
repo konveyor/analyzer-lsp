@@ -4,7 +4,7 @@ Selecting incidents allows a user to filter what incidents will be added to the 
 
 ## Examples
 
-#### Only include incident's that have a particular package `com.example.apps`
+#### Only include incidents that have a particular package `com.example.apps`
 
 ```
 --incident-selector='package=com.example.apps'
