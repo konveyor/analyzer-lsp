@@ -36,7 +36,7 @@ When this is used, any incident that does not have a variable `package` or any o
 --incident-selector='!package=com.example.apps'
 ```
 
-In this example, it will be the oppisite of what is included section above.
+In this example, it will be the opposite of what is included section above.
 
 Packages incldued:
 
