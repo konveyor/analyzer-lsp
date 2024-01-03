@@ -1,6 +1,6 @@
 # Incident Selector
 
-Selecting incidents allows a user, to filter what incidents will be added to the violatied rules, based on the variables that the provider gives. Any given provider can add any variable they want, so you will need to look up that particular provider's variables to determine what to use. Below we will use the built-in java provider, and it's `package` variable to show how to use the incident selector.
+Selecting incidents allows a user to filter what incidents will be added to the violated rules, based on the variables that the provider gives. Any given provider can add any variable they want, so you will need to look up that particular provider's variables to determine what to use. Below we will use the built-in java provider, and its `package` variable to show how to use the incident selector.
 
 ## Examples
 
