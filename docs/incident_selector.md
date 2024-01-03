@@ -12,7 +12,7 @@ Selecting incidents allows a user to filter what incidents will be added to the 
 
 When this is used, **only** the incidents that have the variable of package.example.apps will be included. 
 
-Some packages that would be incldued:
+Some packages that would be included:
 
 * com.example.apps.DAO
 * com.example.apps
