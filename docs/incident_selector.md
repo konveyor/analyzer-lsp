@@ -28,7 +28,7 @@ Some packages that will not be included:
 --incident-selector='!package || package=com.example.apps'
 ```
 
-When this is used, any incident that does not have a variable `package` or any of the packages described above, will be incldued.
+When this is used, any incident that does not have a variable `package` or any of the packages described above will be included.
 
 #### Excluding packages
 
