@@ -149,12 +149,13 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 		xmlFiles, err := findXMLFiles(p.config.Location, cond.XMLPublicID.Filepaths)
 		if err != nil {
-			return response, fmt.Errorf("Unable to find XML files: %v", err)
+			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
+				p.log.V(5).Error(err, "failed to query xml file", "file", file)
 				continue
 			}
 			if len(nodes) != 0 {
@@ -187,20 +188,21 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	case "xmlPublicID":
 		regex, err := regexp.Compile(cond.XMLPublicID.Regex)
 		if err != nil {
-			return response, fmt.Errorf("Could not parse provided public-id regex '%s': %v", cond.XMLPublicID.Regex, err)
+			return response, fmt.Errorf("could not parse provided public-id regex '%s': %v", cond.XMLPublicID.Regex, err)
 		}
 		query, err := xpath.CompileWithNS("//*[@public-id]", cond.XMLPublicID.Namespaces)
 		if query == nil || err != nil {
-			return response, fmt.Errorf("Could not parse public-id xml query '%s': %v", cond.XML.XPath, err)
+			return response, fmt.Errorf("could not parse public-id xml query '%s': %v", cond.XML.XPath, err)
 		}
 		xmlFiles, err := findXMLFiles(p.config.Location, cond.XMLPublicID.Filepaths)
 		if err != nil {
-			return response, fmt.Errorf("Unable to find XML files: %v", err)
+			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
+				p.log.V(5).Error(err, "failed to query xml file", "file", file)
 				continue
 			}
 
@@ -399,7 +401,7 @@ func findXMLFiles(baseLocation string, filePaths []string) ([]string, error) {
 	return xmlFiles, err
 }
 
-func queryXMLFile(filePath string, query *xpath.Expr) ([]*xmlquery.Node, error) {
+func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		fmt.Printf("unable to open file '%s': %v\n", filePath, err)
@@ -429,6 +431,11 @@ func queryXMLFile(filePath string, query *xpath.Expr) ([]*xmlquery.Node, error) 
 			return nil, err
 		}
 	}
-	nodes := xmlquery.QuerySelectorAll(doc, query)
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("recovered panic from xpath query search with err - %v", r)
+		}
+	}()
+	nodes = xmlquery.QuerySelectorAll(doc, query)
 	return nodes, err
 }
