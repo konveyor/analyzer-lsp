@@ -324,15 +324,19 @@ func (b *builtinServiceClient) getLocation(ctx context.Context, path, content st
 		line := strings.Trim(part, " ")
 		line = strings.ReplaceAll(line, "\t", "")
 		line = regexp.QuoteMeta(line)
-		if line != "" {
-			lines = append(lines, line)
-		}
+		lines = append(lines, line)
+	}
+	// remove leading and trailing empty lines
+	if len(lines) > 0 && lines[0] == "" {
+		lines = lines[1:]
+	}
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
 	}
 	if len(lines) < 1 {
-		return location, fmt.Errorf("unable to get code location, no-op content")
+		return location, fmt.Errorf("unable to get code location, empty content")
 	}
 	pattern := fmt.Sprintf(".*?%s", strings.Join(lines, ".*?"))
-
 	cacheKey := fmt.Sprintf("%s-%s", path, pattern)
 	b.cacheMutex.RLock()
 	val, exists := b.locationCache[cacheKey]
