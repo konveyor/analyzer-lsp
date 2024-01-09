@@ -333,7 +333,7 @@ func (b *builtinServiceClient) getLocation(ctx context.Context, path, content st
 	if len(lines) > 0 && lines[len(lines)-1] == "" {
 		lines = lines[:len(lines)-1]
 	}
-	if len(lines) < 1 {
+	if len(lines) < 1 || strings.Join(lines, "") == "" {
 		return location, fmt.Errorf("unable to get code location, empty content")
 	}
 	pattern := fmt.Sprintf(".*?%s", strings.Join(lines, ".*?"))
