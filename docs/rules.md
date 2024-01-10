@@ -116,7 +116,7 @@ There are three types of conditions - _and_, _or_ and _provider_. While the _pro
 
 #### Provider Condition
 
-The analyzer engine enables multi-language source code analysis via something called as “providers”. A "provider" knows how to analyse the source code of a technology. It publishes what it can do with the source code in terms of "capabilities".
+The analyzer engine enables multi-language source code analysis via something called as “providers”. A "provider" knows how to analyze the source code of a technology. It publishes what it can do with the source code in terms of "capabilities".
 
 A provider condition instructs the analyzer to invoke a specific "provider" and use one of its "capabilities". In general, it is of the form `<provider_name>.<capability>`:
 
@@ -283,9 +283,54 @@ when:
     - <condition2>
 ```
 
+#### Chaining Condition Variables
+
+You can also chain the variables from one condition to be used as input in another condition in a _or_ and _and_ block of conditions
+
+Example:
+
+```yaml 
+when:
+ or:
+  - builtin.xml:
+      xpath: "//dependencies/dependency"
+      filepaths: "{{poms.filepaths}}"
+    from: poms
+  - builtin.file:
+      pattern: pom.xml
+    as: poms
+    ignore: true
+```
+
+In the above example the output of `builtin.file` condition is saved `as` poms. 
+
+```yaml
+      as: poms
+```
+
+The variables of `builtin.file` can then be used in the `builtin.xml` condition, by saying `from` and then using [mustache templates](https://mustache.github.io/mustache.5.html) in the _provider_ condition` block.
+
+This is how this particular condition, knows to use the variables set to the name `poms`. 
+
+```yaml
+    from: poms
+```
+
+Then you can use the variables by setting them as mustached templates in any of the inputs to the _provider_ condition.
+
+```yaml
+      filepaths: "{{poms.filepaths}}"
+```
+
+**Note**: If you only want to use the values of a condition as a chain, you can set `ignore: true`, this will tell the engine to not use this condition to determine if the rule has violated or not. example above:
+```yaml
+    ignore: true
+``` 
+
+
 ## Ruleset
 
-A set of Rules form a Ruleset. Rulesets are an opionated way of passing Rules to Rules Engine.
+A set of Rules form a Ruleset. Rulesets are an opinionated way of passing Rules to Rules Engine.
 
 A ruleset is created by placing one or more YAML rules files in a directory and creating a `ruleset.yaml` (golden file) file in it. 
 
