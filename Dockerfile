@@ -25,7 +25,7 @@ RUN microdnf install gcc-c++ python-devel python3-devel -y
 RUN python3 -m ensurepip --upgrade
 RUN python3 -m pip install python-lsp-server
 
-COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/bin/
+COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/local/bin/all-in-one-linux
 
 COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
 COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/bin/konveyor-analyzer-dep
@@ -35,6 +35,7 @@ COPY --from=builder /analyzer-lsp/external-providers/golang-dependency-provider/
 COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
 
 WORKDIR /analyzer-lsp
+RUN chgrp -R 0 /analyzer-lsp && chmod -R g=u /analyzer-lsp
 
 EXPOSE 16686
 
