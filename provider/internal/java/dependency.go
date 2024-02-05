@@ -405,36 +405,56 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 	} else {
 		return d, fmt.Errorf("unable to split dependency string %s", dep)
 	}
-	d.Name = fmt.Sprintf("%s.%s", parts[0], parts[1])
 
-	var fp string
-	if d.Classifier == "" {
-		fp = filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v.jar.sha1", parts[1], d.Version))
-	} else {
-		fp = filepath.Join(localRepoPath, strings.Replace(parts[0], ".", "/", -1), parts[1], d.Version, fmt.Sprintf("%v-%v-%v.jar.sha1", parts[1], d.Version, d.Classifier))
-	}
-	b, err := os.ReadFile(fp)
-	if err != nil {
-		// Log the error and continue with the next dependency.
-		p.log.V(5).Error(err, "error reading SHA hash file for dependency", "dep", d.Name)
-		// Set some default or empty resolved identifier for the dependency.
-		d.ResolvedIdentifier = ""
-	} else {
-		// sometimes sha file contains name of the jar followed by the actual sha
-		sha, _, _ := strings.Cut(string(b), " ")
-		d.ResolvedIdentifier = sha
-	}
+	group := parts[0]
+	artifact := parts[1]
+	d.Name = fmt.Sprintf("%s.%s", group, artifact)
+
+	fp := resolveDepFilepath(group, d, localRepoPath, artifact, p)
 
 	d.Labels = addDepLabels(p.depToLabels, d.Name)
 	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
 
 	d.Extras = map[string]interface{}{
-		groupIdKey:    parts[0],
-		artifactIdKey: parts[1],
+		groupIdKey:    group,
+		artifactIdKey: artifact,
 		pomPathKey:    pomPath,
 	}
 
 	return d, nil
+}
+
+func resolveDepFilepath(group string, d provider.Dep, localRepoPath string, artifact string, p *javaServiceClient) string {
+	groupPath := strings.Replace(group, ".", "/", -1)
+	// Try jar packaging
+	fp := getFilepathForPackaging(d, localRepoPath, groupPath, artifact, "jar")
+	b, err := os.ReadFile(fp)
+	if err != nil {
+		// Try pom packaging
+		fp := getFilepathForPackaging(d, localRepoPath, groupPath, artifact, "pom")
+		b, err = os.ReadFile(fp)
+		if err != nil {
+			// Log the error and continue with the next dependency.
+			p.log.V(5).Error(err, "error reading SHA hash file for dependency", "dep", d.Name)
+			// Set some default or empty resolved identifier for the dependency.
+			d.ResolvedIdentifier = ""
+		}
+	} else {
+		// sometimes sha file contains name of the jar followed by the actual sha
+		sha, _, _ := strings.Cut(string(b), " ")
+		d.ResolvedIdentifier = sha
+	}
+	return fp
+}
+
+func getFilepathForPackaging(dep provider.Dep, localRepoPath string, groupPath string, artifact string, packaging string) string {
+	var fp string
+	if dep.Classifier == "" {
+		fp = filepath.Join(localRepoPath, groupPath, artifact, dep.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, dep.Version, packaging))
+	} else {
+		fp = filepath.Join(localRepoPath, groupPath, artifact, dep.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, dep.Version, dep.Classifier, packaging))
+	}
+	return fp
 }
 
 func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string {
