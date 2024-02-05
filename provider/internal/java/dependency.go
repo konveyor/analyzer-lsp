@@ -410,7 +410,7 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 	artifact := parts[1]
 	d.Name = fmt.Sprintf("%s.%s", group, artifact)
 
-	fp := resolveDepFilepath(group, d, localRepoPath, artifact, p)
+	fp := resolveDepFilepath(&d, p, group, artifact, localRepoPath)
 
 	d.Labels = addDepLabels(p.depToLabels, d.Name)
 	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
@@ -424,30 +424,31 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 	return d, nil
 }
 
-func resolveDepFilepath(group string, d provider.Dep, localRepoPath string, artifact string, p *javaServiceClient) string {
+// resolveDepFilepath tries to extract a valid filepath for the dependency with either JAR or POM packaging
+func resolveDepFilepath(dep *provider.Dep, p *javaServiceClient, group string, artifact string, localRepoPath string) string {
 	groupPath := strings.Replace(group, ".", "/", -1)
 	// Try jar packaging
-	fp := getFilepathForPackaging(d, localRepoPath, groupPath, artifact, "jar")
+	fp := getFilepathForPackaging(dep, localRepoPath, groupPath, artifact, "jar")
 	b, err := os.ReadFile(fp)
 	if err != nil {
 		// Try pom packaging
-		fp := getFilepathForPackaging(d, localRepoPath, groupPath, artifact, "pom")
+		fp := getFilepathForPackaging(dep, localRepoPath, groupPath, artifact, "pom")
 		b, err = os.ReadFile(fp)
 		if err != nil {
 			// Log the error and continue with the next dependency.
-			p.log.V(5).Error(err, "error reading SHA hash file for dependency", "dep", d.Name)
+			p.log.V(5).Error(err, "error reading SHA hash file for dependency", "dep", dep.Name)
 			// Set some default or empty resolved identifier for the dependency.
-			d.ResolvedIdentifier = ""
+			dep.ResolvedIdentifier = ""
 		}
 	} else {
 		// sometimes sha file contains name of the jar followed by the actual sha
 		sha, _, _ := strings.Cut(string(b), " ")
-		d.ResolvedIdentifier = sha
+		dep.ResolvedIdentifier = sha
 	}
 	return fp
 }
 
-func getFilepathForPackaging(dep provider.Dep, localRepoPath string, groupPath string, artifact string, packaging string) string {
+func getFilepathForPackaging(dep *provider.Dep, localRepoPath string, groupPath string, artifact string, packaging string) string {
 	var fp string
 	if dep.Classifier == "" {
 		fp = filepath.Join(localRepoPath, groupPath, artifact, dep.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, dep.Version, packaging))
