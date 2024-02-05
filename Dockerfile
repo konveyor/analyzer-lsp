@@ -16,10 +16,15 @@ COPY Makefile /analyzer-lsp/Makefile
 
 RUN make build
 
-# Add yq to the build stage
-FROM docker.io/mikefarah/yq as yq-builder
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as yq-builder
+RUN microdnf install -y wget tar xz gzip && \
+    microdnf clean all
+ARG TARGETARCH
+ARG YQ_VERSION="v4.40.5"
+ARG YQ_BINARY="yq_linux_${TARGETARCH}"
+RUN wget "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz" -O - | tar xz && \
+    mv ${YQ_BINARY} /usr/bin/yq
 
-# Continue with the rest of the Dockerfile
 FROM jaegertracing/all-in-one:latest AS jaeger-builder
 
 FROM quay.io/konveyor/jdtls-server-base
@@ -29,9 +34,7 @@ RUN python3 -m ensurepip --upgrade
 RUN python3 -m pip install python-lsp-server
 
 COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/local/bin/all-in-one-linux
-
 COPY --from=yq-builder /usr/bin/yq /usr/bin/yq
-
 COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
 COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/bin/konveyor-analyzer-dep
 COPY --from=builder /analyzer-lsp/external-providers/generic-external-provider/generic-external-provider /usr/bin/generic-external-provider
