@@ -1,0 +1,12 @@
+name: Handle Issue Comment
+
+on:
+  issue_comment:
+
+jobs:
+  reconcile-issue-comment:
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: konveyor/release-tools/.github/workflows/reconcile-issue-comment.yaml@main
