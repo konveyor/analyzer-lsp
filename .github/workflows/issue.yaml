@@ -18,8 +18,5 @@ concurrency:
 
 jobs:
   reconcile-issue:
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+    secrets: inherit
     uses: konveyor/release-tools/.github/workflows/reconcile-issue.yaml@main

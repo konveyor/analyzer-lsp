@@ -5,8 +5,5 @@ on:
 
 jobs:
   reconcile-issue-comment:
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+    secrets: inherit
     uses: konveyor/release-tools/.github/workflows/reconcile-issue-comment.yaml@main
