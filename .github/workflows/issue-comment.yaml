@@ -1,9 +1,0 @@
-name: Handle Issue Comment
-
-on:
-  issue_comment:
-
-jobs:
-  reconcile-issue-comment:
-    secrets: inherit
-    uses: konveyor/release-tools/.github/workflows/reconcile-issue-comment.yaml@main

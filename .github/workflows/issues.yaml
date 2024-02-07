@@ -1,0 +1,26 @@
+name: Reconcile GitHub Issue (Comment)
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - closed
+      - reopened
+      - labeled
+      - unlabeled
+  issue_comment:
+    types:
+      - created
+      - edited
+
+jobs:
+  reconcile-issue:
+    if: github.event_name == 'issues' || github.event_name == 'pull_request'
+    secrets: inherit
+    uses: konveyor/release-tools/.github/workflows/reconcile-issue.yaml@main
+
+  reconcile-issue-comment:
+    if: github.event_name == 'issue_comment'
+    secrets: inherit
+    uses: konveyor/release-tools/.github/workflows/reconcile-issue-comment.yaml@main
