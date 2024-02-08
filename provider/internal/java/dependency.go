@@ -425,39 +425,38 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 }
 
 // resolveDepFilepath tries to extract a valid filepath for the dependency with either JAR or POM packaging
-func resolveDepFilepath(dep *provider.Dep, p *javaServiceClient, group string, artifact string, localRepoPath string) string {
+func resolveDepFilepath(d *provider.Dep, p *javaServiceClient, group string, artifact string, localRepoPath string) string {
 	groupPath := strings.Replace(group, ".", "/", -1)
 
 	// Try jar packaging
-	fp := getFilepathForPackaging(dep, localRepoPath, groupPath, artifact, "jar")
+	var fp string
+	if d.Classifier == "" {
+		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "jar"))
+	} else {
+		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "jar"))
+	}
 	b, err := os.ReadFile(fp)
 	if err != nil {
 		// Try pom packaging (see https://www.baeldung.com/maven-packaging-types#4-pom)
-		fp := getFilepathForPackaging(dep, localRepoPath, groupPath, artifact, "pom")
+		if d.Classifier == "" {
+			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "pom"))
+		} else {
+			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "pom"))
+		}
 		b, err = os.ReadFile(fp)
 	}
 
 	if err != nil {
 		// Log the error and continue with the next dependency.
-		p.log.V(5).Error(err, "error reading SHA hash file for dependency", "dep", dep.Name)
+		p.log.V(5).Error(err, "error reading SHA hash file for dependency", "d", d.Name)
 		// Set some default or empty resolved identifier for the dependency.
-		dep.ResolvedIdentifier = ""
+		d.ResolvedIdentifier = ""
 	} else {
 		// sometimes sha file contains name of the jar followed by the actual sha
 		sha, _, _ := strings.Cut(string(b), " ")
-		dep.ResolvedIdentifier = sha
+		d.ResolvedIdentifier = sha
 	}
 
-	return fp
-}
-
-func getFilepathForPackaging(dep *provider.Dep, localRepoPath string, groupPath string, artifact string, packaging string) string {
-	var fp string
-	if dep.Classifier == "" {
-		fp = filepath.Join(localRepoPath, groupPath, artifact, dep.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, dep.Version, packaging))
-	} else {
-		fp = filepath.Join(localRepoPath, groupPath, artifact, dep.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, dep.Version, dep.Classifier, packaging))
-	}
 	return fp
 }
 
