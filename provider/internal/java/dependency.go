@@ -427,24 +427,27 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 // resolveDepFilepath tries to extract a valid filepath for the dependency with either JAR or POM packaging
 func resolveDepFilepath(dep *provider.Dep, p *javaServiceClient, group string, artifact string, localRepoPath string) string {
 	groupPath := strings.Replace(group, ".", "/", -1)
+
 	// Try jar packaging
 	fp := getFilepathForPackaging(dep, localRepoPath, groupPath, artifact, "jar")
 	b, err := os.ReadFile(fp)
 	if err != nil {
-		// Try pom packaging
+		// Try pom packaging (see https://www.baeldung.com/maven-packaging-types#4-pom)
 		fp := getFilepathForPackaging(dep, localRepoPath, groupPath, artifact, "pom")
 		b, err = os.ReadFile(fp)
-		if err != nil {
-			// Log the error and continue with the next dependency.
-			p.log.V(5).Error(err, "error reading SHA hash file for dependency", "dep", dep.Name)
-			// Set some default or empty resolved identifier for the dependency.
-			dep.ResolvedIdentifier = ""
-		}
+	}
+
+	if err != nil {
+		// Log the error and continue with the next dependency.
+		p.log.V(5).Error(err, "error reading SHA hash file for dependency", "dep", dep.Name)
+		// Set some default or empty resolved identifier for the dependency.
+		dep.ResolvedIdentifier = ""
 	} else {
 		// sometimes sha file contains name of the jar followed by the actual sha
 		sha, _, _ := strings.Cut(string(b), " ")
 		dep.ResolvedIdentifier = sha
 	}
+
 	return fp
 }
 
