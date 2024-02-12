@@ -41,41 +41,149 @@ The analyzer defines some labels that have special meanings:
 
 The analyzer CLI takes `--label-selector` as an option. It is a string expression that supports logical AND, OR and NOT operations. It can be used to filter-in/filter-out rules based on labels.
 
-To filter-in all rules that have a label with key `konveyor.io/source` and value `eap6`:
+Here are different scenarios of how rules will be filtered in or out based on a label selector expression:
 
-```sh
---label-selector="konveyor.io/source=eap6"
-```
+* _Exact label value match_
 
-To filter-in all rules that have a label with key `konveyor.io/source` and any value:
+  * To filter-in all rules that have a label with key `konveyor.io/source` and value `kubernetes`:
+  
+    ```sh
+    --label-selector="konveyor.io/source=kubernetes"
+    ```
+    The value `kubernetes` must be an exact string match in this case.
+    
+    With the above label selector, only the rule `rule-000` will be matched from the following input rules: 
 
-```sh
---label-selector="konveyor.io/source"
-```
+    ```yaml
+    - ruleID: rule-000
+      labels:
+      - konveyor.io/source=kubernetes
+      [...]
+    - ruleID: rule-001
+      labels:
+      - konveyor.io/source=openshift
+      [...]
+    ```
 
-To perform a logical AND on matches of multiple rules using `&&` operator:
+* _Any label value match_
+  
+  * To filter-in all rules that have a label with key `konveyor.io/source` and _any_ value:
 
-```sh
---label-selector="key1=val1 && key2"
-```
+    ```sh
+    --label-selector="konveyor.io/source"
+    ```
+  
+    Only the key `konveyor.io/source` should be present in the rule labels no matter what value.
 
-To perform a logical OR on matches of multiple rules using `||` operator:
+    Both the rules `rule-000` and `rule-001` in the following input rules with the above label selector:
 
-```sh
---label-selector="key1=val1 || key2"
-```
+    ```yaml
+    - ruleID: rule-000
+      labels:
+      - konveyor.io/source=kubernetes
+      [...]
+    - ruleID: rule-001
+      labels:
+      - konveyor.io/source=openshift
+      [...]
+    ```
 
-To perform a NOT to filter-out rules that have `key1=val1` label set using `!` operator:
+  * Some rules themselves have labels with only keys and no values. For instance:
 
-```sh
---label-selector="!key1=val1"
-```
+    ```yaml
+    - ruleID: rule-000
+      labels:
+      - konveyor.io/source
+      [...]
+    ```
+    Such rules will match on any value of the `konveyor.io/source` label provided in the label selector expression.
 
-To group sub-expressions and control precedence using `(` and `)`:
+    For instance, the rule `rule-000` above will match when the input expression is as follows:
+    
+    ```sh
+    --label-selector konveyor.io/source=kubernetes
+    ```
 
-```sh
---label-selector="(key1=val1 || key2=val2) && !val3"
-```
+* _Logical AND between multiple labels_
+
+  * To perform a logical AND between results of multiple label matches using `&&` operator:
+    
+    ```sh
+    --label-selector="konveyor.io/target=kubernetes && component=storage"
+    ```
+    
+    Only the rule `rule-001` from the following rules will match with the above label selector:
+
+    ```yaml
+    - ruleID: rule-001
+      labels:
+      - konveyor.io/target=kubernetes
+      - component=storage
+      [...]
+    - ruleID: rule-002
+      labels:
+      - konveyor.io/target=kubernetes
+      [...]
+    ```
+
+* _Logical OR between multiple labels_
+  
+  * To perform a logical OR between results of multiple label matches using `||` operator:
+
+    ```sh
+    --label-selector="konveyor.io/target=kubernetes || konveyor.io/target=openshift"
+    ```
+  
+    Both the rules `rule-001` and `rule-002` will be matched with the above label selector:
+  
+    ```yaml
+        - ruleID: rule-001
+        labels:
+        - konveyor.io/source=kubernetes
+        [...]
+      - ruleID: rule-002
+        labels:
+        - konveyor.io/source=openshift
+        [...]
+    ```
+  
+
+* _Logical NOT to filter-out a rule_
+
+  * Label selector can also be used to exclude rules using the `!` operator:
+    
+    ```sh
+    --label-selector="!component=network && konveyor.io/target=kubernetes"
+    ```
+
+    From the following rules, the rules `rule-001` and `rule-003` will be matched with the above label selector:
+
+    ```yaml
+        - ruleID: rule-001
+        labels:
+        - konveyor.io/target=kubernetes
+        - component=storage
+        [...]
+      - ruleID: rule-002
+        labels:
+        - konveyor.io/target=kubernetes
+        - component=network
+        [...]
+      - ruleID: rule-003
+        labels:
+        - konveyor.io/target=kubernetes
+        - component=compute
+        [...]
+    ```    
+
+
+* _Grouping subexpressions_
+
+  * To group sub-expressions and control precedence using `(` and `)`:
+
+    ```sh
+    --label-selector="(key1=val1 || key2=val2) && !val3"
+    ```
 
 ## Dependency Labels
 
