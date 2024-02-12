@@ -386,6 +386,33 @@ func Test_ruleSelector_Matches(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "rule has a match-all source label",
+			expr: "konveyor.io/target=t1 && konveyor.io/source=t2",
+			ruleLabels: []string{
+				"konveyor.io/target=t1",
+				"konveyor.io/source",
+			},
+			want: true,
+		},
+		{
+			name: "rule has a specific source label",
+			expr: "konveyor.io/target=t1 && konveyor.io/source=t2",
+			ruleLabels: []string{
+				"konveyor.io/target=t1",
+				"konveyor.io/source=t3",
+			},
+			want: false,
+		},
+		{
+			name: "query contains match-all label",
+			expr: "konveyor.io/target=t1 && konveyor.io/source",
+			ruleLabels: []string{
+				"konveyor.io/target=t1",
+				"konveyor.io/source=t3",
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

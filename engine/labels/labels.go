@@ -261,7 +261,7 @@ func tokenize(expr string) []string {
 
 func matchesAny(elem string, items []string) bool {
 	for _, item := range items {
-		if labelValueMatches(item, elem) {
+		if item == "" || labelValueMatches(item, elem) {
 			return true
 		}
 	}
