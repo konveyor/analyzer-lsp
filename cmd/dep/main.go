@@ -54,6 +54,7 @@ func main() {
 
 	err := validateFlags()
 	if err != nil {
+		log.Error(err, "failed to validate input flags")
 		errLog.Error(err, "failed to validate input flags")
 		os.Exit(1)
 	}
@@ -62,6 +63,7 @@ func main() {
 	if depLabelSelector != "" {
 		labelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector, nil)
 		if err != nil {
+			log.Error(err, "invalid label selector")
 			errLog.Error(err, "invalid label selector")
 			os.Exit(1)
 		}
@@ -75,6 +77,7 @@ func main() {
 	// Get the configs
 	configs, err := provider.GetConfig(providerSettings)
 	if err != nil {
+		log.Error(err, "unable to get configuration")
 		errLog.Error(err, "unable to get configuration")
 		os.Exit(1)
 	}
@@ -82,11 +85,13 @@ func main() {
 	for _, config := range configs {
 		prov, err := lib.GetProviderClient(config, log)
 		if err != nil {
+			log.Error(err, "unable to create provider client")
 			errLog.Error(err, "unable to create provider client")
 			os.Exit(1)
 		}
 		if s, ok := prov.(provider.Startable); ok {
 			if err := s.Start(ctx); err != nil {
+				log.Error(err, "unable to create provider client")
 				errLog.Error(err, "unable to create provider client")
 				os.Exit(1)
 			}
@@ -158,6 +163,7 @@ func main() {
 	}
 
 	if depsFlat == nil && depsTree == nil {
+		log.Info("failed to get dependencies from all given providers")
 		errLog.Info("failed to get dependencies from all given providers")
 		os.Exit(1)
 	}
@@ -166,6 +172,7 @@ func main() {
 	if treeOutput {
 		b, err = yaml.Marshal(depsTree)
 		if err != nil {
+			log.Error(err, "failed to marshal dependency data as yaml")
 			errLog.Error(err, "failed to marshal dependency data as yaml")
 			os.Exit(1)
 		}
@@ -181,6 +188,7 @@ func main() {
 
 		b, err = yaml.Marshal(depsFlat)
 		if err != nil {
+			log.Error(err, "failed to marshal dependency data as yaml")
 			errLog.Error(err, "failed to marshal dependency data as yaml")
 			os.Exit(1)
 		}
@@ -188,6 +196,7 @@ func main() {
 
 	err = os.WriteFile(outputFile, b, 0644)
 	if err != nil {
+		log.Error(err, "failed to write dependencies to output file", "file", outputFile)
 		errLog.Error(err, "failed to write dependencies to output file", "file", outputFile)
 		os.Exit(1)
 	}
