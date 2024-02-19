@@ -181,7 +181,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	// Assume that there is a rule set header.
 	err = yaml.Unmarshal(content, &ruleMap)
 	if err != nil {
-		r.Log.V(8).Error(fmt.Errorf("unable to convert file: %s to yaml", filepath), "unable to load rule set")
+		r.Log.V(8).Error(err, fmt.Sprintf("unable to load rule set - failed to convert file: %s to yaml", filepath))
 
 		return nil, nil, fmt.Errorf("unable to convert file: %s to yaml", filepath)
 	}
