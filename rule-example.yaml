@@ -231,3 +231,14 @@
         deprecatedIn: "v1.9.0"
         removedIn: "v1.16.0"
         replacementAPI: "apps/v1"
+- category: potential
+  description: "Test code snippets when match is a key of a XML node"
+  message: "The code snippet should point to <beans> in the beans.xml file"
+  ruleID: xml-test-key-match
+  when:
+    builtin.xml:
+      filepaths:
+      - beans.xml
+      namespaces:
+        b: http://xmlns.jcp.org/xml/ns/javaee
+      xpath: /b:beans
