@@ -173,7 +173,11 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							"data":        node.Data,
 						},
 					}
-					location, err := p.getLocation(ctx, ab, node.InnerText())
+					content := strings.TrimSpace(node.InnerText())
+					if content == "" {
+						content = node.Data
+					}
+					location, err := p.getLocation(ctx, ab, content)
 					if err == nil {
 						incident.CodeLocation = &location
 						lineNo := int(location.StartPosition.Line)
