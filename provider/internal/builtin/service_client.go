@@ -173,8 +173,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							"data":        node.Data,
 						},
 					}
-					content := strings.Trim(node.InnerText(), " ")
-					content = strings.Trim(content, "\n")
+					content := strings.TrimSpace(node.InnerText())
 					if content == "" {
 						content = node.Data
 					}
