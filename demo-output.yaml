@@ -438,11 +438,6 @@
         lineNumber: 2
         variables:
           file: file:///analyzer-lsp/examples/python/file_a.py
-      - uri: file:///analyzer-lsp/examples/python/file_b.py
-        message: python sample rule 001
-        lineNumber: 0
-        variables:
-          file: file:///analyzer-lsp/examples/python/file_b.py
     python-sample-rule-002:
       description: ""
       category: potential
@@ -452,11 +447,6 @@
         lineNumber: 5
         variables:
           file: file:///analyzer-lsp/examples/python/file_a.py
-      - uri: file:///analyzer-lsp/examples/python/file_b.py
-        message: python sample rule 002
-        lineNumber: 7
-        variables:
-          file: file:///analyzer-lsp/examples/python/file_b.py
     python-sample-rule-003:
       description: ""
       category: potential

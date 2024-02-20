@@ -20,3 +20,4 @@ go.work.sum
 
 external-providers/generic-external-provider/generic-external-provider
 external-providers/golang-dependency-provider/golang-dependency-provider
+external-providers/generic-external-provider/debug/

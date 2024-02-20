@@ -3,8 +3,10 @@ WORKDIR /analyzer-lsp
 
 COPY cmd /analyzer-lsp/cmd
 COPY engine /analyzer-lsp/engine
+COPY  event /analyzer-lsp/event
 COPY output /analyzer-lsp/output
 COPY jsonrpc2 /analyzer-lsp/jsonrpc2
+COPY  jsonrpc2_v2 /analyzer-lsp/jsonrpc2_v2
 COPY lsp /analyzer-lsp/lsp
 COPY parser /analyzer-lsp/parser
 COPY provider /analyzer-lsp/provider
@@ -31,7 +33,12 @@ FROM quay.io/konveyor/jdtls-server-base
 
 RUN microdnf install gcc-c++ python-devel python3-devel -y
 RUN python3 -m ensurepip --upgrade
-RUN python3 -m pip install python-lsp-server
+RUN python3 -m pip install 'python-lsp-server>=1.8.2'
+
+ENV NODEJS_VERSION=18
+RUN echo -e "[nodejs]\nname=nodejs\nstream=${NODEJS_VERSION}\nprofiles=\nstate=enabled\n" > /etc/dnf/modules.d/nodejs.module
+RUN microdnf install nodejs -y
+RUN npm install -g typescript-language-server typescript
 
 COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/local/bin/all-in-one-linux
 COPY --from=yq-builder /usr/bin/yq /usr/bin/yq

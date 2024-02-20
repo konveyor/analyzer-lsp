@@ -3,11 +3,16 @@
         "name": "go",
         "binaryPath": "/usr/bin/generic-external-provider",
         "initConfig": [{
-            "location": "examples/golang",
             "analysisMode": "full",
             "providerSpecificConfig": {
-                "name": "go",
+                "lspServerName": "generic",
                 "lspServerPath": "/root/go/bin/gopls",
+                "lspServerArgs": [],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/golang"],
+                "dependencyFolders": [],
+
                 "dependencyProviderPath": "/usr/bin/golang-dependency-provider"
             }
         }]
@@ -28,15 +33,35 @@
         "name": "python",
         "binaryPath": "/usr/bin/generic-external-provider",
         "initConfig": [{
-            "location": "examples/python",
             "analysisMode": "full",
             "providerSpecificConfig": {
-                "name": "python",
+                "lspServerName": "pylsp",
                 "lspServerPath": "/usr/local/bin/pylsp",
-                "referencedOutputIgnoreContains": [
-                    "examples/python/__pycache__",
-                    "examples/python/.venv"
-                ]
+                "lspServerArgs": [],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/python"],
+                "dependencyFolders": ["examples/python/__pycache__", "examples/python/.venv"],
+
+                "dependencyProviderPath": ""
+            }
+        }]
+    },
+    {
+        "name": "nodejs",
+        "binaryPath": "/usr/bin/generic-external-provider",
+        "initConfig": [{
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "nodejs",
+                "lspServerPath": "/usr/local/bin/typescript-language-server",
+                "lspServerArgs": ["--stdio"],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/nodejs"],
+                "dependencyFolders": [""],
+
+                "dependencyProviderPath": ""
             }
         }]
     },

@@ -36,7 +36,22 @@ func (c *ServerCapabilities) Supports(method string) bool {
 	// case "textDocument/codeLens":
 	// case "textDocument/colorPresentation":
 	// case "textDocument/completion":
-	// case "textDocument/declaration":
+	case "textDocument/declaration":
+		t := c.DeclarationProvider
+		if t == nil {
+			return false
+		}
+
+		switch x := t.Value.(type) {
+		case DeclarationOptions:
+			return true
+		case DeclarationRegistrationOptions:
+			return true
+		case bool:
+			return x
+		case nil:
+			return false
+		}
 	case "textDocument/definition":
 		t := c.DefinitionProvider
 		if t == nil {
