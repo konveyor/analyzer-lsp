@@ -745,6 +745,84 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:         "no two conditions should have the same 'as' field within the same block",
+			testFileName: "rule-chain-same-as.yaml",
+			ShouldErr:    true,
+			ErrorMessage: "condition cannot have multiple 'as' fields with the same name",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "filecontent",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "filecontent",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "chaining-rule",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []konveyor.Link{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:         "a condition should not have the same 'as' and 'from' fields",
+			testFileName: "rule-chain-same-as-from.yaml",
+			ShouldErr:    true,
+			ErrorMessage: "condition cannot have the same value for fields 'from' and 'as'",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "filecontent",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "filecontent",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "chaining-rule",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []konveyor.Link{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
