@@ -680,6 +680,59 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:         "chaining should yield the same number of conditions as the rule",
+			testFileName: "rule-chain-2.yaml",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "filecontent",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "filecontent",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "chaining-rule",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []konveyor.Link{},
+								},
+							},
+							When: engine.AndCondition{
+								Conditions: []engine.ConditionEntry{
+									{
+										From:      "",
+										As:        "file",
+										Ignorable: false,
+										Not:       false,
+									},
+									{
+										From:      "file",
+										As:        "",
+										Ignorable: false,
+										Not:       false,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -740,6 +793,7 @@ func TestLoadRules(t *testing.T) {
 								foundRule = true
 							}
 						}
+						compareWhens(expectedRule.When, rule.When, t)
 					}
 					if !foundRule {
 						t.Errorf("not have matching rule go: %#v, expected rules: %#v", rule, expectedSet.Rules)
@@ -748,5 +802,47 @@ func TestLoadRules(t *testing.T) {
 				// We will test the conditions getter by itself.
 			}
 		})
+	}
+}
+
+func compareWhens(w1 engine.Conditional, w2 engine.Conditional, t *testing.T) {
+	if (w1 == nil && w2 != nil) || (w1 != nil && w2 == nil) {
+		t.Errorf("rulesets did not have matching when field")
+	}
+	if and1, ok := w1.(engine.AndCondition); ok {
+		and2, ok := w2.(engine.AndCondition)
+		if !ok {
+			t.Errorf("rulesets did not have matching when field")
+		}
+		compareConditions(and1.Conditions, and2.Conditions, t)
+	} else if or1, ok := w1.(engine.OrCondition); ok {
+		or2, ok := w2.(engine.AndCondition)
+		if !ok {
+			t.Errorf("rulesets did not have matching when field")
+		}
+		compareConditions(or1.Conditions, or2.Conditions, t)
+	}
+
+}
+
+func compareConditions(cs1 []engine.ConditionEntry, cs2 []engine.ConditionEntry, t *testing.T) {
+	if len(cs1) != len(cs2) {
+		t.Errorf("rulesets did not have the same number of conditions")
+	}
+	for i := 0; i < len(cs1); i++ {
+		c1 := cs1[i]
+		c2 := cs2[i]
+		if c1.As != c2.As {
+			t.Errorf("rulesets did not have the same As field")
+		}
+		if c1.From != c2.From {
+			t.Errorf("rulesets did not have the same From field")
+		}
+		if c1.Ignorable != c2.Ignorable {
+			t.Errorf("rulesets did not have the same Ignorable field")
+		}
+		if c1.Not != c2.Not {
+			t.Errorf("rulesets did not have the same Not field")
+		}
 	}
 }

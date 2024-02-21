@@ -689,10 +689,11 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if !ok {
 					//prepend
 					conditions = append([]engine.ConditionEntry{ce}, conditions...)
+				} else {
+					//insert
+					conditions = append(conditions[:index+1], conditions[index:]...)
+					conditions[index] = ce
 				}
-				//insert
-				conditions = append(conditions[:index+1], conditions[index:]...)
-				conditions[index] = ce
 			} else if ce.From != "" && ce.As == "" {
 				chainNameToIndex[ce.From] = len(conditions)
 				conditions = append(conditions, ce)
