@@ -816,7 +816,7 @@ func compareWhens(w1 engine.Conditional, w2 engine.Conditional, t *testing.T) {
 		}
 		compareConditions(and1.Conditions, and2.Conditions, t)
 	} else if or1, ok := w1.(engine.OrCondition); ok {
-		or2, ok := w2.(engine.AndCondition)
+		or2, ok := w2.(engine.OrCondition)
 		if !ok {
 			t.Errorf("rulesets did not have matching when field")
 		}
