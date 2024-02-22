@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/cbroglie/mustache"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
+	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/net/http/httpproxy"
@@ -31,6 +31,13 @@ const (
 	DepExcludeLabel  = "konveyor.io/exclude"
 	// LspServerPath is a provider specific config used to specify path to a LSP server
 	LspServerPathConfigKey = "lspServerPath"
+)
+
+var (
+	SchemaTypeString openapi3.SchemaType = openapi3.SchemaTypeString
+	SchemaTypeArray  openapi3.SchemaType = openapi3.SchemaTypeArray
+	SchemaTypeObject openapi3.SchemaType = openapi3.SchemaTypeObject
+	SChemaTypeNumber openapi3.SchemaType = openapi3.SchemaTypeInteger
 )
 
 // This will need a better name, may we want to move it to top level
@@ -64,8 +71,9 @@ func (p *UnimplementedDependenciesComponent) GetDependenciesDAG(ctx context.Cont
 }
 
 type Capability struct {
-	Name            string
-	TemplateContext openapi3.SchemaRef
+	Name   string
+	Input  openapi3.SchemaOrRef
+	Output openapi3.SchemaOrRef
 }
 
 type Config struct {
@@ -672,7 +680,7 @@ func getVersion(depVersion string) (*version.Version, error) {
 		return v, nil
 	}
 	// Parsing failed so we'll try to extract a version and parse that
-	re := regexp.MustCompile("v?([0-9]+(?:\\.[0-9]+)*)")
+	re := regexp.MustCompile(`v?([0-9]+(?:.[0-9]+)*)`)
 	matches := re.FindStringSubmatch(depVersion)
 
 	// The group is matching twice for some reason, double-check it's just a dup match

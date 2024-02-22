@@ -4,30 +4,35 @@ import (
 	"context"
 	"os"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/swaggest/openapi-go/openapi3"
 	"gopkg.in/yaml.v2"
 )
 
 const TAGS_FILE_INIT_OPTION = "tagsFile"
 
+var (
+	filePathsDescription = "List of filepaths matching pattern"
+)
+
 var capabilities = []provider.Capability{
 	{
-		Name:            "filecontent",
-		TemplateContext: openapi3.SchemaRef{},
+		Name:  "filecontent",
+		Input: openapi3.SchemaOrRef{},
 	},
 	{
 		Name: "file",
-		TemplateContext: openapi3.SchemaRef{
-			Value: &openapi3.Schema{
-				Properties: openapi3.Schemas{
-					"filepaths": &openapi3.SchemaRef{
-						Value: &openapi3.Schema{
-							Description: "List of filepaths matching pattern",
-							Items: &openapi3.SchemaRef{
-								Value: &openapi3.Schema{
-									Type: "string",
+		Input: openapi3.SchemaOrRef{
+			Schema: &openapi3.Schema{
+				Type: &provider.SchemaTypeObject,
+				Properties: map[string]openapi3.SchemaOrRef{
+					"filepaths": {
+						Schema: &openapi3.Schema{
+							Description: &filePathsDescription,
+							Items: &openapi3.SchemaOrRef{
+								Schema: &openapi3.Schema{
+									Type: &provider.SchemaTypeString,
 								},
 							},
 						},
@@ -37,20 +42,20 @@ var capabilities = []provider.Capability{
 		},
 	},
 	{
-		Name:            "xml",
-		TemplateContext: openapi3.SchemaRef{},
+		Name:  "xml",
+		Input: openapi3.SchemaOrRef{},
 	},
 	{
-		Name:            "xmlPublicID",
-		TemplateContext: openapi3.SchemaRef{},
+		Name:  "xmlPublicID",
+		Input: openapi3.SchemaOrRef{},
 	},
 	{
-		Name:            "json",
-		TemplateContext: openapi3.SchemaRef{},
+		Name:  "json",
+		Input: openapi3.SchemaOrRef{},
 	},
 	{
-		Name:            "hasTags",
-		TemplateContext: openapi3.SchemaRef{},
+		Name:  "hasTags",
+		Input: openapi3.SchemaOrRef{},
 	},
 }
 

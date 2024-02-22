@@ -14,13 +14,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 )
 
@@ -105,14 +105,14 @@ func (p *javaProvider) Stop() {
 func (p *javaProvider) Capabilities() []provider.Capability {
 	caps := []provider.Capability{
 		{
-			Name:            "referenced",
-			TemplateContext: openapi3.SchemaRef{},
+			Name:  "referenced",
+			Input: openapi3.SchemaOrRef{},
 		},
 	}
 	if p.hasMaven {
 		caps = append(caps, provider.Capability{
-			Name:            "dependency",
-			TemplateContext: openapi3.SchemaRef{},
+			Name:  "dependency",
+			Input: openapi3.SchemaOrRef{},
 		})
 	}
 	return caps

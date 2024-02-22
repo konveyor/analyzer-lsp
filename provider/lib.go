@@ -89,7 +89,7 @@ func GetFiles(configLocation string, filepaths []string, patterns ...string) ([]
 		for _, pattern := range filepaths {
 			files, err := FindFilesMatchingPattern(configLocation, pattern)
 			if err != nil {
-				fmt.Errorf("Unable to find files using pattern `%s`: %v", pattern, err)
+				fmt.Printf("Unable to find files using pattern `%s`: %v", pattern, err)
 				continue
 			} else {
 				xmlFiles = append(xmlFiles, files...)

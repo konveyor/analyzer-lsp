@@ -40,6 +40,7 @@ var (
 	analysisMode      string
 	noDependencyRules bool
 	contextLines      int
+	getOpenAPISpec    string
 )
 
 func AnalysisCmd() *cobra.Command {
@@ -223,6 +224,7 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&analysisMode, "analysis-mode", "", "select one of full or source-only to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
 	rootCmd.Flags().BoolVar(&noDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
 	rootCmd.Flags().IntVar(&contextLines, "context-lines", 10, "When violation occurs, A part of source code is added to the output, So this flag configures the number of source code lines to be printed to the output.")
+	rootCmd.Flags().StringVar(&getOpenAPISpec, "get-openapi-spec", "", "Get the openAPI spec for the rulesets, rules and provider capabilities and put in file passed in.")
 
 	return rootCmd
 }
