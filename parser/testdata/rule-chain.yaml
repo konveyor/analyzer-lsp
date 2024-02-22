@@ -8,4 +8,4 @@
       ignore: true
       not: true
     - builtin.file: "*.json"
-      as: go-files
+      as: go-files-2

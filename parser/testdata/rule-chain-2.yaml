@@ -1,0 +1,10 @@
+- message: "all go files"
+  ruleID: chaining-rule
+  when:
+    and:
+      - builtin.filecontent:
+          pattern: spring\.datasource
+        as: file
+      - builtin.filecontent:
+          pattern: value
+        from: file
