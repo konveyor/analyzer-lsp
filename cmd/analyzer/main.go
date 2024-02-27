@@ -89,7 +89,6 @@ func main() {
 
 	err := validateFlags()
 	if err != nil {
-		log.Error(err, "failed to validate flags")
 		errLog.Error(err, "failed to validate flags")
 		os.Exit(1)
 	}
@@ -101,7 +100,6 @@ func main() {
 	if labelSelector != "" {
 		selector, err := labels.NewLabelSelector[*engine.RuleMeta](labelSelector, nil)
 		if err != nil {
-			log.Error(err, "failed to create label selector from expression", "selector", labelSelector)
 			errLog.Error(err, "failed to create label selector from expression", "selector", labelSelector)
 			os.Exit(1)
 		}
@@ -112,7 +110,6 @@ func main() {
 	if depLabelSelector != "" {
 		dependencyLabelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector, nil)
 		if err != nil {
-			log.Error(err, "failed to create label selector from expression", "selector", labelSelector)
 			errLog.Error(err, "failed to create label selector from expression", "selector", labelSelector)
 			os.Exit(1)
 		}
@@ -124,7 +121,6 @@ func main() {
 	}
 	tp, err := tracing.InitTracerProvider(log, tracerOptions)
 	if err != nil {
-		log.Error(err, "failed to initialize tracing")
 		errLog.Error(err, "failed to initialize tracing")
 		os.Exit(1)
 	}
@@ -137,7 +133,6 @@ func main() {
 	// Get the configs
 	configs, err := provider.GetConfig(settingsFile)
 	if err != nil {
-		log.Error(err, "unable to get configuration")
 		errLog.Error(err, "unable to get configuration")
 		os.Exit(1)
 	}
@@ -167,14 +162,12 @@ func main() {
 		}
 		prov, err := lib.GetProviderClient(config, log)
 		if err != nil {
-			log.Error(err, "unable to create provider client")
 			errLog.Error(err, "unable to create provider client")
 			os.Exit(1)
 		}
 		providers[config.Name] = prov
 		if s, ok := prov.(provider.Startable); ok {
 			if err := s.Start(ctx); err != nil {
-				log.Error(err, "unable to create provider client")
 				errLog.Error(err, "unable to create provider client")
 				os.Exit(1)
 			}
@@ -203,7 +196,6 @@ func main() {
 	for name, provider := range needProviders {
 		err := provider.ProviderInit(ctx)
 		if err != nil {
-			log.Error(err, "unable to init the providers", "provider", name)
 			errLog.Error(err, "unable to init the providers", "provider", name)
 			os.Exit(1)
 		}
@@ -229,7 +221,6 @@ func main() {
 
 	err = os.WriteFile(outputViolations, b, 0644)
 	if err != nil {
-		log.Error(err, "error writing output file", "file", outputViolations)
 		errLog.Error(err, "error writing output file", "file", outputViolations)
 		os.Exit(1) // Treat the error as a fatal error
 	}
