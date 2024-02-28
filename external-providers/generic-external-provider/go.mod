@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
-	github.com/getkin/kin-openapi v0.118.0
+	github.com/swaggest/openapi-go v0.2.45	
 	github.com/go-logr/logr v1.2.4
 	github.com/konveyor/analyzer-lsp v0.3.0-beta.2
 	github.com/sirupsen/logrus v1.9.3
@@ -39,5 +39,3 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// replace github.com/konveyor/analyzer-lsp => ../../

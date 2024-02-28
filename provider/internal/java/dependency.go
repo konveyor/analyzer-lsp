@@ -134,9 +134,7 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 	p.log.V(10).Info("Analyzing POM",
 		"POM", fmt.Sprintf("%s:%s:%s", pomCoordinate(pom.GroupID), pomCoordinate(pom.ArtifactID), pomCoordinate(pom.Version)),
 		"error", err)
-	if err != nil {
-		return nil, err
-	}
+
 	// If the pom object is empty then parse failed silently.
 	if reflect.DeepEqual(*pom, gopom.Project{}) {
 		return nil, nil
@@ -464,13 +462,13 @@ func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string
 	m := map[string]interface{}{}
 	for _, d := range depToLabels {
 		if d.r.Match([]byte(depName)) {
-			for label, _ := range d.labels {
+			for label := range d.labels {
 				m[label] = nil
 			}
 		}
 	}
 	s := []string{}
-	for k, _ := range m {
+	for k := range m {
 		s = append(s, k)
 	}
 	// if open source label is not found, qualify the dep as being internal by default

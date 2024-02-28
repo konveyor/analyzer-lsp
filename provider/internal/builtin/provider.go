@@ -30,7 +30,7 @@ type builtinCondition struct {
 
 type fileContentCondition struct {
 	FilePattern string `yaml:"filePattern" json:"filePattern,omitempty"`
-	Pattern     string `yaml:"pattern json:"pattern"`
+	Pattern     string `yaml:"pattern" json:"pattern"`
 }
 
 type fileCondition struct {

@@ -261,10 +261,12 @@ func validateFlags() error {
 		return fmt.Errorf("unable to find provider settings file")
 	}
 
-	for _, f := range rulesFile {
-		_, err = os.Stat(f)
-		if err != nil {
-			return fmt.Errorf("unable to find rule path or file")
+	if getOpenAPISpec == "" {
+		for _, f := range rulesFile {
+			_, err = os.Stat(f)
+			if err != nil {
+				return fmt.Errorf("unable to find rule path or file")
+			}
 		}
 	}
 	m := provider.AnalysisMode(strings.ToLower(analysisMode))
@@ -307,52 +309,52 @@ func createOpenAPISchema(providers map[string]provider.InternalProviderClient, l
 		}
 	}
 
-	// AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
-	// 	SchemaReference: &openapi3.SchemaReference{
-	// 		Ref: "#/components/schemas/and",
-	// 	},
-	// })
-	// AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
-	// 	SchemaReference: &openapi3.SchemaReference{
-	// 		Ref: "#/components/schemas/or",
-	// 	},
-	// })
-	// spec.MapOfSchemaOrRefValues["and"] = openapi3.SchemaOrRef{
-	// 	Schema: &openapi3.Schema{
-	// 		Type: &provider.SchemaTypeObject,
-	// 		Properties: map[string]openapi3.SchemaOrRef{
-	// 			"and": {
-	// 				Schema: &openapi3.Schema{
-	// 					Type: &provider.SchemaTypeArray,
-	// 					Items: &openapi3.SchemaOrRef{
-	// 						Schema: &openapi3.Schema{
-	// 							Type:  &provider.SchemaTypeObject,
-	// 							OneOf: AndOrRefRuleRef,
-	// 						},
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// }
-	// spec.MapOfSchemaOrRefValues["or"] = openapi3.SchemaOrRef{
-	// 	Schema: &openapi3.Schema{
-	// 		Type: &provider.SchemaTypeObject,
-	// 		Properties: map[string]openapi3.SchemaOrRef{
-	// 			"or": {
-	// 				Schema: &openapi3.Schema{
-	// 					Type: &provider.SchemaTypeArray,
-	// 					Items: &openapi3.SchemaOrRef{
-	// 						Schema: &openapi3.Schema{
-	// 							Type:  &provider.SchemaTypeObject,
-	// 							OneOf: AndOrRefRuleRef,
-	// 						},
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// }
+	AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+		SchemaReference: &openapi3.SchemaReference{
+			Ref: "#/components/schemas/and",
+		},
+	})
+	AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+		SchemaReference: &openapi3.SchemaReference{
+			Ref: "#/components/schemas/or",
+		},
+	})
+	spec.MapOfSchemaOrRefValues["and"] = openapi3.SchemaOrRef{
+		Schema: &openapi3.Schema{
+			Type: &provider.SchemaTypeObject,
+			Properties: map[string]openapi3.SchemaOrRef{
+				"and": {
+					Schema: &openapi3.Schema{
+						Type: &provider.SchemaTypeArray,
+						Items: &openapi3.SchemaOrRef{
+							Schema: &openapi3.Schema{
+								Type:  &provider.SchemaTypeObject,
+								OneOf: AndOrRefRuleRef,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	spec.MapOfSchemaOrRefValues["or"] = openapi3.SchemaOrRef{
+		Schema: &openapi3.Schema{
+			Type: &provider.SchemaTypeObject,
+			Properties: map[string]openapi3.SchemaOrRef{
+				"or": {
+					Schema: &openapi3.Schema{
+						Type: &provider.SchemaTypeArray,
+						Items: &openapi3.SchemaOrRef{
+							Schema: &openapi3.Schema{
+								Type:  &provider.SchemaTypeObject,
+								OneOf: AndOrRefRuleRef,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 
 	spec.MapOfSchemaOrRefValues["rule"].Schema.Properties["when"] = openapi3.SchemaOrRef{
 		Schema: &openapi3.Schema{
