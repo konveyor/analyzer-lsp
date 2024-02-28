@@ -528,15 +528,19 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	return []byte(s), nil
 }
 
-// TODO where should this go
-type DependencyCondition struct {
-	Upperbound string
-	Lowerbound string
-	Name       string
+type DependencyConditionCap struct {
+	Upperbound string `json:"upperbound,omitempty"`
+	Lowerbound string `json:"lowerbound,omitempty"`
+	Name       string `json:"name"`
 	// NameRegex will be a valid go regex that will be used to
 	// search the name of a given dependency.
 	// Examples include kubernetes* or jakarta-.*-2.2.
-	NameRegex string
+	NameRegex string `json:"name_regex,omitempty"`
+}
+
+// TODO where should this go
+type DependencyCondition struct {
+	DependencyConditionCap
 
 	Client Client
 }

@@ -112,10 +112,12 @@ func (p *javaProvider) Capabilities() []provider.Capability {
 		caps = append(caps, refCap)
 	}
 	if p.hasMaven {
-		caps = append(caps, provider.Capability{
-			Name:  "dependency",
-			Input: openapi3.SchemaOrRef{},
-		})
+		depCap, err := provider.ToProviderCap(r, p.Log, provider.DependencyConditionCap{}, "dependency")
+		if err != nil {
+			p.Log.Error(err, "this is not goinag to be cool if it fails")
+		} else {
+			caps = append(caps, depCap)
+		}
 	}
 	return caps
 }
