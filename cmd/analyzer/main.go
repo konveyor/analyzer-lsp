@@ -297,7 +297,26 @@ func createOpenAPISchema(providers map[string]provider.InternalProviderClient, l
 						fmt.Sprintf("%s.%s", provName, c.Name): {
 							Schema: c.Input.Schema,
 						},
-						// HERE WE NEED TO ADD NOT,FROM,AS,ETC
+						"from": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeString,
+							},
+						},
+						"as": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeString,
+							},
+						},
+						"ignore": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeBool,
+							},
+						},
+						"not": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeBool,
+							},
+						},
 					},
 				},
 			}

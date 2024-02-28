@@ -38,7 +38,8 @@ var (
 	SchemaTypeString openapi3.SchemaType = openapi3.SchemaTypeString
 	SchemaTypeArray  openapi3.SchemaType = openapi3.SchemaTypeArray
 	SchemaTypeObject openapi3.SchemaType = openapi3.SchemaTypeObject
-	SChemaTypeNumber openapi3.SchemaType = openapi3.SchemaTypeInteger
+	SchemaTypeNumber openapi3.SchemaType = openapi3.SchemaTypeInteger
+	SchemaTypeBool   openapi3.SchemaType = openapi3.SchemaTypeBoolean
 )
 
 // This will need a better name, may we want to move it to top level
