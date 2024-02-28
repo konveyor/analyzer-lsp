@@ -15,6 +15,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
+	jsonschema "github.com/swaggest/jsonschema-go"
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
@@ -743,4 +744,21 @@ func deduplicateDependencies(dependencies map[uri.URI][]*Dep) map[uri.URI][]*Dep
 		}
 	}
 	return deduped
+}
+
+func ToProviderCap(r *openapi3.Reflector, log logr.Logger, cond interface{}, name string) (Capability, error) {
+	jsonCondition, err := r.Reflector.Reflect(cond)
+	if err != nil {
+		log.Error(err, "fix it")
+		return Capability{}, err
+	}
+	s := &openapi3.SchemaOrRef{}
+	s.FromJSONSchema(jsonschema.SchemaOrBool{
+		TypeObject: &jsonCondition,
+	})
+	return Capability{
+		Name:  name,
+		Input: *s,
+	}, nil
+
 }

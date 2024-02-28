@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
@@ -17,6 +19,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/swaggest/openapi-go/openapi3"
 	"gopkg.in/yaml.v2"
 )
 
@@ -155,6 +158,21 @@ func AnalysisCmd() *cobra.Command {
 					}
 				}
 			}
+			if getOpenAPISpec != "" {
+				sc := createOpenAPISchema(providers, log)
+				b, err := json.Marshal(sc)
+				if err != nil {
+					log.Error(err, "unable to create inital schema")
+					os.Exit(1)
+				}
+
+				err = os.WriteFile(getOpenAPISpec, b, 0644)
+				if err != nil {
+					log.Error(err, "error writing output file", "file", getOpenAPISpec)
+					os.Exit(1) // Treat the error as a fatal error
+				}
+				os.Exit(0)
+			}
 
 			parser := parser.RuleParser{
 				ProviderNameToClient: providers,
@@ -255,4 +273,103 @@ func validateFlags() error {
 	}
 
 	return nil
+}
+
+func createOpenAPISchema(providers map[string]provider.InternalProviderClient, log logr.Logger) openapi3.Spec {
+
+	// in the future loop and build the openapi spec here:
+	spec, err := parser.CreateSchema()
+	if err != nil {
+		log.Error(err, "unable to create inital schema")
+		os.Exit(1)
+	}
+
+	AndOrRefRuleRef := []openapi3.SchemaOrRef{}
+	for provName, prov := range providers {
+		cap := prov.Capabilities()
+		for _, c := range cap {
+			spec.MapOfSchemaOrRefValues[fmt.Sprintf("%s.%s", provName, c.Name)] = openapi3.SchemaOrRef{
+				Schema: &openapi3.Schema{
+					Type: &provider.SchemaTypeObject,
+					Properties: map[string]openapi3.SchemaOrRef{
+						fmt.Sprintf("%s.%s", provName, c.Name): {
+							Schema: c.Input.Schema,
+						},
+						// HERE WE NEED TO ADD NOT,FROM,AS,ETC
+					},
+				},
+			}
+			AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+				SchemaReference: &openapi3.SchemaReference{
+					Ref: fmt.Sprintf("#/components/schemas/%s.%s", provName, c.Name),
+				},
+			})
+		}
+	}
+
+	// AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+	// 	SchemaReference: &openapi3.SchemaReference{
+	// 		Ref: "#/components/schemas/and",
+	// 	},
+	// })
+	// AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+	// 	SchemaReference: &openapi3.SchemaReference{
+	// 		Ref: "#/components/schemas/or",
+	// 	},
+	// })
+	// spec.MapOfSchemaOrRefValues["and"] = openapi3.SchemaOrRef{
+	// 	Schema: &openapi3.Schema{
+	// 		Type: &provider.SchemaTypeObject,
+	// 		Properties: map[string]openapi3.SchemaOrRef{
+	// 			"and": {
+	// 				Schema: &openapi3.Schema{
+	// 					Type: &provider.SchemaTypeArray,
+	// 					Items: &openapi3.SchemaOrRef{
+	// 						Schema: &openapi3.Schema{
+	// 							Type:  &provider.SchemaTypeObject,
+	// 							OneOf: AndOrRefRuleRef,
+	// 						},
+	// 					},
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+	// }
+	// spec.MapOfSchemaOrRefValues["or"] = openapi3.SchemaOrRef{
+	// 	Schema: &openapi3.Schema{
+	// 		Type: &provider.SchemaTypeObject,
+	// 		Properties: map[string]openapi3.SchemaOrRef{
+	// 			"or": {
+	// 				Schema: &openapi3.Schema{
+	// 					Type: &provider.SchemaTypeArray,
+	// 					Items: &openapi3.SchemaOrRef{
+	// 						Schema: &openapi3.Schema{
+	// 							Type:  &provider.SchemaTypeObject,
+	// 							OneOf: AndOrRefRuleRef,
+	// 						},
+	// 					},
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+	// }
+
+	spec.MapOfSchemaOrRefValues["rule"].Schema.Properties["when"] = openapi3.SchemaOrRef{
+		Schema: &openapi3.Schema{
+			Type:  &provider.SchemaTypeObject,
+			OneOf: AndOrRefRuleRef,
+		},
+	}
+	sc := openapi3.Spec{
+		Components: &openapi3.Components{
+			Schemas: &spec,
+		},
+		Openapi: "3.0.0",
+		Info: openapi3.Info{
+			Title:   "Konveyor API",
+			Version: "1.0.0",
+		},
+	}
+
+	return sc
 }

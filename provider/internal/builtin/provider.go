@@ -13,51 +13,10 @@ import (
 const TAGS_FILE_INIT_OPTION = "tagsFile"
 
 var (
-	filePathsDescription = "List of filepaths matching pattern"
+	filePathsDescription = "file pattern to search"
 )
 
-var capabilities = []provider.Capability{
-	{
-		Name:  "filecontent",
-		Input: openapi3.SchemaOrRef{},
-	},
-	{
-		Name: "file",
-		Input: openapi3.SchemaOrRef{
-			Schema: &openapi3.Schema{
-				Type: &provider.SchemaTypeObject,
-				Properties: map[string]openapi3.SchemaOrRef{
-					"filepaths": {
-						Schema: &openapi3.Schema{
-							Description: &filePathsDescription,
-							Items: &openapi3.SchemaOrRef{
-								Schema: &openapi3.Schema{
-									Type: &provider.SchemaTypeString,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-	{
-		Name:  "xml",
-		Input: openapi3.SchemaOrRef{},
-	},
-	{
-		Name:  "xmlPublicID",
-		Input: openapi3.SchemaOrRef{},
-	},
-	{
-		Name:  "json",
-		Input: openapi3.SchemaOrRef{},
-	},
-	{
-		Name:  "hasTags",
-		Input: openapi3.SchemaOrRef{},
-	},
-}
+var capabilities = []provider.Capability{}
 
 type builtinCondition struct {
 	Filecontent              fileContentCondition `yaml:"filecontent"`
@@ -70,31 +29,31 @@ type builtinCondition struct {
 }
 
 type fileContentCondition struct {
-	FilePattern string `yaml:"filePattern"`
-	Pattern     string `yaml:"pattern`
+	FilePattern string `yaml:"filePattern" json:"filePattern,omitempty"`
+	Pattern     string `yaml:"pattern json:"pattern"`
 }
 
 type fileCondition struct {
-	Pattern string `yaml:"pattern"`
+	Pattern string `yaml:"pattern" json:"pattern"`
 }
 
 var _ provider.InternalProviderClient = &builtinProvider{}
 
 type xmlCondition struct {
-	XPath      string            `yaml:"xpath"`
-	Namespaces map[string]string `yaml:"namespaces"`
-	Filepaths  []string          `yaml:"filepaths"`
+	XPath      string            `yaml:"xpath" json:"xpath"`
+	Namespaces map[string]string `yaml:"namespaces" json:"namespace,omitempty"`
+	Filepaths  []string          `yaml:"filepaths" json:"filepaths,omitempty"`
 }
 
 type xmlPublicIDCondition struct {
-	Regex      string            `yaml:"regex"`
-	Namespaces map[string]string `yaml:"namespaces"`
-	Filepaths  []string          `yaml:"filepaths"`
+	Regex      string            `yaml:"regex" json:"regex"`
+	Namespaces map[string]string `yaml:"namespaces" json:"namespaces"`
+	Filepaths  []string          `yaml:"filepaths" json:"filepaths"`
 }
 
 type jsonCondition struct {
-	XPath     string   `yaml:'xpath'`
-	Filepaths []string `yaml:"filepaths"`
+	XPath     string   `yaml:"xpath" json:"xpath"`
+	Filepaths []string `yaml:"filepaths" json:"filepaths,omitempty"`
 }
 
 type builtinProvider struct {
@@ -116,7 +75,52 @@ func NewBuiltinProvider(config provider.Config, log logr.Logger) *builtinProvide
 }
 
 func (p *builtinProvider) Capabilities() []provider.Capability {
-	return capabilities
+	r := openapi3.NewReflector()
+
+	caps := []provider.Capability{}
+	jsonCap, err := provider.ToProviderCap(r, p.log, jsonCondition{}, "json")
+	if err != nil {
+		p.log.Error(err, "fix it")
+	} else {
+		caps = append(caps, jsonCap)
+	}
+
+	xmlCap, err := provider.ToProviderCap(r, p.log, xmlCondition{}, "xml")
+	if err != nil {
+		p.log.Error(err, "fix it")
+	} else {
+		caps = append(caps, xmlCap)
+	}
+
+	filecontentCap, err := provider.ToProviderCap(r, p.log, fileContentCondition{}, "filecontent")
+	if err != nil {
+		p.log.Error(err, "fix it")
+	} else {
+		caps = append(caps, filecontentCap)
+	}
+
+	fileCap, err := provider.ToProviderCap(r, p.log, fileCondition{}, "file")
+	if err != nil {
+		p.log.Error(err, "fix it")
+	} else {
+		caps = append(caps, fileCap)
+	}
+
+	xmlPublicIDCap, err := provider.ToProviderCap(r, p.log, xmlPublicIDCondition{}, "xmlPublicID")
+	if err != nil {
+		p.log.Error(err, "fix it")
+	} else {
+		caps = append(caps, xmlPublicIDCap)
+	}
+
+	hasTags, err := provider.ToProviderCap(r, p.log, []string{}, "hasTags")
+	if err != nil {
+		p.log.Error(err, "fix it")
+	} else {
+		caps = append(caps, hasTags)
+	}
+
+	return caps
 }
 
 func (p *builtinProvider) ProviderInit(ctx context.Context) error {

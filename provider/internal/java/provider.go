@@ -103,11 +103,13 @@ func (p *javaProvider) Stop() {
 }
 
 func (p *javaProvider) Capabilities() []provider.Capability {
-	caps := []provider.Capability{
-		{
-			Name:  "referenced",
-			Input: openapi3.SchemaOrRef{},
-		},
+	r := openapi3.NewReflector()
+	caps := []provider.Capability{}
+	refCap, err := provider.ToProviderCap(r, p.Log, javaCondition{}, "referenced")
+	if err != nil {
+		p.Log.Error(err, "this is not going to be cool if it fails")
+	} else {
+		caps = append(caps, refCap)
 	}
 	if p.hasMaven {
 		caps = append(caps, provider.Capability{
