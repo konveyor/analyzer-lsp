@@ -62,9 +62,11 @@ func AnalysisCmd() *cobra.Command {
 			err := validateFlags()
 			if err != nil {
 				errLog.Error(err, "failed to validate flags")
+
+				return err
 			}
 
-			return err
+			return nil
 		},
 		Run: func(c *cobra.Command, args []string) {
 
