@@ -84,6 +84,7 @@ func AnalysisCmd() *cobra.Command {
 			}
 
 			var dependencyLabelSelector *labels.LabelSelector[*konveyor.Dep]
+			var err error
 			if depLabelSelector != "" {
 				dependencyLabelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector, nil)
 				if err != nil {
