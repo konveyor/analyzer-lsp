@@ -40,12 +40,6 @@ var (
 	analysisMode      string
 	noDependencyRules bool
 	contextLines      int
-
-	// rootCmd = &cobra.Command{
-	// 	Use:   "analyze",
-	// 	Short: "Tool for working with analyzer-lsp",
-	// 	Run:   func(c *cobra.Command, args []string) {},
-	// }
 )
 
 func AnalysisCmd() *cobra.Command {
