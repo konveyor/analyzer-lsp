@@ -14,10 +14,10 @@ import (
 
 var (
 	port = flag.Int("port", 0, "Port must be set")
+	name = flag.String("name", "yaml", "Port must be set")
 )
 
 func main() {
-
 	flag.Parse()
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
@@ -25,7 +25,7 @@ func main() {
 	// need to do research on mapping in logrusr to level here TODO
 	logrusLog.SetLevel(logrus.Level(5))
 
-	log := logrusr.New(logrusLog)
+	log := logrusr.New(logrusLog).WithName(*name)
 
 	client := yq_provider.NewYqProvider()
 

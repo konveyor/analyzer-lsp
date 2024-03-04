@@ -47,6 +47,7 @@ func (g *grpcProvider) ProviderInit(ctx context.Context) error {
 	for _, c := range g.config.InitConfig {
 		s, err := g.Init(ctx, g.log, c)
 		if err != nil {
+			g.log.Error(err, "Error inside ProviderInit, after g.Init.")
 			return err
 		}
 		g.serviceClients = append(g.serviceClients, s)
@@ -132,7 +133,17 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		cmd := exec.CommandContext(ctx, g.config.BinaryPath, "--port", fmt.Sprintf("%v", port))
+
+		// For the generic external provider
+		name := "generic"
+		ic := g.config.InitConfig
+		if len(ic) != 0 {
+			if newName, ok := ic[0].ProviderSpecificConfig["lspServerName"].(string); ok {
+				name = newName
+			}
+		}
+
+		cmd := exec.CommandContext(ctx, g.config.BinaryPath, "--port", fmt.Sprintf("%v", port), "--name", name)
 		// TODO: For each output line, log that line here, allows the server's to output to the main log file. Make sure we name this correctly
 		// cmd will exit with the ending of the ctx.
 		out, err := cmd.StdoutPipe()
@@ -159,6 +170,7 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 			default:
 				caps := g.Capabilities()
 				if len(caps) != 0 {
+					g.log.Error(nil, "Caps found", "caps", caps)
 					return nil
 				}
 				time.Sleep(3 * time.Second)

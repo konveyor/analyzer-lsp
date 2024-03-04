@@ -7,13 +7,12 @@ import (
 	"regexp"
 	"strings"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -91,6 +90,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	if info.Mode().IsRegular() {
 		rules, m, err := r.LoadRule(filepath)
 		if err != nil {
+			r.Log.V(8).Error(err, "unable to load rule set")
 			return nil, nil, err
 		}
 
@@ -180,6 +180,8 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	// Assume that there is a rule set header.
 	err = yaml.Unmarshal(content, &ruleMap)
 	if err != nil {
+		r.Log.V(8).Error(err, fmt.Sprintf("unable to load rule set - failed to convert file: %s to yaml", filepath))
+
 		return nil, nil, fmt.Errorf("unable to convert file: %s to yaml", filepath)
 	}
 
@@ -552,6 +554,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 	conditions := []engine.ConditionEntry{}
 	providers := map[string]provider.InternalProviderClient{}
 	chainNameToIndex := map[string]int{}
+	asFound := []string{}
 	for _, conditionInterface := range conditionsInterface {
 		// get map from interface
 		conditionMap, ok := conditionInterface.(map[interface{}]interface{})
@@ -681,15 +684,25 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				}
 				providers[providerKey] = provider
 			}
-			if ce.As != "" {
+			if ce.From != "" && ce.As != "" && ce.From == ce.As {
+				return nil, nil, fmt.Errorf("condition cannot have the same value for fields 'from' and 'as'")
+			} else if ce.As != "" {
+				for _, as := range asFound {
+					if as == ce.As {
+						return nil, nil, fmt.Errorf("condition cannot have multiple 'as' fields with the same name")
+					}
+				}
+				asFound = append(asFound, ce.As)
+
 				index, ok := chainNameToIndex[ce.As]
 				if !ok {
 					//prepend
 					conditions = append([]engine.ConditionEntry{ce}, conditions...)
+				} else {
+					//insert
+					conditions = append(conditions[:index+1], conditions[index:]...)
+					conditions[index] = ce
 				}
-				//insert
-				conditions = append(conditions[:index+1], conditions[index:]...)
-				conditions[index] = ce
 			} else if ce.From != "" && ce.As == "" {
 				chainNameToIndex[ce.From] = len(conditions)
 				conditions = append(conditions, ce)

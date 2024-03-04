@@ -438,11 +438,6 @@
         lineNumber: 2
         variables:
           file: file:///analyzer-lsp/examples/python/file_a.py
-      - uri: file:///analyzer-lsp/examples/python/file_b.py
-        message: python sample rule 001
-        lineNumber: 0
-        variables:
-          file: file:///analyzer-lsp/examples/python/file_b.py
     python-sample-rule-002:
       description: ""
       category: potential
@@ -452,11 +447,6 @@
         lineNumber: 5
         variables:
           file: file:///analyzer-lsp/examples/python/file_a.py
-      - uri: file:///analyzer-lsp/examples/python/file_b.py
-        message: python sample rule 002
-        lineNumber: 7
-        variables:
-          file: file:///analyzer-lsp/examples/python/file_b.py
     python-sample-rule-003:
       description: ""
       category: potential
@@ -767,6 +757,19 @@
           data: dependency
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
           matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+    xml-test-key-match:
+      description: Test code snippets when match is a key of a XML node
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/java/beans.xml
+        message: The code snippet should point to <beans> in the beans.xml file
+        codeSnip: " 8   *\n 9   * http://www.apache.org/licenses/LICENSE-2.0\n10   *\n11   * Unless required by applicable law or agreed to in writing, software\n12   * distributed under the License is distributed on an \"AS IS\" BASIS,\n13   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n14   * See the License for the specific language governing permissions and\n15   * limitations under the License.\n16  -->\n17  <beans xmlns=\"http://xmlns.jcp.org/xml/ns/javaee\"\n18         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n19         xsi:schemaLocation=\"http://xmlns.jcp.org/xml/ns/javaee \n20                             http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd\"\n21         version=\"1.1\" bean-discovery-mode=\"all\">\n22  </beans>\n"
+        lineNumber: 17
+        variables:
+          data: beans
+          innerText: |2+
+
+          matchingXML: ""
   errors:
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:
