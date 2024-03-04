@@ -58,12 +58,13 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "analyze",
 		Short: "Tool for working with analyzer-lsp",
-		PreRun: func(c *cobra.Command, args []string) {
+		PreRunE: func(c *cobra.Command, args []string) error {
 			err := validateFlags()
 			if err != nil {
 				errLog.Error(err, "failed to validate flags")
-				os.Exit(1)
 			}
+
+			return err
 		},
 		Run: func(c *cobra.Command, args []string) {
 
@@ -226,7 +227,7 @@ func AnalysisCmd() *cobra.Command {
 
 func main() {
 	if err := AnalysisCmd().Execute(); err != nil {
-		println(err.Error())
+		os.Exit(1)
 	} else if AnalysisCmd().Flags().Changed("help") {
 		return
 	}
