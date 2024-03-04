@@ -87,12 +87,23 @@ func EvaluateReferenced[T base](t T, ctx ctx, cap string, info []byte) (resp, er
 			if err != nil {
 				return resp{}, err
 			}
-			lineNumber := int(ref.Range.Start.Line)
+			// ranges are 0 indexed
+			lineNumber := int(ref.Range.Start.Line) + 1
 			incident := provider.IncidentContext{
 				FileURI:    u,
 				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
 					"file": ref.URI,
+				},
+				CodeLocation: &provider.Location{
+					StartPosition: provider.Position{
+						Line:      float64(ref.Range.Start.Line) + 1,
+						Character: float64(ref.Range.Start.Character) + 1,
+					},
+					EndPosition: provider.Position{
+						Line:      float64(ref.Range.End.Line) + 1,
+						Character: float64(ref.Range.End.Character) + 1,
+					},
 				},
 			}
 			b, _ := json.Marshal(incident)
