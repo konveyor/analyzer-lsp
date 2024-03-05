@@ -120,10 +120,12 @@ func Test_dependencyConditionEvaluation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.title, func(t *testing.T) {
 			depCondition := DependencyCondition{
-				Name:       tt.name,
-				Upperbound: tt.upperbound,
-				Lowerbound: tt.lowerbound,
-				Client:     &fakeClient{dependencies: tt.dependencies},
+				DependencyConditionCap: DependencyConditionCap{
+					Name:       tt.name,
+					Upperbound: tt.upperbound,
+					Lowerbound: tt.lowerbound,
+				},
+				Client: &fakeClient{dependencies: tt.dependencies},
 			}
 
 			resp, err := depCondition.Evaluate(context.TODO(), logr.Logger{}, engine.ConditionContext{})

@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3gen"
 	"github.com/go-logr/logr"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
@@ -22,6 +21,9 @@ type NodeServiceClientConfig struct {
 	blah int `yaml:",inline"`
 }
 
+// Tidy aliases
+type serviceClientFn = base.LSPServiceClientFunc[*NodeServiceClient]
+
 type NodeServiceClient struct {
 	*base.LSPServiceClientBase
 	*base.LSPServiceClientEvaluator[*NodeServiceClient]
@@ -29,7 +31,9 @@ type NodeServiceClient struct {
 	Config NodeServiceClientConfig
 }
 
-func NewNodeServiceClient(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
+type NodeServiceClientBuilder struct{}
+
+func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
 	sc := &NodeServiceClient{}
 
 	// Unmarshal the config
@@ -86,7 +90,7 @@ func NewNodeServiceClient(ctx context.Context, log logr.Logger, c provider.InitC
 	sc.LSPServiceClientBase = scBase
 
 	// Initialize the fancy evaluator (dynamic dispatch ftw)
-	eval, err := base.NewLspServiceClientEvaluator[*NodeServiceClient](sc, NodeServiceClientCapabilities)
+	eval, err := base.NewLspServiceClientEvaluator[*NodeServiceClient](sc, n.GetGenericServiceClientCapabilities(log))
 	if err != nil {
 		return nil, err
 	}
@@ -95,26 +99,21 @@ func NewNodeServiceClient(ctx context.Context, log logr.Logger, c provider.InitC
 	return sc, nil
 }
 
-// Tidy aliases
-
-type serviceClientFn = base.LSPServiceClientFunc[*NodeServiceClient]
-
-func serviceClientTemplateContext(v any) openapi3.SchemaRef {
-	r, _ := openapi3gen.NewSchemaRefForValue(v, nil)
-	return *r
-}
-
-var NodeServiceClientCapabilities = []base.LSPServiceClientCapability{
-	{
-		Name:            "referenced",
-		TemplateContext: serviceClientTemplateContext(referencedCondition{}),
-		Fn:              serviceClientFn((*NodeServiceClient).EvaluateReferenced),
-	},
-	{
-		Name:            "dependency",
-		TemplateContext: serviceClientTemplateContext(base.NoOpCondition{}),
-		Fn:              serviceClientFn(base.EvaluateNoOp[*NodeServiceClient]),
-	},
+func (n *NodeServiceClientBuilder) GetGenericServiceClientCapabilities(log logr.Logger) []base.LSPServiceClientCapability {
+	caps := []base.LSPServiceClientCapability{}
+	r := openapi3.NewReflector()
+	refCap, err := provider.ToProviderCap(r, log, referencedCondition{}, "referenced")
+	if err != nil {
+		log.Error(err, "unable to get referenced cap")
+	} else {
+		caps = append(caps, base.LSPServiceClientCapability{
+			Name:   refCap.Name,
+			Input:  refCap.Input,
+			Output: refCap.Output,
+			Fn:     serviceClientFn((*NodeServiceClient).EvaluateReferenced),
+		})
+	}
+	return caps
 }
 
 type resp = provider.ProviderEvaluateResponse
