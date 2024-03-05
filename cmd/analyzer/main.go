@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
@@ -43,22 +44,15 @@ var (
 )
 
 func AnalysisCmd() *cobra.Command {
-
-	logrusLog := logrus.New()
-	logrusLog.SetOutput(os.Stdout)
-	logrusLog.SetFormatter(&logrus.TextFormatter{})
-	// need to do research on mapping in logrusr to level here TODO
-	logrusLog.SetLevel(logrus.Level(logLevel))
-	log := logrusr.New(logrusLog)
-
-	logrusErrLog := logrus.New()
-	logrusErrLog.SetOutput(os.Stderr)
-	errLog := logrusr.New(logrusErrLog)
+	var errLog logr.Logger
 
 	rootCmd := &cobra.Command{
-		Use:   "analyze",
-		Short: "Tool for working with analyzer-lsp",
+		Use:   "konveyor-analyzer",
+		Short: "Tool for working with konveyor-analyzer",
 		PreRunE: func(c *cobra.Command, args []string) error {
+			logrusErrLog := logrus.New()
+			logrusErrLog.SetOutput(os.Stderr)
+			errLog = logrusr.New(logrusErrLog)
 			err := validateFlags()
 			if err != nil {
 				errLog.Error(err, "failed to validate flags")
@@ -69,6 +63,13 @@ func AnalysisCmd() *cobra.Command {
 			return nil
 		},
 		Run: func(c *cobra.Command, args []string) {
+
+			logrusLog := logrus.New()
+			logrusLog.SetOutput(os.Stdout)
+			logrusLog.SetFormatter(&logrus.TextFormatter{})
+			// need to do research on mapping in logrusr to level here TODO
+			logrusLog.SetLevel(logrus.Level(logLevel))
+			log := logrusr.New(logrusLog)
 
 			// This will globally prevent the yaml library from auto-wrapping lines at 80 characters
 			yaml.FutureLineWrap()
