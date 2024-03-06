@@ -171,6 +171,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provider.InternalProviderClient, error) {
 	content, err := os.ReadFile(filepath)
 	if err != nil {
+		r.Log.V(8).Error(err, "filepath", filepath)
 		return nil, nil, err
 	}
 	// Determine if the content has a ruleset header.
@@ -180,8 +181,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	// Assume that there is a rule set header.
 	err = yaml.Unmarshal(content, &ruleMap)
 	if err != nil {
-		r.Log.V(8).Error(err, fmt.Sprintf("unable to load rule set - failed to convert file: %s to yaml", filepath))
-
+		r.Log.V(8).Error(err, "unable to load rule set, failed to convert file to yaml", "file", filepath)
 		return nil, nil, fmt.Errorf("unable to convert file: %s to yaml", filepath)
 	}
 
@@ -195,14 +195,16 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	for _, ruleMap := range ruleMap {
 		ruleID, ok := ruleMap["ruleID"].(string)
 		if !ok {
+			r.Log.V(8).Info("ruleID not found", "file", filepath)
 			return nil, nil, fmt.Errorf("unable to find ruleID in rule")
 		}
 
 		if _, ok := ruleIDMap[ruleID]; ok {
+			r.Log.V(8).Info("duplicate ruleID", "file", filepath, "ruleID", ruleID)
 			return nil, nil, fmt.Errorf("duplicated rule id: %v", ruleID)
 		}
 		if e, ok := validateRuleID(ruleID); !ok {
-			r.Log.Info("invalid rule", "reason", e)
+			r.Log.Info("invalid rule", "reason", e, "ruleID", ruleID)
 			continue
 		}
 
@@ -217,6 +219,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				case "message":
 					message, ok := val.(string)
 					if !ok {
+						r.Log.V(8).Info("message must be a string", "ruleID", ruleID)
 						return nil, nil, fmt.Errorf("message must be a string")
 					}
 
@@ -248,11 +251,13 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				case "tag":
 					tagList, ok := val.([]interface{})
 					if !ok {
+						r.Log.V(8).Info("tag must be a list of strings", "ruleID", ruleID)
 						return nil, nil, fmt.Errorf("tag must be a list of strings")
 					}
 					for _, tagVal := range tagList {
 						tag, ok := tagVal.(string)
 						if !ok {
+							r.Log.V(8).Info("tag value must be a string", "ruleID", ruleID, "tag", tagVal)
 							return nil, nil, fmt.Errorf("tag value must be a string")
 						}
 						perform.Tag = append(perform.Tag, tag)
@@ -262,6 +267,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 		}
 
 		if err := perform.Validate(); err != nil {
+			r.Log.V(8).Error(err, "failed validating perform", "ruleID", ruleID, "file", filepath)
 			return nil, nil, err
 		}
 
@@ -276,6 +282,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 
 		whenMap, ok := ruleMap["when"].(map[interface{}]interface{})
 		if !ok {
+			r.Log.V(8).Info("a rule must have a single condition", "ruleID", ruleID, "file", filepath)
 			return nil, nil, fmt.Errorf("a Rule must have a single condition")
 		}
 
@@ -288,6 +295,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			delete(whenMap, "from")
 			from, ok = fromRaw.(string)
 			if !ok {
+				r.Log.V(8).Info("a rule must have a single condition", "ruleID", ruleID, "file", filepath)
 				return nil, nil, fmt.Errorf("from must be a string literal, not %v", fromRaw)
 			}
 		}
@@ -296,6 +304,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			delete(whenMap, "as")
 			as, ok = asRaw.(string)
 			if !ok {
+				r.Log.V(8).Info("as must be a string literal", "ruleID", ruleID, "file", filepath)
 				return nil, nil, fmt.Errorf("as must be a string literal, not %v", asRaw)
 			}
 		}
@@ -304,6 +313,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			delete(whenMap, "ignore")
 			ignorable, ok = ignorableRaw.(bool)
 			if !ok {
+				r.Log.V(8).Info("ignore must be a boolean", "ruleID", ruleID, "file", filepath)
 				return nil, nil, fmt.Errorf("ignore must be a boolean, not %v", ignorableRaw)
 			}
 		}
@@ -315,6 +325,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			delete(whenMap, "not")
 			not, ok = notKeywordRaw.(bool)
 			if !ok {
+				r.Log.V(8).Info("not must be a boolean", "ruleID", ruleID, "file", filepath)
 				return nil, nil, fmt.Errorf("not must be a boolean, not %v", notKeywordRaw)
 			}
 		}
@@ -323,6 +334,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 		for k, value := range whenMap {
 			key, ok := k.(string)
 			if !ok {
+				r.Log.V(8).Info("condition key must be a string", "ruleID", ruleID, "file", filepath)
 				return nil, nil, fmt.Errorf("condition key must be a string")
 			}
 			switch key {
@@ -330,10 +342,12 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				//Handle when clause
 				m, ok := value.([]interface{})
 				if !ok {
+					r.Log.V(8).Info("invalid type for or clause, must be an array", "ruleID", ruleID, "file", filepath)
 					return nil, nil, fmt.Errorf("invalid type for or clause, must be an array")
 				}
 				conditions, provs, err := r.getConditions(m)
 				if err != nil {
+					r.Log.V(8).Error(err, "failed parsing conditions in or clause", "ruleID", ruleID, "file", filepath)
 					return nil, nil, err
 				}
 				if len(conditions) == 0 {
@@ -357,10 +371,12 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				//Handle when clause
 				m, ok := value.([]interface{})
 				if !ok {
+					r.Log.V(8).Info("invalid type for and clause, must be an array", "ruleID", ruleID, "file", filepath)
 					return nil, nil, fmt.Errorf("invalid type for and clause, must be an array")
 				}
 				conditions, provs, err := r.getConditions(m)
 				if err != nil {
+					r.Log.V(8).Error(err, "failed parsing conditions in and clause", "ruleID", ruleID, "file", filepath)
 					return nil, nil, err
 				}
 				if len(conditions) == 0 {
@@ -380,17 +396,21 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					}
 				}
 			case "":
+				r.Log.V(8).Info("must have at least one condition", "ruleID", ruleID, "file", filepath)
 				return nil, nil, fmt.Errorf("must have at least one condition")
 			default:
 				// Handle provider
 				s := strings.Split(key, ".")
 				if len(s) != 2 {
+					r.Log.V(8).Info("condition must be of the form {provider}.{capability}", "ruleID", ruleID, "file", filepath)
 					return nil, nil, fmt.Errorf("condition must be of the form {provider}.{capability}")
 				}
 				providerKey, capability := s[0], s[1]
 
 				condition, provider, err := r.getConditionForProvider(providerKey, capability, value)
 				if err != nil {
+					r.Log.V(8).Error(err, "failed parsing conditions for provider",
+						"provider", providerKey, "capability", capability, "ruleID", ruleID, "file", filepath)
 					return nil, nil, err
 				}
 				if condition == nil {
