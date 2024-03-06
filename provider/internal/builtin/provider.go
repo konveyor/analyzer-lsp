@@ -80,42 +80,42 @@ func (p *builtinProvider) Capabilities() []provider.Capability {
 	caps := []provider.Capability{}
 	jsonCap, err := provider.ToProviderCap(r, p.log, jsonCondition{}, "json")
 	if err != nil {
-		p.log.Error(err, "fix it")
+		p.log.Error(err, "unable to get json capability")
 	} else {
 		caps = append(caps, jsonCap)
 	}
 
 	xmlCap, err := provider.ToProviderCap(r, p.log, xmlCondition{}, "xml")
 	if err != nil {
-		p.log.Error(err, "fix it")
+		p.log.Error(err, "unable to get xml capability")
 	} else {
 		caps = append(caps, xmlCap)
 	}
 
 	filecontentCap, err := provider.ToProviderCap(r, p.log, fileContentCondition{}, "filecontent")
 	if err != nil {
-		p.log.Error(err, "fix it")
+		p.log.Error(err, "unable to get filecontent capability")
 	} else {
 		caps = append(caps, filecontentCap)
 	}
 
 	fileCap, err := provider.ToProviderCap(r, p.log, fileCondition{}, "file")
 	if err != nil {
-		p.log.Error(err, "fix it")
+		p.log.Error(err, "unable to get file capability")
 	} else {
 		caps = append(caps, fileCap)
 	}
 
 	xmlPublicIDCap, err := provider.ToProviderCap(r, p.log, xmlPublicIDCondition{}, "xmlPublicID")
 	if err != nil {
-		p.log.Error(err, "fix it")
+		p.log.Error(err, "unable to get xmlPublicID capability")
 	} else {
 		caps = append(caps, xmlPublicIDCap)
 	}
 
 	hasTags, err := provider.ToProviderCap(r, p.log, []string{}, "hasTags")
 	if err != nil {
-		p.log.Error(err, "fix it")
+		p.log.Error(err, "unable to get hasTags capability")
 	} else {
 		caps = append(caps, hasTags)
 	}

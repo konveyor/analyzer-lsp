@@ -17,7 +17,6 @@ import (
 	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
@@ -30,10 +29,8 @@ type LSPServiceClientFunc[T HasLSPServiceClientBase] func(T, context.Context, st
 // `Fn` field to reduce code duplication. We can use this struct for the
 // Evaluator struct to call the appropriate method when queried.
 type LSPServiceClientCapability struct {
-	Name   string
-	Input  openapi3.SchemaOrRef
-	Output openapi3.SchemaOrRef
-	Fn     interface{}
+	provider.Capability
+	Fn interface{}
 }
 
 // The base service client configs that all subsequent configs must embed

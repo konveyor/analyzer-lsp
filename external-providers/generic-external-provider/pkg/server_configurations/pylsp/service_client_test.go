@@ -138,39 +138,3 @@ type echoCondition struct {
 }
 
 type someOtherType string
-
-// func XTestSchemaGen(t *testing.T) {
-// 	r0, _ := openapi3gen.NewSchemaRefForValue(someStruct{}, nil)
-// 	b0, _ := json.Marshal(*r0)
-
-// 	r1, _ := openapi3gen.NewSchemaRefForValue(&someStruct{}, nil)
-// 	b1, _ := json.Marshal(r1)
-
-// 	fmt.Printf("%s\n", string(b0))
-// 	fmt.Printf("%s\n", string(b1))
-
-// 	if string(b0) != string(b1) {
-// 		panic(1)
-// 	}
-
-// 	e2_before := echoCondition{
-// 		Echo: struct {
-// 			Input string `json:"input"`
-// 		}{
-// 			Input: "hello!",
-// 		},
-// 	}
-// 	r2, _ := openapi3gen.NewSchemaRefForValue(e2_before, nil)
-// 	b2, _ := json.Marshal(*r2)
-// 	fmt.Printf("%s\n", string(b2))
-
-// 	b2_yaml, _ := yaml.Marshal(e2_before)
-// 	fmt.Printf("%s\n", string(b2_yaml))
-// 	e2_after := echoCondition{}
-// 	yaml.Unmarshal(b2_yaml, &e2_after)
-// 	fmt.Printf("%v\n", e2_after)
-
-// 	r3, _ := openapi3gen.NewSchemaRefForValue(struct{}{}, nil)
-// 	b3, _ := json.Marshal(*r3)
-// 	fmt.Printf("%s\n", string(b3))
-// }

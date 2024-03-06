@@ -119,10 +119,17 @@ func (g *GenericServiceClientBuilder) GetGenericServiceClientCapabilities(log lo
 		log.Error(err, "unable to get referenced cap")
 	} else {
 		caps = append(caps, base.LSPServiceClientCapability{
-			Name:   refCap.Name,
-			Input:  refCap.Input,
-			Output: refCap.Output,
-			Fn:     serviceClientFn(base.EvaluateReferenced[*GenericServiceClient]),
+			Capability: refCap,
+			Fn:         serviceClientFn(base.EvaluateReferenced[*GenericServiceClient]),
+		})
+	}
+	depCap, err := provider.ToProviderCap(r, log, base.NoOpCondition{}, "dependency")
+	if err != nil {
+		log.Error(err, "unable to get referenced cap")
+	} else {
+		caps = append(caps, base.LSPServiceClientCapability{
+			Capability: depCap,
+			Fn:         serviceClientFn(base.EvaluateNoOp[*GenericServiceClient]),
 		})
 	}
 	echoCap, err := provider.ToProviderCap(r, log, echoCondition{}, "echo")
@@ -130,10 +137,8 @@ func (g *GenericServiceClientBuilder) GetGenericServiceClientCapabilities(log lo
 		log.Error(err, "unable to get referenced cap")
 	} else {
 		caps = append(caps, base.LSPServiceClientCapability{
-			Name:   echoCap.Name,
-			Input:  echoCap.Input,
-			Output: echoCap.Output,
-			Fn:     serviceClientFn((*GenericServiceClient).EvaluateEcho),
+			Capability: echoCap,
+			Fn:         serviceClientFn((*GenericServiceClient).EvaluateEcho),
 		})
 	}
 	return caps

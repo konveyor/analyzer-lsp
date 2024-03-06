@@ -98,10 +98,8 @@ func (p *PythonServiceClientBuilder) GetGenericServiceClientCapabilities(log log
 		log.Error(err, "unable to get referenced cap")
 	} else {
 		caps = append(caps, base.LSPServiceClientCapability{
-			Name:   refCap.Name,
-			Input:  refCap.Input,
-			Output: refCap.Output,
-			Fn:     serviceClientFn(base.EvaluateReferenced[*PythonServiceClient]),
+			Capability: refCap,
+			Fn:         serviceClientFn(base.EvaluateReferenced[*PythonServiceClient]),
 		})
 	}
 	return caps

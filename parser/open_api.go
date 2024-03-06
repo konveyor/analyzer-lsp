@@ -1,12 +1,8 @@
 package parser
 
-import "github.com/swaggest/openapi-go/openapi3"
-
-var (
-	stringtype openapi3.SchemaType = openapi3.SchemaTypeString
-	arraytype  openapi3.SchemaType = openapi3.SchemaTypeArray
-	objecttype openapi3.SchemaType = openapi3.SchemaTypeObject
-	numbertype openapi3.SchemaType = openapi3.SchemaTypeInteger
+import (
+	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/swaggest/openapi-go/openapi3"
 )
 
 func CreateSchema() (openapi3.ComponentsSchemas, error) {
@@ -16,36 +12,36 @@ func CreateSchema() (openapi3.ComponentsSchemas, error) {
 
 	schema.MapOfSchemaOrRefValues["rule"] = openapi3.SchemaOrRef{
 		Schema: &openapi3.Schema{
-			Type: &objecttype,
+			Type: &provider.SchemaTypeObject,
 			Properties: map[string]openapi3.SchemaOrRef{
 				"ruleID": {
 					Schema: &openapi3.Schema{
-						Type: &stringtype,
+						Type: &provider.SchemaTypeString,
 					},
 				},
 				"description": {
 					Schema: &openapi3.Schema{
-						Type: &stringtype,
+						Type: &provider.SchemaTypeString,
 					},
 				},
 				"labels": {
 					Schema: &openapi3.Schema{
-						Type: &arraytype,
+						Type: &provider.SchemaTypeArray,
 						Items: &openapi3.SchemaOrRef{
 							Schema: &openapi3.Schema{
-								Type: &stringtype,
+								Type: &provider.SchemaTypeString,
 							},
 						},
 					},
 				},
 				"effort": {
 					Schema: &openapi3.Schema{
-						Type: &numbertype,
+						Type: &provider.SchemaTypeNumber,
 					},
 				},
 				"category": {
 					Schema: &openapi3.Schema{
-						Type: &stringtype,
+						Type: &provider.SchemaTypeString,
 						OneOf: []openapi3.SchemaOrRef{
 							{
 								Schema: &openapi3.Schema{
@@ -61,21 +57,21 @@ func CreateSchema() (openapi3.ComponentsSchemas, error) {
 				},
 				"customVariable": {
 					Schema: &openapi3.Schema{
-						Type: &arraytype,
+						Type: &provider.SchemaTypeArray,
 						Properties: map[string]openapi3.SchemaOrRef{
 							"name": {
 								Schema: &openapi3.Schema{
-									Type: &stringtype,
+									Type: &provider.SchemaTypeString,
 								},
 							},
 							"defaultValue": {
 								Schema: &openapi3.Schema{
-									Type: &stringtype,
+									Type: &provider.SchemaTypeString,
 								},
 							},
 							"nameOfCaptureGroup": {
 								Schema: &openapi3.Schema{
-									Type: &stringtype,
+									Type: &provider.SchemaTypeString,
 								},
 							},
 						},
@@ -83,21 +79,20 @@ func CreateSchema() (openapi3.ComponentsSchemas, error) {
 				},
 				"message": {
 					Schema: &openapi3.Schema{
-						Type: &stringtype,
+						Type: &provider.SchemaTypeString,
 					},
 				},
 				"tag": {
 					Schema: &openapi3.Schema{
-						Type: &arraytype,
+						Type: &provider.SchemaTypeArray,
 						Items: &openapi3.SchemaOrRef{
 							Schema: &openapi3.Schema{
-								Type: &stringtype,
+								Type: &provider.SchemaTypeString,
 							},
 						},
 					},
 				},
-				// TODO: here we need to add each capbability and/or
-				// We should be able to use references.
+				// We will override this, with the capabilties from the providers
 				"when": {},
 			},
 		},
@@ -105,41 +100,41 @@ func CreateSchema() (openapi3.ComponentsSchemas, error) {
 
 	schema.MapOfSchemaOrRefValues["rulesets"] = openapi3.SchemaOrRef{
 		Schema: &openapi3.Schema{
-			Type: &objecttype,
+			Type: &provider.SchemaTypeObject,
 			Properties: map[string]openapi3.SchemaOrRef{
 				"name": {
 					Schema: &openapi3.Schema{
-						Type: &stringtype,
+						Type: &provider.SchemaTypeString,
 					},
 				},
 				"description": {
 					Schema: &openapi3.Schema{
-						Type: &stringtype,
+						Type: &provider.SchemaTypeString,
 					},
 				},
 				"labels": {
 					Schema: &openapi3.Schema{
-						Type: &arraytype,
+						Type: &provider.SchemaTypeArray,
 						Items: &openapi3.SchemaOrRef{
 							Schema: &openapi3.Schema{
-								Type: &stringtype,
+								Type: &provider.SchemaTypeString,
 							},
 						},
 					},
 				},
 				"tags": {
 					Schema: &openapi3.Schema{
-						Type: &arraytype,
+						Type: &provider.SchemaTypeArray,
 						Items: &openapi3.SchemaOrRef{
 							Schema: &openapi3.Schema{
-								Type: &stringtype,
+								Type: &provider.SchemaTypeString,
 							},
 						},
 					},
 				},
 				"rules": {
 					Schema: &openapi3.Schema{
-						Type: &arraytype,
+						Type: &provider.SchemaTypeArray,
 						Items: &openapi3.SchemaOrRef{
 							SchemaReference: &openapi3.SchemaReference{
 								Ref: "#/components/schemas/rule",

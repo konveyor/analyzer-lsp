@@ -107,10 +107,8 @@ func (n *NodeServiceClientBuilder) GetGenericServiceClientCapabilities(log logr.
 		log.Error(err, "unable to get referenced cap")
 	} else {
 		caps = append(caps, base.LSPServiceClientCapability{
-			Name:   refCap.Name,
-			Input:  refCap.Input,
-			Output: refCap.Output,
-			Fn:     serviceClientFn((*NodeServiceClient).EvaluateReferenced),
+			Capability: refCap,
+			Fn:         serviceClientFn((*NodeServiceClient).EvaluateReferenced),
 		})
 	}
 	return caps

@@ -34,6 +34,7 @@ const (
 	LspServerPathConfigKey = "lspServerPath"
 )
 
+// We need to make these Vars, because you can not take a pointer of the constant.
 var (
 	SchemaTypeString openapi3.SchemaType = openapi3.SchemaTypeString
 	SchemaTypeArray  openapi3.SchemaType = openapi3.SchemaTypeArray
