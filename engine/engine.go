@@ -185,7 +185,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
 						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule)
 						if err != nil {
-							r.logger.Error(err, "unable to create violation from response")
+							r.logger.Error(err, "unable to create violation from response", "ruleID", response.Rule.RuleID)
 						}
 						if len(violation.Incidents) == 0 {
 							r.logger.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched", "rule", response.Rule.RuleID)
@@ -333,7 +333,7 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 						}
 						templateString, err := r.createPerformString(tagString, variables)
 						if err != nil {
-							r.logger.Error(err, "unable to create tag string")
+							r.logger.Error(err, "unable to create tag string", "ruleID", rule.RuleID)
 							continue
 						}
 						tags[templateString] = true
