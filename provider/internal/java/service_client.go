@@ -210,6 +210,9 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 						"userSettings": p.mvnSettingsFile,
 					},
 				},
+				"autobuild": map[string]interface{}{
+					"enabled": false,
+				},
 				"maven": map[string]interface{}{
 					"downloadSources": downloadSources,
 				},
