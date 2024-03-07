@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/cbroglie/mustache"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
+	jsonschema "github.com/swaggest/jsonschema-go"
+	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/net/http/httpproxy"
@@ -31,6 +32,15 @@ const (
 	DepExcludeLabel  = "konveyor.io/exclude"
 	// LspServerPath is a provider specific config used to specify path to a LSP server
 	LspServerPathConfigKey = "lspServerPath"
+)
+
+// We need to make these Vars, because you can not take a pointer of the constant.
+var (
+	SchemaTypeString openapi3.SchemaType = openapi3.SchemaTypeString
+	SchemaTypeArray  openapi3.SchemaType = openapi3.SchemaTypeArray
+	SchemaTypeObject openapi3.SchemaType = openapi3.SchemaTypeObject
+	SchemaTypeNumber openapi3.SchemaType = openapi3.SchemaTypeInteger
+	SchemaTypeBool   openapi3.SchemaType = openapi3.SchemaTypeBoolean
 )
 
 // This will need a better name, may we want to move it to top level
@@ -64,8 +74,9 @@ func (p *UnimplementedDependenciesComponent) GetDependenciesDAG(ctx context.Cont
 }
 
 type Capability struct {
-	Name            string
-	TemplateContext openapi3.SchemaRef
+	Name   string
+	Input  openapi3.SchemaOrRef
+	Output openapi3.SchemaOrRef
 }
 
 type Config struct {
@@ -519,15 +530,19 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	return []byte(s), nil
 }
 
-// TODO where should this go
-type DependencyCondition struct {
-	Upperbound string
-	Lowerbound string
-	Name       string
+type DependencyConditionCap struct {
+	Upperbound string `json:"upperbound,omitempty"`
+	Lowerbound string `json:"lowerbound,omitempty"`
+	Name       string `json:"name"`
 	// NameRegex will be a valid go regex that will be used to
 	// search the name of a given dependency.
 	// Examples include kubernetes* or jakarta-.*-2.2.
-	NameRegex string
+	NameRegex string `json:"name_regex,omitempty"`
+}
+
+// TODO where should this go
+type DependencyCondition struct {
+	DependencyConditionCap
 
 	Client Client
 }
@@ -672,7 +687,7 @@ func getVersion(depVersion string) (*version.Version, error) {
 		return v, nil
 	}
 	// Parsing failed so we'll try to extract a version and parse that
-	re := regexp.MustCompile("v?([0-9]+(?:\\.[0-9]+)*)")
+	re := regexp.MustCompile(`v?([0-9]+(?:.[0-9]+)*)`)
 	matches := re.FindStringSubmatch(depVersion)
 
 	// The group is matching twice for some reason, double-check it's just a dup match
@@ -735,4 +750,21 @@ func deduplicateDependencies(dependencies map[uri.URI][]*Dep) map[uri.URI][]*Dep
 		}
 	}
 	return deduped
+}
+
+func ToProviderCap(r *openapi3.Reflector, log logr.Logger, cond interface{}, name string) (Capability, error) {
+	jsonCondition, err := r.Reflector.Reflect(cond)
+	if err != nil {
+		log.Error(err, "fix it")
+		return Capability{}, err
+	}
+	s := &openapi3.SchemaOrRef{}
+	s.FromJSONSchema(jsonschema.SchemaOrBool{
+		TypeObject: &jsonCondition,
+	})
+	return Capability{
+		Name:  name,
+		Input: *s,
+	}, nil
+
 }

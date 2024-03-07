@@ -4,8 +4,8 @@ go 1.19
 
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
-	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-logr/logr v1.2.4
+	github.com/swaggest/openapi-go v0.2.45	
 	github.com/konveyor/analyzer-lsp v0.3.0-alpha.3.0.20230915135621-94f04595688b
 	github.com/sirupsen/logrus v1.9.3
 	go.lsp.dev/uri v0.3.0

@@ -14,13 +14,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 )
 
@@ -103,17 +103,21 @@ func (p *javaProvider) Stop() {
 }
 
 func (p *javaProvider) Capabilities() []provider.Capability {
-	caps := []provider.Capability{
-		{
-			Name:            "referenced",
-			TemplateContext: openapi3.SchemaRef{},
-		},
+	r := openapi3.NewReflector()
+	caps := []provider.Capability{}
+	refCap, err := provider.ToProviderCap(r, p.Log, javaCondition{}, "referenced")
+	if err != nil {
+		p.Log.Error(err, "this is not going to be cool if it fails")
+	} else {
+		caps = append(caps, refCap)
 	}
 	if p.hasMaven {
-		caps = append(caps, provider.Capability{
-			Name:            "dependency",
-			TemplateContext: openapi3.SchemaRef{},
-		})
+		depCap, err := provider.ToProviderCap(r, p.Log, provider.DependencyConditionCap{}, "dependency")
+		if err != nil {
+			p.Log.Error(err, "this is not goinag to be cool if it fails")
+		} else {
+			caps = append(caps, depCap)
+		}
 	}
 	return caps
 }

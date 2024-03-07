@@ -47,7 +47,7 @@ func main() {
 		// panic(fmt.Errorf("must pass in the name of the lsp server"))
 	}
 
-	client := generic_external_provider.NewGenericProvider(*lspServerName)
+	client := generic_external_provider.NewGenericProvider(*lspServerName, log)
 
 	if port == nil || *port == 0 {
 		panic(fmt.Errorf("must pass in the port for the external provider"))

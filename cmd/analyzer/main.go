@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -18,6 +19,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/swaggest/openapi-go/openapi3"
 	"gopkg.in/yaml.v2"
 )
 
@@ -41,6 +43,7 @@ var (
 	analysisMode      string
 	noDependencyRules bool
 	contextLines      int
+	getOpenAPISpec    string
 )
 
 func AnalysisCmd() *cobra.Command {
@@ -155,6 +158,21 @@ func AnalysisCmd() *cobra.Command {
 					}
 				}
 			}
+			if getOpenAPISpec != "" {
+				sc := createOpenAPISchema(providers, log)
+				b, err := json.Marshal(sc)
+				if err != nil {
+					log.Error(err, "unable to create inital schema")
+					os.Exit(1)
+				}
+
+				err = os.WriteFile(getOpenAPISpec, b, 0644)
+				if err != nil {
+					log.Error(err, "error writing output file", "file", getOpenAPISpec)
+					os.Exit(1) // Treat the error as a fatal error
+				}
+				os.Exit(0)
+			}
 
 			parser := parser.RuleParser{
 				ProviderNameToClient: providers,
@@ -224,6 +242,7 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&analysisMode, "analysis-mode", "", "select one of full or source-only to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
 	rootCmd.Flags().BoolVar(&noDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
 	rootCmd.Flags().IntVar(&contextLines, "context-lines", 10, "When violation occurs, A part of source code is added to the output, So this flag configures the number of source code lines to be printed to the output.")
+	rootCmd.Flags().StringVar(&getOpenAPISpec, "get-openapi-spec", "", "Get the openAPI spec for the rulesets, rules and provider capabilities and put in file passed in.")
 
 	return rootCmd
 }
@@ -242,10 +261,12 @@ func validateFlags() error {
 		return fmt.Errorf("unable to find provider settings file")
 	}
 
-	for _, f := range rulesFile {
-		_, err = os.Stat(f)
-		if err != nil {
-			return fmt.Errorf("unable to find rule path or file")
+	if getOpenAPISpec == "" {
+		for _, f := range rulesFile {
+			_, err = os.Stat(f)
+			if err != nil {
+				return fmt.Errorf("unable to find rule path or file")
+			}
 		}
 	}
 	m := provider.AnalysisMode(strings.ToLower(analysisMode))
@@ -254,4 +275,122 @@ func validateFlags() error {
 	}
 
 	return nil
+}
+
+func createOpenAPISchema(providers map[string]provider.InternalProviderClient, log logr.Logger) openapi3.Spec {
+
+	// in the future loop and build the openapi spec here:
+	spec, err := parser.CreateSchema()
+	if err != nil {
+		log.Error(err, "unable to create inital schema")
+		os.Exit(1)
+	}
+
+	AndOrRefRuleRef := []openapi3.SchemaOrRef{}
+	for provName, prov := range providers {
+		cap := prov.Capabilities()
+		for _, c := range cap {
+			spec.MapOfSchemaOrRefValues[fmt.Sprintf("%s.%s", provName, c.Name)] = openapi3.SchemaOrRef{
+				Schema: &openapi3.Schema{
+					Type: &provider.SchemaTypeObject,
+					Properties: map[string]openapi3.SchemaOrRef{
+						fmt.Sprintf("%s.%s", provName, c.Name): {
+							Schema: c.Input.Schema,
+						},
+						"from": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeString,
+							},
+						},
+						"as": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeString,
+							},
+						},
+						"ignore": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeBool,
+							},
+						},
+						"not": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeBool,
+							},
+						},
+					},
+				},
+			}
+			AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+				SchemaReference: &openapi3.SchemaReference{
+					Ref: fmt.Sprintf("#/components/schemas/%s.%s", provName, c.Name),
+				},
+			})
+		}
+	}
+
+	AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+		SchemaReference: &openapi3.SchemaReference{
+			Ref: "#/components/schemas/and",
+		},
+	})
+	AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+		SchemaReference: &openapi3.SchemaReference{
+			Ref: "#/components/schemas/or",
+		},
+	})
+	spec.MapOfSchemaOrRefValues["and"] = openapi3.SchemaOrRef{
+		Schema: &openapi3.Schema{
+			Type: &provider.SchemaTypeObject,
+			Properties: map[string]openapi3.SchemaOrRef{
+				"and": {
+					Schema: &openapi3.Schema{
+						Type: &provider.SchemaTypeArray,
+						Items: &openapi3.SchemaOrRef{
+							Schema: &openapi3.Schema{
+								Type:  &provider.SchemaTypeObject,
+								OneOf: AndOrRefRuleRef,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	spec.MapOfSchemaOrRefValues["or"] = openapi3.SchemaOrRef{
+		Schema: &openapi3.Schema{
+			Type: &provider.SchemaTypeObject,
+			Properties: map[string]openapi3.SchemaOrRef{
+				"or": {
+					Schema: &openapi3.Schema{
+						Type: &provider.SchemaTypeArray,
+						Items: &openapi3.SchemaOrRef{
+							Schema: &openapi3.Schema{
+								Type:  &provider.SchemaTypeObject,
+								OneOf: AndOrRefRuleRef,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	spec.MapOfSchemaOrRefValues["rule"].Schema.Properties["when"] = openapi3.SchemaOrRef{
+		Schema: &openapi3.Schema{
+			Type:  &provider.SchemaTypeObject,
+			OneOf: AndOrRefRuleRef,
+		},
+	}
+	sc := openapi3.Spec{
+		Components: &openapi3.Components{
+			Schemas: &spec,
+		},
+		Openapi: "3.0.0",
+		Info: openapi3.Info{
+			Title:   "Konveyor API",
+			Version: "1.0.0",
+		},
+	}
+
+	return sc
 }
