@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
@@ -21,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"gopkg.in/yaml.v2"
 )
 
@@ -45,6 +47,8 @@ var (
 	noDependencyRules bool
 	contextLines      int
 	getOpenAPISpec    string
+	treeOutput        bool
+	depOutputFile     string
 )
 
 func AnalysisCmd() *cobra.Command {
@@ -205,8 +209,22 @@ func AnalysisCmd() *cobra.Command {
 				initSpan.End()
 			}
 
+			wg := &sync.WaitGroup{}
+			var depSpan trace.Span
+			var depCtx context.Context
+			if depOutputFile != "" {
+				depCtx, depSpan = tracing.StartNewSpan(ctx, "dep")
+				wg.Add(1)
+				go DependencyOutput(depCtx, providers, log, errLog, depOutputFile, dependencyLabelSelector, wg)
+			}
+
+			// This will already wait
 			rulesets := eng.RunRules(ctx, ruleSets, selectors...)
 			engineSpan.End()
+			wg.Wait()
+			if depSpan != nil {
+				depSpan.End()
+			}
 			eng.Stop()
 
 			for _, provider := range needProviders {
@@ -248,6 +266,8 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().BoolVar(&noDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
 	rootCmd.Flags().IntVar(&contextLines, "context-lines", 10, "When violation occurs, A part of source code is added to the output, So this flag configures the number of source code lines to be printed to the output.")
 	rootCmd.Flags().StringVar(&getOpenAPISpec, "get-openapi-spec", "", "Get the openAPI spec for the rulesets, rules and provider capabilities and put in file passed in.")
+	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
+	rootCmd.Flags().StringVar(&depOutputFile, "dep-output-file", "", "path to dependency output file")
 
 	return rootCmd
 }
@@ -398,4 +418,89 @@ func createOpenAPISchema(providers map[string]provider.InternalProviderClient, l
 	}
 
 	return sc
+}
+
+func DependencyOutput(ctx context.Context, providers map[string]provider.InternalProviderClient, log logr.Logger, errLog logr.Logger, depOutputFile string, labelSelector *labels.LabelSelector[*konveyor.Dep], wg *sync.WaitGroup) {
+	defer wg.Done()
+	var depsFlat []konveyor.DepsFlatItem
+	var depsTree []konveyor.DepsTreeItem
+	for name, prov := range providers {
+		if !provider.HasCapability(prov.Capabilities(), "dependency") {
+			log.Info("provider does not have dependency capability", "provider", name)
+			continue
+		}
+
+		if treeOutput {
+			deps, err := prov.GetDependenciesDAG(ctx)
+			if err != nil {
+				errLog.Error(err, "failed to get list of dependencies for provider", "provider", name)
+				continue
+			}
+			for u, ds := range deps {
+				depsTree = append(depsTree, konveyor.DepsTreeItem{
+					FileURI:      string(u),
+					Provider:     name,
+					Dependencies: ds,
+				})
+			}
+		} else {
+			deps, err := prov.GetDependencies(ctx)
+			if err != nil {
+				errLog.Error(err, "failed to get list of dependencies for provider", "provider", name)
+				continue
+			}
+			for u, ds := range deps {
+				newDeps := ds
+				if labelSelector != nil {
+					newDeps, err = labelSelector.MatchList(ds)
+					if err != nil {
+						errLog.Error(err, "error matching label selector on deps")
+						continue
+					}
+				}
+				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
+					Provider:     name,
+					FileURI:      string(u),
+					Dependencies: newDeps,
+				})
+			}
+		}
+	}
+
+	if depsFlat == nil && depsTree == nil {
+		errLog.Info("failed to get dependencies from all given providers")
+		os.Exit(1)
+	}
+
+	var b []byte
+	var err error
+	if treeOutput {
+		b, err = yaml.Marshal(depsTree)
+		if err != nil {
+			errLog.Error(err, "failed to marshal dependency data as yaml")
+			os.Exit(1)
+		}
+	} else {
+		// Sort depsFlat
+		sort.SliceStable(depsFlat, func(i, j int) bool {
+			if depsFlat[i].Provider == depsFlat[j].Provider {
+				return depsFlat[i].FileURI < depsFlat[j].FileURI
+			} else {
+				return depsFlat[i].Provider < depsFlat[j].Provider
+			}
+		})
+
+		b, err = yaml.Marshal(depsFlat)
+		if err != nil {
+			errLog.Error(err, "failed to marshal dependency data as yaml")
+			os.Exit(1)
+		}
+	}
+
+	err = os.WriteFile(depOutputFile, b, 0644)
+	if err != nil {
+		errLog.Error(err, "failed to write dependencies to output file", "file", depOutputFile)
+		os.Exit(1)
+	}
+
 }
