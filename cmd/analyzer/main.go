@@ -20,6 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/swaggest/openapi-go/openapi3"
+	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/yaml.v2"
 )
 
@@ -112,8 +113,8 @@ func AnalysisCmd() *cobra.Command {
 
 			defer tracing.Shutdown(ctx, log, tp)
 
-			ctx, span := tracing.StartNewSpan(ctx, "main")
-			defer span.End()
+			ctx, mainSpan := tracing.StartNewSpan(ctx, "main")
+			defer mainSpan.End()
 
 			// Get the configs
 			configs, err := provider.GetConfig(settingsFile)
@@ -122,8 +123,9 @@ func AnalysisCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
+			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
 			//start up the rule eng
-			eng := engine.CreateRuleEngine(ctx,
+			eng := engine.CreateRuleEngine(engineCtx,
 				10,
 				log,
 				engine.WithIncidentLimit(limitIncidents),
@@ -131,7 +133,6 @@ func AnalysisCmd() *cobra.Command {
 				engine.WithContextLines(contextLines),
 				engine.WithIncidentSelector(incidentSelector),
 			)
-
 			providers := map[string]provider.InternalProviderClient{}
 
 			for _, config := range configs {
@@ -194,14 +195,18 @@ func AnalysisCmd() *cobra.Command {
 			}
 			// Now that we have all the providers, we need to start them.
 			for name, provider := range needProviders {
-				err := provider.ProviderInit(ctx)
+				initCtx, initSpan := tracing.StartNewSpan(ctx, "init",
+					attribute.Key("provider").String(name))
+				err := provider.ProviderInit(initCtx)
 				if err != nil {
 					errLog.Error(err, "unable to init the providers", "provider", name)
 					os.Exit(1)
 				}
+				initSpan.End()
 			}
 
 			rulesets := eng.RunRules(ctx, ruleSets, selectors...)
+			engineSpan.End()
 			eng.Stop()
 
 			for _, provider := range needProviders {

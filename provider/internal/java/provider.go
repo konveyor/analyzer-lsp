@@ -20,6 +20,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 )
@@ -234,7 +235,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	extension := strings.ToLower(path.Ext(config.Location))
 	switch extension {
 	case JavaArchive, WebArchive, EnterpriseArchive:
-		depLocation, sourceLocation, err := decompileJava(ctx, log, config.Location)
+		depLocation, sourceLocation, err := decompileJava(ctx, log,
+			config.Location, getMavenLocalRepoPath(mavenSettingsFile))
 		if err != nil {
 			cancelFunc()
 			return nil, err
@@ -404,6 +406,10 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep) (engin
 // resolveSourcesJars for a given source code location, runs maven to find
 // deps that don't have sources attached and decompiles them
 func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSettings string) error {
+	// TODO (pgaikwad): when we move to external provider, inherit context from parent
+	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
+	defer span.End()
+
 	decompileJobs := []decompileJob{}
 
 	log.V(5).Info("resolving dependency sources")
