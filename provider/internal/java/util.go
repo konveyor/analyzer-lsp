@@ -353,14 +353,10 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 				if dep.foundOnline {
 					dependencies = append(dependencies, dep)
 					// copy this into m2 repo to avoid downloading again
-					destPath := m2Repo
-					for _, subPath := range strings.Split(dep.GroupId, ".") {
-						destPath = filepath.Join(destPath, subPath)
-					}
-					for _, subPath := range strings.Split(dep.ArtifactId, ".") {
-						destPath = filepath.Join(destPath, subPath)
-					}
-					destPath = filepath.Join(destPath, dep.Version, filepath.Base(filePath))
+					groupPath := filepath.Join(strings.Split(dep.GroupId, ".")...)
+					artifactPath := filepath.Join(strings.Split(dep.ArtifactId, ".")...)
+					destPath := filepath.Join(m2Repo, groupPath, artifactPath,
+						dep.Version, filepath.Base(filePath))
 					if err := moveFile(filePath, destPath); err != nil {
 						log.V(8).Error(err, "failed moving jar to m2 local repo")
 					} else {
