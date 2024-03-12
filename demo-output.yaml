@@ -379,6 +379,15 @@
           package: com.example.apps
       - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }"
+        lineNumber: 9
+        variables:
+          file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
+          kind: Method
+          name: main
+          package: com.example.apps
+      - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
+        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
         codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
         lineNumber: 14
         variables:
@@ -408,6 +417,15 @@
           kind: Module
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
           package: com.example.apps
+      - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
+        message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java:9
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }"
+        lineNumber: 9
+        variables:
+          file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
+          kind: Method
+          name: main
+          package: com.example.apps
     lang-ref-004:
       description: ""
       category: potential
@@ -422,6 +440,50 @@
           kind: Method
           name: main
           package: com.example.apps
+    maven-javax-to-jakarta-00002:
+      description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
+      category: potential
+      labels:
+      - JakartaEE
+      - konveyor.io/source
+      - konveyor.io/target=eap
+      - konveyor.io/target=eap7
+      - konveyor.io/target=eap8
+      - konveyor.io/target=jakarta-ee
+      - konveyor.io/target=jakarta-ee8
+      incidents:
+      - uri: file:///analyzer-lsp/examples/java/pom.xml
+        message: If you migrate your application to JBoss EAP 7.3, or later, and want to ensure its Maven building, running or testing works as expected, use instead the Jakarta EE dependency with groupId `com.sun.activation`
+        codeSnip: |-
+          36        <artifactId>kubernetes-client</artifactId>
+          37        <version>6.0.0</version>
+          38      </dependency>
+          39      <dependency>
+          40        <groupId>io.fabric8</groupId>
+          41        <artifactId>kubernetes-client-api</artifactId>
+          42        <version>6.0.0</version>
+          43      </dependency>
+          44      <dependency>
+          45        <groupId>javax</groupId>
+          46        <artifactId>javaee-api</artifactId>
+          47        <version>${javaee-api.version}</version>
+          48        <scope>provided</scope>
+          49      </dependency>
+          50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
+          51      <dependency>
+          52        <groupId>io.netty</groupId>
+          53        <artifactId>netty-transport-native-epoll</artifactId>
+          54        <version>4.1.76.Final</version>
+          55        <classifier>linux-x86_64</classifier>
+          56        <scope>runtime</scope>
+        lineNumber: 45
+        variables:
+          name: javax.activation.activation
+          version: "1.1"
+      links:
+      - url: https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.3/html-single/migration_guide/index#maven-artifact-changes-for-jakarta-ee_default
+        title: 'Red Hat JBoss EAP 7.3 Migration Guide: Maven Artifact Changes for Jakarta EE'
+      effort: 1
     multiple-actions-001:
       description: ""
       category: potential
