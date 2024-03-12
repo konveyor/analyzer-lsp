@@ -662,6 +662,15 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			if err == nil {
 				incident.LineNumber = &location.StartPosition.Line
 				incident.CodeLocation = &location
+			} else if baseDep, ok := matchedDep.dep.Extras["baseDep"]; ok {
+				// Use "parent" baseDep location lookup for indirect dependencies
+				location, err = depLocationResolver.GetLocation(timeoutContext, baseDep.(konveyor.Dep))
+				if err == nil {
+					incident.LineNumber = &location.StartPosition.Line
+					incident.CodeLocation = &location
+				} else {
+					log.V(7).Error(err, "failed to get location for indirect dependency", "dep", matchedDep.dep.Name)
+				}
 			} else {
 				log.V(7).Error(err, "failed to get location for dependency", "dep", matchedDep.dep.Name)
 			}

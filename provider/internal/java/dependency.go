@@ -500,6 +500,7 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath, po
 				return nil, err
 			}
 			transitiveDep.Indirect = true
+			transitiveDep.Extras["baseDep"] = baseDep
 			item.AddedDeps = append(item.AddedDeps, provider.DepDAGItem{Dep: transitiveDep})
 			idx += 1
 		}
