@@ -357,10 +357,10 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 					artifactPath := filepath.Join(strings.Split(dep.ArtifactId, ".")...)
 					destPath := filepath.Join(m2Repo, groupPath, artifactPath,
 						dep.Version, filepath.Base(filePath))
-					if err := moveFile(filePath, destPath); err != nil {
-						log.V(8).Error(err, "failed moving jar to m2 local repo")
+					if err := copyFile(filePath, destPath); err != nil {
+						log.V(8).Error(err, "failed copying jar to m2 local repo")
 					} else {
-						log.V(8).Info("moved jar file", "src", filePath, "dest", destPath)
+						log.V(8).Info("copied jar file", "src", filePath, "dest", destPath)
 					}
 				} else {
 					// when it isn't found online, decompile it
@@ -405,20 +405,7 @@ func createJavaProject(ctx context.Context, dir string, dependencies []javaArtif
 }
 
 func moveFile(srcPath string, destPath string) error {
-	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
-		return err
-	}
-	inputFile, err := os.Open(srcPath)
-	if err != nil {
-		return err
-	}
-	outputFile, err := os.Create(destPath)
-	if err != nil {
-		inputFile.Close()
-		return err
-	}
-	_, err = io.Copy(outputFile, inputFile)
-	inputFile.Close()
+	err := copyFile(srcPath, destPath)
 	if err != nil {
 		return err
 	}
@@ -426,7 +413,27 @@ func moveFile(srcPath string, destPath string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func copyFile(srcPath string, destPath string) error {
+	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+		return err
+	}
+	inputFile, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer inputFile.Close()
+	outputFile, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
 	defer outputFile.Close()
+	_, err = io.Copy(outputFile, inputFile)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
