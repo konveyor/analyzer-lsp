@@ -19,17 +19,20 @@ jobs:
 
       - name: run demo image and ensure violations output unchanged
         run: |
-          podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
+          podman run --entrypoint /usr/bin/konveyor-analyzer -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --dep-output-file=demo-dep-output.yaml
           diff \
             <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))
-
-      - name: run demo image and ensure dependency output unchanged
-        run: |
-          podman run --entrypoint /usr/bin/konveyor-analyzer-dep -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z localhost/testing:latest --output-file=demo-dep-output.yaml
           diff \
             <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
+
+      # - name: run demo image and ensure dependency output unchanged
+      #   run: |
+      #     podman run --entrypoint /usr/bin/konveyor-analyzer-dep -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z localhost/testing:latest --output-file=demo-dep-output.yaml --dep-output-file=de
+      #     diff \
+      #       <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
+      #       <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
 
       - uses: actions/checkout@v3
         with:
