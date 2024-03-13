@@ -215,7 +215,7 @@ func AnalysisCmd() *cobra.Command {
 			if depOutputFile != "" {
 				depCtx, depSpan = tracing.StartNewSpan(ctx, "dep")
 				wg.Add(1)
-				go DependencyOutput(depCtx, providers, log, errLog, depOutputFile, dependencyLabelSelector, wg)
+				go DependencyOutput(depCtx, providers, log, errLog, depOutputFile, wg)
 			}
 
 			// This will already wait
@@ -420,7 +420,7 @@ func createOpenAPISchema(providers map[string]provider.InternalProviderClient, l
 	return sc
 }
 
-func DependencyOutput(ctx context.Context, providers map[string]provider.InternalProviderClient, log logr.Logger, errLog logr.Logger, depOutputFile string, labelSelector *labels.LabelSelector[*konveyor.Dep], wg *sync.WaitGroup) {
+func DependencyOutput(ctx context.Context, providers map[string]provider.InternalProviderClient, log logr.Logger, errLog logr.Logger, depOutputFile string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var depsFlat []konveyor.DepsFlatItem
 	var depsTree []konveyor.DepsTreeItem
@@ -451,13 +451,6 @@ func DependencyOutput(ctx context.Context, providers map[string]provider.Interna
 			}
 			for u, ds := range deps {
 				newDeps := ds
-				if labelSelector != nil {
-					newDeps, err = labelSelector.MatchList(ds)
-					if err != nil {
-						errLog.Error(err, "error matching label selector on deps")
-						continue
-					}
-				}
 				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
 					Provider:     name,
 					FileURI:      string(u),
