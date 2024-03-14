@@ -5,8 +5,9 @@ go 1.19
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/go-logr/logr v1.2.4
-	github.com/konveyor/analyzer-lsp v0.3.0-beta.2
+	github.com/konveyor/analyzer-lsp v0.3.0-rc.3.0.20240313171233-ddd55afec364
 	github.com/sirupsen/logrus v1.9.3
+	github.com/swaggest/openapi-go v0.2.45
 	go.lsp.dev/uri v0.3.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -21,7 +22,6 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/swaggest/jsonschema-go v0.3.64 // indirect
-	github.com/swaggest/openapi-go v0.2.45 // indirect
 	github.com/swaggest/refl v1.3.0 // indirect
 	go.opentelemetry.io/otel v1.11.2 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.11.2 // indirect
@@ -35,5 +35,3 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
-
-replace github.com/konveyor/analyzer-lsp => ../../
