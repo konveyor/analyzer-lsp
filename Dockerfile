@@ -47,6 +47,7 @@ COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/local/bin/konveyor-
 COPY --from=builder /analyzer-lsp/external-providers/generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
 COPY --from=builder /analyzer-lsp/external-providers/yq-external-provider/yq-external-provider /usr/local/bin/yq-external-provider
 COPY --from=builder /analyzer-lsp/external-providers/golang-dependency-provider/golang-dependency-provider /usr/local/bin/golang-dependency-provider
+COPY --from=builder /analyzer-lsp/external-providers/java-external-provider/java-external-provider /usr/local/bin/java-external-provider
 
 COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
 

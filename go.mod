@@ -13,7 +13,6 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/swaggest/jsonschema-go v0.3.64
 	github.com/swaggest/openapi-go v0.2.45
-	github.com/vifraa/gopom v1.0.0
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel/trace v1.11.2
 	google.golang.org/grpc v1.54.0

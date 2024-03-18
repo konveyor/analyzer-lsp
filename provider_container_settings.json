@@ -67,11 +67,12 @@
     },
     {
         "name": "java",
-        "binaryPath": "/jdtls/bin/jdtls",
+        "binaryPath":  "/usr/local/bin/java-external-provider",
         "initConfig": [
             {
                 "location": "examples/java",
                 "providerSpecificConfig": {
+                    "lspServerName": "java",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "lspServerPath": "/jdtls/bin/jdtls"
@@ -81,6 +82,7 @@
             {
                 "location": "examples/customers-tomcat-legacy",
                 "providerSpecificConfig": {
+                    "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"

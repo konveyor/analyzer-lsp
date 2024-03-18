@@ -1,6 +1,6 @@
 DOCKER_IMAGE = test
 
-build: analyzer deps external-generic golang-dependency-provider yq-external-provider
+build: analyzer deps external-generic golang-dependency-provider yq-external-provider java-external-provider
 
 analyzer:
 	go build -o konveyor-analyzer ./cmd/analyzer/main.go
@@ -13,6 +13,9 @@ golang-dependency-provider:
 
 yq-external-provider:
 	( cd external-providers/yq-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy && go build -o yq-external-provider main.go)
+
+java-external-provider:
+	( cd external-providers/java-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy && go build -o java-external-provider main.go)
 
 deps:
 	go build -o konveyor-analyzer-dep ./cmd/dep/main.go
