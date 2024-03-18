@@ -145,14 +145,13 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 	}
 
 	lineNumber := int(locationRange.Start.Line) + 1
-
 	incident := provider.IncidentContext{
 		FileURI:    u,
 		LineNumber: &lineNumber,
 		Variables: map[string]interface{}{
 			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
 			SYMBOL_NAME_KEY: symbol.Name,
-			FILE_KEY:        u,
+			FILE_KEY:        string(u),
 			"package":       n,
 		},
 	}

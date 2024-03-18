@@ -67,7 +67,7 @@
     },
     {
         "name": "java",
-        "binaryPath": "/jdtls/bin/jdtls",
+        "binaryPath":  "/usr/local/bin/java-external-provider",
         "initConfig": [
             {
                 "location": "examples/java",
