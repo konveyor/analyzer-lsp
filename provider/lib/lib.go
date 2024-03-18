@@ -5,7 +5,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/grpc"
 	"github.com/konveyor/analyzer-lsp/provider/internal/builtin"
-	"github.com/konveyor/analyzer-lsp/provider/internal/java"
+	java "github.com/konveyor/java-external-provider/pkg/java_external_provider"
 )
 
 // We need some wrapper that can deal with out of tree providers, this will be a call, that will mock it out, but go against in tree.
