@@ -498,7 +498,8 @@ func matchDepLabelSelector(s *labels.LabelSelector[*Dep], inc IncidentContext, d
 			return false, err
 		}
 		for _, d := range depList {
-			if strings.HasPrefix(string(inc.FileURI), d.FileURIPrefix) {
+			if d.FileURIPrefix != "" &&
+				strings.HasPrefix(string(inc.FileURI), d.FileURIPrefix) {
 				matched = true
 			}
 		}
