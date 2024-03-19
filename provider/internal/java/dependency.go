@@ -33,7 +33,7 @@ const (
 	artifactIdKey = "artifactId"
 	groupIdKey    = "groupId"
 	pomPathKey    = "pomPath"
-	baseDep       = "baseDep"
+	baseDepKey    = "baseDep"
 )
 
 // TODO implement this for real
@@ -501,7 +501,7 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath, po
 				return nil, err
 			}
 			transitiveDep.Indirect = true
-			transitiveDep.Extras["baseDep"] = baseDep
+			transitiveDep.Extras[baseDepKey] = baseDep
 			item.AddedDeps = append(item.AddedDeps, provider.DepDAGItem{Dep: transitiveDep})
 			idx += 1
 		}
