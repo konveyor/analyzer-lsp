@@ -185,8 +185,8 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 				dep.Version = *d.Version
 			}
 			if m2Repo != "" && d.ArtifactID != nil && d.GroupID != nil {
-				dep.FileURIPrefix = filepath.Join(m2Repo,
-					strings.Replace(*d.GroupID, ".", "/", -1), *d.ArtifactID, dep.Version)
+				dep.FileURIPrefix = fmt.Sprintf("file://%s", filepath.Join(m2Repo,
+					strings.Replace(*d.GroupID, ".", "/", -1), *d.ArtifactID, dep.Version))
 			}
 		}
 		deps = append(deps, &dep)
@@ -359,8 +359,8 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 			// when we can successfully get javaArtifact from a jar
 			// we added it to the pom and it should be in m2Repo path
 			if w.m2RepoPath != "" {
-				d.FileURIPrefix = filepath.Join(w.m2RepoPath,
-					strings.Replace(artifact.GroupId, ".", "/", -1), artifact.ArtifactId, artifact.Version)
+				d.FileURIPrefix = fmt.Sprintf("file://%s", filepath.Join(w.m2RepoPath,
+					strings.Replace(artifact.GroupId, ".", "/", -1), artifact.ArtifactId, artifact.Version))
 			}
 		}
 
