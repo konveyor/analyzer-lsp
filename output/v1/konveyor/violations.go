@@ -99,6 +99,9 @@ type Violation struct {
 	// TODO: we don't have this in the rule as of today.
 	Description string `yaml:"description" json:"description"`
 
+	// Message a more thorough explanation of the violation
+	Message string `yaml:"message,omitempty" json:"message,omitempty"`
+
 	// Category category of the violation
 	// TODO: add this to rules
 	Category *Category `yaml:"category,omitempty" json:"category,omitempty"`

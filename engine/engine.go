@@ -525,6 +525,7 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 
 	return konveyor.Violation{
 		Description: rule.Description,
+		Message:     rule.Message,
 		Labels:      rule.Labels,
 		Category:    rule.Category,
 		Incidents:   incidents,
