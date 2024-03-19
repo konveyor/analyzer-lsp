@@ -33,6 +33,7 @@ const (
 	artifactIdKey = "artifactId"
 	groupIdKey    = "groupId"
 	pomPathKey    = "pomPath"
+	baseDep       = "baseDep"
 )
 
 // TODO implement this for real
