@@ -82,7 +82,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "org.hamcrest",
 									artifactIdKey: "hamcrest-core",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "junit.junit",
 										Version:            "4.11",
 										Type:               "test",
@@ -140,7 +140,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "io.netty",
 									artifactIdKey: "netty-transport-native-epoll",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -176,7 +176,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "io.fabric8",
 									artifactIdKey: "kubernetes-httpclient-okhttp",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -212,7 +212,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "com.squareup.okhttp3",
 									artifactIdKey: "okhttp",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -248,7 +248,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "com.squareup.okio",
 									artifactIdKey: "okio",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -284,7 +284,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "com.squareup.okhttp3",
 									artifactIdKey: "logging-interceptor",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -320,7 +320,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "io.fabric8",
 									artifactIdKey: "zjsonpatch",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -397,7 +397,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "org.hamcrest",
 									artifactIdKey: "hamcrest-core",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "junit.junit",
 										Version:            "4.11",
 										Type:               "test",
@@ -454,7 +454,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "io.fabric8",
 									artifactIdKey: "kubernetes-httpclient-okhttp",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -490,7 +490,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "com.squareup.okhttp3",
 									artifactIdKey: "okhttp",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -526,7 +526,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "com.squareup.okio",
 									artifactIdKey: "okio",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -562,7 +562,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "com.squareup.okhttp3",
 									artifactIdKey: "logging-interceptor",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
@@ -598,7 +598,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									groupIdKey:    "io.fabric8",
 									artifactIdKey: "zjsonpatch",
 									pomPathKey:    "pom.xml",
-									baseDep:       provider.Dep{
+									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
 										Type:               "compile",
