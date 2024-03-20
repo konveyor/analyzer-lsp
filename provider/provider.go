@@ -170,6 +170,12 @@ func GetConfig(filepath string) ([]Config, error) {
 			if ic.Proxy == nil {
 				ic.Proxy = c.Proxy
 			}
+			newConfig, err := validateAndUpdateProviderSpecificConfig(ic.ProviderSpecificConfig)
+			if err != nil {
+				return configs, err
+			}
+			ic.ProviderSpecificConfig = newConfig
+
 		}
 	}
 	if !foundBuiltin {
@@ -183,6 +189,82 @@ func GetConfig(filepath string) ([]Config, error) {
 
 	return configs, nil
 
+}
+
+func validateAndUpdateProviderSpecificConfig(oldPSC map[string]interface{}) (map[string]interface{}, error) {
+	newPSC := map[string]interface{}{}
+	for k, v := range oldPSC {
+		if old, ok := v.(map[interface{}]interface{}); ok {
+			new, err := validateUpdateInternalProviderConfig(old)
+			if err != nil {
+				return nil, err
+			}
+			newPSC[k] = new
+			continue
+		}
+		if oldList, ok := v.([]interface{}); ok {
+			newList, err := validateUpdateListProviderConfig(oldList)
+			if err != nil {
+				return nil, err
+			}
+			newPSC[k] = newList
+			continue
+		}
+		newPSC[k] = v
+	}
+	return newPSC, nil
+}
+
+func validateUpdateListProviderConfig(old []interface{}) ([]interface{}, error) {
+	new := []interface{}{}
+	for _, v := range old {
+		if oldV, ok := v.(map[interface{}]interface{}); ok {
+			newMap, err := validateUpdateInternalProviderConfig(oldV)
+			if err != nil {
+				return nil, err
+			}
+			new = append(new, newMap)
+			continue
+		}
+		if oldList, ok := v.([]interface{}); ok {
+			newList, err := validateUpdateListProviderConfig(oldList)
+			if err != nil {
+				return nil, err
+			}
+			new = append(new, newList)
+			continue
+		}
+		new = append(new, v)
+	}
+	return new, nil
+}
+
+func validateUpdateInternalProviderConfig(old map[interface{}]interface{}) (map[string]interface{}, error) {
+	new := map[string]interface{}{}
+	for k, v := range old {
+		s, ok := k.(string)
+		if !ok {
+			return nil, fmt.Errorf("provider specific config must only have keys that strings")
+		}
+		if o, ok := v.(map[interface{}]interface{}); ok {
+			new, err := validateUpdateInternalProviderConfig(o)
+			if err != nil {
+				return nil, err
+			}
+			new[s] = new
+			continue
+		}
+		if oldList, ok := v.([]interface{}); ok {
+			newList, err := validateUpdateListProviderConfig(oldList)
+			if err != nil {
+				return nil, err
+			}
+			new[s] = newList
+			continue
+		}
+		new[s] = v
+	}
+	return new, nil
 }
 
 func validateProviderName(configs []Config) error {

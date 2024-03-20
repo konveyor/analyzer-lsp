@@ -1,0 +1,23 @@
+
+[
+    {
+        "name": "go",
+        "binaryPath": "/usr/bin/generic-external-provider",
+        "initConfig": [{
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "generic",
+                "lspServerPath": "/root/go/bin/gopls",
+                "lspServerArgs": ["string"],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/golang"],
+                "dependencyFolders": [],
+                "groupVersionKinds": [{"group": "apps", "version": "v1", "kind": "Deployment"}],
+                "object": {"nestedObject": "object"},
+
+                "dependencyProviderPath": "/usr/bin/golang-dependency-provider"
+            }
+        }]
+    }
+]
