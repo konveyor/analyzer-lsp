@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -336,4 +337,78 @@ func Test_deduplication(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_GetConfigs(t *testing.T) {
+	tests := []struct {
+		title                          string
+		testdataFile                   string
+		expectedProviderSpecificConfig map[string]interface{}
+		shouldErr                      bool
+	}{
+		{
+			title:        "testnested",
+			testdataFile: "testdata/provider_settings_nested_types.json",
+			expectedProviderSpecificConfig: map[string]interface{}{
+				"lspServerName":                  "generic",
+				"lspServerPath":                  "/root/go/bin/gopls",
+				"lspServerArgs":                  []interface{}{"string"},
+				"lspServerInitializationOptions": "",
+				"workspaceFolders":               []interface{}{"file:///analyzer-lsp/examples/golang"},
+				"dependencyFolders":              []interface{}{},
+				"groupVersionKinds": []interface{}{
+					map[string]interface{}{"group": "apps", "version": "v1", "kind": "Deployment"},
+				},
+				"object":                 map[string]interface{}{"nestedObject": "object"},
+				"dependencyProviderPath": "/usr/bin/golang-dependency-provider",
+			},
+		},
+		{
+			title:        "test nested yaml",
+			testdataFile: "testdata/provider_settings_simple.yaml",
+			expectedProviderSpecificConfig: map[string]interface{}{
+				"lspServerName":                  "generic",
+				"lspServerPath":                  "/root/go/bin/gopls",
+				"lspServerArgs":                  []interface{}{"string"},
+				"lspServerInitializationOptions": "",
+				"workspaceFolders":               []interface{}{"file:///analyzer-lsp/examples/golang"},
+				"dependencyFolders":              []interface{}{},
+				"groupVersionKinds": []interface{}{
+					map[string]interface{}{"group": "apps", "version": "v1", "kind": "Deployment"},
+				},
+				"object":                 map[string]interface{}{"nestedObject": "object"},
+				"dependencyProviderPath": "/usr/bin/golang-dependency-provider",
+			},
+		},
+		{
+			title:        "test yaml int keys",
+			testdataFile: "testdata/provider_settings_invalid.yaml",
+			shouldErr:    true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.title, func(t *testing.T) {
+			config, err := GetConfig(tc.testdataFile)
+			if err != nil && !tc.shouldErr {
+				t.Fatalf("got error: %v", err)
+			}
+			if err != nil && tc.shouldErr {
+				return
+			}
+			// This is true because of the builtin config that will be added if not there
+			if len(config) != 2 {
+				t.Fatalf("got config longer than one: %v", len(config))
+			}
+			c := config[0]
+			if len(c.InitConfig) != 1 {
+				t.Fatalf("got init config longer than one: %v", len(c.InitConfig))
+			}
+			pc := c.InitConfig[0]
+			if !reflect.DeepEqual(pc.ProviderSpecificConfig, tc.expectedProviderSpecificConfig) {
+				fmt.Printf("\n%#v", pc.ProviderSpecificConfig)
+				fmt.Printf("\n%#v\n", tc.expectedProviderSpecificConfig)
+				t.Fatalf("Got config is different than expected config")
+			}
+		})
+	}
 }
