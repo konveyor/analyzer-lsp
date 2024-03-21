@@ -167,13 +167,13 @@ func AnalysisCmd() *cobra.Command {
 				sc := createOpenAPISchema(providers, log)
 				b, err := json.Marshal(sc)
 				if err != nil {
-					log.Error(err, "unable to create inital schema")
+					errLog.Error(err, "unable to create inital schema")
 					os.Exit(1)
 				}
 
 				err = os.WriteFile(getOpenAPISpec, b, 0644)
 				if err != nil {
-					log.Error(err, "error writing output file", "file", getOpenAPISpec)
+					errLog.Error(err, "error writing output file", "file", getOpenAPISpec)
 					os.Exit(1) // Treat the error as a fatal error
 				}
 				os.Exit(0)
@@ -190,7 +190,7 @@ func AnalysisCmd() *cobra.Command {
 			for _, f := range rulesFile {
 				internRuleSet, internNeedProviders, err := parser.LoadRules(f)
 				if err != nil {
-					log.WithValues("fileName", f).Error(err, "unable to parse all the rules for ruleset")
+					errLog.Error(err, "unable to parse all the rules for ruleset", "file", f)
 				}
 				ruleSets = append(ruleSets, internRuleSet...)
 				for k, v := range internNeedProviders {
