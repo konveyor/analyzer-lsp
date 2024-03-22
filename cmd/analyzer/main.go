@@ -356,6 +356,12 @@ func createOpenAPISchema(providers map[string]provider.InternalProviderClient, l
 					Ref: fmt.Sprintf("#/components/schemas/%s.%s", provName, c.Name),
 				},
 			})
+			// Only add output schemas for capabilities that have defined them.
+			if c.Output.Schema != nil && len(c.Output.Schema.Properties) != 0 {
+				spec.MapOfSchemaOrRefValues[fmt.Sprintf("%s.%s-out", provName, c.Name)] = openapi3.SchemaOrRef{
+					Schema: c.Output.Schema,
+				}
+			}
 		}
 	}
 

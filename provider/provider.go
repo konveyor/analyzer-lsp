@@ -846,19 +846,38 @@ func deduplicateDependencies(dependencies map[uri.URI][]*Dep) map[uri.URI][]*Dep
 	return deduped
 }
 
-func ToProviderCap(r *openapi3.Reflector, log logr.Logger, cond interface{}, name string) (Capability, error) {
-	jsonCondition, err := r.Reflector.Reflect(cond)
+func ToProviderCap(r *openapi3.Reflector, log logr.Logger, input interface{}, name string) (Capability, error) {
+	jsonCondition, err := r.Reflector.Reflect(input)
 	if err != nil {
 		log.Error(err, "fix it")
 		return Capability{}, err
 	}
-	s := &openapi3.SchemaOrRef{}
-	s.FromJSONSchema(jsonschema.SchemaOrBool{
+	inputSchemaOrRef := &openapi3.SchemaOrRef{}
+	inputSchemaOrRef.FromJSONSchema(jsonschema.SchemaOrBool{
 		TypeObject: &jsonCondition,
 	})
 	return Capability{
 		Name:  name,
-		Input: *s,
+		Input: *inputSchemaOrRef,
 	}, nil
+
+}
+
+func ToProviderInputOutputCap(r *openapi3.Reflector, log logr.Logger, input, output interface{}, name string) (Capability, error) {
+	cap, err := ToProviderCap(r, log, input, name)
+	if err != nil {
+		return cap, err
+	}
+	jsonCondition, err := r.Reflector.Reflect(output)
+	if err != nil {
+		log.Error(err, "fix it")
+		return Capability{}, err
+	}
+	outputSchemaOrRef := &openapi3.SchemaOrRef{}
+	outputSchemaOrRef.FromJSONSchema(jsonschema.SchemaOrBool{
+		TypeObject: &jsonCondition,
+	})
+	cap.Output = *outputSchemaOrRef
+	return cap, nil
 
 }
