@@ -29,7 +29,7 @@
     or:
     - builtin.xml:
         xpath: "//dependencies/dependency"
-        filepaths: "{{poms.filepaths}}"
+        filepaths: "{{poms.extras.filepaths}}"
       from: poms
     - builtin.file:
         pattern: pom.xml
