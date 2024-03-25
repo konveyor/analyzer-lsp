@@ -21,10 +21,10 @@ jobs:
         run: |
           podman run --entrypoint /usr/bin/konveyor-analyzer -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --dep-output-file=demo-dep-output.yaml
           diff \
-            <(yq -P 'sort_keys(..)' -o=props <(git show ${{ github.ref }}:demo-output.yaml)) \
+            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))
           diff \
-            <(yq -P 'sort_keys(..)' -o=props <(git show ${{ github.ref }}:demo-dep-output.yaml)) \
+            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
 
       # - name: run demo image and ensure dependency output unchanged
