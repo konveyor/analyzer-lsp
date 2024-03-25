@@ -64,7 +64,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							artifactIdKey: "junit",
 							pomPathKey:    "pom.xml",
 						},
-						FileURIPrefix: "file://testdata/junit/junit/4.11",
+						FileURIPrefix: "file:///junit/junit/4.11",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -83,7 +83,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "hamcrest-core",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
+								FileURIPrefix: "file:///org/hamcrest/hamcrest-core/1.3",
 							},
 						},
 					},
@@ -104,7 +104,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							artifactIdKey: "kubernetes-client",
 							pomPathKey:    "pom.xml",
 						},
-						FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
+						FileURIPrefix: "file:///io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -124,7 +124,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "netty-transport-native-epoll",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/io/netty/netty-transport-native-epoll/4.1.76.Final",
+								FileURIPrefix: "file:///io/netty/netty-transport-native-epoll/4.1.76.Final",
 							},
 						},
 						{
@@ -143,7 +143,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "kubernetes-httpclient-okhttp",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
+								FileURIPrefix: "file:///io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
 						},
 						{
@@ -162,7 +162,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "okhttp",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
+								FileURIPrefix: "file:///com/squareup/okhttp3/okhttp/3.12.12",
 							},
 						},
 						{
@@ -181,7 +181,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "okio",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
+								FileURIPrefix: "file:///com/squareup/okio/okio/1.15.0",
 							},
 						},
 						{
@@ -200,7 +200,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "logging-interceptor",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
+								FileURIPrefix: "file:///com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
 						},
 						{
@@ -219,7 +219,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "zjsonpatch",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
+								FileURIPrefix: "file:///io/fabric8/zjsonpatch/0.3.0",
 							},
 						},
 					},
@@ -259,7 +259,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							artifactIdKey: "junit",
 							pomPathKey:    "pom.xml",
 						},
-						FileURIPrefix: "file://testdata/junit/junit/4.11",
+						FileURIPrefix: "file:///junit/junit/4.11",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -279,7 +279,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "hamcrest-core",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
+								FileURIPrefix: "file:///org/hamcrest/hamcrest-core/1.3",
 							},
 						},
 					},
@@ -300,7 +300,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							artifactIdKey: "kubernetes-client",
 							pomPathKey:    "pom.xml",
 						},
-						FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
+						FileURIPrefix: "file:///io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -319,7 +319,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "kubernetes-httpclient-okhttp",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
+								FileURIPrefix: "file:///io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
 						},
 						{
@@ -338,7 +338,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "okhttp",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
+								FileURIPrefix: "file:///com/squareup/okhttp3/okhttp/3.12.12",
 							},
 						},
 						{
@@ -357,7 +357,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "okio",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
+								FileURIPrefix: "file:///com/squareup/okio/okio/1.15.0",
 							},
 						},
 						{
@@ -376,7 +376,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "logging-interceptor",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
+								FileURIPrefix: "file:///com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
 						},
 						{
@@ -395,7 +395,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 									artifactIdKey: "zjsonpatch",
 									pomPathKey:    "pom.xml",
 								},
-								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
+								FileURIPrefix: "file:///io/fabric8/zjsonpatch/0.3.0",
 							},
 						},
 					},
