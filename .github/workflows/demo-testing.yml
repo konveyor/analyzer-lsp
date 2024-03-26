@@ -38,7 +38,7 @@ jobs:
         with:
           fetch-depth: 0
           repository: shawn-hurley/tackle2-addon-analyzer
-          ref: use-correct-bin-dir
+          ref: bugfix/use-correct-bin-dir
           path: tackle2-addon-analyzer
 
       - name: Build addon and save image
