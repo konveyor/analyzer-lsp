@@ -323,6 +323,7 @@ func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]k
 		depToLabels: p.depToLabels,
 		m2RepoPath:  getMavenLocalRepoPath(p.mvnSettingsFile),
 		seen:        map[string]bool{},
+		initialPath: path,
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
@@ -331,6 +332,7 @@ type walker struct {
 	deps        map[uri.URI][]provider.DepDAGItem
 	depToLabels map[string]*depLabelItem
 	m2RepoPath  string
+	initialPath string
 	seen        map[string]bool
 }
 
@@ -369,6 +371,37 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 				Dep: d,
 			},
 		}
+	}
+	if strings.HasSuffix(info.Name(), ".class") {
+		// If the class is in WEB-INF we assume this is apart of the application
+		relPath, _ := filepath.Rel(w.initialPath, path)
+		relPath = filepath.Dir(relPath)
+		if strings.Contains(relPath, "WEB-INF") {
+			return nil
+		}
+		if _, ok := w.seen[relPath]; ok {
+			return nil
+		}
+		d := provider.Dep{
+			Name: info.Name(),
+		}
+		artifact, _ := toFilePathDependency(context.Background(), filepath.Join(relPath, info.Name()))
+		if (artifact != javaArtifact{}) {
+			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
+			d.Version = artifact.Version
+			d.Labels = addDepLabels(w.depToLabels, d.Name)
+			d.ResolvedIdentifier = artifact.sha1
+			// when we can successfully get javaArtifact from a jar
+			// we added it to the pom and it should be in m2Repo path
+			d.FileURIPrefix = fmt.Sprintf("file://%s", filepath.Join("java-project", "src", "main",
+				strings.Replace(artifact.GroupId, ".", "/", -1), artifact.ArtifactId))
+		}
+		w.deps[uri.URI(filepath.Join(relPath))] = []provider.DepDAGItem{
+			{
+				Dep: d,
+			},
+		}
+		w.seen[relPath] = true
 	}
 	return nil
 }

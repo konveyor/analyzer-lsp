@@ -285,9 +285,13 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 		if _, err := io.Copy(dstFile, archiveFile); err != nil {
 			return "", decompileJobs, dependencies, err
 		}
+		seenDirArtificat := map[string]interface{}{}
 		switch {
-		// when it's a .class file, decompile it into java project
-		case strings.HasSuffix(f.Name, ClassFile):
+		// when it's a .class file and it is in the web-inf, decompile it into java project
+		// This is the users code.
+		case strings.HasSuffix(f.Name, ClassFile) &&
+			(strings.Contains(f.Name, "WEB-INF") || strings.Contains(f.Name, "META-INF")):
+
 			// full path in the java project for the decompd file
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
@@ -302,6 +306,30 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 					packaging: ClassFile,
 				},
 			})
+		// when it's a .class file and it is not in the web-inf, decompile it into java project
+		// This is some dependency that is not packaged as dependency.
+		case strings.HasSuffix(f.Name, ClassFile) &&
+			!(strings.Contains(f.Name, "WEB-INF") || strings.Contains(f.Name, "META-INF")):
+			destPath := filepath.Join(
+				projectPath, "src", "main", "java",
+				strings.Replace(filePath, destDir, "", -1))
+			destPath = strings.TrimSuffix(destPath, ClassFile) + ".java"
+			decompileJobs = append(decompileJobs, decompileJob{
+				inputPath:  filePath,
+				outputPath: destPath,
+				artifact: javaArtifact{
+					packaging: ClassFile,
+				},
+			})
+			if _, ok := seenDirArtificat[filepath.Dir(f.Name)]; !ok {
+				dep, err := toFilePathDependency(ctx, f.Name)
+				if err != nil {
+					log.V(8).Error(err, "error getting dependcy for path", "path", destPath)
+					continue
+				}
+				dependencies = append(dependencies, dep)
+				seenDirArtificat[filepath.Dir(f.Name)] = nil
+			}
 		// when it's a java file, it's already decompiled, move it to project path
 		case strings.HasSuffix(f.Name, JavaFile):
 			destPath := filepath.Join(
@@ -557,4 +585,17 @@ func constructArtifactFromSHA(jarFile string) (javaArtifact, error) {
 		}
 	}
 	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
+}
+
+func toFilePathDependency(ctx context.Context, filePath string) (javaArtifact, error) {
+	dep := javaArtifact{}
+	// Move up one level to the artifact. we are assuming that we get the full class file here.
+	// For instance the dir /org/springframework/boot/loader/jar/Something.class.
+	// in this cass the artificat is: Group: org.springframework.boot.loader, Artifact: Jar
+	dir := filepath.Dir(filePath)
+	dep.ArtifactId = filepath.Base(dir)
+	dep.GroupId = strings.Replace(filepath.Dir(dir), "/", ".", -1)
+	dep.Version = "0.0.0"
+	return dep, nil
+
 }
