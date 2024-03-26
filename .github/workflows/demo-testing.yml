@@ -6,17 +6,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
       - name: Extract pull request number from inputs or PR description
         run: |
-        echo "${{ github.event.pull_request.body }}"
-        PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP 'Addon PR: \K\d+' || true)
-        if [ -z "$PULL_REQUEST_NUMBER" ]; then
-          echo "ADDON_REF=main" >>$GITHUB_ENV
-        else
-          echo "ADDON_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
-        fi
+          echo "${{ github.event.pull_request.body }}"
+          PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP 'Addon PR: \K\d+' || true)
+          if [ -z "$PULL_REQUEST_NUMBER" ]; then
+            echo "ADDON_REF=main" >>$GITHUB_ENV
+          else
+            echo "ADDON_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
+          fi
+
+      - uses: actions/checkout@v3
 
       - name: build image
         run: podman build -t quay.io/konveyor/analyzer-lsp:latest .
