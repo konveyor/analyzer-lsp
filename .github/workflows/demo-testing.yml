@@ -37,8 +37,8 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          repository: konveyor/tackle2-addon-analyzer
-          ref: main
+          repository: shawn-hurley/tackle2-addon-analyzer
+          ref: use-correct-bin-dir
           path: tackle2-addon-analyzer
 
       - name: Build addon and save image
