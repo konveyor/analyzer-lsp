@@ -8,6 +8,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Extract pull request number from inputs or PR description
+        run: |
+        echo "${{ github.event.pull_request.body }}"
+        PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP 'Addon PR: \K\d+' || true)
+        if [ -z "$PULL_REQUEST_NUMBER" ]; then
+          echo "ADDON_REF=main" >>$GITHUB_ENV
+        else
+          echo "ADDON_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
+        fi
+
       - name: build image
         run: podman build -t quay.io/konveyor/analyzer-lsp:latest .
 
@@ -19,7 +29,7 @@ jobs:
 
       - name: run demo image and ensure violations output unchanged
         run: |
-          podman run --entrypoint /usr/local/bin/konveyor-analyzer -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --dep-output-file=demo-dep-output.yaml
+          podman run --entrypoint /usr/bin/konveyor-analyzer -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --dep-output-file=demo-dep-output.yaml
           diff \
             <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))
@@ -37,8 +47,8 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          repository: shawn-hurley/tackle2-addon-analyzer
-          ref: bugfix/use-correct-bin-dir
+          repository: konveyor/tackle2-addon-analyzer
+          ref: "${{ env.ADDON_REF}}"
           path: tackle2-addon-analyzer
 
       - name: Build addon and save image
