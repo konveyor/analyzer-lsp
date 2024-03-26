@@ -424,7 +424,7 @@ func (r *ruleEngine) getRelativePathForViolation(fileURI uri.URI) (uri.URI, erro
 		}
 		absPath, err := filepath.Abs(sourceLocation)
 		if err != nil {
-			return "", err
+			return fileURI, nil
 		}
 		// given a relative path for source
 		if absPath != sourceLocation {
