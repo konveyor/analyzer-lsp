@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -443,10 +444,17 @@ func DependencyOutput(ctx context.Context, providers map[string]provider.Interna
 				continue
 			}
 			for u, ds := range deps {
+				var outputDepDag []konveyor.DepDAGItem
+				// trim m2 repo prefix for java deps
+				if name == "java" {
+					outputDepDag = trimDagItemPrefixes(ds)
+				} else {
+					outputDepDag = ds
+				}
 				depsTree = append(depsTree, konveyor.DepsTreeItem{
 					FileURI:      string(u),
 					Provider:     name,
-					Dependencies: ds,
+					Dependencies: outputDepDag,
 				})
 			}
 		} else {
@@ -456,11 +464,17 @@ func DependencyOutput(ctx context.Context, providers map[string]provider.Interna
 				continue
 			}
 			for u, ds := range deps {
-				newDeps := ds
+				var outputDeps []*konveyor.Dep
+				// trim m2 repo prefix for java deps
+				if name == "java" {
+					outputDeps = trimFlatDepPrefixes(ds)
+				} else {
+					outputDeps = ds
+				}
 				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
 					Provider:     name,
 					FileURI:      string(u),
-					Dependencies: newDeps,
+					Dependencies: outputDeps,
 				})
 			}
 		}
@@ -502,4 +516,32 @@ func DependencyOutput(ctx context.Context, providers map[string]provider.Interna
 		os.Exit(1)
 	}
 
+}
+
+func trimFlatDepPrefixes(deps []*konveyor.Dep) []*konveyor.Dep {
+	for _, dep := range deps {
+		dep.FileURIPrefix = fmt.Sprintf("file:///%s", filepath.Join(strings.Replace(
+			dep.Extras["groupId"].(string), ".", "/", -1), dep.Extras["artifactId"].(string), dep.Version))
+	}
+	return deps
+}
+
+func trimDagItemPrefixes(depItem []konveyor.DepDAGItem) []konveyor.DepDAGItem {
+	newDagItem := make([]konveyor.DepDAGItem, len(depItem))
+	for i, item := range depItem {
+		d := item.Dep
+		newDagItem[i] = item
+		d.FileURIPrefix = fmt.Sprintf("file:///%s", filepath.Join(strings.Replace(
+			d.Extras["groupId"].(string), ".", "/", -1), d.Extras["artifactId"].(string), d.Version))
+
+		newDagItem[i].Dep.FileURIPrefix = d.FileURIPrefix
+
+		for j, de := range item.AddedDeps {
+			de.Dep.FileURIPrefix = fmt.Sprintf("file:///%s", filepath.Join(strings.Replace(
+				de.Dep.Extras["groupId"].(string), ".", "/", -1), de.Dep.Extras["artifactId"].(string), de.Dep.Version))
+
+			newDagItem[i].AddedDeps[j].Dep.FileURIPrefix = de.Dep.FileURIPrefix
+		}
+	}
+	return newDagItem
 }

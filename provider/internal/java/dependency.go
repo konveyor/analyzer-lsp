@@ -411,7 +411,7 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 	fp := resolveDepFilepath(&d, p, group, artifact, localRepoPath)
 
 	d.Labels = addDepLabels(p.depToLabels, d.Name)
-	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(strings.TrimPrefix(fp, localRepoPath)))
+	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
 
 	d.Extras = map[string]interface{}{
 		groupIdKey:    group,
