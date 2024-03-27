@@ -1,7 +1,7 @@
 [
     {
         "name": "go",
-        "binaryPath": "/usr/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/generic-external-provider",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
@@ -13,25 +13,25 @@
                 "workspaceFolders": ["file:///analyzer-lsp/examples/golang"],
                 "dependencyFolders": [],
 
-                "dependencyProviderPath": "/usr/bin/golang-dependency-provider"
+                "dependencyProviderPath": "/usr/local/bin/golang-dependency-provider"
             }
         }]
     },
     {
         "name": "yaml",
-        "binaryPath": "/usr/bin/yq-external-provider",
+        "binaryPath": "/usr/local/bin/yq-external-provider",
         "initConfig": [{
             "location": "examples/yaml",
             "analysisMode": "full",
             "providerSpecificConfig": {
                 "name": "yq",
-                "lspServerPath": "/usr/bin/yq"
+                "lspServerPath": "/usr/local/bin/yq"
             }
         }]
     },
     {
         "name": "python",
-        "binaryPath": "/usr/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/generic-external-provider",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
@@ -49,7 +49,7 @@
     },
     {
         "name": "nodejs",
-        "binaryPath": "/usr/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/generic-external-provider",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
