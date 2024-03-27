@@ -386,15 +386,6 @@
           kind: Method
           name: main
           package: com.example.apps
-      - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
-        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
-        lineNumber: 14
-        variables:
-          file: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
-          kind: Method
-          name: main
-          package: com.example.apps
     lang-ref-003:
       description: ""
       category: potential
