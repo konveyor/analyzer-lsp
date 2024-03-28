@@ -760,11 +760,11 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 				}
 			}
 			cancelFunc()
-			resp.Incidents = append(resp.Incidents, incident)
-			resp.TemplateContext = map[string]interface{}{
-				"name":    matchedDep.dep.Name,
-				"version": matchedDep.dep.Version,
-			}
+		}
+		resp.Incidents = append(resp.Incidents, incident)
+		resp.TemplateContext = map[string]interface{}{
+			"name":    matchedDep.dep.Name,
+			"version": matchedDep.dep.Version,
 		}
 	}
 
