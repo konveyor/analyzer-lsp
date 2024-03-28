@@ -457,6 +457,13 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 		if err != nil {
 			return konveyor.Violation{}, err
 		}
+
+		for val := range m.Variables {
+			if val == "file" {
+				m.Variables["file"] = trimmedUri
+			}
+		}
+
 		incident := konveyor.Incident{
 			URI:        trimmedUri,
 			LineNumber: m.LineNumber,
