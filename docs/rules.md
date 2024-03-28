@@ -287,6 +287,8 @@ when:
 
 You can also chain the variables from one condition to be used as input in another condition in a _or_ and _and_ block of conditions
 
+What a given condition has in its output, can be seen in the openapi spec, by finding the `<provider>.<condition>.out` component. **NOTE** Every condition, has a list of files where the incidents occurred, and the output for a condition is in the extras section.
+
 Example:
 
 ```yaml 
@@ -294,7 +296,7 @@ when:
  or:
   - builtin.xml:
       xpath: "//dependencies/dependency"
-      filepaths: "{{poms.filepaths}}"
+      filepaths: "{{poms.extras.filepaths}}"
     from: poms
   - builtin.file:
       pattern: pom.xml

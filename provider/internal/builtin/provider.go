@@ -99,7 +99,7 @@ func (p *builtinProvider) Capabilities() []provider.Capability {
 		caps = append(caps, filecontentCap)
 	}
 
-	fileCap, err := provider.ToProviderCap(r, p.log, fileCondition{}, "file")
+	fileCap, err := provider.ToProviderInputOutputCap(r, p.log, fileCondition{}, fileTemplateContext{}, "file")
 	if err != nil {
 		p.log.Error(err, "unable to get file capability")
 	} else {

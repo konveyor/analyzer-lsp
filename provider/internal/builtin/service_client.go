@@ -32,6 +32,10 @@ type builtinServiceClient struct {
 	locationCache map[string]float64
 }
 
+type fileTemplateContext struct {
+	Filepaths []string `json:"filepaths,omitempty"`
+}
+
 var _ provider.ServiceClient = &builtinServiceClient{}
 
 func (p *builtinServiceClient) Stop() {}
@@ -147,7 +151,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
 		}
-		xmlFiles, err := findXMLFiles(p.config.Location, cond.XMLPublicID.Filepaths)
+		xmlFiles, err := findXMLFiles(p.config.Location, cond.XML.Filepaths)
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
