@@ -741,12 +741,23 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		if depLocationResolver != nil {
 			// this is a best-effort step and we don't want to block if resolver misbehaves
 			timeoutContext, cancelFunc := context.WithTimeout(context.Background(), time.Second*3)
-			location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
-			if err == nil {
-				incident.LineNumber = &location.StartPosition.Line
-				incident.CodeLocation = &location
+			if baseDep, ok := matchedDep.dep.Extras["baseDep"]; ok {
+				// Use "parent" baseDep location lookup for indirect dependencies
+				location, err := depLocationResolver.GetLocation(timeoutContext, baseDep.(konveyor.Dep))
+				if err == nil {
+					incident.LineNumber = &location.StartPosition.Line
+					incident.CodeLocation = &location
+				} else {
+					log.V(7).Error(err, "failed to get location for indirect dependency", "dep", matchedDep.dep.Name)
+				}
 			} else {
-				log.V(7).Error(err, "failed to get location for dependency", "dep", matchedDep.dep.Name)
+				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
+				if err == nil {
+					incident.LineNumber = &location.StartPosition.Line
+					incident.CodeLocation = &location
+				} else {
+					log.V(7).Error(err, "failed to get location for dependency", "dep", matchedDep.dep.Name)
+				}
 			}
 			cancelFunc()
 		}
