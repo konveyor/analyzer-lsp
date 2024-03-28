@@ -85,19 +85,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "junit.junit",
 										Version:            "4.11",
-										Type:               "test",
-										Indirect:           false,
-										ResolvedIdentifier: "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "junit",
 											artifactIdKey: "junit",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/junit/junit/4.11",
 									},
 								},
 								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
@@ -143,19 +135,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/io/netty/netty-transport-native-epoll/4.1.76.Final",
@@ -179,19 +163,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
@@ -215,19 +191,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
@@ -251,19 +219,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
@@ -287,19 +247,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
@@ -323,19 +275,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
@@ -400,19 +344,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "junit.junit",
 										Version:            "4.11",
-										Type:               "test",
-										Indirect:           false,
-										ResolvedIdentifier: "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "open-source"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "junit",
 											artifactIdKey: "junit",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/junit/junit/4.11",
 									},
 								},
 								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
@@ -457,19 +393,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
@@ -493,19 +421,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
@@ -529,19 +449,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
@@ -565,19 +477,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
@@ -601,19 +505,11 @@ func Test_parseMavenDepLines(t *testing.T) {
 									baseDepKey:    provider.Dep{
 										Name:               "io.fabric8.kubernetes-client",
 										Version:            "6.0.0",
-										Type:               "compile",
-										Indirect:           false,
-										ResolvedIdentifier: "d0831d44e12313df8989fc1d4a9c90452f08858e",
-										Labels: []string{
-											labels.AsString(provider.DepSourceLabel, "internal"),
-											labels.AsString(provider.DepLanguageLabel, "java"),
-										},
 										Extras: map[string]interface{}{
 											groupIdKey:    "io.fabric8",
 											artifactIdKey: "kubernetes-client",
 											pomPathKey:    "pom.xml",
 										},
-										FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
 									},
 								},
 								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
