@@ -339,16 +339,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: antlr
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -377,16 +371,10 @@
       baseDep:
         name: ch.qos.logback.logback-classic
         version: 1.1.7
-        type: compile
-        resolvedIdentifier: 9865cf6994f9ff13fce0bf93f2054ef6c65bb462
         extras:
           artifactId: logback-classic
           groupId: ch.qos.logback
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/ch/qos/logback/logback-classic/1.1.7
       groupId: ch.qos.logback
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -403,16 +391,10 @@
       baseDep:
         name: org.hibernate.validator.hibernate-validator
         version: 6.2.0.Final
-        type: compile
-        resolvedIdentifier: d6b0760dfffbf379cedd02f715ff4c9a2e215921
         extras:
           artifactId: hibernate-validator
           groupId: org.hibernate.validator
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/validator/hibernate-validator/6.2.0.Final
       groupId: com.fasterxml
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -429,16 +411,10 @@
       baseDep:
         name: com.fasterxml.jackson.core.jackson-databind
         version: 2.12.3
-        type: compile
-        resolvedIdentifier: d6153f8fc60c479ab0f9efb35c034526436a4953
         extras:
           artifactId: jackson-databind
           groupId: com.fasterxml.jackson.core
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.12.3
       groupId: com.fasterxml.jackson.core
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -479,16 +455,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: com.fasterxml.jackson.datatype
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -517,16 +487,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: com.sun.istack
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -543,16 +507,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: com.sun.xml.fastinfoset
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -581,16 +539,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: io.micrometer
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -607,16 +559,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: jakarta.annotation
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -633,16 +579,10 @@
       baseDep:
         name: org.hibernate.validator.hibernate-validator
         version: 6.2.0.Final
-        type: compile
-        resolvedIdentifier: d6b0760dfffbf379cedd02f715ff4c9a2e215921
         extras:
           artifactId: hibernate-validator
           groupId: org.hibernate.validator
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/validator/hibernate-validator/6.2.0.Final
       groupId: jakarta.validation
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -659,16 +599,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: javax.activation
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -685,16 +619,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: javax.persistence
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -711,16 +639,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: javax.xml.bind
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -737,16 +659,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: net.bytebuddy
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -763,16 +679,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.apache.logging.log4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -789,16 +699,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.apache.logging.log4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -827,16 +731,10 @@
       baseDep:
         name: org.apache.tomcat.tomcat-jdbc
         version: 9.0.46
-        type: runtime
-        resolvedIdentifier: 385cb6cb1f6b26c881cd5c1c6ade5f180712ffdc
         extras:
           artifactId: tomcat-jdbc
           groupId: org.apache.tomcat
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/apache/tomcat/tomcat-jdbc/9.0.46
       groupId: org.apache.tomcat
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -865,16 +763,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.aspectj
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -891,16 +783,10 @@
       baseDep:
         name: org.postgresql.postgresql
         version: 42.2.23
-        type: compile
-        resolvedIdentifier: 9cb217a3d5b640567ed7c6e8c11f389613c81c4d
         extras:
           artifactId: postgresql
           groupId: org.postgresql
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/postgresql/postgresql/42.2.23
       groupId: org.checkerframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -917,16 +803,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.dom4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -943,16 +823,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.glassfish.jaxb
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -969,16 +843,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.glassfish.jaxb
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -995,16 +863,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.hdrhistogram
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1021,16 +883,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.hibernate.common
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1047,16 +903,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.hibernate
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1097,16 +947,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.javassist
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1123,16 +967,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.jboss
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1149,16 +987,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.jboss.logging
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1175,16 +1007,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.jboss.spec.javax.transaction
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1201,16 +1027,10 @@
       baseDep:
         name: org.hibernate.hibernate-entitymanager
         version: 5.4.32.Final
-        type: compile
-        resolvedIdentifier: 3f60db4097732960ec792c033dbb7c34f1b9e328
         extras:
           artifactId: hibernate-entitymanager
           groupId: org.hibernate
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
       groupId: org.jvnet.staxex
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1227,16 +1047,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.latencyutils
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1265,16 +1079,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.slf4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1291,16 +1099,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.slf4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1317,16 +1119,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1343,16 +1139,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1369,16 +1159,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1395,16 +1179,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1421,16 +1199,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1459,16 +1231,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1485,16 +1251,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.springframework.data
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1523,16 +1283,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1549,16 +1303,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1575,16 +1323,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1601,16 +1343,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1627,16 +1363,10 @@
       baseDep:
         name: org.springframework.spring-webmvc
         version: 5.3.7
-        type: compile
-        resolvedIdentifier: 8437c7a572177a34607abdaef2f6b8088488f5c0
         extras:
           artifactId: spring-webmvc
           groupId: org.springframework
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/spring-webmvc/5.3.7
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1653,16 +1383,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1691,16 +1415,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1717,16 +1435,10 @@
       baseDep:
         name: org.springframework.data.spring-data-jpa
         version: 2.5.1
-        type: compile
-        resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
         extras:
           artifactId: spring-data-jpa
           groupId: org.springframework.data
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1767,16 +1479,10 @@
       baseDep:
         name: org.springframework.boot.spring-boot-starter-actuator
         version: 2.5.0
-        type: compile
-        resolvedIdentifier: 8fc47befa38bdaa2f2b8f421d8532f03005e2851
         extras:
           artifactId: spring-boot-starter-actuator
           groupId: org.springframework.boot
           pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
       groupId: org.yaml
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1796,16 +1502,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: com.fasterxml.jackson.core
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1822,16 +1522,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: com.fasterxml.jackson.core
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1848,16 +1542,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: com.fasterxml.jackson.core
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1874,16 +1562,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: com.fasterxml.jackson.dataformat
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1900,16 +1582,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: com.fasterxml.jackson.datatype
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1926,16 +1602,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: d0831d44e12313df8989fc1d4a9c90452f08858e
         extras:
           artifactId: kubernetes-client
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client/6.0.0
       groupId: com.squareup.okhttp3
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1952,16 +1622,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: d0831d44e12313df8989fc1d4a9c90452f08858e
         extras:
           artifactId: kubernetes-client
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client/6.0.0
       groupId: com.squareup.okhttp3
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1978,16 +1642,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: d0831d44e12313df8989fc1d4a9c90452f08858e
         extras:
           artifactId: kubernetes-client
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client/6.0.0
       groupId: com.squareup.okio
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2004,16 +1662,10 @@
       baseDep:
         name: javax.javaee-api
         version: "7.0"
-        type: provided
-        resolvedIdentifier: 51399f902cc27a808122edcbebfaa1ad989954ba
         extras:
           artifactId: javaee-api
           groupId: javax
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/javax/javaee-api/7.0
       groupId: com.sun.mail
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2054,16 +1706,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: d0831d44e12313df8989fc1d4a9c90452f08858e
         extras:
           artifactId: kubernetes-client
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2080,16 +1726,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2106,16 +1746,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2132,16 +1766,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2158,16 +1786,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2184,16 +1806,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2210,16 +1826,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2236,16 +1846,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2262,16 +1866,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2288,16 +1886,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2314,16 +1906,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2340,16 +1926,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2366,16 +1946,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2392,16 +1966,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2418,16 +1986,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2444,16 +2006,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2470,16 +2026,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2496,16 +2046,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2522,16 +2066,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2548,16 +2086,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2574,16 +2106,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2600,16 +2126,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: d0831d44e12313df8989fc1d4a9c90452f08858e
         extras:
           artifactId: kubernetes-client
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client/6.0.0
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2650,16 +2170,10 @@
       baseDep:
         name: io.netty.netty-transport
         version: 4.1.76.Final
-        type: runtime
-        resolvedIdentifier: f01d2f935005b6fdb2fedc23114d2ae717749c36
         extras:
           artifactId: netty-transport
           groupId: io.netty
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/netty/netty-transport/4.1.76.Final
       groupId: io.netty
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2725,16 +2239,10 @@
       baseDep:
         name: javax.javaee-api
         version: "7.0"
-        type: provided
-        resolvedIdentifier: 51399f902cc27a808122edcbebfaa1ad989954ba
         extras:
           artifactId: javaee-api
           groupId: javax
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/javax/javaee-api/7.0
       groupId: javax.activation
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2775,16 +2283,10 @@
       baseDep:
         name: junit.junit
         version: "4.11"
-        type: test
-        resolvedIdentifier: 4e031bb61df09069aeb2bffb4019e7a5034a4ee0
         extras:
           artifactId: junit
           groupId: junit
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/junit/junit/4.11
       groupId: org.hamcrest
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2801,16 +2303,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: org.slf4j
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2827,16 +2323,10 @@
       baseDep:
         name: io.fabric8.kubernetes-client-api
         version: 6.0.0
-        type: compile
-        resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
         extras:
           artifactId: kubernetes-client-api
           groupId: io.fabric8
           pomPath: /analyzer-lsp/examples/java/pom.xml
-        labels:
-        - konveyor.io/dep-source=open-source
-        - konveyor.io/language=java
-        prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
       groupId: org.yaml
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:

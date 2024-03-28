@@ -425,14 +425,6 @@
     maven-javax-to-jakarta-00002:
       description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
       category: potential
-      labels:
-      - JakartaEE
-      - konveyor.io/source
-      - konveyor.io/target=eap
-      - konveyor.io/target=eap7
-      - konveyor.io/target=eap8
-      - konveyor.io/target=jakarta-ee
-      - konveyor.io/target=jakarta-ee8
       incidents:
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: If you migrate your application to JBoss EAP 7.3, or later, and want to ensure its Maven building, running or testing works as expected, use instead the Jakarta EE dependency with groupId `com.sun.activation`
@@ -462,9 +454,6 @@
         variables:
           name: javax.activation.activation
           version: "1.1"
-      links:
-      - url: https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.3/html-single/migration_guide/index#maven-artifact-changes-for-jakarta-ee_default
-        title: 'Red Hat JBoss EAP 7.3 Migration Guide: Maven Artifact Changes for Jakarta EE'
       effort: 1
     multiple-actions-001:
       description: ""
