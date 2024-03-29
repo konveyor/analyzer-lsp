@@ -127,20 +127,13 @@ func AnalysisCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
-			//start up the rule eng
-			eng := engine.CreateRuleEngine(engineCtx,
-				10,
-				log,
-				engine.WithIncidentLimit(limitIncidents),
-				engine.WithCodeSnipLimit(limitCodeSnips),
-				engine.WithContextLines(contextLines),
-				engine.WithIncidentSelector(incidentSelector),
-			)
 			providers := map[string]provider.InternalProviderClient{}
-
+			providerLocations := []string{}
 			for _, config := range configs {
 				config.ContextLines = contextLines
+				for _, ind := range config.InitConfig {
+					providerLocations = append(providerLocations, ind.Location)
+				}
 				// IF analsyis mode is set from the CLI, then we will override this for each init config
 				if analysisMode != "" {
 					inits := []provider.InitConfig{}
@@ -163,6 +156,19 @@ func AnalysisCmd() *cobra.Command {
 					}
 				}
 			}
+
+			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
+			//start up the rule eng
+			eng := engine.CreateRuleEngine(engineCtx,
+				10,
+				log,
+				engine.WithIncidentLimit(limitIncidents),
+				engine.WithCodeSnipLimit(limitCodeSnips),
+				engine.WithContextLines(contextLines),
+				engine.WithIncidentSelector(incidentSelector),
+				engine.WithLocationPrefixes(providerLocations),
+			)
+
 			if getOpenAPISpec != "" {
 				sc := createOpenAPISchema(providers, log)
 				b, err := json.Marshal(sc)
