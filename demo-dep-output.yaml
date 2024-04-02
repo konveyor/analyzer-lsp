@@ -336,13 +336,6 @@
     resolvedIdentifier: 83cd2cd674a217ade95a4bb83a8a14f351f48bd0
     extras:
       artifactId: antlr
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: antlr
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -368,13 +361,6 @@
     resolvedIdentifier: 7873092d39ef741575ca91378a6a21c388363ac8
     extras:
       artifactId: logback-core
-      baseDep:
-        name: ch.qos.logback.logback-classic
-        version: 1.1.7
-        extras:
-          artifactId: logback-classic
-          groupId: ch.qos.logback
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: ch.qos.logback
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -388,13 +374,6 @@
     resolvedIdentifier: 3fe0bed568c62df5e89f4f174c101eab25345b6c
     extras:
       artifactId: classmate
-      baseDep:
-        name: org.hibernate.validator.hibernate-validator
-        version: 6.2.0.Final
-        extras:
-          artifactId: hibernate-validator
-          groupId: org.hibernate.validator
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: com.fasterxml
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -408,13 +387,6 @@
     resolvedIdentifier: 7275513412694a1aafd08c0287f48469fa0e6e17
     extras:
       artifactId: jackson-annotations
-      baseDep:
-        name: com.fasterxml.jackson.core.jackson-databind
-        version: 2.12.3
-        extras:
-          artifactId: jackson-databind
-          groupId: com.fasterxml.jackson.core
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: com.fasterxml.jackson.core
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -452,13 +424,6 @@
     resolvedIdentifier: f69c636438dcf19c49960c1fe8901320ab85f989
     extras:
       artifactId: jackson-datatype-jsr310
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: com.fasterxml.jackson.datatype
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -484,13 +449,6 @@
     resolvedIdentifier: c197c86ceec7318b1284bffb49b54226ca774003
     extras:
       artifactId: istack-commons-runtime
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: com.sun.istack
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -504,13 +462,6 @@
     resolvedIdentifier: bb7b7ec0379982b97c62cd17465cb6d9155f68e8
     extras:
       artifactId: FastInfoset
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: com.sun.xml.fastinfoset
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -536,13 +487,6 @@
     resolvedIdentifier: bc7dc1605f2099dc3c39156b7f62ac889f54fb67
     extras:
       artifactId: micrometer-core
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: io.micrometer
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -556,13 +500,6 @@
     resolvedIdentifier: 59eb84ee0d616332ff44aba065f3888cf002cd2d
     extras:
       artifactId: jakarta.annotation-api
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: jakarta.annotation
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -576,13 +513,6 @@
     resolvedIdentifier: 5eacc6522521f7eacb081f95cee1e231648461e7
     extras:
       artifactId: jakarta.validation-api
-      baseDep:
-        name: org.hibernate.validator.hibernate-validator
-        version: 6.2.0.Final
-        extras:
-          artifactId: hibernate-validator
-          groupId: org.hibernate.validator
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: jakarta.validation
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -596,13 +526,6 @@
     resolvedIdentifier: 85262acf3ca9816f9537ca47d5adeabaead7cb16
     extras:
       artifactId: javax.activation-api
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: javax.activation
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -616,13 +539,6 @@
     resolvedIdentifier: 25665ac8c0b62f50e6488173233239120fc52c96
     extras:
       artifactId: javax.persistence-api
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: javax.persistence
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -636,13 +552,6 @@
     resolvedIdentifier: 8531ad5ac454cc2deb9d4d32c40c4d7451939b5d
     extras:
       artifactId: jaxb-api
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: javax.xml.bind
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -656,13 +565,6 @@
     resolvedIdentifier: ef45d7e2cd1c600d279704f492ed5ce2ceb6cdb5
     extras:
       artifactId: byte-buddy
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: net.bytebuddy
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -676,13 +578,6 @@
     resolvedIdentifier: cd8858fbbde69f46bce8db1152c18a43328aae78
     extras:
       artifactId: log4j-api
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.apache.logging.log4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -696,13 +591,6 @@
     resolvedIdentifier: ce8a86a3f50a4304749828ce68e7478cafbc8039
     extras:
       artifactId: log4j-to-slf4j
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.apache.logging.log4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -728,13 +616,6 @@
     resolvedIdentifier: 409b519751e104eab51b4347a0d27bf86a4f3bb1
     extras:
       artifactId: tomcat-juli
-      baseDep:
-        name: org.apache.tomcat.tomcat-jdbc
-        version: 9.0.46
-        extras:
-          artifactId: tomcat-jdbc
-          groupId: org.apache.tomcat
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.apache.tomcat
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -760,13 +641,6 @@
     resolvedIdentifier: 1651849d48659e5703adc2599e694bf67b8c3fc4
     extras:
       artifactId: aspectjrt
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.aspectj
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -780,13 +654,6 @@
     resolvedIdentifier: 2f50520c8abea66fbd8d26e481d3aef5c673b510
     extras:
       artifactId: checker-qual
-      baseDep:
-        name: org.postgresql.postgresql
-        version: 42.2.23
-        extras:
-          artifactId: postgresql
-          groupId: org.postgresql
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.checkerframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -800,13 +667,6 @@
     resolvedIdentifier: a75914155a9f5808963170ec20653668a2ffd2fd
     extras:
       artifactId: dom4j
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.dom4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -820,13 +680,6 @@
     resolvedIdentifier: dd6dda9da676a54c5b36ca2806ff95ee017d8738
     extras:
       artifactId: jaxb-runtime
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.glassfish.jaxb
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -840,13 +693,6 @@
     resolvedIdentifier: a09d2c48d3285f206fafbffe0e50619284e92126
     extras:
       artifactId: txw2
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.glassfish.jaxb
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -860,13 +706,6 @@
     resolvedIdentifier: 6eb7552156e0d517ae80cc2247be1427c8d90452
     extras:
       artifactId: HdrHistogram
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.hdrhistogram
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -880,13 +719,6 @@
     resolvedIdentifier: e59ffdbc6ad09eeb33507b39ffcf287679a498c8
     extras:
       artifactId: hibernate-commons-annotations
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.hibernate.common
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -900,13 +732,6 @@
     resolvedIdentifier: 99a5e10bf455337014c190e141ec631e9ff71663
     extras:
       artifactId: hibernate-core
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.hibernate
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -944,13 +769,6 @@
     resolvedIdentifier: f63e6aa899e15eca8fdaa402a79af4c417252213
     extras:
       artifactId: javassist
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.javassist
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -964,13 +782,6 @@
     resolvedIdentifier: d3865101f0666b63586683bd811d754517f331ab
     extras:
       artifactId: jandex
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.jboss
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -984,13 +795,6 @@
     resolvedIdentifier: 40fd4d696c55793e996d1ff3c475833f836c2498
     extras:
       artifactId: jboss-logging
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.jboss.logging
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1004,13 +808,6 @@
     resolvedIdentifier: a8485cab9484dda36e9a8c319e76b5cc18797b58
     extras:
       artifactId: jboss-transaction-api_1.2_spec
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.jboss.spec.javax.transaction
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1024,13 +821,6 @@
     resolvedIdentifier: 8cc35f73da321c29973191f2cf143d29d26a1df7
     extras:
       artifactId: stax-ex
-      baseDep:
-        name: org.hibernate.hibernate-entitymanager
-        version: 5.4.32.Final
-        extras:
-          artifactId: hibernate-entitymanager
-          groupId: org.hibernate
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.jvnet.staxex
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1044,13 +834,6 @@
     resolvedIdentifier: 769c0b82cb2421c8256300e907298a9410a2a3d3
     extras:
       artifactId: LatencyUtils
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.latencyutils
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1076,13 +859,6 @@
     resolvedIdentifier: d58bebff8cbf70ff52b59208586095f467656c30
     extras:
       artifactId: jul-to-slf4j
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.slf4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1096,13 +872,6 @@
     resolvedIdentifier: 77100a62c2e6f04b53977b9f541044d7d722693d
     extras:
       artifactId: slf4j-api
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.slf4j
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1116,13 +885,6 @@
     resolvedIdentifier: b07513e04ad906ea69ef84293a123cdb83828f06
     extras:
       artifactId: spring-boot
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1136,13 +898,6 @@
     resolvedIdentifier: e0ac75f1a183f8e6a319a8b03bad1c45d40a2761
     extras:
       artifactId: spring-boot-actuator
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1156,13 +911,6 @@
     resolvedIdentifier: 41956882243e86f8260f649ebdd96597a2ff52a9
     extras:
       artifactId: spring-boot-actuator-autoconfigure
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1176,13 +924,6 @@
     resolvedIdentifier: 64c7bbc941c70895621ed613f38dc66b73ea9341
     extras:
       artifactId: spring-boot-autoconfigure
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1196,13 +937,6 @@
     resolvedIdentifier: a910887c01efcc7d12f3f89a7604d436f26eeb90
     extras:
       artifactId: spring-boot-starter
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1228,13 +962,6 @@
     resolvedIdentifier: 22401482ba1c5a1dcd3d33e47295779211b913d8
     extras:
       artifactId: spring-boot-starter-logging
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework.boot
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1248,13 +975,6 @@
     resolvedIdentifier: c950ca1a05e928e9fb75420b4ac07713428e9969
     extras:
       artifactId: spring-data-commons
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework.data
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1280,13 +1000,6 @@
     resolvedIdentifier: b86edd2455f8c4399068c999beb9ea2a9e7f2047
     extras:
       artifactId: spring-aop
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1300,13 +1013,6 @@
     resolvedIdentifier: 8b1eacd7aaa12f7d173a2f0836d28bd0c1b098fe
     extras:
       artifactId: spring-beans
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1320,13 +1026,6 @@
     resolvedIdentifier: 330b3957efdcdebe3550b8e2c5d45a4c25496626
     extras:
       artifactId: spring-context
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1340,13 +1039,6 @@
     resolvedIdentifier: 4aad1b62bd347a806fe693c9d67b376a3ad8151c
     extras:
       artifactId: spring-core
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1360,13 +1052,6 @@
     resolvedIdentifier: 13351fce0a604957cd6a41478ebb54a953a0245e
     extras:
       artifactId: spring-expression
-      baseDep:
-        name: org.springframework.spring-webmvc
-        version: 5.3.7
-        extras:
-          artifactId: spring-webmvc
-          groupId: org.springframework
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1380,13 +1065,6 @@
     resolvedIdentifier: ccd8bde38bad689737295fa220e1c70680676d72
     extras:
       artifactId: spring-jcl
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1412,13 +1090,6 @@
     resolvedIdentifier: f1892fe7a6671348d6546facbd40159b7e6f64a2
     extras:
       artifactId: spring-orm
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1432,13 +1103,6 @@
     resolvedIdentifier: 98be572c2bf3bd08724363b0bba71bcef59c4739
     extras:
       artifactId: spring-tx
-      baseDep:
-        name: org.springframework.data.spring-data-jpa
-        version: 2.5.1
-        extras:
-          artifactId: spring-data-jpa
-          groupId: org.springframework.data
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.springframework
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1476,13 +1140,6 @@
     resolvedIdentifier: 7cae037c3014350c923776548e71c9feb7a69259
     extras:
       artifactId: snakeyaml
-      baseDep:
-        name: org.springframework.boot.spring-boot-starter-actuator
-        version: 2.5.0
-        extras:
-          artifactId: spring-boot-starter-actuator
-          groupId: org.springframework.boot
-          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
       groupId: org.yaml
       pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
     labels:
@@ -1499,13 +1156,6 @@
     resolvedIdentifier: 7198b3aac15285a49e218e08441c5f70af00fc51
     extras:
       artifactId: jackson-annotations
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: com.fasterxml.jackson.core
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1519,13 +1169,6 @@
     resolvedIdentifier: a27014716e4421684416e5fa83d896ddb87002da
     extras:
       artifactId: jackson-core
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: com.fasterxml.jackson.core
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1539,13 +1182,6 @@
     resolvedIdentifier: 56deb9ea2c93a7a556b3afbedd616d342963464e
     extras:
       artifactId: jackson-databind
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: com.fasterxml.jackson.core
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1559,13 +1195,6 @@
     resolvedIdentifier: 9363ded5441b1fee62d5be0604035690ca759a2a
     extras:
       artifactId: jackson-dataformat-yaml
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: com.fasterxml.jackson.dataformat
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1579,13 +1208,6 @@
     resolvedIdentifier: ad2f4c61aeb9e2a8bb5e4a3ed782cfddec52d972
     extras:
       artifactId: jackson-datatype-jsr310
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: com.fasterxml.jackson.datatype
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1599,13 +1221,6 @@
     resolvedIdentifier: d952189f6abb148ff72aab246aa8c28cf99b469f
     extras:
       artifactId: logging-interceptor
-      baseDep:
-        name: io.fabric8.kubernetes-client
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: com.squareup.okhttp3
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1619,13 +1234,6 @@
     resolvedIdentifier: d3e1ce1d2b3119adf270b2d00d947beb03fe3321
     extras:
       artifactId: okhttp
-      baseDep:
-        name: io.fabric8.kubernetes-client
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: com.squareup.okhttp3
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1639,13 +1247,6 @@
     resolvedIdentifier: bc28b5a964c8f5721eb58ee3f3c47a9bcbf4f4d8
     extras:
       artifactId: okio
-      baseDep:
-        name: io.fabric8.kubernetes-client
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: com.squareup.okio
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1659,13 +1260,6 @@
     resolvedIdentifier: ec2410fdf7e0a3022e7c2a2e6241039d1abc1e98
     extras:
       artifactId: javax.mail
-      baseDep:
-        name: javax.javaee-api
-        version: "7.0"
-        extras:
-          artifactId: javaee-api
-          groupId: javax
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: com.sun.mail
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1703,13 +1297,6 @@
     resolvedIdentifier: 70690b98acb07a809c55d15d7cf45f53ec1026e1
     extras:
       artifactId: kubernetes-httpclient-okhttp
-      baseDep:
-        name: io.fabric8.kubernetes-client
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1723,13 +1310,6 @@
     resolvedIdentifier: 9e3b0d4caa3d033fa0f71c71d8a535a748b280ba
     extras:
       artifactId: kubernetes-model-admissionregistration
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1743,13 +1323,6 @@
     resolvedIdentifier: eac63b8dec80e96c4356c91ed0a332415efcb75e
     extras:
       artifactId: kubernetes-model-apiextensions
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1763,13 +1336,6 @@
     resolvedIdentifier: 4dbda6401058a5fd3a4c6be88fc1bf4f99296c4f
     extras:
       artifactId: kubernetes-model-apps
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1783,13 +1349,6 @@
     resolvedIdentifier: b353e45133fbc80791d676b16203ec94c0958b7d
     extras:
       artifactId: kubernetes-model-autoscaling
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1803,13 +1362,6 @@
     resolvedIdentifier: 9f14cbfc75d172fa81f3f6ad793bdd45a2decaec
     extras:
       artifactId: kubernetes-model-batch
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1823,13 +1375,6 @@
     resolvedIdentifier: 33f5a3f386cddda55003e1616303ab924fcd3ca5
     extras:
       artifactId: kubernetes-model-certificates
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1843,13 +1388,6 @@
     resolvedIdentifier: 7d45968cf6b9902e37d5d542f42ee2daed203e3d
     extras:
       artifactId: kubernetes-model-common
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1863,13 +1401,6 @@
     resolvedIdentifier: cd454532158351d8ff37616dc33749ca2a85c8d1
     extras:
       artifactId: kubernetes-model-coordination
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1883,13 +1414,6 @@
     resolvedIdentifier: 73469e4a7baec7600455d7f4a121c6680e80bf35
     extras:
       artifactId: kubernetes-model-core
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1903,13 +1427,6 @@
     resolvedIdentifier: 246ad448a1868b3c601394e21350a9602adef24c
     extras:
       artifactId: kubernetes-model-discovery
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1923,13 +1440,6 @@
     resolvedIdentifier: 204c2c78a4a8e0b5f5ebc1b788c9f22a8c1b14ab
     extras:
       artifactId: kubernetes-model-events
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1943,13 +1453,6 @@
     resolvedIdentifier: 60c9e43f1f34ab9c145798471926c07e13e45ecf
     extras:
       artifactId: kubernetes-model-extensions
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1963,13 +1466,6 @@
     resolvedIdentifier: 3b01d9eab7e7d7c9d46d8828202bff78fbdaa7d9
     extras:
       artifactId: kubernetes-model-flowcontrol
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -1983,13 +1479,6 @@
     resolvedIdentifier: 1a400f8f7915bd2a68fa075605768d762aaad4cb
     extras:
       artifactId: kubernetes-model-metrics
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2003,13 +1492,6 @@
     resolvedIdentifier: c87e11bebb26bb48660765b42a68f9577336b799
     extras:
       artifactId: kubernetes-model-networking
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2023,13 +1505,6 @@
     resolvedIdentifier: 972706f6dffa518e11c94647cf47e188db6115f6
     extras:
       artifactId: kubernetes-model-node
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2043,13 +1518,6 @@
     resolvedIdentifier: 15b3011eb5ff48b9fc2bd8bcc4db697ca9ec30e4
     extras:
       artifactId: kubernetes-model-policy
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2063,13 +1531,6 @@
     resolvedIdentifier: 03ad461761d775ff9c252d2b26a4977d22dd0f3a
     extras:
       artifactId: kubernetes-model-rbac
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2083,13 +1544,6 @@
     resolvedIdentifier: a5fae7294f5c39fb9d7cffb7280b55ca458c9128
     extras:
       artifactId: kubernetes-model-scheduling
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2103,13 +1557,6 @@
     resolvedIdentifier: 6ffa61f9021d07a4a9d785e83a513955a3c48073
     extras:
       artifactId: kubernetes-model-storageclass
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2123,13 +1570,6 @@
     resolvedIdentifier: d3ebf0f291297649b4c8dc3ecc81d2eddedc100d
     extras:
       artifactId: zjsonpatch
-      baseDep:
-        name: io.fabric8.kubernetes-client
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.fabric8
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2167,13 +1607,6 @@
     resolvedIdentifier: e0b225a33772cb7bba73dc296cccefa6826ab8cc
     extras:
       artifactId: netty-resolver
-      baseDep:
-        name: io.netty.netty-transport
-        version: 4.1.76.Final
-        extras:
-          artifactId: netty-transport
-          groupId: io.netty
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: io.netty
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2236,13 +1669,6 @@
     resolvedIdentifier: e6cb541461c2834bdea3eb920f1884d1eb508b50
     extras:
       artifactId: activation
-      baseDep:
-        name: javax.javaee-api
-        version: "7.0"
-        extras:
-          artifactId: javaee-api
-          groupId: javax
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: javax.activation
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2280,13 +1706,6 @@
     resolvedIdentifier: 42a25dc3219429f0e5d060061f71acb49bf010a0
     extras:
       artifactId: hamcrest-core
-      baseDep:
-        name: junit.junit
-        version: "4.11"
-        extras:
-          artifactId: junit
-          groupId: junit
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: org.hamcrest
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2300,13 +1719,6 @@
     resolvedIdentifier: 6c62681a2f655b49963a5983b8b0950a6120ae14
     extras:
       artifactId: slf4j-api
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: org.slf4j
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:
@@ -2320,13 +1732,6 @@
     resolvedIdentifier: 8fde7fe2586328ac3c68db92045e1c8759125000
     extras:
       artifactId: snakeyaml
-      baseDep:
-        name: io.fabric8.kubernetes-client-api
-        version: 6.0.0
-        extras:
-          artifactId: kubernetes-client-api
-          groupId: io.fabric8
-          pomPath: /analyzer-lsp/examples/java/pom.xml
       groupId: org.yaml
       pomPath: /analyzer-lsp/examples/java/pom.xml
     labels:

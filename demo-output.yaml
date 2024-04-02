@@ -422,39 +422,6 @@
           kind: Method
           name: main
           package: com.example.apps
-    maven-javax-to-jakarta-00002:
-      description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
-      category: potential
-      incidents:
-      - uri: file:///analyzer-lsp/examples/java/pom.xml
-        message: If you migrate your application to JBoss EAP 7.3, or later, and want to ensure its Maven building, running or testing works as expected, use instead the Jakarta EE dependency with groupId `com.sun.activation`
-        codeSnip: |-
-          36        <artifactId>kubernetes-client</artifactId>
-          37        <version>6.0.0</version>
-          38      </dependency>
-          39      <dependency>
-          40        <groupId>io.fabric8</groupId>
-          41        <artifactId>kubernetes-client-api</artifactId>
-          42        <version>6.0.0</version>
-          43      </dependency>
-          44      <dependency>
-          45        <groupId>javax</groupId>
-          46        <artifactId>javaee-api</artifactId>
-          47        <version>${javaee-api.version}</version>
-          48        <scope>provided</scope>
-          49      </dependency>
-          50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
-          51      <dependency>
-          52        <groupId>io.netty</groupId>
-          53        <artifactId>netty-transport-native-epoll</artifactId>
-          54        <version>4.1.76.Final</version>
-          55        <classifier>linux-x86_64</classifier>
-          56        <scope>runtime</scope>
-        lineNumber: 45
-        variables:
-          name: javax.activation.activation
-          version: "1.1"
-      effort: 1
     multiple-actions-001:
       description: ""
       category: potential
