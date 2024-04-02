@@ -218,3 +218,17 @@
       namespaces:
         b: http://xmlns.jcp.org/xml/ns/javaee
       xpath: /b:beans
+<<<<<<< HEAD
+=======
+- category: potential
+  description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
+  effort: 1
+  message: If you migrate your application to JBoss EAP 7.3, or later, and want to
+    ensure its Maven building, running or testing works as expected, use instead the
+    Jakarta EE dependency with groupId `com.sun.activation`
+  ruleID: maven-javax-to-jakarta-00002
+  when:
+    java.dependency:
+      lowerbound: 0.0.0
+      name: javax.activation.activation
+>>>>>>> b4d2369 (:bug: Update indirect Dependency location (#557))
