@@ -137,20 +137,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	//start up the rule eng
-	eng := engine.CreateRuleEngine(ctx,
-		10,
-		log,
-		engine.WithIncidentLimit(limitIncidents),
-		engine.WithCodeSnipLimit(limitCodeSnips),
-		engine.WithContextLines(contextLines),
-		engine.WithIncidentSelector(incidentSelector),
-	)
-
 	providers := map[string]provider.InternalProviderClient{}
-
+	providerLocations := []string{}
 	for _, config := range configs {
 		config.ContextLines = contextLines
+		for _, ind := range config.InitConfig {
+			providerLocations = append(providerLocations, ind.Location)
+		}
 		// IF analsyis mode is set from the CLI, then we will override this for each init config
 		if analysisMode != "" {
 			inits := []provider.InitConfig{}
@@ -173,6 +166,16 @@ func main() {
 			}
 		}
 	}
+	//start up the rule eng
+	eng := engine.CreateRuleEngine(ctx,
+		10,
+		log,
+		engine.WithIncidentLimit(limitIncidents),
+		engine.WithCodeSnipLimit(limitCodeSnips),
+		engine.WithContextLines(contextLines),
+		engine.WithIncidentSelector(incidentSelector),
+		engine.WithLocationPrefixes(providerLocations),
+	)
 
 	parser := parser.RuleParser{
 		ProviderNameToClient: providers,

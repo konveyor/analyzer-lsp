@@ -35,7 +35,7 @@ jobs:
         with:
           fetch-depth: 0
           repository: konveyor/tackle2-addon-analyzer
-          ref: main
+          ref: release-0.3
           path: tackle2-addon-analyzer
 
       - name: Build addon and save image
@@ -56,3 +56,5 @@ jobs:
     uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
       component_name: tackle2-addon-analyzer
+      api_tests_ref: release-0.3
+      
