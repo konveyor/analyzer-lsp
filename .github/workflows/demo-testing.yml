@@ -11,7 +11,13 @@ jobs:
           echo "${{ github.event.pull_request.body }}"
           PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP 'Addon PR: \K\d+' || true)
           if [ -z "$PULL_REQUEST_NUMBER" ]; then
-            echo "ADDON_REF=main" >>$GITHUB_ENV
+            if [ -z "${{ github.event.pull_request.base.ref }}" ]; then
+              echo "Using addon branch main"
+              echo "ADDON_REF=main" >>$GITHUB_ENV
+            else
+              echo "Using addon branch ${{ github.event.pull_request.base.ref }}"
+              echo "ADDON_REF=${{ github.event.pull_request.base.ref }}" >>$GITHUB_ENV
+            fi
           else
             echo "ADDON_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
           fi
@@ -36,13 +42,6 @@ jobs:
           diff \
             <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
-
-      # - name: run demo image and ensure dependency output unchanged
-      #   run: |
-      #     podman run --entrypoint /usr/bin/konveyor-analyzer-dep -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z localhost/testing:latest --output-file=demo-dep-output.yaml --dep-output-file=de
-      #     diff \
-      #       <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
-      #       <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
 
       - uses: actions/checkout@v3
         with:
@@ -69,3 +68,5 @@ jobs:
     uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
       component_name: tackle2-addon-analyzer
+      # env.ADDON_REF should work as release branches are identical everywhere
+      api_tests_ref: "${{ env.ADDON_REF }}"
