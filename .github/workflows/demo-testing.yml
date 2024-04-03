@@ -5,7 +5,29 @@ on: ["push", "pull_request"]
 jobs:
   test:
     runs-on: ubuntu-latest
+    outputs:
+      api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
     steps:
+      - name: Extract pull request number from inputs or PR description
+        id: extract-info
+        run: |
+          echo "${{ github.event.pull_request.body }}"
+          PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP 'Addon PR: \K\d+' || true)
+          echo "API_TESTS_REF=main" >> $GITHUB_OUTPUT
+          if [ -z "$PULL_REQUEST_NUMBER" ]; then
+            if [ -z "${{ github.event.pull_request.base.ref }}" ]; then
+              echo "Using addon branch main"
+              echo "ADDON_REF=main" >>$GITHUB_ENV
+            else
+              echo "Using addon branch ${{ github.event.pull_request.base.ref }}"
+              echo "ADDON_REF=${{ github.event.pull_request.base.ref }}" >>$GITHUB_ENV
+              # when we know the base branch, we should use the identical branch of api tests
+              echo "API_TESTS_REF=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "ADDON_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
+          fi
+
       - uses: actions/checkout@v3
 
       - name: build image
@@ -56,5 +78,4 @@ jobs:
     uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
       component_name: tackle2-addon-analyzer
-      api_tests_ref: release-0.3
-      
+      api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"
