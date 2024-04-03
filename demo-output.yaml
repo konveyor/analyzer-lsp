@@ -396,7 +396,7 @@
       description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
       category: potential
       incidents:
-      - uri: file:///analyzer-lsp/examples/java/pom.xml
+      - uri: file:///examples/java/pom.xml
         message: If you migrate your application to JBoss EAP 7.3, or later, and want to ensure its Maven building, running or testing works as expected, use instead the Jakarta EE dependency with groupId `com.sun.activation`
         codeSnip: |-
           36        <artifactId>kubernetes-client</artifactId>
