@@ -2,7 +2,7 @@
 
 Demonstrated in the [21 March 2024 Konveyor Community Meeting](https://docs.google.com/document/d/18vsvW8aO1iJqCXUCi-X2_PjfzuSVE5Ue3vgxlTYl10g/edit?pli=1#heading=h.sid211hnq1wl)
 
-This example demonstrates our ability to perform rules based analys of a .NET
+This example demonstrates our ability to perform rules based analysis of a .NET
 Framework 4.5 project like [nerd-dinner](https://github.com/sixeyed/nerd-dinner)
 given a Windows host capable of building it.
 
@@ -16,14 +16,14 @@ given a Windows host capable of building it.
 
 # Procedure
 
-### Prepare the Host
+## Prepare the Host
 
 **NOTE** These steps intentionally avoid being explicit in what must be done in
 order to prepare the host opting instead to include references to helpful
 resources and describe clearly the expected final state. This is to minimize
 the maintenance burden of this particular example.
 
-#### Install Language Server
+### Install Language Server
 
 Install the [csharp-language-server](https://github.com/razzmatazz/csharp-language-server).
 
@@ -35,7 +35,7 @@ PS C:\> csharp-ls.exe --version
 csharp-ls, 0.9.0.0
 ```
 
-#### Download the .NET Provider
+### Download the .NET Provider
 
 Grab windows executables from the
 [releases page](https://github.com/konveyor/analyzer-lsp/releases) or grab from
@@ -58,13 +58,13 @@ Usage of C:\Users\Administrator\dotnet-provider-windows.exe:
         Port must be set
 ```
 
-#### Clone the Repository
+### Clone the Repository
 
 Install [Git](https://git-scm.com/downloads). Then,
 either from the Git-Gui or Powershell, clone the
 [nerd-dinner](https://github.com/sixeyed/nerd-dinner) repository.
 
-#### Install .NET SDK(s)
+### Install .NET SDK(s)
 
 In this step, what we are trying to accomplish is make the nerd-dinner project
 buildable on this host.
@@ -82,7 +82,7 @@ libraries to perform symbol queries for the project. This article
 [Building a project that target .NET Framework 4.5 in Visual Studio 2022](https://thomaslevesque.com/2021/11/12/building-a-project-that-target-net-45-in-visual-studio-2022/)
 may help resolve issues using the `msbuild` tooling.
 
-#### Make Host Accessible
+## Make Host Accessible
 
 Since `analyzer-lsp` will be running on localhost, having a usable open port
 for network traffic to reach the Windows Server is essential. This resource,
@@ -91,7 +91,7 @@ may be useful to open a port.
 
 ![Port](windows-port.png)
 
-### Analyze the Project
+## Analyze the Project
 
 At this point we have a Windows host with our nerd-dinner project cloned and
 all of the necessary software to build and analyze it installed. Now all we

@@ -25,6 +25,8 @@ jobs:
               sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
           - name: dotnet-external-provider
             containerfile: "./external-providers/dotnet-external-provider/Dockerfile"
+            pre_build_cmd: |
+              cd external-providers/dotnet-external-provider
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
       registry: "quay.io/konveyor"
