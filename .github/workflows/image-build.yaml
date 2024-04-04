@@ -15,14 +15,24 @@ concurrency:
 
 jobs:
   image-build:
+    strategy:
+      matrix:
+        images: 
+          - name: analyzer-lsp
+            containerfile: "./Dockerfile"
+            pre_build_cmd: |
+              TAG=${GITHUB_REF_NAME/main/latest}
+              sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
+          - name: dotnet-external-provider
+            containerfile: "./external-providers/dotnet-external-provider/Dockerfile"
+            pre_build_cmd: |
+              cd external-providers/dotnet-external-provider
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
       registry: "quay.io/konveyor"
-      image_name: "analyzer-lsp"
-      containerfile: "./Dockerfile"
-      pre_build_cmd: |
-        TAG=${GITHUB_REF_NAME/main/latest}
-        sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
+      image_name: ${{ matrix.images.name }}
+      containerfile: ${{ matrix.images.containerfile }}
+      pre_build_cmd: ${{ matrix.images.pre_build_cmd }}
       architectures: '[ "amd64", "arm64", "ppc64le", "s390x" ]'
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
