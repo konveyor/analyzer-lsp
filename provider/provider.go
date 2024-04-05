@@ -747,11 +747,11 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 				konvDep := konveyor.Dep{}
 				depBytes, err := json.Marshal(baseDep)
 				if err != nil {
-					cancelFunc()
+					log.V(7).Error(err, "failed to marshal dependency", "dep", matchedDep.dep.Name)
 				}
 				err = json.Unmarshal(depBytes, &konvDep)
 				if err != nil {
-					cancelFunc()
+					log.V(7).Error(err, "failed to unmarshal dependency", "dep", matchedDep.dep.Name)
 				}
 				// Use "parent" baseDep location lookup for indirect dependencies
 				location, err := depLocationResolver.GetLocation(timeoutContext, konvDep)
