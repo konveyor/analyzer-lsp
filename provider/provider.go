@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -644,8 +645,18 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			// this is a best-effort step and we don't want to block if resolver misbehaves
 			timeoutContext, cancelFunc := context.WithTimeout(context.Background(), time.Second*3)
 			if baseDep, ok := matchedDep.dep.Extras["baseDep"]; ok {
+				// convert base dep back to konveyor.Dep
+				konvDep := konveyor.Dep{}
+				depBytes, err := json.Marshal(baseDep)
+				if err != nil {
+					log.V(7).Error(err, "failed to marshal dependency", "dep", matchedDep.dep.Name)
+				}
+				err = json.Unmarshal(depBytes, &konvDep)
+				if err != nil {
+					log.V(7).Error(err, "failed to unmarshal dependency", "dep", matchedDep.dep.Name)
+				}
 				// Use "parent" baseDep location lookup for indirect dependencies
-				location, err := depLocationResolver.GetLocation(timeoutContext, baseDep.(konveyor.Dep))
+				location, err := depLocationResolver.GetLocation(timeoutContext, konvDep)
 				if err == nil {
 					incident.LineNumber = &location.StartPosition.Line
 					incident.CodeLocation = &location
