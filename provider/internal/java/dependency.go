@@ -533,8 +533,13 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath, po
 			if err != nil {
 				return nil, err
 			}
+			dm := map[string]interface{}{
+				"name":    baseDep.Name,
+				"version": baseDep.Version,
+				"extras":  baseDep.Extras,
+			}
 			transitiveDep.Indirect = true
-			transitiveDep.Extras[baseDepKey] = konveyor.Dep{Name: baseDep.Name, Version: baseDep.Version, Extras: baseDep.Extras}	// Minimum needed set of attributes for GetLocation
+			transitiveDep.Extras[baseDepKey] = dm // Minimum needed set of attributes for GetLocation
 			item.AddedDeps = append(item.AddedDeps, provider.DepDAGItem{Dep: transitiveDep})
 			idx += 1
 		}
