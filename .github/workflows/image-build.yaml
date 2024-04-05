@@ -25,11 +25,9 @@ jobs:
               TAG=${GITHUB_REF_NAME/main/latest}
               sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
             context: "."
-            swap-size-gb: ""
           - name: dotnet-external-provider
             containerfile: "./external-providers/dotnet-external-provider/Dockerfile"
             context: "./external-providers/dotnet-external-provider"
-            swap-size-gb: "10"
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
       registry: "quay.io/konveyor"
@@ -38,7 +36,6 @@ jobs:
       pre_build_cmd: ${{ matrix.images.pre_build_cmd }}
       architectures: '[ "amd64", "arm64", "ppc64le", "s390x" ]'
       context: ${{ matrix.images.context }}
-      swap-size-gb: ${{ matrix.images.swap-size-gb }}
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
       registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
