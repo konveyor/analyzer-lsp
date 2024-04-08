@@ -134,12 +134,16 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 			return err
 		}
 
+		ic := g.config.InitConfig
 		// For the generic external provider
 		name := "generic"
-		ic := g.config.InitConfig
 		if len(ic) != 0 {
 			if newName, ok := ic[0].ProviderSpecificConfig["lspServerName"].(string); ok {
-				name = newName
+				if newName == "java" {
+					name = newName
+				} else {
+					name = newName
+				}
 			}
 		}
 

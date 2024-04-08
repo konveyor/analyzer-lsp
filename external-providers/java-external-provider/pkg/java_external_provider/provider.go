@@ -64,6 +64,8 @@ type javaProvider struct {
 
 	clients []provider.ServiceClient
 
+	lspServerName string
+
 	hasMaven          bool
 	depsMutex         sync.RWMutex
 	depsLocationCache map[string]int
@@ -82,7 +84,7 @@ type referenceCondition struct {
 	Location string `yaml:"location"`
 }
 
-func NewJavaProvider(log logr.Logger) *javaProvider {
+func NewJavaProvider(log logr.Logger, lspServerName string) *javaProvider {
 
 	_, mvnBinaryError := exec.LookPath("mvn")
 
@@ -90,6 +92,7 @@ func NewJavaProvider(log logr.Logger) *javaProvider {
 		hasMaven:          mvnBinaryError == nil,
 		Log:               log,
 		clients:           []provider.ServiceClient{},
+		lspServerName:     lspServerName,
 		depsLocationCache: make(map[string]int),
 	}
 }

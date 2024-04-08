@@ -105,11 +105,13 @@ func (g *grpcServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 			deps = append(deps, &provider.Dep{
 				Name:               d.Name,
 				Version:            d.Version,
+				Classifier:         d.Classifier,
 				Type:               d.Type,
 				Indirect:           d.Indirect,
 				ResolvedIdentifier: d.ResolvedIdentifier,
 				Extras:             d.Extras.AsMap(),
 				Labels:             d.Labels,
+				FileURIPrefix:      d.FileURIPrefix,
 			})
 		}
 		provs[u] = deps
@@ -127,11 +129,13 @@ func recreateDAGAddedItems(items []*pb.DependencyDAGItem) []provider.DepDAGItem 
 			Dep: provider.Dep{
 				Name:               x.Key.Name,
 				Version:            x.Key.Version,
+				Classifier:         x.Key.Classifier,
 				Type:               x.Key.Type,
 				Indirect:           x.Key.Indirect,
 				ResolvedIdentifier: x.Key.ResolvedIdentifier,
 				Extras:             x.Key.Extras.AsMap(),
 				Labels:             x.Key.Labels,
+				FileURIPrefix:      x.Key.FileURIPrefix,
 			},
 			AddedDeps: recreateDAGAddedItems(x.AddedDeps),
 		})
