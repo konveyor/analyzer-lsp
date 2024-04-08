@@ -10,8 +10,7 @@ COPY pkg/ ./pkg
 RUN go mod download
 
 RUN make build
-RUN ADD_PLAT=yes OS=windows ARCH=amd64 make build
-RUN ADD_PLAT=yes OS=windows ARCH=arm64 make build
+RUN ADD_PLAT=yes OS=windows make build
 
 # TODO(djzager): resurrect if we need omnisharp-roslyn
 # FROM registry.access.redhat.com/ubi8/dotnet-70 AS builder

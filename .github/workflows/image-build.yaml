@@ -25,16 +25,18 @@ jobs:
               TAG=${GITHUB_REF_NAME/main/latest}
               sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
             context: "."
+            architectures: '[ "amd64", "arm64", "ppc64le", "s390x" ]'
           - name: dotnet-external-provider
             containerfile: "./external-providers/dotnet-external-provider/Dockerfile"
             context: "./external-providers/dotnet-external-provider"
+            architectures: '[ "amd64", "arm64" ]'
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
       registry: "quay.io/konveyor"
       image_name: ${{ matrix.images.name }}
       containerfile: ${{ matrix.images.containerfile }}
       pre_build_cmd: ${{ matrix.images.pre_build_cmd }}
-      architectures: '[ "amd64", "arm64", "ppc64le", "s390x" ]'
+      architectures: ${{ matrix.images.architectures }}
       context: ${{ matrix.images.context }}
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
