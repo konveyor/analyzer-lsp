@@ -33,6 +33,7 @@ const (
 	artifactIdKey = "artifactId"
 	groupIdKey    = "groupId"
 	pomPathKey    = "pomPath"
+	baseDepKey    = "baseDep"
 )
 
 // TODO implement this for real
@@ -501,7 +502,13 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath, po
 			if err != nil {
 				return nil, err
 			}
+			dm := map[string]interface{}{
+				"name":    baseDep.Name,
+				"version": baseDep.Version,
+				"extras":  baseDep.Extras,
+			}
 			transitiveDep.Indirect = true
+			transitiveDep.Extras[baseDepKey] = dm // Minimum needed set of attributes for GetLocation
 			item.AddedDeps = append(item.AddedDeps, provider.DepDAGItem{Dep: transitiveDep})
 			idx += 1
 		}
