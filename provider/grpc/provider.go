@@ -139,11 +139,7 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 		name := "generic"
 		if len(ic) != 0 {
 			if newName, ok := ic[0].ProviderSpecificConfig["lspServerName"].(string); ok {
-				if newName == "java" {
-					name = newName
-				} else {
-					name = newName
-				}
+				name = newName
 			}
 		}
 
