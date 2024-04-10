@@ -22,7 +22,6 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/swaggest/openapi-go/openapi3"
-	"go.lsp.dev/uri"
 )
 
 const (
@@ -65,12 +64,14 @@ type javaProvider struct {
 
 	clients []provider.ServiceClient
 
+	lspServerName string
+
 	hasMaven          bool
 	depsMutex         sync.RWMutex
 	depsLocationCache map[string]int
 }
 
-var _ provider.InternalProviderClient = &javaProvider{}
+var _ provider.BaseClient = &javaProvider{}
 
 var _ provider.DependencyLocationResolver = &javaProvider{}
 
@@ -83,15 +84,15 @@ type referenceCondition struct {
 	Location string `yaml:"location"`
 }
 
-func NewJavaProvider(config provider.Config, log logr.Logger) *javaProvider {
+func NewJavaProvider(log logr.Logger, lspServerName string) *javaProvider {
 
 	_, mvnBinaryError := exec.LookPath("mvn")
 
 	return &javaProvider{
-		config:            config,
 		hasMaven:          mvnBinaryError == nil,
 		Log:               log,
 		clients:           []provider.ServiceClient{},
+		lspServerName:     lspServerName,
 		depsLocationCache: make(map[string]int),
 	}
 }
@@ -121,10 +122,6 @@ func (p *javaProvider) Capabilities() []provider.Capability {
 		}
 	}
 	return caps
-}
-
-func (p *javaProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	return provider.FullResponseFromServiceClients(ctx, p.clients, cap, conditionInfo)
 }
 
 func symbolKindToString(symbolKind protocol.SymbolKind) string {
@@ -183,17 +180,6 @@ func symbolKindToString(symbolKind protocol.SymbolKind) string {
 		return "TypeParameter"
 	}
 	return ""
-}
-
-func (p *javaProvider) ProviderInit(ctx context.Context) error {
-	for _, c := range p.config.InitConfig {
-		client, err := p.Init(ctx, p.Log, c)
-		if err != nil {
-			return err
-		}
-		p.clients = append(p.clients, client)
-	}
-	return nil
 }
 
 func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
@@ -272,7 +258,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
 		args = append(args, fmt.Sprintf("-Xmx%s", val))
 	}
-
 	cmd := exec.CommandContext(ctx, lspServerPath, args...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -330,14 +315,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, err
 	}
 	return &svcClient, returnErr
-}
-
-func (p *javaProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
-	return provider.FullDepsResponse(ctx, p.clients)
-}
-
-func (p *javaProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
-	return provider.FullDepDAGResponse(ctx, p.clients)
 }
 
 // GetLocation given a dep, attempts to find line number, caches the line number for a given dep

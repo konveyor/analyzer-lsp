@@ -42,6 +42,7 @@ type depLabelItem struct {
 var _ provider.ServiceClient = &javaServiceClient{}
 
 func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+
 	cond := &javaCondition{}
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
@@ -51,7 +52,6 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	if cond.Referenced.Pattern == "" {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
 	}
-
 	symbols := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location)
 	p.log.V(5).Info("Symbols retrieved", "symbols", symbols)
 
@@ -81,7 +81,6 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	default:
 
 	}
-
 	// push error up for easier printing.
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, err

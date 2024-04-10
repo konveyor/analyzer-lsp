@@ -53,6 +53,7 @@ message IncidentContext {
   optional int64 LineNumber = 4;
   google.protobuf.Struct variables = 5;
   repeated ExternalLink links = 6;
+  bool IsDependencyIncident = 7;
 }
 
 message ProviderEvaluateResponse {
@@ -111,12 +112,13 @@ service ProviderService {
 message Dependency {
   string name = 1;
   string version = 2;
-  string type = 3;
-  string resolvedIdentifier = 4;
-  string fileURIPrefix = 5;
-  bool indirect = 6;
-  google.protobuf.Struct extras = 7;
-  repeated string labels = 8;
+  string classifier = 3;
+  string type = 4;
+  string resolvedIdentifier = 5;
+  string fileURIPrefix = 6;
+  bool indirect = 7;
+  google.protobuf.Struct extras = 8;
+  repeated string labels = 9;
 }
 
 message DependencyList {
