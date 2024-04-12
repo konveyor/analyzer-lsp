@@ -205,6 +205,8 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	params.ExtendedClientCapilities = map[string]interface{}{
 		"classFileContentsSupport": true,
 	}
+	// See https://github.com/eclipse-jdtls/eclipse.jdt.ls/blob/1a3dd9323756113bf39cfab82746d57a2fd19474/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/preferences/Preferences.java
+	// TODO: what if no wrapper?
 	params.InitializationOptions = map[string]interface{}{
 		"bundles":          absBundles,
 		"workspaceFolders": []string{fmt.Sprintf("file://%v", absLocation)},
@@ -220,6 +222,13 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 				},
 				"maven": map[string]interface{}{
 					"downloadSources": downloadSources,
+				},
+				"import": map[string]interface{}{
+					"gradle": map[string]interface{}{
+						"java": map[string]interface{}{
+							"home": "/usr/lib/jvm/java-1.8.0-openjdk",
+						},
+					},
 				},
 			},
 		},
