@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -414,6 +415,10 @@ func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log l
 func (r *ruleEngine) getRelativePathForViolation(fileURI uri.URI) (uri.URI, error) {
 	var sourceLocation string
 	if fileURI != "" {
+		u, err := url.ParseRequestURI(string(fileURI))
+		if err != nil || u.Scheme != uri.FileScheme {
+			return fileURI, nil
+		}
 		file := fileURI.Filename()
 		// get the correct source
 		for _, locationPrefix := range r.locationPrefixes {
