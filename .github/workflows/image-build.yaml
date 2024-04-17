@@ -30,6 +30,22 @@ jobs:
             containerfile: "./external-providers/dotnet-external-provider/Dockerfile"
             context: "./external-providers/dotnet-external-provider"
             architectures: '[ "amd64", "arm64" ]'
+          - name: golang-dependency-provider
+            containerfile: "./external-providers/golang-dependency-provider/Dockerfile"
+            context: "./external-providers/golang-dependency-provider"
+            architectures: '[ "amd64", "arm64" ]'
+          - name: yq-external-provider
+            containerfile: "./external-providers/yq-external-provider/Dockerfile"
+            context: "./external-providers/yq-external-provider"
+            architectures: '[ "amd64", "arm64" ]'
+          - name: java-external-provider
+            containerfile: "./external-providers/java-external-provider/Dockerfile"
+            context: "./external-providers/java-external-provider"
+            architectures: '[ "amd64", "arm64" ]'
+            pre_build_cmd: |
+              TAG=${GITHUB_REF_NAME/main/latest}
+              sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
+
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
       registry: "quay.io/konveyor"
@@ -41,3 +57,18 @@ jobs:
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
       registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
+  
+  # generic provider requires go dep provider we built in matrix and needs to be sequential
+  generic-external-provider-build:
+    uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
+    with:
+      registry: "quay.io/konveyor"
+      image_name: generic-external-provider
+      containerfile: "./external-providers/generic-external-provider/Dockerfile"
+      architectures: '[ "amd64", "arm64" ]'
+      context: "./external-providers/generic-external-provider/"
+      pre_build_cmd: |
+        TAG=${GITHUB_REF_NAME/main/latest}
+        sed -i "s,FROM quay.io/konveyor/golang-dependency-provider,FROM quay.io/konveyor/golang-dependency-provider:${TAG}," Dockerfile
+      
+    
