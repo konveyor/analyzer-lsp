@@ -60,6 +60,7 @@ jobs:
   
   # generic provider requires go dep provider we built in matrix and needs to be sequential
   generic-external-provider-build:
+    needs: image-build
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
       registry: "quay.io/konveyor"
