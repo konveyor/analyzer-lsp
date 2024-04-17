@@ -71,5 +71,7 @@ jobs:
       pre_build_cmd: |
         TAG=${GITHUB_REF_NAME/main/latest}
         sed -i "s,FROM quay.io/konveyor/golang-dependency-provider,FROM quay.io/konveyor/golang-dependency-provider:${TAG}," Dockerfile
-      
+    secrets:
+      registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
+      registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}  
     
