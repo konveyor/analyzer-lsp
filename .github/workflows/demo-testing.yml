@@ -86,7 +86,7 @@ jobs:
             elif .name == "yaml" then del(.binaryPath) | .address = "localhost:9995"
             else .
             end
-          )' provider_container_settings.json > provider_container_settings.json
+          )' provider_container_settings.json | tee provider_container_settings.json
 
           podman build -f demo.Dockerfile -t localhost/testing:latest
           podman run --entrypoint /usr/local/bin/konveyor-analyzer \
