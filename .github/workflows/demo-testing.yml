@@ -10,38 +10,97 @@ jobs:
     steps:
       - name: Extract pull request number from inputs or PR description
         id: extract-info
+        env:
+          PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: |
-          echo "${{ github.event.pull_request.body }}"
-          PULL_REQUEST_NUMBER=$(echo "${{ github.event.pull_request.body }}" | grep -oP 'Addon PR: \K\d+' || true)
-          echo "API_TESTS_REF=main" >> $GITHUB_OUTPUT
-          if [ -z "$PULL_REQUEST_NUMBER" ]; then
-            if [ -z "${{ github.event.pull_request.base.ref }}" ]; then
-              echo "Using addon branch main"
-              echo "ADDON_REF=main" >>$GITHUB_ENV
-            else
-              echo "Using addon branch ${{ github.event.pull_request.base.ref }}"
-              echo "ADDON_REF=${{ github.event.pull_request.base.ref }}" >>$GITHUB_ENV
-              # when we know the base branch, we should use the identical branch of api tests
-              echo "API_TESTS_REF=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
-            fi
+          # if this is a PR, we should use the base branch
+          # else, use the branch on which this is running
+          if [ ! -z ${GITHUB_BASE_REF} ]; then 
+              echo "Using ${GITHUB_BASE_REF}"
+              echo "API_TESTS_REF=${GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
+              echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_ENV
           else
-            echo "ADDON_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
+              echo "Using ${GITHUB_REF_NAME}"
+              echo "API_TESTS_REF=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+              echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_ENV
           fi
+          
+          # override with explicitely set value in PR description
+          echo "${PULL_REQUEST_BODY}"
+          PULL_REQUEST_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[A|a]ddon [P|p][R|r]: \K\d+' || true)
+          if [ ! -z "$PULL_REQUEST_NUMBER" ]; then
+            echo "Using pull/${PULL_REQUEST_NUMBER} for addon"
+            echo "ADDON_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
+          fi        
 
       - uses: actions/checkout@v3
 
-      - name: build image
-        run: podman build -t quay.io/konveyor/analyzer-lsp:latest .
+      # build all provider images and the analyzer-lsp image
+      - name: build images
+        run: |
+          function build_image {
+            dir=$1
+            name=$2
+            pushd ${dir}
+            podman build -t quay.io/konveyor/${name}:latest -f Dockerfile .
+            popd
+          }
+          pushd ./external-providers/
+          build_image golang-dependency-provider golang-dependency-provider
+          build_image java-external-provider java-external-provider
+          build_image yq-external-provider yq-external-provider
+          build_image generic-external-provider generic-external-provider
+          popd
+          build_image . analyzer-lsp
+          
 
-      - name: build demo image
-        run: podman build -f demo.Dockerfile -t localhost/testing:latest
+      # run the demo in a podman pod
+      - name: run demo image
+        run: |
+          function run_provider {
+            name=$1
+            img=$2
+            port=$3
+            podman run -d --pod analyzer --name ${name} -v test-data:/analyzer-lsp/examples/:Z \
+              quay.io/konveyor/${img}:latest --port ${port}
+          }
+          
+          mkdir /tmp/examples/ && \
+            cp -r examples/* /tmp/examples/ && \
+            cp -r ./external-providers/java-external-provider/examples/* /tmp/examples/
+          podman volume create test-data
+          podman run --rm -v test-data:/target -v /tmp/examples/:/src/:Z \
+            --entrypoint=cp alpine -a /src/. /target/
+          podman pod create --name=analyzer
+          run_provider golang generic-external-provider 9999
+          run_provider nodejs generic-external-provider 9998
+          run_provider python generic-external-provider 9997
+          run_provider java java-external-provider 9996
+          run_provider yq yq-external-provider 9995
+
+          jq 'map(
+            if .name == "go" then del(.binaryPath) | .address = "localhost:9999"
+            elif .name == "nodejs" then del(.binaryPath) | .address = "localhost:9998"
+            elif .name == "python" then del(.binaryPath) | .address = "localhost:9997"
+            elif .name == "java" then del(.binaryPath) | .address = "localhost:9996"
+            elif .name == "yaml" then del(.binaryPath) | .address = "localhost:9995"
+            else .
+            end
+          )' provider_container_settings.json | tee provider_container_settings.json
+
+          podman build -f demo.Dockerfile -t localhost/testing:latest
+          podman run --entrypoint /usr/local/bin/konveyor-analyzer \
+            --pod=analyzer \
+            -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z \
+            -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
+            localhost/testing:latest --dep-output-file=demo-dep-output.yaml
+
 
       - name: install yq for testing
         run: go install github.com/mikefarah/yq/v4@latest
 
-      - name: run demo image and ensure violations output unchanged
+      - name: ensure violation and dependency outputs are unchanged
         run: |
-          podman run --entrypoint /usr/local/bin/konveyor-analyzer -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --dep-output-file=demo-dep-output.yaml
           diff \
             <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))

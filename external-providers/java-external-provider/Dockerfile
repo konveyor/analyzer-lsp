@@ -11,7 +11,7 @@ RUN go mod download
 COPY main.go main.go
 COPY pkg/ pkg/
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o java-external-provider main.go
+RUN go build -a -o java-external-provider main.go
 
 FROM quay.io/konveyor/jdtls-server-base
 
