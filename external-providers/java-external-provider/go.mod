@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/go-logr/logr v1.4.1
-	github.com/konveyor/analyzer-lsp v0.3.0-rc.3.0.20240313171233-ddd55afec364
+	github.com/konveyor/analyzer-lsp v0.4.0-alpha.1
 	github.com/swaggest/openapi-go v0.2.50
 	github.com/vifraa/gopom v1.0.0
 	go.lsp.dev/uri v0.3.0
@@ -33,5 +33,5 @@ require (
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	google.golang.org/grpc v1.54.0 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )
