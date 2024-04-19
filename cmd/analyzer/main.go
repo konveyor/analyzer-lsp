@@ -474,7 +474,7 @@ func DependencyOutput(ctx context.Context, providers map[string]provider.Interna
 
 	if depsFlat == nil && depsTree == nil {
 		errLog.Info("failed to get dependencies from all given providers")
-		os.Exit(1)
+		return
 	}
 
 	var b []byte
@@ -483,7 +483,7 @@ func DependencyOutput(ctx context.Context, providers map[string]provider.Interna
 		b, err = yaml.Marshal(depsTree)
 		if err != nil {
 			errLog.Error(err, "failed to marshal dependency data as yaml")
-			os.Exit(1)
+			return
 		}
 	} else {
 		// Sort depsFlat
@@ -498,14 +498,14 @@ func DependencyOutput(ctx context.Context, providers map[string]provider.Interna
 		b, err = yaml.Marshal(depsFlat)
 		if err != nil {
 			errLog.Error(err, "failed to marshal dependency data as yaml")
-			os.Exit(1)
+			return
 		}
 	}
 
 	err = os.WriteFile(depOutputFile, b, 0644)
 	if err != nil {
 		errLog.Error(err, "failed to write dependencies to output file", "file", depOutputFile)
-		os.Exit(1)
+		return
 	}
 
 }
