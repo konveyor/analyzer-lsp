@@ -154,7 +154,7 @@ func DependencyCmd() *cobra.Command {
 
 			if depsFlat == nil && depsTree == nil {
 				errLog.Info("failed to get dependencies from all given providers")
-				os.Exit(1)
+				os.Exit(0)
 			}
 
 			var b []byte
