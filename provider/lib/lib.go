@@ -13,6 +13,6 @@ func GetProviderClient(config provider.Config, log logr.Logger) (provider.Intern
 	case "builtin":
 		return builtin.NewBuiltinProvider(config, log), nil
 	default:
-		return grpc.NewGRPCClient(config, log), nil
+		return grpc.NewGRPCClient(config, log)
 	}
 }

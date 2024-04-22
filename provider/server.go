@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
+	"go.lsp.dev/uri"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -23,14 +26,18 @@ type Server interface {
 }
 
 type server struct {
-	Client BaseClient
-	Log    logr.Logger
-	Port   int
-	libgrpc.UnimplementedProviderServiceServer
+	Client              BaseClient
+	CodeSnipeResolver   engine.CodeSnip
+	DepLocationResolver DependencyLocationResolver
+	Log                 logr.Logger
+	Port                int
 
 	mutex   sync.RWMutex
 	clients map[int64]clientMapItem
 	rand    rand.Rand
+	libgrpc.UnimplementedProviderCodeLocationServiceServer
+	libgrpc.UnimplementedProviderDependencyLocationServiceServer
+	libgrpc.UnimplementedProviderServiceServer
 }
 
 type clientMapItem struct {
@@ -42,6 +49,20 @@ type clientMapItem struct {
 // TOOD: HANDLE INIT CONFIG CHANGES
 func NewServer(client BaseClient, port int, logger logr.Logger) Server {
 	s := rand.NewSource(time.Now().Unix())
+
+	var depLocationResolver DependencyLocationResolver
+	var codeSnip engine.CodeSnip
+	var ok bool
+	depLocationResolver, ok = client.(DependencyLocationResolver)
+	if !ok {
+		depLocationResolver = nil
+	}
+
+	codeSnip, ok = client.(engine.CodeSnip)
+	if !ok {
+		codeSnip = nil
+	}
+
 	return &server{
 		Client:                             client,
 		Port:                               port,
@@ -50,6 +71,8 @@ func NewServer(client BaseClient, port int, logger logr.Logger) Server {
 		mutex:                              sync.RWMutex{},
 		clients:                            make(map[int64]clientMapItem),
 		rand:                               *rand.New(s),
+		DepLocationResolver:                depLocationResolver,
+		CodeSnipeResolver:                  codeSnip,
 	}
 }
 
@@ -60,6 +83,12 @@ func (s *server) Start(ctx context.Context) error {
 		return err
 	}
 	gs := grpc.NewServer()
+	if s.DepLocationResolver != nil {
+		libgrpc.RegisterProviderDependencyLocationServiceServer(gs, s)
+	}
+	if s.CodeSnipeResolver != nil {
+		libgrpc.RegisterProviderCodeLocationServiceServer(gs, s)
+	}
 	libgrpc.RegisterProviderServiceServer(gs, s)
 	reflection.Register(gs)
 	log.Printf("server listening at %v", lis.Addr())
@@ -67,6 +96,70 @@ func (s *server) Start(ctx context.Context) error {
 		log.Fatalf("failed to serve: %v", err)
 	}
 	return nil
+}
+
+func (s *server) GetDependencyLocation(ctx context.Context, req *libgrpc.GetDependencyLocationRequest) (*libgrpc.GetDependencyLocationResponse, error) {
+	if s.DepLocationResolver == nil {
+		return nil, fmt.Errorf("Provider does not provide Dependency Location Resolution")
+	}
+	res, err := s.DepLocationResolver.GetLocation(ctx, konveyor.Dep{
+		Name:               req.Dep.Name,
+		Version:            req.Dep.Version,
+		Classifier:         req.Dep.Classifier,
+		Type:               req.Dep.Type,
+		Indirect:           req.Dep.Indirect,
+		ResolvedIdentifier: req.Dep.ResolvedIdentifier,
+		Extras:             req.Dep.Extras.AsMap(),
+		Labels:             req.Dep.Labels,
+		FileURIPrefix:      req.Dep.FileURIPrefix,
+	}, req.DepFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return &libgrpc.GetDependencyLocationResponse{
+		Location: &libgrpc.Location{
+			StartPosition: &libgrpc.Position{
+				Line:      float64(res.StartPosition.Line),
+				Character: float64(res.StartPosition.Character),
+			},
+			EndPosition: &libgrpc.Position{
+				Line:      float64(res.EndPosition.Line),
+				Character: float64(res.EndPosition.Character),
+			},
+		},
+	}, nil
+}
+
+func (s *server) GetCodeSnip(ctx context.Context, req *libgrpc.GetCodeSnipRequest) (*libgrpc.GetCodeSnipResponse, error) {
+	if s.CodeSnipeResolver == nil {
+		return nil, fmt.Errorf("Provider does not provide Code Snippet Resolution")
+	}
+	if req.CodeLocation == nil {
+		return nil, nil
+
+	}
+	loc := engine.Location{}
+	if req.CodeLocation.StartPosition != nil {
+		loc.StartPosition = engine.Position{
+			Line:      int(req.CodeLocation.StartPosition.Line),
+			Character: int(req.CodeLocation.StartPosition.Character),
+		}
+	}
+	if req.CodeLocation.EndPosition != nil {
+		loc.EndPosition = engine.Position{
+			Line:      int(req.CodeLocation.EndPosition.Line),
+			Character: int(req.CodeLocation.EndPosition.Character),
+		}
+	}
+
+	res, err := s.CodeSnipeResolver.GetCodeSnip(uri.URI(req.Uri), loc)
+	if err != nil {
+		return nil, err
+	}
+	return &libgrpc.GetCodeSnipResponse{
+		Snip: res,
+	}, nil
 }
 
 func (s *server) Capabilities(ctx context.Context, _ *emptypb.Empty) (*libgrpc.CapabilitiesResponse, error) {
@@ -270,7 +363,6 @@ func (s *server) GetDependencies(ctx context.Context, in *libgrpc.ServiceRequest
 		Successful: true,
 		FileDep:    fileDeps,
 	}, nil
-
 }
 
 func recreateDAGAddedItems(items []DepDAGItem) []*libgrpc.DependencyDAGItem {

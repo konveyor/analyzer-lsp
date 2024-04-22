@@ -589,6 +589,12 @@ func (r *ruleEngine) getCodeLocation(ctx context.Context, m IncidentContext, rul
 		return "", nil
 	}
 
+	// We need to move this up, because the code only lives in the
+	// provider's
+	if rule.Snipper != nil {
+		return rule.Snipper.GetCodeSnip(m.FileURI, *m.CodeLocation)
+	}
+
 	if strings.HasPrefix(string(m.FileURI), uri.FileScheme) {
 		//Find the file, open it in a buffer.
 		readFile, err := os.Open(m.FileURI.Filename())
@@ -613,9 +619,6 @@ func (r *ruleEngine) getCodeLocation(ctx context.Context, m IncidentContext, rul
 			lineNumber += 1
 		}
 		return codeSnip, nil
-	}
-	if rule.Snipper != nil {
-		return rule.Snipper.GetCodeSnip(m.FileURI, *m.CodeLocation)
 	}
 
 	// if it is not a file ask the provider

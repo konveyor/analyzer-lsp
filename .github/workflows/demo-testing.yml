@@ -42,7 +42,8 @@ jobs:
             dir=$1
             name=$2
             pushd ${dir}
-            podman build -t quay.io/konveyor/${name}:latest -f Dockerfile .
+            go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
+            podman build -t quay.io/konveyor/${name}:latest -f Dockerfile ../../
             popd
           }
           pushd ./external-providers/
@@ -51,8 +52,8 @@ jobs:
           build_image yq-external-provider yq-external-provider
           build_image generic-external-provider generic-external-provider
           popd
-          build_image . analyzer-lsp
-          
+          podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
+
 
       # run the demo in a podman pod
       - name: run demo image

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	reflectClient "github.com/jhump/protoreflect/grpcreflect"
 	"github.com/konveyor/analyzer-lsp/provider"
 	pb "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"github.com/phayes/freeport"
@@ -31,15 +32,115 @@ type grpcProvider struct {
 }
 
 var _ provider.InternalProviderClient = &grpcProvider{}
-var _ provider.Startable = &grpcProvider{}
 
-func NewGRPCClient(config provider.Config, log logr.Logger) *grpcProvider {
+func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalProviderClient, error) {
 	log = log.WithName(config.Name)
 	log = log.WithValues("provider", "grpc")
-	return &grpcProvider{
-		config:         config,
+	conn, out, err := start(context.Background(), config)
+	if err != nil {
+		return nil, err
+	}
+	refCltCtx, cancel := context.WithCancel(context.Background())
+	refClt := reflectClient.NewClientAuto(refCltCtx, conn)
+	defer cancel()
+
+	services, err := checkServicesRunning(refClt, log)
+	if err != nil {
+		fmt.Printf("\n%v\n", err)
+		return nil, err
+	}
+	foundCodeSnip := false
+	foundDepResolve := false
+	for _, s := range services {
+		// TODO: Make consts
+		if s == "provider.ProviderCodeLocationService" {
+			foundCodeSnip = true
+		}
+		if s == "provider.ProviderDependencyLocationService" {
+			foundDepResolve = true
+		}
+	}
+	// Always need these
+	provierClient := pb.NewProviderServiceClient(conn)
+	gp := grpcProvider{
+		Client:         provierClient,
 		log:            log,
+		ctx:            refCltCtx,
+		conn:           conn,
+		config:         config,
 		serviceClients: []provider.ServiceClient{},
+	}
+	if out != nil {
+		go gp.LogProviderOut(context.Background(), out)
+	}
+	if foundCodeSnip && foundDepResolve {
+		// create the clients, create the struct that will have all the methods
+
+		cspc := pb.NewProviderCodeLocationServiceClient(conn)
+		dlrc := pb.NewProviderDependencyLocationServiceClient(conn)
+
+		return struct {
+			*grpcProvider
+			*codeSnipProviderClient
+			*dependencyLocationResolverClient
+		}{
+			grpcProvider: &gp,
+			codeSnipProviderClient: &codeSnipProviderClient{
+				client: cspc,
+			},
+			dependencyLocationResolverClient: &dependencyLocationResolverClient{
+				client: dlrc,
+			},
+		}, nil
+
+	} else if foundCodeSnip && !foundDepResolve {
+		// create the clients, create the struct that will have all the methods but dep resolve
+		cspc := pb.NewProviderCodeLocationServiceClient(conn)
+
+		return struct {
+			*grpcProvider
+			*codeSnipProviderClient
+		}{
+			grpcProvider: &gp,
+			codeSnipProviderClient: &codeSnipProviderClient{
+				client: cspc,
+			},
+		}, nil
+	} else if !foundCodeSnip && foundDepResolve {
+
+		dlrc := pb.NewProviderDependencyLocationServiceClient(conn)
+
+		return struct {
+			*grpcProvider
+			*dependencyLocationResolverClient
+		}{
+			grpcProvider: &gp,
+			dependencyLocationResolverClient: &dependencyLocationResolverClient{
+				client: dlrc,
+			},
+		}, nil
+
+	} else {
+		// just create grpcProvider
+		return &gp, nil
+	}
+}
+
+func checkServicesRunning(refClt *reflectClient.Client, log logr.Logger) ([]string, error) {
+	for {
+		select {
+		default:
+			services, err := refClt.ListServices()
+			if err == nil && len(services) != 0 {
+				return services, nil
+			}
+			if err != nil {
+				log.Error(err, "error for list services retrying")
+			}
+			time.Sleep(3 * time.Second)
+		case <-time.After(time.Second * 30):
+			return nil, fmt.Errorf("no services found")
+		}
 	}
 }
 
@@ -126,15 +227,15 @@ func (g *grpcProvider) Stop() {
 	g.conn.Close()
 }
 
-func (g *grpcProvider) Start(ctx context.Context) error {
+func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.ReadCloser, error) {
 	// Here the Provider will start the GRPC Server if a binary is set.
-	if g.config.BinaryPath != "" {
+	if config.BinaryPath != "" {
 		port, err := freeport.GetFreePort()
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 
-		ic := g.config.InitConfig
+		ic := config.InitConfig
 		// For the generic external provider
 		name := "generic"
 		if len(ic) != 0 {
@@ -143,55 +244,33 @@ func (g *grpcProvider) Start(ctx context.Context) error {
 			}
 		}
 
-		cmd := exec.CommandContext(ctx, g.config.BinaryPath, "--port", fmt.Sprintf("%v", port), "--name", name)
+		cmd := exec.CommandContext(ctx, config.BinaryPath, "--port", fmt.Sprintf("%v", port), "--name", name)
 		// TODO: For each output line, log that line here, allows the server's to output to the main log file. Make sure we name this correctly
 		// cmd will exit with the ending of the ctx.
 		out, err := cmd.StdoutPipe()
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
-		go g.LogProviderOut(ctx, out)
 
 		err = cmd.Start()
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 		conn, err := grpc.Dial(fmt.Sprintf("localhost:%v", port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("did not connect: %v", err)
 		}
-		c := pb.NewProviderServiceClient(conn)
-		g.conn = conn
-		g.Client = c
-
-		// Give the server some time to start up, assume that a server MUST provide 1 cap
-		for {
-			select {
-			default:
-				caps := g.Capabilities()
-				if len(caps) != 0 {
-					g.log.Info("Caps found", "caps", caps)
-					return nil
-				}
-				time.Sleep(3 * time.Second)
-			case <-time.After(time.Second * 30):
-				return fmt.Errorf("no Capabilities for provider: %v", g.config.Name)
-			}
-		}
+		return conn, out, nil
 	}
-	if g.config.Address != "" {
-		conn, err := grpc.Dial(fmt.Sprintf(g.config.Address), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if config.Address != "" {
+		conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("did not connect: %v", err)
 		}
-		c := pb.NewProviderServiceClient(conn)
-		g.conn = conn
-		g.Client = c
-
-		return nil
+		return conn, nil, nil
 
 	}
-	return fmt.Errorf("must set Address or Binary Path for a GRPC provider")
+	return nil, nil, fmt.Errorf("must set Address or Binary Path for a GRPC provider")
 }
 
 func (g *grpcProvider) LogProviderOut(ctx context.Context, out io.ReadCloser) {

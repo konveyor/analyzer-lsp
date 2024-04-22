@@ -1,13 +1,16 @@
 FROM golang:1.20 as go-builder
 
+COPY / /analyzer-lsp
+
 WORKDIR /generic-external-provider
 
-COPY go.mod go.mod
-COPY go.sum go.sum
-RUN go mod download
+COPY external-providers/generic-external-provider/go.mod go.mod
+COPY external-providers/generic-external-provider/go.sum go.sum
 
-COPY main.go main.go
-COPY pkg/ pkg/
+COPY external-providers/generic-external-provider/main.go main.go
+COPY external-providers/generic-external-provider/pkg/ pkg/
+RUN go mod tidy
+
 RUN go build -o generic-external-provider main.go
 
 FROM quay.io/konveyor/golang-dependency-provider as go-dep-provider

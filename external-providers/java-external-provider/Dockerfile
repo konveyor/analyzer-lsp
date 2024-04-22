@@ -1,15 +1,18 @@
 # Build the manager binary
 FROM golang:1.21 as builder
 
+COPY / /analyzer-lsp
+
 WORKDIR /java-provider
 
-COPY go.mod go.mod
-COPY go.sum go.sum
+COPY external-providers/java-external-provider/go.mod go.mod
+COPY external-providers/java-external-provider/go.sum go.sum
 
-RUN go mod download
 
-COPY main.go main.go
-COPY pkg/ pkg/
+COPY external-providers/java-external-provider/main.go main.go
+COPY external-providers/java-external-provider/pkg/ pkg/
+
+RUN go mod tidy
 
 RUN go build -a -o java-external-provider main.go
 
