@@ -1,6 +1,6 @@
 DOCKER_IMAGE = test
 
-build: analyzer deps external-generic golang-dependency-provider yq-external-provider java-external-provider
+build: analyzer deps golang-dependency-provider external-generic yq-external-provider java-external-provider
 
 analyzer:
 	go build -o konveyor-analyzer ./cmd/analyzer/main.go
@@ -23,7 +23,7 @@ deps:
 image-build:
 	docker build -f Dockerfile . -t $(DOCKER_IMAGE)
 
-build-external: build-dotnet-provider build-generic-provider build-golang-dep-provider build-java-provider build-yq-provider
+build-external: build-dotnet-provider build-golang-dep-provider build-generic-provider build-java-provider build-yq-provider
 
 build-dotnet-provider:
 	cd external-providers/dotnet-external-provider/ && go mod edit --replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
