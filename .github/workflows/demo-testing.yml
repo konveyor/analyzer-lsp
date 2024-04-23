@@ -38,63 +38,71 @@ jobs:
       # build all provider images and the analyzer-lsp image
       - name: build images
         run: |
-          function build_image {
-            dir=$1
-            name=$2
-            pushd ${dir}
-            go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
-            podman build -t quay.io/konveyor/${name}:latest -f Dockerfile ../../
-            popd
-          }
-          pushd ./external-providers/
-          build_image golang-dependency-provider golang-dependency-provider
-          build_image java-external-provider java-external-provider
-          build_image yq-external-provider yq-external-provider
-          build_image generic-external-provider generic-external-provider
-          popd
+          make  -t localhost/testing:latest
+          make build-external
           podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
+        # run: |
+        #   function build_image {
+        #     dir=$1
+        #     name=$2
+        #     pushd ${dir}
+        #     go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
+        #     podman build -t quay.io/konveyor/${name}:latest -f Dockerfile ../../
+        #     popd
+        #   }
+        #   pushd ./external-providers/
+        #   build_image golang-dependency-provider golang-dependency-provider
+        #   build_image java-external-provider java-external-provider
+        #   build_image yq-external-provider yq-external-provider
+        #   build_image generic-external-provider generic-external-provider
+        #   popd
 
 
       # run the demo in a podman pod
       - name: run demo image
-        run: |
-          function run_provider {
-            name=$1
-            img=$2
-            port=$3
-            podman run -d --pod analyzer --name ${name} -v test-data:/analyzer-lsp/examples/:Z \
-              quay.io/konveyor/${img}:latest --port ${port}
-          }
+        run : |
+          make run-external-providers-pod
+          podman build -f demo-local.Dockerfile -t localhost/testing:latest
+          make run-demo-image
+
+        # run: |
+        #   function run_provider {
+        #     name=$1
+        #     img=$2
+        #     port=$3
+        #     podman run -d --pod analyzer --name ${name} -v test-data:/analyzer-lsp/examples/:Z \
+        #       quay.io/konveyor/${img}:latest --port ${port}
+        #   }
           
-          mkdir /tmp/examples/ && \
-            cp -r examples/* /tmp/examples/ && \
-            cp -r ./external-providers/java-external-provider/examples/* /tmp/examples/
-          podman volume create test-data
-          podman run --rm -v test-data:/target -v /tmp/examples/:/src/:Z \
-            --entrypoint=cp alpine -a /src/. /target/
-          podman pod create --name=analyzer
-          run_provider golang generic-external-provider 9999
-          run_provider nodejs generic-external-provider 9998
-          run_provider python generic-external-provider 9997
-          run_provider java java-external-provider 9996
-          run_provider yq yq-external-provider 9995
+        #   mkdir /tmp/examples/ && \
+        #     cp -r examples/* /tmp/examples/ && \
+        #     cp -r ./external-providers/java-external-provider/examples/* /tmp/examples/
+        #   podman volume create test-data
+        #   podman run --rm -v test-data:/target -v /tmp/examples/:/src/:Z \
+        #     --entrypoint=cp alpine -a /src/. /target/
+        #   podman pod create --name=analyzer
+        #   run_provider golang generic-external-provider 9999
+        #   run_provider nodejs generic-external-provider 9998
+        #   run_provider python generic-external-provider 9997
+        #   run_provider java java-external-provider 9996
+        #   run_provider yq yq-external-provider 9995
 
-          jq 'map(
-            if .name == "go" then del(.binaryPath) | .address = "localhost:9999"
-            elif .name == "nodejs" then del(.binaryPath) | .address = "localhost:9998"
-            elif .name == "python" then del(.binaryPath) | .address = "localhost:9997"
-            elif .name == "java" then del(.binaryPath) | .address = "localhost:9996"
-            elif .name == "yaml" then del(.binaryPath) | .address = "localhost:9995"
-            else .
-            end
-          )' provider_container_settings.json | tee provider_container_settings.json
+        #   jq 'map(
+        #     if .name == "go" then del(.binaryPath) | .address = "localhost:9999"
+        #     elif .name == "nodejs" then del(.binaryPath) | .address = "localhost:9998"
+        #     elif .name == "python" then del(.binaryPath) | .address = "localhost:9997"
+        #     elif .name == "java" then del(.binaryPath) | .address = "localhost:9996"
+        #     elif .name == "yaml" then del(.binaryPath) | .address = "localhost:9995"
+        #     else .
+        #     end
+        #   )' provider_container_settings.json | tee provider_container_settings.json
 
-          podman build -f demo.Dockerfile -t localhost/testing:latest
-          podman run --entrypoint /usr/local/bin/konveyor-analyzer \
-            --pod=analyzer \
-            -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z \
-            -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
-            localhost/testing:latest --dep-output-file=demo-dep-output.yaml
+        #   podman build -f demo.Dockerfile -t localhost/testing:latest
+        #   podman run --entrypoint /usr/local/bin/konveyor-analyzer \
+        #     --pod=analyzer \
+        #     -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z \
+        #     -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
+        #     localhost/testing:latest --dep-output-file=demo-dep-output.yaml
 
 
       - name: install yq for testing
