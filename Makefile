@@ -31,6 +31,7 @@ build-dotnet-provider:
 
 build-generic-provider:
 	cd external-providers/generic-external-provider/ && go mod edit --replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
+	sed -i 's,quay.io/konveyor/golang-dependency-provider,golang-dep-provider,g' external-providers/generic-external-provider/Dockerfile
 	podman build -f external-providers/generic-external-provider/Dockerfile -t generic-provider .
 
 build-golang-dep-provider:
