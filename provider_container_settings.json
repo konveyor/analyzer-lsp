@@ -21,7 +21,7 @@
         "name": "yaml",
         "binaryPath": "/usr/local/bin/yq-external-provider",
         "initConfig": [{
-            "location": "examples/yaml",
+            "location": "/analyzer-lsp/examples/yaml",
             "analysisMode": "full",
             "providerSpecificConfig": {
                 "name": "yq",
@@ -70,7 +70,7 @@
         "binaryPath":  "/usr/local/bin/java-external-provider",
         "initConfig": [
             {
-                "location": "examples/java",
+                "location": "/analyzer-lsp/examples/java",
                 "providerSpecificConfig": {
                     "lspServerName": "java",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
@@ -80,7 +80,7 @@
                 "analysisMode": "source-only"
             },
             {
-                "location": "examples/customers-tomcat-legacy",
+                "location": "/analyzer-lsp/examples/customers-tomcat-legacy",
                 "providerSpecificConfig": {
                     "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
