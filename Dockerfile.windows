@@ -1,0 +1,29 @@
+FROM golang:1.19-windowsservercore-ltsc2022 as builder
+WORKDIR /analyzer-lsp
+
+COPY cmd /analyzer-lsp/cmd
+COPY engine /analyzer-lsp/engine
+COPY  event /analyzer-lsp/event
+COPY output /analyzer-lsp/output
+COPY jsonrpc2 /analyzer-lsp/jsonrpc2
+COPY  jsonrpc2_v2 /analyzer-lsp/jsonrpc2_v2
+COPY lsp /analyzer-lsp/lsp
+COPY parser /analyzer-lsp/parser
+COPY provider /analyzer-lsp/provider
+COPY tracing /analyzer-lsp/tracing
+COPY external-providers /analyzer-lsp/external-providers
+COPY go.mod /analyzer-lsp/go.mod
+COPY go.sum /analyzer-lsp/go.sum
+
+RUN go build -o konveyor-analyzer.exe ./cmd/analyzer/main.go
+
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Set the working directory inside the container
+WORKDIR C:/app
+
+# Copy the executable from the builder stage
+COPY --from=builder /analyzer-lsp/konveyor-analyzer.exe .
+
+# Command to run the executable
+ENTRYPOINT ["konveyor-analyzer.exe"]
