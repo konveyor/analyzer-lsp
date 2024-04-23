@@ -28,6 +28,6 @@ RUN npm install -g typescript-language-server typescript
 RUN go install golang.org/x/tools/gopls@latest
 
 COPY --from=go-builder /generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
-COPY --from=go-dep-provider /usr/local/bin/go-dependency-provider /usr/local/bin/go-dependency-provider
+COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 
 ENTRYPOINT [ "/usr/local/bin/generic-external-provider" ]
