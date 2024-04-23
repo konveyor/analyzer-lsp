@@ -38,7 +38,6 @@ jobs:
       # build all provider images and the analyzer-lsp image
       - name: build images
         run: |
-          make  -t localhost/testing:latest
           make build-external
           podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
         # run: |
