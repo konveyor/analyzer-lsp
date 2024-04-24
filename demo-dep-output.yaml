@@ -405,7 +405,7 @@
     version: 2.12.3
     type: compile
     indirect: true
-    resolvedIdentifier: 7275513412694a1aafd08c0287f48469fa0e6e17
+    resolvedIdentifier: 87859f29ceebfab7a873c3b4f4b89c9a594b2842
     extras:
       artifactId: jackson-annotations
       baseDep:
@@ -520,7 +520,7 @@
   - name: io.konveyor.demo.config-utils
     version: 1.0.0
     type: compile
-    resolvedIdentifier: FE4FE11AAEE77BE10035218537FBF4B2E6EF1D9F
+    resolvedIdentifier: 4010193B2F96CC7B7056C4CD51C3188FBBBC86E0
     extras:
       artifactId: config-utils
       groupId: io.konveyor.demo
@@ -744,7 +744,7 @@
   - name: org.apache.tomcat.tomcat-servlet-api
     version: 9.0.46
     type: provided
-    resolvedIdentifier: 8e8a27a3456b71b1da2c8adc902ade71bc91fcb4
+    resolvedIdentifier: 1f5ec6292bbca9e6c35172044b5fee0b0a97ef24
     extras:
       artifactId: tomcat-servlet-api
       groupId: org.apache.tomcat
@@ -1264,7 +1264,7 @@
   - name: org.springframework.data.spring-data-jpa
     version: 2.5.1
     type: compile
-    resolvedIdentifier: 881f7ae140f424b3bdb1b0c27a61b93e0bee9fa5
+    resolvedIdentifier: 461ebcc9fc00dca10a754b0e96583ce7d281d312
     extras:
       artifactId: spring-data-jpa
       groupId: org.springframework.data
@@ -1409,7 +1409,7 @@
     version: 5.3.7
     type: compile
     indirect: true
-    resolvedIdentifier: f1892fe7a6671348d6546facbd40159b7e6f64a2
+    resolvedIdentifier: cc6911f3194cb77d493aa626c661789926027446
     extras:
       artifactId: spring-orm
       baseDep:
@@ -1496,7 +1496,7 @@
     version: 2.13.3
     type: compile
     indirect: true
-    resolvedIdentifier: 7198b3aac15285a49e218e08441c5f70af00fc51
+    resolvedIdentifier: 717e3012ee74008533d4e92946ccf49060e84e78
     extras:
       artifactId: jackson-annotations
       baseDep:
@@ -1516,7 +1516,7 @@
     version: 2.13.3
     type: compile
     indirect: true
-    resolvedIdentifier: a27014716e4421684416e5fa83d896ddb87002da
+    resolvedIdentifier: 1a9b0ebfcda0063950c35f42c7fdce9a34e8b782
     extras:
       artifactId: jackson-core
       baseDep:
@@ -1536,7 +1536,7 @@
     version: 2.13.3
     type: compile
     indirect: true
-    resolvedIdentifier: 56deb9ea2c93a7a556b3afbedd616d342963464e
+    resolvedIdentifier: 2c0ce6eb612e33616edb250542d0fda62524f717
     extras:
       artifactId: jackson-databind
       baseDep:
@@ -1556,7 +1556,7 @@
     version: 2.13.3
     type: compile
     indirect: true
-    resolvedIdentifier: 9363ded5441b1fee62d5be0604035690ca759a2a
+    resolvedIdentifier: 79e3dbba4729d503ce3eef93f68caddf213b678d
     extras:
       artifactId: jackson-dataformat-yaml
       baseDep:
@@ -1576,7 +1576,7 @@
     version: 2.13.3
     type: compile
     indirect: true
-    resolvedIdentifier: ad2f4c61aeb9e2a8bb5e4a3ed782cfddec52d972
+    resolvedIdentifier: b22a52de24b5bd7bcf210f02bd2e75ae1c4a740d
     extras:
       artifactId: jackson-datatype-jsr310
       baseDep:
@@ -1596,7 +1596,7 @@
     version: 3.12.12
     type: runtime
     indirect: true
-    resolvedIdentifier: d952189f6abb148ff72aab246aa8c28cf99b469f
+    resolvedIdentifier: 705a7df4584707ae40db2fb903f921755510567f
     extras:
       artifactId: logging-interceptor
       baseDep:
@@ -1616,7 +1616,7 @@
     version: 3.12.12
     type: runtime
     indirect: true
-    resolvedIdentifier: d3e1ce1d2b3119adf270b2d00d947beb03fe3321
+    resolvedIdentifier: 90c81c59b2eb943ddbe58bc717e3e75bccd518c2
     extras:
       artifactId: okhttp
       baseDep:
@@ -1636,7 +1636,7 @@
     version: 1.15.0
     type: runtime
     indirect: true
-    resolvedIdentifier: bc28b5a964c8f5721eb58ee3f3c47a9bcbf4f4d8
+    resolvedIdentifier: 87f1520a39a954a9aa185c7fe8f144fa7d597690
     extras:
       artifactId: okio
       baseDep:
@@ -1656,7 +1656,7 @@
     version: 1.5.0
     type: provided
     indirect: true
-    resolvedIdentifier: ec2410fdf7e0a3022e7c2a2e6241039d1abc1e98
+    resolvedIdentifier: 2143163e070fcd301fbf7b3246ca4854caaabacc
     extras:
       artifactId: javax.mail
       baseDep:
@@ -1675,7 +1675,7 @@
   - name: io.fabric8.kubernetes-client
     version: 6.0.0
     type: compile
-    resolvedIdentifier: d0831d44e12313df8989fc1d4a9c90452f08858e
+    resolvedIdentifier: 738af0538ca0399331e1d5477edc74b19a43d912
     extras:
       artifactId: kubernetes-client
       groupId: io.fabric8
@@ -1687,7 +1687,7 @@
   - name: io.fabric8.kubernetes-client-api
     version: 6.0.0
     type: compile
-    resolvedIdentifier: 3f54cdb10f54b413fe4b8a0d4d044d33174bd271
+    resolvedIdentifier: fb7ecaa7697fc3ba4157ab7250c542032b6f3b0f
     extras:
       artifactId: kubernetes-client-api
       groupId: io.fabric8
@@ -1700,7 +1700,7 @@
     version: 6.0.0
     type: runtime
     indirect: true
-    resolvedIdentifier: 70690b98acb07a809c55d15d7cf45f53ec1026e1
+    resolvedIdentifier: b06ddc26ab91382d2ed02ae6c16f3108a12bef04
     extras:
       artifactId: kubernetes-httpclient-okhttp
       baseDep:
@@ -1720,7 +1720,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 9e3b0d4caa3d033fa0f71c71d8a535a748b280ba
+    resolvedIdentifier: dcbf5acf8815378769490abee2170d54ac73732b
     extras:
       artifactId: kubernetes-model-admissionregistration
       baseDep:
@@ -1740,7 +1740,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: eac63b8dec80e96c4356c91ed0a332415efcb75e
+    resolvedIdentifier: b053ca57ddd50936e1cfe8e5790b77dd76393944
     extras:
       artifactId: kubernetes-model-apiextensions
       baseDep:
@@ -1760,7 +1760,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 4dbda6401058a5fd3a4c6be88fc1bf4f99296c4f
+    resolvedIdentifier: f23c0d497dd0a99f35a06bdd0a04dd8a4ec92dd2
     extras:
       artifactId: kubernetes-model-apps
       baseDep:
@@ -1780,7 +1780,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: b353e45133fbc80791d676b16203ec94c0958b7d
+    resolvedIdentifier: 1d6c9585a5c33cfb19cc0ac3a27bc17b2c7e4922
     extras:
       artifactId: kubernetes-model-autoscaling
       baseDep:
@@ -1800,7 +1800,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 9f14cbfc75d172fa81f3f6ad793bdd45a2decaec
+    resolvedIdentifier: 32e9e912473abdbc8c70484db3ba733bdc4772f0
     extras:
       artifactId: kubernetes-model-batch
       baseDep:
@@ -1820,7 +1820,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 33f5a3f386cddda55003e1616303ab924fcd3ca5
+    resolvedIdentifier: aef58e6d3ecff8ab73e92a6a0908159e2956eb91
     extras:
       artifactId: kubernetes-model-certificates
       baseDep:
@@ -1840,7 +1840,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 7d45968cf6b9902e37d5d542f42ee2daed203e3d
+    resolvedIdentifier: 5451f267796cd342bf5ce2306657eae6319e95fa
     extras:
       artifactId: kubernetes-model-common
       baseDep:
@@ -1860,7 +1860,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: cd454532158351d8ff37616dc33749ca2a85c8d1
+    resolvedIdentifier: b2e8564f0426ba14c96421c9bd611a47431d9618
     extras:
       artifactId: kubernetes-model-coordination
       baseDep:
@@ -1880,7 +1880,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 73469e4a7baec7600455d7f4a121c6680e80bf35
+    resolvedIdentifier: 9dec469abc198daac6d9260fb432e711dc005655
     extras:
       artifactId: kubernetes-model-core
       baseDep:
@@ -1900,7 +1900,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 246ad448a1868b3c601394e21350a9602adef24c
+    resolvedIdentifier: b10bf58ec0ef527e8d5854b209f45917aa64e667
     extras:
       artifactId: kubernetes-model-discovery
       baseDep:
@@ -1920,7 +1920,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 204c2c78a4a8e0b5f5ebc1b788c9f22a8c1b14ab
+    resolvedIdentifier: ea54163696f03b5827d7dcf47a753b638a886b25
     extras:
       artifactId: kubernetes-model-events
       baseDep:
@@ -1940,7 +1940,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 60c9e43f1f34ab9c145798471926c07e13e45ecf
+    resolvedIdentifier: 22f366518f18974400a50a9b18d69d4481b97e2a
     extras:
       artifactId: kubernetes-model-extensions
       baseDep:
@@ -1960,7 +1960,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 3b01d9eab7e7d7c9d46d8828202bff78fbdaa7d9
+    resolvedIdentifier: a8cce874a1b32d283431966643fdfaa148ede743
     extras:
       artifactId: kubernetes-model-flowcontrol
       baseDep:
@@ -1980,7 +1980,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 1a400f8f7915bd2a68fa075605768d762aaad4cb
+    resolvedIdentifier: 7406edacfddc43e81fdca5f6b58f9cffcfd6208a
     extras:
       artifactId: kubernetes-model-metrics
       baseDep:
@@ -2000,7 +2000,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: c87e11bebb26bb48660765b42a68f9577336b799
+    resolvedIdentifier: 5abd2eb6209f3c8f27be9d9361f02609a51d8e4a
     extras:
       artifactId: kubernetes-model-networking
       baseDep:
@@ -2020,7 +2020,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 972706f6dffa518e11c94647cf47e188db6115f6
+    resolvedIdentifier: 29b29db3b39c5240b5eda0e6b2ef42e0254be90b
     extras:
       artifactId: kubernetes-model-node
       baseDep:
@@ -2040,7 +2040,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 15b3011eb5ff48b9fc2bd8bcc4db697ca9ec30e4
+    resolvedIdentifier: 2a846f217bd879ecee71c03615c2b714630dca4b
     extras:
       artifactId: kubernetes-model-policy
       baseDep:
@@ -2060,7 +2060,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 03ad461761d775ff9c252d2b26a4977d22dd0f3a
+    resolvedIdentifier: 4d218bb7b4b1f6c76d8cfe4ef136813b73973833
     extras:
       artifactId: kubernetes-model-rbac
       baseDep:
@@ -2080,7 +2080,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: a5fae7294f5c39fb9d7cffb7280b55ca458c9128
+    resolvedIdentifier: 4cca28ace5b98318415d7ffd75f707820d19bf20
     extras:
       artifactId: kubernetes-model-scheduling
       baseDep:
@@ -2100,7 +2100,7 @@
     version: 6.0.0
     type: compile
     indirect: true
-    resolvedIdentifier: 6ffa61f9021d07a4a9d785e83a513955a3c48073
+    resolvedIdentifier: e944960ca3f380afaa39366f37145c5bb617e6ec
     extras:
       artifactId: kubernetes-model-storageclass
       baseDep:
@@ -2120,7 +2120,7 @@
     version: 0.3.0
     type: compile
     indirect: true
-    resolvedIdentifier: d3ebf0f291297649b4c8dc3ecc81d2eddedc100d
+    resolvedIdentifier: 1385fb99630e407ae2821c9a16ccff56c879cdc9
     extras:
       artifactId: zjsonpatch
       baseDep:
@@ -2139,7 +2139,7 @@
   - name: io.netty.netty-buffer
     version: 4.1.76.Final
     type: runtime
-    resolvedIdentifier: 231f5042a5050773eb22a918e84daff3f00892f2
+    resolvedIdentifier: 453d1177e8b3194ef1111ad72d6d5a245c888975
     extras:
       artifactId: netty-buffer
       groupId: io.netty
@@ -2151,7 +2151,7 @@
   - name: io.netty.netty-common
     version: 4.1.76.Final
     type: runtime
-    resolvedIdentifier: 38d0b500f098dc89497b6e608d7427186f533cf0
+    resolvedIdentifier: 40049284125ae2450120801fe3df7f605ce29ee1
     extras:
       artifactId: netty-common
       groupId: io.netty
@@ -2164,7 +2164,7 @@
     version: 4.1.76.Final
     type: runtime
     indirect: true
-    resolvedIdentifier: e0b225a33772cb7bba73dc296cccefa6826ab8cc
+    resolvedIdentifier: afc436aa5f9368bd10e1653a6531dfda0883fa5f
     extras:
       artifactId: netty-resolver
       baseDep:
@@ -2183,7 +2183,7 @@
   - name: io.netty.netty-transport
     version: 4.1.76.Final
     type: runtime
-    resolvedIdentifier: f01d2f935005b6fdb2fedc23114d2ae717749c36
+    resolvedIdentifier: fb77aebb06acd640d8dc2c50dcc531c59c7e1696
     extras:
       artifactId: netty-transport
       groupId: io.netty
@@ -2195,7 +2195,7 @@
   - name: io.netty.netty-transport-classes-epoll
     version: 4.1.76.Final
     type: runtime
-    resolvedIdentifier: 921b92a76116674218af3dc4bbf43d73884e4146
+    resolvedIdentifier: e7b89664fddac0b494a8d3492ac532ccf8ed7c06
     extras:
       artifactId: netty-transport-classes-epoll
       groupId: io.netty
@@ -2220,7 +2220,7 @@
   - name: io.netty.netty-transport-native-unix-common
     version: 4.1.76.Final
     type: runtime
-    resolvedIdentifier: d5ed8c4be9680203c53f7ed788225c12c4d87ee0
+    resolvedIdentifier: 9c1755c00652bd1d568c49bae7c6da56f5dabac6
     extras:
       artifactId: netty-transport-native-unix-common
       groupId: io.netty
@@ -2233,7 +2233,7 @@
     version: "1.1"
     type: provided
     indirect: true
-    resolvedIdentifier: e6cb541461c2834bdea3eb920f1884d1eb508b50
+    resolvedIdentifier: fd9dd0faa8f03f3ce0dc4eec22e57e818d8b9897
     extras:
       artifactId: activation
       baseDep:
@@ -2252,7 +2252,7 @@
   - name: javax.javaee-api
     version: "7.0"
     type: provided
-    resolvedIdentifier: 51399f902cc27a808122edcbebfaa1ad989954ba
+    resolvedIdentifier: e54c73cdc03722ed6c66d02cf27d10970ca0cec1
     extras:
       artifactId: javaee-api
       groupId: javax
@@ -2264,7 +2264,7 @@
   - name: junit.junit
     version: "4.11"
     type: test
-    resolvedIdentifier: 4e031bb61df09069aeb2bffb4019e7a5034a4ee0
+    resolvedIdentifier: cddf7490ffe839978cf5d6c944c01f2a8cb70a49
     extras:
       artifactId: junit
       groupId: junit
@@ -2277,7 +2277,7 @@
     version: "1.3"
     type: test
     indirect: true
-    resolvedIdentifier: 42a25dc3219429f0e5d060061f71acb49bf010a0
+    resolvedIdentifier: 872e413497b906e7c9fa85ccc96046c5d1ef7ece
     extras:
       artifactId: hamcrest-core
       baseDep:
@@ -2297,7 +2297,7 @@
     version: 1.7.36
     type: compile
     indirect: true
-    resolvedIdentifier: 6c62681a2f655b49963a5983b8b0950a6120ae14
+    resolvedIdentifier: 749f6995b1d6591a417ca4fd19cdbddabae16fd1
     extras:
       artifactId: slf4j-api
       baseDep:
@@ -2317,7 +2317,7 @@
     version: "1.30"
     type: compile
     indirect: true
-    resolvedIdentifier: 8fde7fe2586328ac3c68db92045e1c8759125000
+    resolvedIdentifier: 767ab0a7a346f60dad0acebe318e335a5d27fe55
     extras:
       artifactId: snakeyaml
       baseDep:

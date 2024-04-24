@@ -460,20 +460,20 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 func resolveDepFilepath(d *provider.Dep, p *javaServiceClient, group string, artifact string, localRepoPath string) string {
 	groupPath := strings.Replace(group, ".", "/", -1)
 
-	// Try jar packaging
+	// Try pom packaging (see https://www.baeldung.com/maven-packaging-types#4-pom)
 	var fp string
 	if d.Classifier == "" {
-		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "jar"))
+		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "pom"))
 	} else {
-		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "jar"))
+		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "pom"))
 	}
 	b, err := os.ReadFile(fp)
 	if err != nil {
-		// Try pom packaging (see https://www.baeldung.com/maven-packaging-types#4-pom)
+		// Try jar packaging
 		if d.Classifier == "" {
-			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "pom"))
+			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "jar"))
 		} else {
-			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "pom"))
+			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "jar"))
 		}
 		b, err = os.ReadFile(fp)
 	}
