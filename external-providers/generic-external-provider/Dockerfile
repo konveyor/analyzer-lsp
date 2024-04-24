@@ -9,7 +9,8 @@ COPY external-providers/generic-external-provider/go.sum go.sum
 
 COPY external-providers/generic-external-provider/main.go main.go
 COPY external-providers/generic-external-provider/pkg/ pkg/
-RUN go mod tidy
+
+RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
 
 RUN go build -o generic-external-provider main.go
 

@@ -28,19 +28,19 @@ jobs:
             architectures: '[ "amd64", "arm64", "ppc64le", "s390x" ]'
           - name: dotnet-external-provider
             containerfile: "./external-providers/dotnet-external-provider/Dockerfile"
-            context: "./external-providers/dotnet-external-provider"
+            context: "."
             architectures: '[ "amd64", "arm64" ]'
           - name: golang-dependency-provider
             containerfile: "./external-providers/golang-dependency-provider/Dockerfile"
-            context: "./external-providers/golang-dependency-provider"
+            context: "."
             architectures: '[ "amd64", "arm64" ]'
           - name: yq-external-provider
             containerfile: "./external-providers/yq-external-provider/Dockerfile"
-            context: "./external-providers/yq-external-provider"
+            context: "."
             architectures: '[ "amd64", "arm64" ]'
           - name: java-external-provider
             containerfile: "./external-providers/java-external-provider/Dockerfile"
-            context: "./external-providers/java-external-provider"
+            context: "."
             architectures: '[ "amd64", "arm64" ]'
             pre_build_cmd: |
               TAG=${GITHUB_REF_NAME/main/latest}
@@ -67,7 +67,7 @@ jobs:
       image_name: generic-external-provider
       containerfile: "./external-providers/generic-external-provider/Dockerfile"
       architectures: '[ "amd64", "arm64" ]'
-      context: "./external-providers/generic-external-provider/"
+      context: "."
       pre_build_cmd: |
         TAG=${GITHUB_REF_NAME/main/latest}
         sed -i "s,FROM quay.io/konveyor/golang-dependency-provider,FROM quay.io/konveyor/golang-dependency-provider:${TAG}," Dockerfile

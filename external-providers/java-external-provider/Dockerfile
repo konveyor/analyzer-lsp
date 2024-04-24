@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.21 as builder
+FROM golang:1.20 as builder
 
 COPY / /analyzer-lsp
 
@@ -12,7 +12,7 @@ COPY external-providers/java-external-provider/go.sum go.sum
 COPY external-providers/java-external-provider/main.go main.go
 COPY external-providers/java-external-provider/pkg/ pkg/
 
-RUN go mod tidy
+RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
 
 RUN go build -a -o java-external-provider main.go
 

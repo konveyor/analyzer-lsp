@@ -26,24 +26,19 @@ image-build:
 build-external: build-dotnet-provider build-golang-dep-provider build-generic-provider build-java-provider build-yq-provider
 
 build-dotnet-provider:
-	cd external-providers/dotnet-external-provider/ && go mod edit --replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
 	podman build -f external-providers/dotnet-external-provider/Dockerfile -t dotnet-provider .
 
 build-generic-provider:
-	cd external-providers/generic-external-provider/ && go mod edit --replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
 	sed -i 's,quay.io/konveyor/golang-dependency-provider,golang-dep-provider,g' external-providers/generic-external-provider/Dockerfile
 	podman build -f external-providers/generic-external-provider/Dockerfile -t generic-provider .
 
 build-golang-dep-provider:
-	cd external-providers/golang-dependency-provider/ && go mod edit --replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
 	podman build -f external-providers/golang-dependency-provider/Dockerfile -t golang-dep-provider .
 
 build-java-provider:
-	cd external-providers/java-external-provider/ && go mod edit --replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
 	podman build -f external-providers/java-external-provider/Dockerfile -t java-provider .
 
 build-yq-provider:
-	cd external-providers/yq-external-provider/ && go mod edit --replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp
 	podman build -f external-providers/yq-external-provider/Dockerfile -t yq-provider .
 
 run-external-providers-local:
@@ -64,11 +59,7 @@ stop-external-providers:
 	podman rm golang-provider || true
 	podman rm nodejs || true
 	podman rm python || true
-	cd external-providers/yq-external-provider/ && go mod edit --dropreplace=github.com/konveyor/analyzer-lsp
-	cd external-providers/java-external-provider/ && go mod edit --dropreplace=github.com/konveyor/analyzer-lsp
-	cd external-providers/golang-dependency-provider/ && go mod edit --dropreplace=github.com/konveyor/analyzer-lsp
-	cd external-providers/generic-external-provider/ && go mod edit --dropreplace=github.com/konveyor/analyzer-lsp
-	cd external-providers/dotnet-external-provider/ && go mod edit --dropreplace=github.com/konveyor/analyzer-lsp
+	sed -i 's,golang-dep-provider,quay.io/konveyor/golang-dependency-provider,g' external-providers/generic-external-provider/Dockerfile
 
 run-external-providers-pod:
 	podman volume create test-data
@@ -87,7 +78,7 @@ run-external-providers-pod:
 run-demo-image:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --dep-output-file=demo-dep-output.yaml
 
-stop-external-providers-pod:
+stop-external-providers-pod: stop-external-providers
 	podman pod kill analyzer
 	podman pod rm analyzer
 	podman volume rm test-data

@@ -11,7 +11,7 @@ COPY external-providers/dotnet-external-provider/go.sum .
 COPY external-providers/dotnet-external-provider/main.go .
 COPY external-providers/dotnet-external-provider/pkg/ ./pkg
 
-RUN go mod tidy
+RUN go mod edit --replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
 
 RUN make build
 RUN ADD_PLAT=yes OS=windows make build
