@@ -82,7 +82,7 @@ run-external-providers-pod:
 	podman run --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples generic-provider --port 14653
 	podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples generic-provider --port 14654 --name nodejs
 	podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples generic-provider --port 14655 --name pylsp
-	podman build -f demo.Dockerfile -t localhost/testing:latest
+	podman build -f demo-local.Dockerfile -t localhost/testing:latest
 
 run-demo-image:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --dep-output-file=demo-dep-output.yaml
@@ -91,5 +91,3 @@ stop-external-providers-pod:
 	podman pod kill analyzer
 	podman pod rm analyzer
 	podman volume rm test-data
-
-

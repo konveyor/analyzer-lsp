@@ -59,8 +59,8 @@ var locationToCode = map[string]int{
 }
 
 type javaProvider struct {
-	config provider.Config
-	Log    logr.Logger
+	Log          logr.Logger
+	contextLines int
 
 	clients []provider.ServiceClient
 
@@ -84,7 +84,7 @@ type referenceCondition struct {
 	Location string `yaml:"location"`
 }
 
-func NewJavaProvider(log logr.Logger, lspServerName string) *javaProvider {
+func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int) *javaProvider {
 
 	_, mvnBinaryError := exec.LookPath("mvn")
 
@@ -94,6 +94,7 @@ func NewJavaProvider(log logr.Logger, lspServerName string) *javaProvider {
 		clients:           []provider.ServiceClient{},
 		lspServerName:     lspServerName,
 		depsLocationCache: make(map[string]int),
+		contextLines:      contextLines,
 	}
 }
 
