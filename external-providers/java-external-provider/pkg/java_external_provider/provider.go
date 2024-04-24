@@ -59,8 +59,8 @@ var locationToCode = map[string]int{
 }
 
 type javaProvider struct {
-	config provider.Config
-	Log    logr.Logger
+	Log          logr.Logger
+	contextLines int
 
 	clients []provider.ServiceClient
 
@@ -84,7 +84,7 @@ type referenceCondition struct {
 	Location string `yaml:"location"`
 }
 
-func NewJavaProvider(log logr.Logger, lspServerName string) *javaProvider {
+func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int) *javaProvider {
 
 	_, mvnBinaryError := exec.LookPath("mvn")
 
@@ -94,6 +94,7 @@ func NewJavaProvider(log logr.Logger, lspServerName string) *javaProvider {
 		clients:           []provider.ServiceClient{},
 		lspServerName:     lspServerName,
 		depsLocationCache: make(map[string]int),
+		contextLines:      contextLines,
 	}
 }
 
@@ -318,7 +319,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 }
 
 // GetLocation given a dep, attempts to find line number, caches the line number for a given dep
-func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep) (engine.Location, error) {
+func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file string) (engine.Location, error) {
 	location := engine.Location{StartPosition: engine.Position{}, EndPosition: engine.Position{}}
 
 	cacheKey := fmt.Sprintf("%s-%s-%s-%v",
@@ -366,6 +367,9 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep) (engin
 	groupId := dep.Extras[groupIdKey].(string)
 	artifactId := dep.Extras[artifactIdKey].(string)
 	path := dep.Extras[pomPathKey].(string)
+	if path == "" {
+		path = file
+	}
 	if path == "" {
 		return location, fmt.Errorf("unable to get location for dep %s, empty pom path", dep.Name)
 	}

@@ -1,13 +1,17 @@
 # TODO: fix version mismatch in final container
-FROM registry.access.redhat.com/ubi8/go-toolset:latest as go-builder
-ENV GOPATH=$APP_ROOT
+FROM golang:1.20 as go-builder
 
-COPY Makefile .
-COPY go.mod .
-COPY go.sum .
-COPY main.go .
-COPY pkg/ ./pkg
-RUN go mod download
+COPY / /analyzer-lsp
+
+WORKDIR /dotnet-provider
+
+COPY external-providers/dotnet-external-provider/Makefile .
+COPY external-providers/dotnet-external-provider/go.mod .
+COPY external-providers/dotnet-external-provider/go.sum .
+COPY external-providers/dotnet-external-provider/main.go .
+COPY external-providers/dotnet-external-provider/pkg/ ./pkg
+
+RUN go mod tidy
 
 RUN make build
 RUN ADD_PLAT=yes OS=windows make build
@@ -46,5 +50,5 @@ USER default
 EXPOSE 3456
 
 #COPY --from=builder /opt/app-root/src/omnisharp-roslyn-1.39.6/bin/Release/OmniSharp.Stdio.Driver/net6.0/ /opt/app-root/omnisharp
-COPY --from=go-builder /opt/app-root/src/bin/ /usr/bin/
+COPY --from=go-builder /dotnet-provider/bin/ /usr/bin/
 ENTRYPOINT ["dotnet-external-provider", "-port", "3456"]

@@ -1,13 +1,16 @@
 FROM golang:1.20 as go-builder
 
+COPY / /analyzer-lsp
+
 WORKDIR /generic-external-provider
 
-COPY go.mod go.mod
-COPY go.sum go.sum
-RUN go mod download
+COPY external-providers/generic-external-provider/go.mod go.mod
+COPY external-providers/generic-external-provider/go.sum go.sum
 
-COPY main.go main.go
-COPY pkg/ pkg/
+COPY external-providers/generic-external-provider/main.go main.go
+COPY external-providers/generic-external-provider/pkg/ pkg/
+RUN go mod tidy
+
 RUN go build -o generic-external-provider main.go
 
 FROM quay.io/konveyor/golang-dependency-provider as go-dep-provider
@@ -25,6 +28,6 @@ RUN npm install -g typescript-language-server typescript
 RUN go install golang.org/x/tools/gopls@latest
 
 COPY --from=go-builder /generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
-COPY --from=go-dep-provider /usr/local/bin/go-dependency-provider /usr/local/bin/go-dependency-provider
+COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 
 ENTRYPOINT [ "/usr/local/bin/generic-external-provider" ]

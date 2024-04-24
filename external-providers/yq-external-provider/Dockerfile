@@ -1,13 +1,15 @@
 FROM golang:1.20 as go-builder
 
+copy / /analyzer-lsp
+
 WORKDIR /yq-external-provider
 
-COPY go.mod go.mod
-COPY go.sum go.sum
-RUN go mod download
+COPY external-providers/yq-external-provider/go.mod go.mod
+COPY external-providers/yq-external-provider/go.sum go.sum
 
-COPY main.go main.go
-COPY pkg/ pkg/
+COPY external-providers/yq-external-provider/main.go main.go
+COPY external-providers/yq-external-provider/pkg/ pkg/
+RUN go mod tidy
 
 RUN go build -o yq-external-provider main.go
 

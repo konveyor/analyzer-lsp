@@ -432,7 +432,7 @@ type ServiceClient interface {
 }
 
 type DependencyLocationResolver interface {
-	GetLocation(ctx context.Context, dep konveyor.Dep) (engine.Location, error)
+	GetLocation(ctx context.Context, dep konveyor.Dep, depFile string) (engine.Location, error)
 }
 
 type Dep = konveyor.Dep
@@ -681,7 +681,7 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			if depLocationResolver != nil {
 				// this is a best-effort step and we don't want to block if resolver misbehaves
 				timeoutContext, cancelFunc := context.WithTimeout(ctx, time.Second*3)
-				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
+				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep, string(matchedDep.uri))
 				if err == nil {
 					incident.LineNumber = &location.StartPosition.Line
 					incident.CodeLocation = &location
@@ -754,7 +754,7 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 					log.V(7).Error(err, "failed to unmarshal dependency", "dep", matchedDep.dep.Name)
 				}
 				// Use "parent" baseDep location lookup for indirect dependencies
-				location, err := depLocationResolver.GetLocation(timeoutContext, konvDep)
+				location, err := depLocationResolver.GetLocation(timeoutContext, konvDep, string(matchedDep.uri))
 				if err == nil {
 					incident.LineNumber = &location.StartPosition.Line
 					incident.CodeLocation = &location
@@ -762,7 +762,7 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 					log.V(7).Error(err, "failed to get location for indirect dependency", "dep", matchedDep.dep.Name)
 				}
 			} else {
-				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
+				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep, string(matchedDep.uri))
 				if err == nil {
 					incident.LineNumber = &location.StartPosition.Line
 					incident.CodeLocation = &location

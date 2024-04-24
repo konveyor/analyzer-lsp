@@ -39,13 +39,13 @@ func (p *javaProvider) scanFile(path string, loc engine.Location) (string, error
 	scanner := bufio.NewScanner(readFile)
 	lineNumber := 0
 	codeSnip := ""
-	paddingSize := len(strconv.Itoa(loc.EndPosition.Line + p.config.ContextLines))
+	paddingSize := len(strconv.Itoa(loc.EndPosition.Line + p.contextLines))
 	for scanner.Scan() {
-		if (lineNumber - p.config.ContextLines) == loc.EndPosition.Line {
+		if (lineNumber - p.contextLines) == loc.EndPosition.Line {
 			codeSnip = codeSnip + fmt.Sprintf("%*d  %v", paddingSize, lineNumber+1, scanner.Text())
 			break
 		}
-		if (lineNumber + p.config.ContextLines) >= loc.StartPosition.Line {
+		if (lineNumber + p.contextLines) >= loc.StartPosition.Line {
 			codeSnip = codeSnip + fmt.Sprintf("%*d  %v\n", paddingSize, lineNumber+1, scanner.Text())
 		}
 		lineNumber += 1

@@ -16,6 +16,7 @@ var (
 	port          = flag.Int("port", 0, "Port must be set")
 	logLevel      = flag.Int("log-level", 5, "Level to log")
 	lspServerName = flag.String("name", "java", "Level to log")
+	contextLines  = flag.Int("contxtLines", 10, "lines of context for the code snippet")
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 	log := logrusr.New(logrusLog)
 
 	// must use lspServerName for use of multiple grpc providers
-	client := java.NewJavaProvider(log, *lspServerName)
+	client := java.NewJavaProvider(log, *lspServerName, *contextLines)
 
 	if logLevel != nil && *logLevel != 5 {
 		logrusLog.SetLevel(logrus.Level(*logLevel))

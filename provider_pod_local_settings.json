@@ -1,7 +1,7 @@
 [
     {
         "name": "go",
-        "binaryPath": "/usr/local/bin/generic-external-provider",
+        "address": "localhost:14653",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
@@ -19,7 +19,7 @@
     },
     {
         "name": "yaml",
-        "binaryPath": "/usr/local/bin/yq-external-provider",
+        "address": "localhost:14652",
         "initConfig": [{
             "location": "/analyzer-lsp/examples/yaml",
             "analysisMode": "full",
@@ -31,7 +31,7 @@
     },
     {
         "name": "python",
-        "binaryPath": "/usr/local/bin/generic-external-provider",
+        "address": "localhost:14655",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
@@ -49,7 +49,7 @@
     },
     {
         "name": "nodejs",
-        "binaryPath": "/usr/local/bin/generic-external-provider",
+        "address": "localhost:14654",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
@@ -67,7 +67,7 @@
     },
     {
         "name": "java",
-        "binaryPath":  "/usr/local/bin/java-external-provider",
+        "address":  "localhost:14651",
         "initConfig": [
             {
                 "location": "/analyzer-lsp/examples/java",
