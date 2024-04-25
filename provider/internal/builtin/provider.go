@@ -29,31 +29,31 @@ type builtinCondition struct {
 }
 
 type fileContentCondition struct {
-	FilePattern string `yaml:"filePattern" json:"filePattern,omitempty"`
-	Pattern     string `yaml:"pattern" json:"pattern"`
+	FilePattern string `yaml:"filePattern" json:"filePattern,omitempty" title:"FilePattern" description:"Only search in files with names matching this pattern"`
+	Pattern     string `yaml:"pattern" json:"pattern" title:"Pattern" description:"Regex pattern to match in content"`
 }
 
 type fileCondition struct {
-	Pattern string `yaml:"pattern" json:"pattern"`
+	Pattern string `yaml:"pattern" json:"pattern" title:"Pattern" description:"Find files with names matching this pattern"`
 }
 
 var _ provider.InternalProviderClient = &builtinProvider{}
 
 type xmlCondition struct {
-	XPath      string            `yaml:"xpath" json:"xpath"`
-	Namespaces map[string]string `yaml:"namespaces" json:"namespace,omitempty"`
-	Filepaths  []string          `yaml:"filepaths" json:"filepaths,omitempty"`
+	XPath      string            `yaml:"xpath" json:"xpath" title:"XPath" description:"Xpath query"`
+	Namespaces map[string]string `yaml:"namespaces" json:"namespace,omitempty" title:"Namespaces" description:"A map to scope down query to namespaces"`
+	Filepaths  []string          `yaml:"filepaths" json:"filepaths,omitempty" title:"Filepaths" description:"Optional list of files to scope down search"`
 }
 
 type xmlPublicIDCondition struct {
 	Regex      string            `yaml:"regex" json:"regex"`
-	Namespaces map[string]string `yaml:"namespaces" json:"namespaces"`
-	Filepaths  []string          `yaml:"filepaths" json:"filepaths"`
+	Namespaces map[string]string `yaml:"namespaces" json:"namespaces" title:"Namespaces" description:"A map to scope down query to namespaces"`
+	Filepaths  []string          `yaml:"filepaths" json:"filepaths" title:"Filepaths" description:"Optional list of files to scope down search"`
 }
 
 type jsonCondition struct {
-	XPath     string   `yaml:"xpath" json:"xpath"`
-	Filepaths []string `yaml:"filepaths" json:"filepaths,omitempty"`
+	XPath     string   `yaml:"xpath" json:"xpath" title:"XPath" description:"Xpath query"`
+	Filepaths []string `yaml:"filepaths" json:"filepaths,omitempty" title:"Filepaths" description:"Optional list of files to scope down search"`
 }
 
 type builtinProvider struct {
