@@ -560,3 +560,238 @@ func Test_parseMavenDepLines(t *testing.T) {
 		})
 	}
 }
+
+func Test_parseGradleDependencyOutput(t *testing.T) {
+	gradleOutput := `
+Starting a Gradle Daemon, 1 incompatible Daemon could not be reused, use --status for details
+
+> Task :dependencies
+
+------------------------------------------------------------
+Root project
+------------------------------------------------------------
+
+annotationProcessor - Annotation processors and their dependencies for source set 'main'.
+No dependencies
+
+api - API dependencies for source set 'main'. (n)
+No dependencies
+
+apiElements - API elements for main. (n)
+No dependencies
+
+archives - Configuration for archive artifacts. (n)
+No dependencies
+
+compileClasspath - Compile classpath for source set 'main'.
++--- org.codehaus.groovy:groovy:3.+ -> 3.0.21
++--- org.codehaus.groovy:groovy-json:3.+ -> 3.0.21
+|    \--- org.codehaus.groovy:groovy:3.0.21
++--- com.codevineyard:hello-world:{strictly 1.0.1} -> 1.0.1
+\--- :simple-jar
+
+testRuntimeOnly - Runtime only dependencies for source set 'test'. (n)
+No dependencies
+
+(*) - dependencies omitted (listed previously)
+
+(n) - Not resolved (configuration is not meant to be resolved)
+
+A web-based, searchable dependency report is available by adding the --scan option.
+
+BUILD SUCCESSFUL in 4s
+1 actionable task: 1 executed
+`
+
+	lines := strings.Split(gradleOutput, "\n")
+
+	p := javaServiceClient{
+		log:         testr.New(t),
+		depToLabels: map[string]*depLabelItem{},
+		config: provider.InitConfig{
+			ProviderSpecificConfig: map[string]interface{}{
+				"excludePackages": []string{},
+			},
+		},
+	}
+
+	wantedDeps := []provider.DepDAGItem{
+		{
+			Dep: provider.Dep{
+				Name:     "org.codehaus.groovy.groovy",
+				Version:  "3.0.21",
+				Indirect: false,
+			},
+		},
+		{
+			Dep: provider.Dep{
+				Name:     "org.codehaus.groovy.groovy-json",
+				Version:  "3.0.21",
+				Indirect: false,
+			},
+			AddedDeps: []provider.DepDAGItem{
+				{
+					Dep: provider.Dep{
+						Name:     "org.codehaus.groovy.groovy",
+						Version:  "3.0.21",
+						Indirect: true,
+					},
+				},
+			},
+		},
+		{
+			Dep: provider.Dep{
+				Name:     "com.codevineyard.hello-world",
+				Version:  "1.0.1",
+				Indirect: false,
+			},
+		},
+		{
+			Dep: provider.Dep{
+				Name:     "simple-jar",
+				Indirect: false,
+			},
+		},
+	}
+
+	deps := p.parseGradleDependencyOutput(lines)
+
+	if len(deps) != len(wantedDeps) {
+		t.Errorf("different number of dependencies found")
+	}
+
+	for i := 0; i < len(deps); i++ {
+		dep := deps[i]
+		wantedDep := wantedDeps[i]
+		if dep.Dep.Name != wantedDep.Dep.Name {
+			t.Errorf("wanted name: %s, found name: %s", wantedDep.Dep.Name, dep.Dep.Name)
+		}
+		if dep.Dep.Version != wantedDep.Dep.Version {
+			t.Errorf("wanted version: %s, found version: %s", wantedDep.Dep.Version, dep.Dep.Version)
+		}
+		if len(dep.AddedDeps) != len(wantedDep.AddedDeps) {
+			t.Errorf("wanted %d child deps, found %d for dep %s", len(wantedDep.AddedDeps), len(dep.AddedDeps), dep.Dep.Name)
+		}
+
+	}
+
+}
+
+func Test_parseGradleDependencyOutput_withTwoLevelsOfNesting(t *testing.T) {
+	gradleOutput := `
+Starting a Gradle Daemon, 1 incompatible Daemon could not be reused, use --status for details
+
+> Task :dependencies
+
+------------------------------------------------------------
+Root project
+------------------------------------------------------------
+
+annotationProcessor - Annotation processors and their dependencies for source set 'main'.
+No dependencies
+
+api - API dependencies for source set 'main'. (n)
+No dependencies
+
+apiElements - API elements for main. (n)
+No dependencies
+
+archives - Configuration for archive artifacts. (n)
+No dependencies
+
+compileClasspath - Compile classpath for source set 'main'.
++--- net.sourceforge.pmd:pmd-java:5.6.1
+     +--- net.sourceforge.pmd:pmd-core:5.6.1
+     |    \--- com.google.code.gson:gson:2.5
+     \--- net.sourceforge.saxon:saxon:9.1.0.8
++--- org.apache.logging.log4j:log4j-api:2.9.1
+
+testRuntimeOnly - Runtime only dependencies for source set 'test'. (n)
+No dependencies
+
+(*) - dependencies omitted (listed previously)
+
+(n) - Not resolved (configuration is not meant to be resolved)
+
+A web-based, searchable dependency report is available by adding the --scan option.
+
+BUILD SUCCESSFUL in 4s
+1 actionable task: 1 executed
+`
+
+	lines := strings.Split(gradleOutput, "\n")
+
+	p := javaServiceClient{
+		log:         testr.New(t),
+		depToLabels: map[string]*depLabelItem{},
+		config: provider.InitConfig{
+			ProviderSpecificConfig: map[string]interface{}{
+				"excludePackages": []string{},
+			},
+		},
+	}
+
+	wantedDeps := []provider.DepDAGItem{
+		{
+			Dep: provider.Dep{
+				Name:     "net.sourceforge.pmd.pmd-java",
+				Version:  "5.6.1",
+				Indirect: false,
+			},
+			AddedDeps: []provider.DepDAGItem{
+				{
+					Dep: provider.Dep{
+						Name:     "net.sourceforge.pmd.pmd-core",
+						Version:  "5.6.1",
+						Indirect: true,
+					},
+					AddedDeps: []provider.DepDAGItem{
+						{
+							Dep: provider.Dep{
+								Name:     "com.google.code.gson.gson",
+								Version:  "2.5",
+								Indirect: true,
+							},
+						},
+					},
+				},
+				{
+					Dep: provider.Dep{
+						Name:     "net.sourceforge.saxon.saxon",
+						Version:  "9.1.0.8",
+						Indirect: true,
+					},
+				},
+			},
+		},
+		{
+			Dep: provider.Dep{
+				Name:     "org.apache.logging.log4j.log4j-api",
+				Version:  "2.9.1",
+				Indirect: false,
+			},
+		},
+	}
+
+	deps := p.parseGradleDependencyOutput(lines)
+
+	if len(deps) != len(wantedDeps) {
+		t.Errorf("different number of dependencies found")
+	}
+
+	for i := 0; i < len(deps); i++ {
+		dep := deps[i]
+		wantedDep := wantedDeps[i]
+		if dep.Dep.Name != wantedDep.Dep.Name {
+			t.Errorf("wanted name: %s, found name: %s", wantedDep.Dep.Name, dep.Dep.Name)
+		}
+		if dep.Dep.Version != wantedDep.Dep.Version {
+			t.Errorf("wanted version: %s, found version: %s", wantedDep.Dep.Version, dep.Dep.Version)
+		}
+		if len(dep.AddedDeps) != len(wantedDep.AddedDeps) {
+			t.Errorf("wanted %d child deps, found %d for dep %s", len(wantedDep.AddedDeps), len(dep.AddedDeps), dep.Dep.Name)
+		}
+
+	}
+
+}
