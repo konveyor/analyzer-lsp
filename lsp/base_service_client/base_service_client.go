@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
@@ -30,9 +29,8 @@ type LSPServiceClientFunc[T HasLSPServiceClientBase] func(T, context.Context, st
 // `Fn` field to reduce code duplication. We can use this struct for the
 // Evaluator struct to call the appropriate method when queried.
 type LSPServiceClientCapability struct {
-	Name            string
-	TemplateContext openapi3.SchemaRef
-	Fn              interface{}
+	provider.Capability
+	Fn interface{}
 }
 
 // The base service client configs that all subsequent configs must embed
@@ -355,20 +353,6 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, workspac
 		// Not a valid regex, can't do anything more
 		return symbols
 	}
-
-	// if p.capabilities.Supports("workspace/symbol") && len(symbols) == 0 {
-	// 	// Run empty string query and manually search using the query as a regex
-	// 	var allSymbols []protocol.WorkspaceSymbol
-	// 	err = p.rpc.Call(ctx, "workspace/symbol", &protocol.WorkspaceSymbolParams{Query: ""}, &allSymbols)
-	// 	if err != nil {
-	// 		fmt.Printf("error: %v\n", err)
-	// 	}
-	// 	for _, s := range allSymbols {
-	// 		if regex.MatchString(s.Name) {
-	// 			symbols = append(symbols, s)
-	// 		}
-	// 	}
-	// }
 
 	if sc.ServerCapabilities.Supports("textDocument/definition") && len(symbols) == 0 {
 		// if p.capabilities.Supports("textDocument/declaration") && len(symbols) == 0 {

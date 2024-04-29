@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
+	"sync"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
@@ -17,6 +20,9 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/swaggest/openapi-go/openapi3"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"gopkg.in/yaml.v2"
 )
 
@@ -40,25 +46,21 @@ var (
 	analysisMode      string
 	noDependencyRules bool
 	contextLines      int
+	getOpenAPISpec    string
+	treeOutput        bool
+	depOutputFile     string
 )
 
 func AnalysisCmd() *cobra.Command {
-
-	logrusLog := logrus.New()
-	logrusLog.SetOutput(os.Stdout)
-	logrusLog.SetFormatter(&logrus.TextFormatter{})
-	// need to do research on mapping in logrusr to level here TODO
-	logrusLog.SetLevel(logrus.Level(logLevel))
-	log := logrusr.New(logrusLog)
-
-	logrusErrLog := logrus.New()
-	logrusErrLog.SetOutput(os.Stderr)
-	errLog := logrusr.New(logrusErrLog)
+	var errLog logr.Logger
 
 	rootCmd := &cobra.Command{
-		Use:   "analyze",
-		Short: "Tool for working with analyzer-lsp",
+		Use:   "konveyor-analyzer",
+		Short: "Tool for working with konveyor-analyzer",
 		PreRunE: func(c *cobra.Command, args []string) error {
+			logrusErrLog := logrus.New()
+			logrusErrLog.SetOutput(os.Stderr)
+			errLog = logrusr.New(logrusErrLog)
 			err := validateFlags()
 			if err != nil {
 				errLog.Error(err, "failed to validate flags")
@@ -69,6 +71,13 @@ func AnalysisCmd() *cobra.Command {
 			return nil
 		},
 		Run: func(c *cobra.Command, args []string) {
+
+			logrusLog := logrus.New()
+			logrusLog.SetOutput(os.Stdout)
+			logrusLog.SetFormatter(&logrus.TextFormatter{})
+			// need to do research on mapping in logrusr to level here TODO
+			logrusLog.SetLevel(logrus.Level(logLevel))
+			log := logrusr.New(logrusLog)
 
 			// This will globally prevent the yaml library from auto-wrapping lines at 80 characters
 			yaml.FutureLineWrap()
@@ -108,8 +117,8 @@ func AnalysisCmd() *cobra.Command {
 
 			defer tracing.Shutdown(ctx, log, tp)
 
-			ctx, span := tracing.StartNewSpan(ctx, "main")
-			defer span.End()
+			ctx, mainSpan := tracing.StartNewSpan(ctx, "main")
+			defer mainSpan.End()
 
 			// Get the configs
 			configs, err := provider.GetConfig(settingsFile)
@@ -118,20 +127,13 @@ func AnalysisCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			//start up the rule eng
-			eng := engine.CreateRuleEngine(ctx,
-				10,
-				log,
-				engine.WithIncidentLimit(limitIncidents),
-				engine.WithCodeSnipLimit(limitCodeSnips),
-				engine.WithContextLines(contextLines),
-				engine.WithIncidentSelector(incidentSelector),
-			)
-
 			providers := map[string]provider.InternalProviderClient{}
-
+			providerLocations := []string{}
 			for _, config := range configs {
 				config.ContextLines = contextLines
+				for _, ind := range config.InitConfig {
+					providerLocations = append(providerLocations, ind.Location)
+				}
 				// IF analsyis mode is set from the CLI, then we will override this for each init config
 				if analysisMode != "" {
 					inits := []provider.InitConfig{}
@@ -155,6 +157,34 @@ func AnalysisCmd() *cobra.Command {
 				}
 			}
 
+			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
+			//start up the rule eng
+			eng := engine.CreateRuleEngine(engineCtx,
+				10,
+				log,
+				engine.WithIncidentLimit(limitIncidents),
+				engine.WithCodeSnipLimit(limitCodeSnips),
+				engine.WithContextLines(contextLines),
+				engine.WithIncidentSelector(incidentSelector),
+				engine.WithLocationPrefixes(providerLocations),
+			)
+
+			if getOpenAPISpec != "" {
+				sc := createOpenAPISchema(providers, log)
+				b, err := json.Marshal(sc)
+				if err != nil {
+					errLog.Error(err, "unable to create inital schema")
+					os.Exit(1)
+				}
+
+				err = os.WriteFile(getOpenAPISpec, b, 0644)
+				if err != nil {
+					errLog.Error(err, "error writing output file", "file", getOpenAPISpec)
+					os.Exit(1) // Treat the error as a fatal error
+				}
+				os.Exit(0)
+			}
+
 			parser := parser.RuleParser{
 				ProviderNameToClient: providers,
 				Log:                  log.WithName("parser"),
@@ -166,7 +196,7 @@ func AnalysisCmd() *cobra.Command {
 			for _, f := range rulesFile {
 				internRuleSet, internNeedProviders, err := parser.LoadRules(f)
 				if err != nil {
-					log.WithValues("fileName", f).Error(err, "unable to parse all the rules for ruleset")
+					errLog.Error(err, "unable to parse all the rules for ruleset", "file", f)
 				}
 				ruleSets = append(ruleSets, internRuleSet...)
 				for k, v := range internNeedProviders {
@@ -175,14 +205,32 @@ func AnalysisCmd() *cobra.Command {
 			}
 			// Now that we have all the providers, we need to start them.
 			for name, provider := range needProviders {
-				err := provider.ProviderInit(ctx)
+				initCtx, initSpan := tracing.StartNewSpan(ctx, "init",
+					attribute.Key("provider").String(name))
+				err := provider.ProviderInit(initCtx)
 				if err != nil {
 					errLog.Error(err, "unable to init the providers", "provider", name)
 					os.Exit(1)
 				}
+				initSpan.End()
 			}
 
+			wg := &sync.WaitGroup{}
+			var depSpan trace.Span
+			var depCtx context.Context
+			if depOutputFile != "" {
+				depCtx, depSpan = tracing.StartNewSpan(ctx, "dep")
+				wg.Add(1)
+				go DependencyOutput(depCtx, providers, log, errLog, depOutputFile, wg)
+			}
+
+			// This will already wait
 			rulesets := eng.RunRules(ctx, ruleSets, selectors...)
+			engineSpan.End()
+			wg.Wait()
+			if depSpan != nil {
+				depSpan.End()
+			}
 			eng.Stop()
 
 			for _, provider := range needProviders {
@@ -223,6 +271,9 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&analysisMode, "analysis-mode", "", "select one of full or source-only to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
 	rootCmd.Flags().BoolVar(&noDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
 	rootCmd.Flags().IntVar(&contextLines, "context-lines", 10, "When violation occurs, A part of source code is added to the output, So this flag configures the number of source code lines to be printed to the output.")
+	rootCmd.Flags().StringVar(&getOpenAPISpec, "get-openapi-spec", "", "Get the openAPI spec for the rulesets, rules and provider capabilities and put in file passed in.")
+	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
+	rootCmd.Flags().StringVar(&depOutputFile, "dep-output-file", "", "path to dependency output file")
 
 	return rootCmd
 }
@@ -241,10 +292,12 @@ func validateFlags() error {
 		return fmt.Errorf("unable to find provider settings file")
 	}
 
-	for _, f := range rulesFile {
-		_, err = os.Stat(f)
-		if err != nil {
-			return fmt.Errorf("unable to find rule path or file")
+	if getOpenAPISpec == "" {
+		for _, f := range rulesFile {
+			_, err = os.Stat(f)
+			if err != nil {
+				return fmt.Errorf("unable to find rule path or file")
+			}
 		}
 	}
 	m := provider.AnalysisMode(strings.ToLower(analysisMode))
@@ -253,4 +306,206 @@ func validateFlags() error {
 	}
 
 	return nil
+}
+
+func createOpenAPISchema(providers map[string]provider.InternalProviderClient, log logr.Logger) openapi3.Spec {
+
+	// in the future loop and build the openapi spec here:
+	spec, err := parser.CreateSchema()
+	if err != nil {
+		log.Error(err, "unable to create inital schema")
+		os.Exit(1)
+	}
+
+	AndOrRefRuleRef := []openapi3.SchemaOrRef{}
+	for provName, prov := range providers {
+		cap := prov.Capabilities()
+		for _, c := range cap {
+			spec.MapOfSchemaOrRefValues[fmt.Sprintf("%s.%s", provName, c.Name)] = openapi3.SchemaOrRef{
+				Schema: &openapi3.Schema{
+					Type: &provider.SchemaTypeObject,
+					Properties: map[string]openapi3.SchemaOrRef{
+						fmt.Sprintf("%s.%s", provName, c.Name): {
+							Schema: c.Input.Schema,
+						},
+						"from": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeString,
+							},
+						},
+						"as": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeString,
+							},
+						},
+						"ignore": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeBool,
+							},
+						},
+						"not": {
+							Schema: &openapi3.Schema{
+								Type: &provider.SchemaTypeBool,
+							},
+						},
+					},
+				},
+			}
+			AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+				SchemaReference: &openapi3.SchemaReference{
+					Ref: fmt.Sprintf("#/components/schemas/%s.%s", provName, c.Name),
+				},
+			})
+			// Only add output schemas for capabilities that have defined them.
+			if c.Output.Schema != nil && len(c.Output.Schema.Properties) != 0 {
+				spec.MapOfSchemaOrRefValues[fmt.Sprintf("%s.%s-out", provName, c.Name)] = openapi3.SchemaOrRef{
+					Schema: c.Output.Schema,
+				}
+			}
+		}
+	}
+
+	AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+		SchemaReference: &openapi3.SchemaReference{
+			Ref: "#/components/schemas/and",
+		},
+	})
+	AndOrRefRuleRef = append(AndOrRefRuleRef, openapi3.SchemaOrRef{
+		SchemaReference: &openapi3.SchemaReference{
+			Ref: "#/components/schemas/or",
+		},
+	})
+	spec.MapOfSchemaOrRefValues["and"] = openapi3.SchemaOrRef{
+		Schema: &openapi3.Schema{
+			Type: &provider.SchemaTypeObject,
+			Properties: map[string]openapi3.SchemaOrRef{
+				"and": {
+					Schema: &openapi3.Schema{
+						Type: &provider.SchemaTypeArray,
+						Items: &openapi3.SchemaOrRef{
+							Schema: &openapi3.Schema{
+								Type:  &provider.SchemaTypeObject,
+								OneOf: AndOrRefRuleRef,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	spec.MapOfSchemaOrRefValues["or"] = openapi3.SchemaOrRef{
+		Schema: &openapi3.Schema{
+			Type: &provider.SchemaTypeObject,
+			Properties: map[string]openapi3.SchemaOrRef{
+				"or": {
+					Schema: &openapi3.Schema{
+						Type: &provider.SchemaTypeArray,
+						Items: &openapi3.SchemaOrRef{
+							Schema: &openapi3.Schema{
+								Type:  &provider.SchemaTypeObject,
+								OneOf: AndOrRefRuleRef,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	spec.MapOfSchemaOrRefValues["rule"].Schema.Properties["when"] = openapi3.SchemaOrRef{
+		Schema: &openapi3.Schema{
+			Type:  &provider.SchemaTypeObject,
+			OneOf: AndOrRefRuleRef,
+		},
+	}
+	sc := openapi3.Spec{
+		Components: &openapi3.Components{
+			Schemas: &spec,
+		},
+		Openapi: "3.0.0",
+		Info: openapi3.Info{
+			Title:   "Konveyor API",
+			Version: "1.0.0",
+		},
+	}
+
+	return sc
+}
+
+func DependencyOutput(ctx context.Context, providers map[string]provider.InternalProviderClient, log logr.Logger, errLog logr.Logger, depOutputFile string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	var depsFlat []konveyor.DepsFlatItem
+	var depsTree []konveyor.DepsTreeItem
+	for name, prov := range providers {
+		if !provider.HasCapability(prov.Capabilities(), "dependency") {
+			log.Info("provider does not have dependency capability", "provider", name)
+			continue
+		}
+
+		if treeOutput {
+			deps, err := prov.GetDependenciesDAG(ctx)
+			if err != nil {
+				errLog.Error(err, "failed to get list of dependencies for provider", "provider", name)
+				continue
+			}
+			for u, ds := range deps {
+				depsTree = append(depsTree, konveyor.DepsTreeItem{
+					FileURI:      string(u),
+					Provider:     name,
+					Dependencies: ds,
+				})
+			}
+		} else {
+			deps, err := prov.GetDependencies(ctx)
+			if err != nil {
+				errLog.Error(err, "failed to get list of dependencies for provider", "provider", name)
+				continue
+			}
+			for u, ds := range deps {
+				newDeps := ds
+				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
+					Provider:     name,
+					FileURI:      string(u),
+					Dependencies: newDeps,
+				})
+			}
+		}
+	}
+
+	if depsFlat == nil && depsTree == nil {
+		errLog.Info("failed to get dependencies from all given providers")
+		return
+	}
+
+	var b []byte
+	var err error
+	if treeOutput {
+		b, err = yaml.Marshal(depsTree)
+		if err != nil {
+			errLog.Error(err, "failed to marshal dependency data as yaml")
+			return
+		}
+	} else {
+		// Sort depsFlat
+		sort.SliceStable(depsFlat, func(i, j int) bool {
+			if depsFlat[i].Provider == depsFlat[j].Provider {
+				return depsFlat[i].FileURI < depsFlat[j].FileURI
+			} else {
+				return depsFlat[i].Provider < depsFlat[j].Provider
+			}
+		})
+
+		b, err = yaml.Marshal(depsFlat)
+		if err != nil {
+			errLog.Error(err, "failed to marshal dependency data as yaml")
+			return
+		}
+	}
+
+	err = os.WriteFile(depOutputFile, b, 0644)
+	if err != nil {
+		errLog.Error(err, "failed to write dependencies to output file", "file", depOutputFile)
+		return
+	}
+
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/generic-external-provider/pkg/server_configurations"
+	serverconf "github.com/konveyor/generic-external-provider/pkg/server_configurations"
 )
 
 // TODO(shawn-hurley): Pipe the logger through Determine how and where external
@@ -19,41 +19,33 @@ type genericProvider struct {
 	capabilities []provider.Capability
 
 	// Limit this instance of the generic provider to one lsp server type
-	lspServerName string
-	ctor          server_configurations.ServiceClientConstructor
+	lspServerName        string
+	serviceClientBuilder serverconf.ServiceClientBuilder
 }
 
 // Create a generic provider locked to a specific service client found in the
 // server_configuration maps. If the lspServerName is not found, then it
 // defaults to "generic"
-func NewGenericProvider(lspServerName string) *genericProvider {
+func NewGenericProvider(lspServerName string, log logr.Logger) *genericProvider {
 	// Get the constructor associated with the server
-	ctor, ok := server_configurations.SupportedLanguages[lspServerName]
+	ctor, ok := serverconf.SupportedLanguages[lspServerName]
 	if !ok {
 		lspServerName = "generic"
-		ctor = server_configurations.SupportedLanguages["generic"]
-	}
-
-	// Get the capabilities associated with the server
-	caps, ok := server_configurations.SupportedCapabilities[lspServerName]
-	if !ok || len(caps) == 0 {
-		fmt.Printf("%s has no capabilities", lspServerName)
-		lspServerName = "generic"
-		ctor = server_configurations.SupportedLanguages["generic"]
-		caps = server_configurations.SupportedCapabilities["generic"]
+		ctor = serverconf.SupportedLanguages["generic"]
 	}
 
 	p := genericProvider{
-		ctx:           context.TODO(),
-		lspServerName: lspServerName,
-		ctor:          ctor,
+		ctx:                  context.TODO(),
+		lspServerName:        lspServerName,
+		serviceClientBuilder: ctor,
 	}
 
 	// Load up the capabilities for this lsp server into the provider
-	for _, cap := range caps {
+	for _, cap := range ctor.GetGenericServiceClientCapabilities(log) {
 		p.capabilities = append(p.capabilities, provider.Capability{
-			Name:            cap.Name,
-			TemplateContext: cap.TemplateContext,
+			Name:   cap.Name,
+			Input:  cap.Input,
+			Output: cap.Output,
 		})
 	}
 
@@ -91,7 +83,7 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 
 	// Simple matter of calling the constructor that we set earlier to get the
 	// service client
-	sc, err := p.ctor(ctx, log, c)
+	sc, err := p.serviceClientBuilder.Init(ctx, log, c)
 	if err != nil {
 		log.Error(err, "ctor error")
 		fmt.Fprintf(os.Stderr, "ctor blah")

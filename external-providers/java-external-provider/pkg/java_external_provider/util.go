@@ -23,6 +23,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
@@ -93,6 +94,7 @@ type decompileJob struct {
 	inputPath  string
 	outputPath string
 	artifact   javaArtifact
+	m2RepoPath string
 }
 
 // decompile decompiles files submitted via a list of decompileJob concurrently
@@ -107,11 +109,14 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 	for i := 0; i < workerCount; i++ {
 		logger := log.WithName(fmt.Sprintf("decompileWorker-%d", i))
 		wg.Add(1)
-		go func(log logr.Logger) {
+		go func(log logr.Logger, workerId int) {
 			defer log.V(6).Info("shutting down decompile worker")
 			defer wg.Done()
 			log.V(6).Info("init decompile worker")
 			for job := range jobChan {
+				// TODO (pgaikwad): when we move to external provider, inherit context from parent
+				jobCtx, span := tracing.StartNewSpan(ctx, "decomp-job",
+					attribute.Key("worker").Int(workerId))
 				// apply decompile filter
 				if !filter.shouldDecompile(job.artifact) {
 					continue
@@ -126,8 +131,9 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 						"failed to create directories for decompiled file", "path", outputPathDir)
 					continue
 				}
+				// -mpm (max processing method) is required to keep decomp time low
 				cmd := exec.CommandContext(
-					ctx, "java", "-jar", "/bin/fernflower.jar", job.inputPath, outputPathDir)
+					jobCtx, "java", "-jar", "/bin/fernflower.jar", "-mpm=30", job.inputPath, outputPathDir)
 				err := cmd.Run()
 				if err != nil {
 					log.V(5).Error(err, "failed to decompile file", "file", job.inputPath, job.outputPath)
@@ -137,13 +143,15 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 				// if we just decompiled a java archive, we need to
 				// explode it further and copy files to project
 				if job.artifact.packaging == JavaArchive && projectPath != "" {
-					_, _, _, err = explode(ctx, log, job.outputPath, projectPath)
+					_, _, _, err = explode(jobCtx, log, job.outputPath, projectPath, job.m2RepoPath)
 					if err != nil {
 						log.V(5).Error(err, "failed to explode decompiled jar", "path", job.inputPath)
 					}
 				}
+				span.End()
+				jobCtx.Done()
 			}
-		}(logger)
+		}(logger, i)
 	}
 
 	seenJobs := map[string]bool{}
@@ -165,7 +173,7 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 // decompileJava unpacks archive at archivePath, decompiles all .class files in it
 // creates new java project and puts the java files in the tree of the project
 // returns path to exploded archive, path to java project, and an error when encountered
-func decompileJava(ctx context.Context, log logr.Logger, archivePath string) (explodedPath, projectPath string, err error) {
+func decompileJava(ctx context.Context, log logr.Logger, archivePath string, m2RepoPath string) (explodedPath, projectPath string, err error) {
 	ctx, span := tracing.StartNewSpan(ctx, "decompile")
 	defer span.End()
 
@@ -173,7 +181,7 @@ func decompileJava(ctx context.Context, log logr.Logger, archivePath string) (ex
 
 	decompFilter := alwaysDecompileFilter(true)
 
-	explodedPath, decompJobs, deps, err := explode(ctx, log, archivePath, projectPath)
+	explodedPath, decompJobs, deps, err := explode(ctx, log, archivePath, projectPath, m2RepoPath)
 	if err != nil {
 		log.Error(err, "failed to decompile archive", "path", archivePath)
 		return "", "", err
@@ -212,7 +220,7 @@ func deduplicateJavaArtifacts(artifacts []javaArtifact) []javaArtifact {
 // explode explodes the given JAR, WAR or EAR archive, generates javaArtifact struct for given archive
 // and identifies all .class found recursively. returns output path, a list of decompileJob for .class files
 // it also returns a list of any javaArtifact we could interpret from jars
-func explode(ctx context.Context, log logr.Logger, archivePath, projectPath string) (string, []decompileJob, []javaArtifact, error) {
+func explode(ctx context.Context, log logr.Logger, archivePath, projectPath string, m2Repo string) (string, []decompileJob, []javaArtifact, error) {
 	var dependencies []javaArtifact
 	fileInfo, err := os.Stat(archivePath)
 	if err != nil {
@@ -277,9 +285,13 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 		if _, err := io.Copy(dstFile, archiveFile); err != nil {
 			return "", decompileJobs, dependencies, err
 		}
+		seenDirArtificat := map[string]interface{}{}
 		switch {
-		// when it's a .class file, decompile it into java project
-		case strings.HasSuffix(f.Name, ClassFile):
+		// when it's a .class file and it is in the web-inf, decompile it into java project
+		// This is the users code.
+		case strings.HasSuffix(f.Name, ClassFile) &&
+			(strings.Contains(f.Name, "WEB-INF") || strings.Contains(f.Name, "META-INF")):
+
 			// full path in the java project for the decompd file
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
@@ -294,6 +306,30 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 					packaging: ClassFile,
 				},
 			})
+		// when it's a .class file and it is not in the web-inf, decompile it into java project
+		// This is some dependency that is not packaged as dependency.
+		case strings.HasSuffix(f.Name, ClassFile) &&
+			!(strings.Contains(f.Name, "WEB-INF") || strings.Contains(f.Name, "META-INF")):
+			destPath := filepath.Join(
+				projectPath, "src", "main", "java",
+				strings.Replace(filePath, destDir, "", -1))
+			destPath = strings.TrimSuffix(destPath, ClassFile) + ".java"
+			decompileJobs = append(decompileJobs, decompileJob{
+				inputPath:  filePath,
+				outputPath: destPath,
+				artifact: javaArtifact{
+					packaging: ClassFile,
+				},
+			})
+			if _, ok := seenDirArtificat[filepath.Dir(f.Name)]; !ok {
+				dep, err := toFilePathDependency(ctx, f.Name)
+				if err != nil {
+					log.V(8).Error(err, "error getting dependcy for path", "path", destPath)
+					continue
+				}
+				dependencies = append(dependencies, dep)
+				seenDirArtificat[filepath.Dir(f.Name)] = nil
+			}
 		// when it's a java file, it's already decompiled, move it to project path
 		case strings.HasSuffix(f.Name, JavaFile):
 			destPath := filepath.Join(
@@ -313,7 +349,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 		// decompile web archives
 		case strings.HasSuffix(f.Name, WebArchive):
 			// TODO(djzager): Should we add these deps to the pom?
-			_, nestedJobs, deps, err := explode(ctx, log, filePath, projectPath)
+			_, nestedJobs, deps, err := explode(ctx, log, filePath, projectPath, m2Repo)
 			if err != nil {
 				log.Error(err, "failed to decompile file", "file", filePath)
 			}
@@ -344,6 +380,16 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			if (dep != javaArtifact{}) {
 				if dep.foundOnline {
 					dependencies = append(dependencies, dep)
+					// copy this into m2 repo to avoid downloading again
+					groupPath := filepath.Join(strings.Split(dep.GroupId, ".")...)
+					artifactPath := filepath.Join(strings.Split(dep.ArtifactId, ".")...)
+					destPath := filepath.Join(m2Repo, groupPath, artifactPath,
+						dep.Version, filepath.Base(filePath))
+					if err := copyFile(filePath, destPath); err != nil {
+						log.V(8).Error(err, "failed copying jar to m2 local repo")
+					} else {
+						log.V(8).Info("copied jar file", "src", filePath, "dest", destPath)
+					}
 				} else {
 					// when it isn't found online, decompile it
 					outputPath := filepath.Join(
@@ -387,17 +433,7 @@ func createJavaProject(ctx context.Context, dir string, dependencies []javaArtif
 }
 
 func moveFile(srcPath string, destPath string) error {
-	inputFile, err := os.Open(srcPath)
-	if err != nil {
-		return err
-	}
-	outputFile, err := os.Create(destPath)
-	if err != nil {
-		inputFile.Close()
-		return err
-	}
-	_, err = io.Copy(outputFile, inputFile)
-	inputFile.Close()
+	err := copyFile(srcPath, destPath)
 	if err != nil {
 		return err
 	}
@@ -405,7 +441,27 @@ func moveFile(srcPath string, destPath string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func copyFile(srcPath string, destPath string) error {
+	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+		return err
+	}
+	inputFile, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer inputFile.Close()
+	outputFile, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
 	defer outputFile.Close()
+	_, err = io.Copy(outputFile, inputFile)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -529,4 +585,17 @@ func constructArtifactFromSHA(jarFile string) (javaArtifact, error) {
 		}
 	}
 	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
+}
+
+func toFilePathDependency(ctx context.Context, filePath string) (javaArtifact, error) {
+	dep := javaArtifact{}
+	// Move up one level to the artifact. we are assuming that we get the full class file here.
+	// For instance the dir /org/springframework/boot/loader/jar/Something.class.
+	// in this cass the artificat is: Group: org.springframework.boot.loader, Artifact: Jar
+	dir := filepath.Dir(filePath)
+	dep.ArtifactId = filepath.Base(dir)
+	dep.GroupId = strings.Replace(filepath.Dir(dir), "/", ".", -1)
+	dep.Version = "0.0.0"
+	return dep, nil
+
 }

@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3gen"
 	"github.com/go-logr/logr"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/swaggest/openapi-go/openapi3"
 	"gopkg.in/yaml.v2"
 )
 
@@ -19,6 +18,10 @@ type PythonServiceClientConfig struct {
 	blah int `yaml:",inline"`
 }
 
+// Tidy aliases
+
+type serviceClientFn = base.LSPServiceClientFunc[*PythonServiceClient]
+
 type PythonServiceClient struct {
 	*base.LSPServiceClientBase
 	*base.LSPServiceClientEvaluator[*PythonServiceClient]
@@ -26,7 +29,9 @@ type PythonServiceClient struct {
 	Config PythonServiceClientConfig
 }
 
-func NewPythonServiceClient(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
+type PythonServiceClientBuilder struct{}
+
+func (p *PythonServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
 	sc := &PythonServiceClient{}
 
 	// Unmarshal the config
@@ -75,7 +80,7 @@ func NewPythonServiceClient(ctx context.Context, log logr.Logger, c provider.Ini
 	sc.LSPServiceClientBase = scBase
 
 	// Initialize the fancy evaluator (dynamic dispatch ftw)
-	eval, err := base.NewLspServiceClientEvaluator[*PythonServiceClient](sc, PythonServiceClientCapabilities)
+	eval, err := base.NewLspServiceClientEvaluator[*PythonServiceClient](sc, p.GetGenericServiceClientCapabilities(log))
 	if err != nil {
 		return nil, err
 	}
@@ -84,24 +89,18 @@ func NewPythonServiceClient(ctx context.Context, log logr.Logger, c provider.Ini
 	return sc, nil
 }
 
-// Tidy aliases
+func (p *PythonServiceClientBuilder) GetGenericServiceClientCapabilities(log logr.Logger) []base.LSPServiceClientCapability {
 
-type serviceClientFn = base.LSPServiceClientFunc[*PythonServiceClient]
-
-func serviceClientTemplateContext(v any) openapi3.SchemaRef {
-	r, _ := openapi3gen.NewSchemaRefForValue(v, nil)
-	return *r
-}
-
-var PythonServiceClientCapabilities = []base.LSPServiceClientCapability{
-	{
-		Name:            "referenced",
-		TemplateContext: serviceClientTemplateContext(base.ReferencedCondition{}),
-		Fn:              serviceClientFn(base.EvaluateReferenced[*PythonServiceClient]),
-	},
-	{
-		Name:            "dependency",
-		TemplateContext: serviceClientTemplateContext(base.NoOpCondition{}),
-		Fn:              serviceClientFn(base.EvaluateNoOp[*PythonServiceClient]),
-	},
+	caps := []base.LSPServiceClientCapability{}
+	r := openapi3.NewReflector()
+	refCap, err := provider.ToProviderCap(r, log, base.ReferencedCondition{}, "referenced")
+	if err != nil {
+		log.Error(err, "unable to get referenced cap")
+	} else {
+		caps = append(caps, base.LSPServiceClientCapability{
+			Capability: refCap,
+			Fn:         serviceClientFn(base.EvaluateReferenced[*PythonServiceClient]),
+		})
+	}
+	return caps
 }

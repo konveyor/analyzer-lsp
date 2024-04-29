@@ -33,6 +33,7 @@ const (
 	artifactIdKey = "artifactId"
 	groupIdKey    = "groupId"
 	pomPathKey    = "pomPath"
+	baseDepKey    = "baseDep"
 )
 
 // TODO implement this for real
@@ -134,9 +135,7 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 	p.log.V(10).Info("Analyzing POM",
 		"POM", fmt.Sprintf("%s:%s:%s", pomCoordinate(pom.GroupID), pomCoordinate(pom.ArtifactID), pomCoordinate(pom.Version)),
 		"error", err)
-	if err != nil {
-		return nil, err
-	}
+
 	// If the pom object is empty then parse failed silently.
 	if reflect.DeepEqual(*pom, gopom.Project{}) {
 		return nil, nil
@@ -187,8 +186,8 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 				dep.Version = *d.Version
 			}
 			if m2Repo != "" && d.ArtifactID != nil && d.GroupID != nil {
-				dep.FileURIPrefix = filepath.Join(m2Repo,
-					strings.Replace(*d.GroupID, ".", "/", -1), *d.ArtifactID, dep.Version)
+				dep.FileURIPrefix = fmt.Sprintf("file://%s", filepath.Join(m2Repo,
+					strings.Replace(*d.GroupID, ".", "/", -1), *d.ArtifactID, dep.Version))
 			}
 		}
 		deps = append(deps, &dep)
@@ -325,6 +324,7 @@ func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]k
 		depToLabels: p.depToLabels,
 		m2RepoPath:  getMavenLocalRepoPath(p.mvnSettingsFile),
 		seen:        map[string]bool{},
+		initialPath: path,
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
@@ -333,6 +333,7 @@ type walker struct {
 	deps        map[uri.URI][]provider.DepDAGItem
 	depToLabels map[string]*depLabelItem
 	m2RepoPath  string
+	initialPath string
 	seen        map[string]bool
 }
 
@@ -361,8 +362,8 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 			// when we can successfully get javaArtifact from a jar
 			// we added it to the pom and it should be in m2Repo path
 			if w.m2RepoPath != "" {
-				d.FileURIPrefix = filepath.Join(w.m2RepoPath,
-					strings.Replace(artifact.GroupId, ".", "/", -1), artifact.ArtifactId, artifact.Version)
+				d.FileURIPrefix = fmt.Sprintf("file://%s", filepath.Join(w.m2RepoPath,
+					strings.Replace(artifact.GroupId, ".", "/", -1), artifact.ArtifactId, artifact.Version))
 			}
 		}
 
@@ -371,6 +372,37 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 				Dep: d,
 			},
 		}
+	}
+	if strings.HasSuffix(info.Name(), ".class") {
+		// If the class is in WEB-INF we assume this is apart of the application
+		relPath, _ := filepath.Rel(w.initialPath, path)
+		relPath = filepath.Dir(relPath)
+		if strings.Contains(relPath, "WEB-INF") {
+			return nil
+		}
+		if _, ok := w.seen[relPath]; ok {
+			return nil
+		}
+		d := provider.Dep{
+			Name: info.Name(),
+		}
+		artifact, _ := toFilePathDependency(context.Background(), filepath.Join(relPath, info.Name()))
+		if (artifact != javaArtifact{}) {
+			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
+			d.Version = artifact.Version
+			d.Labels = addDepLabels(w.depToLabels, d.Name)
+			d.ResolvedIdentifier = artifact.sha1
+			// when we can successfully get javaArtifact from a jar
+			// we added it to the pom and it should be in m2Repo path
+			d.FileURIPrefix = fmt.Sprintf("file://%s", filepath.Join("java-project", "src", "main",
+				strings.Replace(artifact.GroupId, ".", "/", -1), artifact.ArtifactId))
+		}
+		w.deps[uri.URI(filepath.Join(relPath))] = []provider.DepDAGItem{
+			{
+				Dep: d,
+			},
+		}
+		w.seen[relPath] = true
 	}
 	return nil
 }
@@ -428,20 +460,20 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 func resolveDepFilepath(d *provider.Dep, p *javaServiceClient, group string, artifact string, localRepoPath string) string {
 	groupPath := strings.Replace(group, ".", "/", -1)
 
-	// Try jar packaging
+	// Try pom packaging (see https://www.baeldung.com/maven-packaging-types#4-pom)
 	var fp string
 	if d.Classifier == "" {
-		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "jar"))
+		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "pom"))
 	} else {
-		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "jar"))
+		fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "pom"))
 	}
 	b, err := os.ReadFile(fp)
 	if err != nil {
-		// Try pom packaging (see https://www.baeldung.com/maven-packaging-types#4-pom)
+		// Try jar packaging
 		if d.Classifier == "" {
-			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "pom"))
+			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v.%v.sha1", artifact, d.Version, "jar"))
 		} else {
-			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "pom"))
+			fp = filepath.Join(localRepoPath, groupPath, artifact, d.Version, fmt.Sprintf("%v-%v-%v.%v.sha1", artifact, d.Version, d.Classifier, "jar"))
 		}
 		b, err = os.ReadFile(fp)
 	}
@@ -464,13 +496,13 @@ func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string
 	m := map[string]interface{}{}
 	for _, d := range depToLabels {
 		if d.r.Match([]byte(depName)) {
-			for label, _ := range d.labels {
+			for label := range d.labels {
 				m[label] = nil
 			}
 		}
 	}
 	s := []string{}
-	for k, _ := range m {
+	for k := range m {
 		s = append(s, k)
 	}
 	// if open source label is not found, qualify the dep as being internal by default
@@ -501,7 +533,13 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath, po
 			if err != nil {
 				return nil, err
 			}
+			dm := map[string]interface{}{
+				"name":    baseDep.Name,
+				"version": baseDep.Version,
+				"extras":  baseDep.Extras,
+			}
 			transitiveDep.Indirect = true
+			transitiveDep.Extras[baseDepKey] = dm // Minimum needed set of attributes for GetLocation
 			item.AddedDeps = append(item.AddedDeps, provider.DepDAGItem{Dep: transitiveDep})
 			idx += 1
 		}

@@ -1,4 +1,4 @@
-FROM golang:1.19 as builder
+FROM golang:1.20 as builder
 WORKDIR /analyzer-lsp
 
 COPY cmd /analyzer-lsp/cmd
@@ -41,12 +41,13 @@ RUN microdnf install nodejs -y
 RUN npm install -g typescript-language-server typescript
 
 COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/local/bin/all-in-one-linux
-COPY --from=yq-builder /usr/bin/yq /usr/bin/yq
-COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
-COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/bin/konveyor-analyzer-dep
-COPY --from=builder /analyzer-lsp/external-providers/generic-external-provider/generic-external-provider /usr/bin/generic-external-provider
-COPY --from=builder /analyzer-lsp/external-providers/yq-external-provider/yq-external-provider /usr/bin/yq-external-provider
-COPY --from=builder /analyzer-lsp/external-providers/golang-dependency-provider/golang-dependency-provider /usr/bin/golang-dependency-provider
+COPY --from=yq-builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/local/bin/konveyor-analyzer
+COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/local/bin/konveyor-analyzer-dep
+COPY --from=builder /analyzer-lsp/external-providers/generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
+COPY --from=builder /analyzer-lsp/external-providers/yq-external-provider/yq-external-provider /usr/local/bin/yq-external-provider
+COPY --from=builder /analyzer-lsp/external-providers/golang-dependency-provider/golang-dependency-provider /usr/local/bin/golang-dependency-provider
+COPY --from=builder /analyzer-lsp/external-providers/java-external-provider/java-external-provider /usr/local/bin/java-external-provider
 
 COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
 

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -120,10 +121,12 @@ func Test_dependencyConditionEvaluation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.title, func(t *testing.T) {
 			depCondition := DependencyCondition{
-				Name:       tt.name,
-				Upperbound: tt.upperbound,
-				Lowerbound: tt.lowerbound,
-				Client:     &fakeClient{dependencies: tt.dependencies},
+				DependencyConditionCap: DependencyConditionCap{
+					Name:       tt.name,
+					Upperbound: tt.upperbound,
+					Lowerbound: tt.lowerbound,
+				},
+				Client: &fakeClient{dependencies: tt.dependencies},
 			}
 
 			resp, err := depCondition.Evaluate(context.TODO(), logr.Logger{}, engine.ConditionContext{})
@@ -252,21 +255,21 @@ func Test_deduplication(t *testing.T) {
 		{
 			title: "no duplicates within a file should result in an unchanged list",
 			dependencies: map[uri.URI][]*Dep{
-				uri.URI("file1"): []*Dep{
+				uri.URI("file1"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 				},
-				uri.URI("file2"): []*Dep{
+				uri.URI("file2"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 				},
 			},
 			expected: map[uri.URI][]*Dep{
-				uri.URI("file1"): []*Dep{
+				uri.URI("file1"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 				},
-				uri.URI("file2"): []*Dep{
+				uri.URI("file2"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 				},
@@ -275,7 +278,7 @@ func Test_deduplication(t *testing.T) {
 		{
 			title: "different versions or shas of the same dependency should not be deduped",
 			dependencies: map[uri.URI][]*Dep{
-				uri.URI("file1"): []*Dep{
+				uri.URI("file1"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 					{Name: "dep1", Version: "v2.0.0", ResolvedIdentifier: "abcd"},
 					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcde"},
@@ -283,7 +286,7 @@ func Test_deduplication(t *testing.T) {
 				},
 			},
 			expected: map[uri.URI][]*Dep{
-				uri.URI("file1"): []*Dep{
+				uri.URI("file1"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 					{Name: "dep1", Version: "v2.0.0", ResolvedIdentifier: "abcd"},
 					{Name: "dep2", Version: "v1.0.0", ResolvedIdentifier: "abcde"},
@@ -294,13 +297,13 @@ func Test_deduplication(t *testing.T) {
 		{
 			title: "duplicates within a file should be removed",
 			dependencies: map[uri.URI][]*Dep{
-				uri.URI("file1"): []*Dep{
+				uri.URI("file1"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 				},
 			},
 			expected: map[uri.URI][]*Dep{
-				uri.URI("file1"): []*Dep{
+				uri.URI("file1"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 				},
 			},
@@ -308,13 +311,13 @@ func Test_deduplication(t *testing.T) {
 		{
 			title: "direct dependencies should be preferred over indirect",
 			dependencies: map[uri.URI][]*Dep{
-				uri.URI("file1"): []*Dep{
+				uri.URI("file1"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd", Indirect: true},
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 				},
 			},
 			expected: map[uri.URI][]*Dep{
-				uri.URI("file1"): []*Dep{
+				uri.URI("file1"): {
 					{Name: "dep1", Version: "v1.0.0", ResolvedIdentifier: "abcd"},
 				},
 			},
@@ -334,4 +337,78 @@ func Test_deduplication(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_GetConfigs(t *testing.T) {
+	tests := []struct {
+		title                          string
+		testdataFile                   string
+		expectedProviderSpecificConfig map[string]interface{}
+		shouldErr                      bool
+	}{
+		{
+			title:        "testnested",
+			testdataFile: "testdata/provider_settings_nested_types.json",
+			expectedProviderSpecificConfig: map[string]interface{}{
+				"lspServerName":                  "generic",
+				"lspServerPath":                  "/root/go/bin/gopls",
+				"lspServerArgs":                  []interface{}{"string"},
+				"lspServerInitializationOptions": "",
+				"workspaceFolders":               []interface{}{"file:///analyzer-lsp/examples/golang"},
+				"dependencyFolders":              []interface{}{},
+				"groupVersionKinds": []interface{}{
+					map[string]interface{}{"group": "apps", "version": "v1", "kind": "Deployment"},
+				},
+				"object":                 map[string]interface{}{"nestedObject": "object"},
+				"dependencyProviderPath": "/usr/bin/golang-dependency-provider",
+			},
+		},
+		{
+			title:        "test nested yaml",
+			testdataFile: "testdata/provider_settings_simple.yaml",
+			expectedProviderSpecificConfig: map[string]interface{}{
+				"lspServerName":                  "generic",
+				"lspServerPath":                  "/root/go/bin/gopls",
+				"lspServerArgs":                  []interface{}{"string"},
+				"lspServerInitializationOptions": "",
+				"workspaceFolders":               []interface{}{"file:///analyzer-lsp/examples/golang"},
+				"dependencyFolders":              []interface{}{},
+				"groupVersionKinds": []interface{}{
+					map[string]interface{}{"group": "apps", "version": "v1", "kind": "Deployment"},
+				},
+				"object":                 map[string]interface{}{"nestedObject": "object"},
+				"dependencyProviderPath": "/usr/bin/golang-dependency-provider",
+			},
+		},
+		{
+			title:        "test yaml int keys",
+			testdataFile: "testdata/provider_settings_invalid.yaml",
+			shouldErr:    true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.title, func(t *testing.T) {
+			config, err := GetConfig(tc.testdataFile)
+			if err != nil && !tc.shouldErr {
+				t.Fatalf("got error: %v", err)
+			}
+			if err != nil && tc.shouldErr {
+				return
+			}
+			// This is true because of the builtin config that will be added if not there
+			if len(config) != 2 {
+				t.Fatalf("got config longer than one: %v", len(config))
+			}
+			c := config[0]
+			if len(c.InitConfig) != 1 {
+				t.Fatalf("got init config longer than one: %v", len(c.InitConfig))
+			}
+			pc := c.InitConfig[0]
+			if !reflect.DeepEqual(pc.ProviderSpecificConfig, tc.expectedProviderSpecificConfig) {
+				fmt.Printf("\n%#v", pc.ProviderSpecificConfig)
+				fmt.Printf("\n%#v\n", tc.expectedProviderSpecificConfig)
+				t.Fatalf("Got config is different than expected config")
+			}
+		})
+	}
 }

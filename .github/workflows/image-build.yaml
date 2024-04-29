@@ -15,15 +15,63 @@ concurrency:
 
 jobs:
   image-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        images: 
+          - name: analyzer-lsp
+            containerfile: "./Dockerfile"
+            pre_build_cmd: |
+              TAG=${GITHUB_REF_NAME/main/latest}
+              sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
+            context: "."
+            architectures: '[ "amd64", "arm64", "ppc64le", "s390x" ]'
+          - name: dotnet-external-provider
+            containerfile: "./external-providers/dotnet-external-provider/Dockerfile"
+            context: "."
+            architectures: '[ "amd64", "arm64" ]'
+          - name: golang-dependency-provider
+            containerfile: "./external-providers/golang-dependency-provider/Dockerfile"
+            context: "."
+            architectures: '[ "amd64", "arm64" ]'
+          - name: yq-external-provider
+            containerfile: "./external-providers/yq-external-provider/Dockerfile"
+            context: "."
+            architectures: '[ "amd64", "arm64" ]'
+          - name: java-external-provider
+            containerfile: "./external-providers/java-external-provider/Dockerfile"
+            context: "."
+            architectures: '[ "amd64", "arm64" ]'
+            pre_build_cmd: |
+              TAG=${GITHUB_REF_NAME/main/latest}
+              sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
+
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
       registry: "quay.io/konveyor"
-      image_name: "analyzer-lsp"
-      containerfile: "./Dockerfile"
-      pre_build_cmd: |
-        TAG=${GITHUB_REF_NAME/main/latest}
-        sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
-      architectures: '[ "amd64", "arm64", "ppc64le", "s390x" ]'
+      image_name: ${{ matrix.images.name }}
+      containerfile: ${{ matrix.images.containerfile }}
+      pre_build_cmd: ${{ matrix.images.pre_build_cmd }}
+      architectures: ${{ matrix.images.architectures }}
+      context: ${{ matrix.images.context }}
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
       registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
+  
+  # generic provider requires go dep provider we built in matrix and needs to be sequential
+  generic-external-provider-build:
+    needs: image-build
+    uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
+    with:
+      registry: "quay.io/konveyor"
+      image_name: generic-external-provider
+      containerfile: "./external-providers/generic-external-provider/Dockerfile"
+      architectures: '[ "amd64", "arm64" ]'
+      context: "."
+      pre_build_cmd: |
+        TAG=${GITHUB_REF_NAME/main/latest}
+        sed -i "s,FROM quay.io/konveyor/golang-dependency-provider,FROM quay.io/konveyor/golang-dependency-provider:${TAG}," Dockerfile
+    secrets:
+      registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
+      registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}  
+    

@@ -6,15 +6,17 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/swaggest/openapi-go/openapi3"
 )
 
 // TODO(shawn-hurley): Pipe the logger through
 // Determine how and where external providers will add the logs to make the logs viewable in a single location.
 type yqProvider struct {
 	ctx context.Context
+
+	log logr.Logger
 }
 
 var _ provider.BaseClient = &yqProvider{}
@@ -24,12 +26,14 @@ func NewYqProvider() *yqProvider {
 }
 
 func (p *yqProvider) Capabilities() []provider.Capability {
-	return []provider.Capability{
-		{
-			Name:            "k8sResourceMatched",
-			TemplateContext: openapi3.SchemaRef{},
-		},
+	caps := []provider.Capability{}
+	r := openapi3.NewReflector()
+	k8sResourceMatched, err := provider.ToProviderCap(r, p.log, k8sResourceCondition{}, "k8sResourceMatched")
+	if err != nil {
+		fmt.Printf("not working")
 	}
+	caps = append(caps, k8sResourceMatched)
+	return caps
 }
 
 type yqCondition struct {

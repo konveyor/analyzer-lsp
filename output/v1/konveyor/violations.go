@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"go.lsp.dev/uri"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -51,28 +50,6 @@ func (r *RuleSet) sortFields() {
 func (r RuleSet) MarshalYAML() (interface{}, error) {
 	r.sortFields()
 	return r, nil
-}
-
-// NOTE(jsussman): Might have some performance issues.
-//
-// MarshalYAML's return value is (interface{}, error), meaning it simply
-// propagates the object forward, unmarshalling whatever you return.
-// MarshalJSON's return value is ([]byte, error), meaning you have to build the
-// JSON yourself. You'd think we can simply call r.sortFields and then
-// json.Marshal(r) like MarshalYAML, but that causes infinite recursion.
-func (r RuleSet) MarshalJSON() ([]byte, error) {
-	b, err := yaml.Marshal(r)
-	if err != nil {
-		return b, err
-	}
-
-	m := map[string]any{}
-	err = yaml.Unmarshal(b, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(m)
 }
 
 type Category string
@@ -134,21 +111,6 @@ func (v *Violation) sortFields() {
 func (v Violation) MarshalYAML() (interface{}, error) {
 	v.sortFields()
 	return v, nil
-}
-
-func (v Violation) MarshalJSON() ([]byte, error) {
-	b, err := yaml.Marshal(v)
-	if err != nil {
-		return b, err
-	}
-
-	m := map[string]any{}
-	err = yaml.Unmarshal(b, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(m)
 }
 
 // Incident defines instance of a violation
@@ -276,21 +238,6 @@ func (d Dep) MarshalYAML() (interface{}, error) {
 	return d, nil
 }
 
-func (d Dep) MarshalJSON() ([]byte, error) {
-	b, err := yaml.Marshal(d)
-	if err != nil {
-		return b, err
-	}
-
-	m := map[string]any{}
-	err = yaml.Unmarshal(b, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(m)
-}
-
 func (d *Dep) GetLabels() []string {
 	return d.Labels
 }
@@ -316,21 +263,6 @@ func (d DepDAGItem) MarshalYAML() (interface{}, error) {
 	return d, nil
 }
 
-func (d DepDAGItem) MarshalJSON() ([]byte, error) {
-	b, err := yaml.Marshal(d)
-	if err != nil {
-		return b, err
-	}
-
-	m := map[string]any{}
-	err = yaml.Unmarshal(b, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(m)
-}
-
 type DepsFlatItem struct {
 	FileURI      string `yaml:"fileURI" json:"fileURI"`
 	Provider     string `yaml:"provider" json:"provider"`
@@ -347,21 +279,6 @@ func (d *DepsFlatItem) sortFields() {
 func (d DepsFlatItem) MarshalYAML() (interface{}, error) {
 	d.sortFields()
 	return d, nil
-}
-
-func (d DepsFlatItem) MarshalJSON() ([]byte, error) {
-	b, err := yaml.Marshal(d)
-	if err != nil {
-		return b, err
-	}
-
-	m := map[string]any{}
-	err = yaml.Unmarshal(b, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(m)
 }
 
 type DepsTreeItem struct {
@@ -381,19 +298,4 @@ func (d *DepsTreeItem) sortFields() {
 func (d DepsTreeItem) MarshalYAML() (interface{}, error) {
 	d.sortFields()
 	return d, nil
-}
-
-func (d DepsTreeItem) MarshalJSON() ([]byte, error) {
-	b, err := yaml.Marshal(d)
-	if err != nil {
-		return b, err
-	}
-
-	m := map[string]any{}
-	err = yaml.Unmarshal(b, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(m)
 }

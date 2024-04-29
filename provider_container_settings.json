@@ -1,7 +1,7 @@
 [
     {
         "name": "go",
-        "binaryPath": "/usr/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/generic-external-provider",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
@@ -13,25 +13,25 @@
                 "workspaceFolders": ["file:///analyzer-lsp/examples/golang"],
                 "dependencyFolders": [],
 
-                "dependencyProviderPath": "/usr/bin/golang-dependency-provider"
+                "dependencyProviderPath": "/usr/local/bin/golang-dependency-provider"
             }
         }]
     },
     {
         "name": "yaml",
-        "binaryPath": "/usr/bin/yq-external-provider",
+        "binaryPath": "/usr/local/bin/yq-external-provider",
         "initConfig": [{
-            "location": "examples/yaml",
+            "location": "/analyzer-lsp/examples/yaml",
             "analysisMode": "full",
             "providerSpecificConfig": {
                 "name": "yq",
-                "lspServerPath": "/usr/bin/yq"
+                "lspServerPath": "/usr/local/bin/yq"
             }
         }]
     },
     {
         "name": "python",
-        "binaryPath": "/usr/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/generic-external-provider",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
@@ -49,7 +49,7 @@
     },
     {
         "name": "nodejs",
-        "binaryPath": "/usr/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/generic-external-provider",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
@@ -67,11 +67,12 @@
     },
     {
         "name": "java",
-        "binaryPath": "/jdtls/bin/jdtls",
+        "binaryPath":  "/usr/local/bin/java-external-provider",
         "initConfig": [
             {
-                "location": "examples/java",
+                "location": "/analyzer-lsp/examples/java",
                 "providerSpecificConfig": {
+                    "lspServerName": "java",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "lspServerPath": "/jdtls/bin/jdtls"
@@ -79,8 +80,9 @@
                 "analysisMode": "source-only"
             },
             {
-                "location": "examples/customers-tomcat-legacy",
+                "location": "/analyzer-lsp/examples/customers-tomcat-legacy",
                 "providerSpecificConfig": {
+                    "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"

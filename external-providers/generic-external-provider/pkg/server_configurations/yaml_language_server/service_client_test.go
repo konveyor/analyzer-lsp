@@ -31,7 +31,7 @@ func TestHopefullyNothingBroke(t *testing.T) {
 	log := logrusr.New(logrusLog)
 	ctx := context.TODO()
 
-	prov := generic_external_provider.NewGenericProvider("yaml_language_server")
+	prov := generic_external_provider.NewGenericProvider("yaml_language_server", log)
 
 	yamlSC, err := prov.Init(ctx, log, provider.InitConfig{
 		ProviderSpecificConfig: map[string]interface{}{

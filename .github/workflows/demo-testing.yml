@@ -5,28 +5,57 @@ on: ["push", "pull_request"]
 jobs:
   test:
     runs-on: ubuntu-latest
+    outputs:
+      api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
     steps:
+      - name: Extract pull request number from inputs or PR description
+        id: extract-info
+        env:
+          PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # if this is a PR, we should use the base branch
+          # else, use the branch on which this is running
+          if [ ! -z ${GITHUB_BASE_REF} ]; then 
+              echo "Using ${GITHUB_BASE_REF}"
+              echo "API_TESTS_REF=${GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
+              echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_ENV
+          else
+              echo "Using ${GITHUB_REF_NAME}"
+              echo "API_TESTS_REF=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+              echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_ENV
+          fi
+          
+          # override with explicitely set value in PR description
+          echo "${PULL_REQUEST_BODY}"
+          PULL_REQUEST_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[A|a]ddon [P|p][R|r]: \K\d+' || true)
+          if [ ! -z "$PULL_REQUEST_NUMBER" ]; then
+            echo "Using pull/${PULL_REQUEST_NUMBER} for addon"
+            echo "ADDON_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
+          fi        
+
       - uses: actions/checkout@v3
 
-      - name: build image
-        run: podman build -t quay.io/konveyor/analyzer-lsp:latest .
+      # build all provider images and the analyzer-lsp image
+      - name: build images
+        run: |
+          make build-external
+          podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 
-      - name: build demo image
-        run: podman build -f demo.Dockerfile -t localhost/testing:latest
+      # run the demo in a podman pod
+      - name: run demo image
+        run : |
+          make run-external-providers-pod
+          podman build -f demo-local.Dockerfile -t localhost/testing:latest
+          make run-demo-image
 
       - name: install yq for testing
         run: go install github.com/mikefarah/yq/v4@latest
 
-      - name: run demo image and ensure violations output unchanged
+      - name: ensure violation and dependency outputs are unchanged
         run: |
-          podman run -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest
           diff \
             <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))
-
-      - name: run demo image and ensure dependency output unchanged
-        run: |
-          podman run --entrypoint /usr/bin/konveyor-analyzer-dep -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z localhost/testing:latest --output-file=demo-dep-output.yaml
           diff \
             <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
@@ -35,7 +64,7 @@ jobs:
         with:
           fetch-depth: 0
           repository: konveyor/tackle2-addon-analyzer
-          ref: main
+          ref: "${{ env.ADDON_REF}}"
           path: tackle2-addon-analyzer
 
       - name: Build addon and save image
@@ -56,3 +85,4 @@ jobs:
     uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
       component_name: tackle2-addon-analyzer
+      api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"

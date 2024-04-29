@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -9,13 +10,14 @@ import (
 	"time"
 
 	"github.com/cbroglie/mustache"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
+	jsonschema "github.com/swaggest/jsonschema-go"
+	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/net/http/httpproxy"
@@ -31,6 +33,15 @@ const (
 	DepExcludeLabel  = "konveyor.io/exclude"
 	// LspServerPath is a provider specific config used to specify path to a LSP server
 	LspServerPathConfigKey = "lspServerPath"
+)
+
+// We need to make these Vars, because you can not take a pointer of the constant.
+var (
+	SchemaTypeString openapi3.SchemaType = openapi3.SchemaTypeString
+	SchemaTypeArray  openapi3.SchemaType = openapi3.SchemaTypeArray
+	SchemaTypeObject openapi3.SchemaType = openapi3.SchemaTypeObject
+	SchemaTypeNumber openapi3.SchemaType = openapi3.SchemaTypeInteger
+	SchemaTypeBool   openapi3.SchemaType = openapi3.SchemaTypeBoolean
 )
 
 // This will need a better name, may we want to move it to top level
@@ -64,8 +75,9 @@ func (p *UnimplementedDependenciesComponent) GetDependenciesDAG(ctx context.Cont
 }
 
 type Capability struct {
-	Name            string
-	TemplateContext openapi3.SchemaRef
+	Name   string
+	Input  openapi3.SchemaOrRef
+	Output openapi3.SchemaOrRef
 }
 
 type Config struct {
@@ -159,6 +171,12 @@ func GetConfig(filepath string) ([]Config, error) {
 			if ic.Proxy == nil {
 				ic.Proxy = c.Proxy
 			}
+			newConfig, err := validateAndUpdateProviderSpecificConfig(ic.ProviderSpecificConfig)
+			if err != nil {
+				return configs, err
+			}
+			ic.ProviderSpecificConfig = newConfig
+
 		}
 	}
 	if !foundBuiltin {
@@ -172,6 +190,82 @@ func GetConfig(filepath string) ([]Config, error) {
 
 	return configs, nil
 
+}
+
+func validateAndUpdateProviderSpecificConfig(oldPSC map[string]interface{}) (map[string]interface{}, error) {
+	newPSC := map[string]interface{}{}
+	for k, v := range oldPSC {
+		if old, ok := v.(map[interface{}]interface{}); ok {
+			new, err := validateUpdateInternalProviderConfig(old)
+			if err != nil {
+				return nil, err
+			}
+			newPSC[k] = new
+			continue
+		}
+		if oldList, ok := v.([]interface{}); ok {
+			newList, err := validateUpdateListProviderConfig(oldList)
+			if err != nil {
+				return nil, err
+			}
+			newPSC[k] = newList
+			continue
+		}
+		newPSC[k] = v
+	}
+	return newPSC, nil
+}
+
+func validateUpdateListProviderConfig(old []interface{}) ([]interface{}, error) {
+	new := []interface{}{}
+	for _, v := range old {
+		if oldV, ok := v.(map[interface{}]interface{}); ok {
+			newMap, err := validateUpdateInternalProviderConfig(oldV)
+			if err != nil {
+				return nil, err
+			}
+			new = append(new, newMap)
+			continue
+		}
+		if oldList, ok := v.([]interface{}); ok {
+			newList, err := validateUpdateListProviderConfig(oldList)
+			if err != nil {
+				return nil, err
+			}
+			new = append(new, newList)
+			continue
+		}
+		new = append(new, v)
+	}
+	return new, nil
+}
+
+func validateUpdateInternalProviderConfig(old map[interface{}]interface{}) (map[string]interface{}, error) {
+	new := map[string]interface{}{}
+	for k, v := range old {
+		s, ok := k.(string)
+		if !ok {
+			return nil, fmt.Errorf("provider specific config must only have keys that strings")
+		}
+		if o, ok := v.(map[interface{}]interface{}); ok {
+			new, err := validateUpdateInternalProviderConfig(o)
+			if err != nil {
+				return nil, err
+			}
+			new[s] = new
+			continue
+		}
+		if oldList, ok := v.([]interface{}); ok {
+			newList, err := validateUpdateListProviderConfig(oldList)
+			if err != nil {
+				return nil, err
+			}
+			new[s] = newList
+			continue
+		}
+		new[s] = v
+	}
+	return new, nil
 }
 
 func validateProviderName(configs []Config) error {
@@ -338,7 +432,7 @@ type ServiceClient interface {
 }
 
 type DependencyLocationResolver interface {
-	GetLocation(ctx context.Context, dep konveyor.Dep) (engine.Location, error)
+	GetLocation(ctx context.Context, dep konveyor.Dep, depFile string) (engine.Location, error)
 }
 
 type Dep = konveyor.Dep
@@ -487,7 +581,8 @@ func matchDepLabelSelector(s *labels.LabelSelector[*Dep], inc IncidentContext, d
 			return false, err
 		}
 		for _, d := range depList {
-			if strings.HasPrefix(string(inc.FileURI), d.FileURIPrefix) {
+			if d.FileURIPrefix != "" &&
+				strings.HasPrefix(string(inc.FileURI), d.FileURIPrefix) {
 				matched = true
 			}
 		}
@@ -519,15 +614,19 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	return []byte(s), nil
 }
 
-// TODO where should this go
-type DependencyCondition struct {
-	Upperbound string
-	Lowerbound string
-	Name       string
+type DependencyConditionCap struct {
+	Upperbound string `json:"upperbound,omitempty"`
+	Lowerbound string `json:"lowerbound,omitempty"`
+	Name       string `json:"name"`
 	// NameRegex will be a valid go regex that will be used to
 	// search the name of a given dependency.
 	// Examples include kubernetes* or jakarta-.*-2.2.
-	NameRegex string
+	NameRegex string `json:"name_regex,omitempty"`
+}
+
+// TODO where should this go
+type DependencyCondition struct {
+	DependencyConditionCap
 
 	Client Client
 }
@@ -582,7 +681,7 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			if depLocationResolver != nil {
 				// this is a best-effort step and we don't want to block if resolver misbehaves
 				timeoutContext, cancelFunc := context.WithTimeout(ctx, time.Second*3)
-				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
+				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep, string(matchedDep.uri))
 				if err == nil {
 					incident.LineNumber = &location.StartPosition.Line
 					incident.CodeLocation = &location
@@ -643,12 +742,33 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		if depLocationResolver != nil {
 			// this is a best-effort step and we don't want to block if resolver misbehaves
 			timeoutContext, cancelFunc := context.WithTimeout(context.Background(), time.Second*3)
-			location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep)
-			if err == nil {
-				incident.LineNumber = &location.StartPosition.Line
-				incident.CodeLocation = &location
+			if baseDep, ok := matchedDep.dep.Extras["baseDep"]; ok {
+				// convert base dep back to konveyor.Dep
+				konvDep := konveyor.Dep{}
+				depBytes, err := json.Marshal(baseDep)
+				if err != nil {
+					log.V(7).Error(err, "failed to marshal dependency", "dep", matchedDep.dep.Name)
+				}
+				err = json.Unmarshal(depBytes, &konvDep)
+				if err != nil {
+					log.V(7).Error(err, "failed to unmarshal dependency", "dep", matchedDep.dep.Name)
+				}
+				// Use "parent" baseDep location lookup for indirect dependencies
+				location, err := depLocationResolver.GetLocation(timeoutContext, konvDep, string(matchedDep.uri))
+				if err == nil {
+					incident.LineNumber = &location.StartPosition.Line
+					incident.CodeLocation = &location
+				} else {
+					log.V(7).Error(err, "failed to get location for indirect dependency", "dep", matchedDep.dep.Name)
+				}
 			} else {
-				log.V(7).Error(err, "failed to get location for dependency", "dep", matchedDep.dep.Name)
+				location, err := depLocationResolver.GetLocation(timeoutContext, *matchedDep.dep, string(matchedDep.uri))
+				if err == nil {
+					incident.LineNumber = &location.StartPosition.Line
+					incident.CodeLocation = &location
+				} else {
+					log.V(7).Error(err, "failed to get location for dependency", "dep", matchedDep.dep.Name)
+				}
 			}
 			cancelFunc()
 		}
@@ -672,7 +792,7 @@ func getVersion(depVersion string) (*version.Version, error) {
 		return v, nil
 	}
 	// Parsing failed so we'll try to extract a version and parse that
-	re := regexp.MustCompile("v?([0-9]+(?:\\.[0-9]+)*)")
+	re := regexp.MustCompile(`v?([0-9]+(?:.[0-9]+)*)`)
 	matches := re.FindStringSubmatch(depVersion)
 
 	// The group is matching twice for some reason, double-check it's just a dup match
@@ -735,4 +855,40 @@ func deduplicateDependencies(dependencies map[uri.URI][]*Dep) map[uri.URI][]*Dep
 		}
 	}
 	return deduped
+}
+
+func ToProviderCap(r *openapi3.Reflector, log logr.Logger, input interface{}, name string) (Capability, error) {
+	jsonCondition, err := r.Reflector.Reflect(input)
+	if err != nil {
+		log.Error(err, "fix it")
+		return Capability{}, err
+	}
+	inputSchemaOrRef := &openapi3.SchemaOrRef{}
+	inputSchemaOrRef.FromJSONSchema(jsonschema.SchemaOrBool{
+		TypeObject: &jsonCondition,
+	})
+	return Capability{
+		Name:  name,
+		Input: *inputSchemaOrRef,
+	}, nil
+
+}
+
+func ToProviderInputOutputCap(r *openapi3.Reflector, log logr.Logger, input, output interface{}, name string) (Capability, error) {
+	cap, err := ToProviderCap(r, log, input, name)
+	if err != nil {
+		return cap, err
+	}
+	jsonCondition, err := r.Reflector.Reflect(output)
+	if err != nil {
+		log.Error(err, "fix it")
+		return Capability{}, err
+	}
+	outputSchemaOrRef := &openapi3.SchemaOrRef{}
+	outputSchemaOrRef.FromJSONSchema(jsonschema.SchemaOrBool{
+		TypeObject: &jsonCondition,
+	})
+	cap.Output = *outputSchemaOrRef
+	return cap, nil
+
 }

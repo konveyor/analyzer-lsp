@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -53,6 +55,7 @@ type ruleEngine struct {
 	codeSnipLimit    int
 	contextLines     int
 	incidentSelector string
+	locationPrefixes []string
 }
 
 type Option func(engine *ruleEngine)
@@ -78,6 +81,12 @@ func WithCodeSnipLimit(i int) Option {
 func WithIncidentSelector(selector string) Option {
 	return func(engine *ruleEngine) {
 		engine.incidentSelector = selector
+	}
+}
+
+func WithLocationPrefixes(location []string) Option {
+	return func(engine *ruleEngine) {
+		engine.locationPrefixes = location
 	}
 }
 
@@ -185,7 +194,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
 						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule)
 						if err != nil {
-							r.logger.Error(err, "unable to create violation from response")
+							r.logger.Error(err, "unable to create violation from response", "ruleID", response.Rule.RuleID)
 						}
 						if len(violation.Incidents) == 0 {
 							r.logger.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched", "rule", response.Rule.RuleID)
@@ -333,7 +342,7 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 						}
 						templateString, err := r.createPerformString(tagString, variables)
 						if err != nil {
-							r.logger.Error(err, "unable to create tag string")
+							r.logger.Error(err, "unable to create tag string", "ruleID", rule.RuleID)
 							continue
 						}
 						tags[templateString] = true
@@ -403,6 +412,35 @@ func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log l
 
 }
 
+func (r *ruleEngine) getRelativePathForViolation(fileURI uri.URI) (uri.URI, error) {
+	var sourceLocation string
+	if fileURI != "" {
+		u, err := url.ParseRequestURI(string(fileURI))
+		if err != nil || u.Scheme != uri.FileScheme {
+			return fileURI, nil
+		}
+		file := fileURI.Filename()
+		// get the correct source
+		for _, locationPrefix := range r.locationPrefixes {
+			if strings.Contains(file, locationPrefix) {
+				sourceLocation = locationPrefix
+				break
+			}
+		}
+		absPath, err := filepath.Abs(sourceLocation)
+		if err != nil {
+			return fileURI, nil
+		}
+		// given a relative path for source
+		if absPath != sourceLocation {
+			relPath := filepath.Join(sourceLocation, strings.TrimPrefix(file, absPath))
+			newURI := fmt.Sprintf("file:///%s", filepath.Join(strings.TrimPrefix(relPath, "/")))
+			return uri.URI(newURI), nil
+		}
+	}
+	return fileURI, nil
+}
+
 func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse ConditionResponse, rule Rule) (konveyor.Violation, error) {
 	incidents := []konveyor.Incident{}
 	fileCodeSnipCount := map[string]int{}
@@ -420,8 +458,19 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
 			break
 		}
+		trimmedUri, err := r.getRelativePathForViolation(m.FileURI)
+		if err != nil {
+			return konveyor.Violation{}, err
+		}
+
+		for val := range m.Variables {
+			if val == "file" {
+				m.Variables["file"] = trimmedUri
+			}
+		}
+
 		incident := konveyor.Incident{
-			URI:        m.FileURI,
+			URI:        trimmedUri,
 			LineNumber: m.LineNumber,
 			// This allows us to change m.Variables and it will be set
 			// because it is a pointer.
@@ -540,6 +589,12 @@ func (r *ruleEngine) getCodeLocation(ctx context.Context, m IncidentContext, rul
 		return "", nil
 	}
 
+	// We need to move this up, because the code only lives in the
+	// provider's
+	if rule.Snipper != nil {
+		return rule.Snipper.GetCodeSnip(m.FileURI, *m.CodeLocation)
+	}
+
 	if strings.HasPrefix(string(m.FileURI), uri.FileScheme) {
 		//Find the file, open it in a buffer.
 		readFile, err := os.Open(m.FileURI.Filename())
@@ -564,9 +619,6 @@ func (r *ruleEngine) getCodeLocation(ctx context.Context, m IncidentContext, rul
 			lineNumber += 1
 		}
 		return codeSnip, nil
-	}
-	if rule.Snipper != nil {
-		return rule.Snipper.GetCodeSnip(m.FileURI, *m.CodeLocation)
 	}
 
 	// if it is not a file ask the provider

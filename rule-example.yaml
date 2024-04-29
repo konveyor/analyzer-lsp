@@ -29,7 +29,7 @@
     or:
     - builtin.xml:
         xpath: "//dependencies/dependency"
-        filepaths: "{{poms.filepaths}}"
+        filepaths: "{{poms.extras.filepaths}}"
       from: poms
     - builtin.file:
         pattern: pom.xml
@@ -242,3 +242,14 @@
       namespaces:
         b: http://xmlns.jcp.org/xml/ns/javaee
       xpath: /b:beans
+- category: potential
+  description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
+  effort: 1
+  message: If you migrate your application to JBoss EAP 7.3, or later, and want to
+    ensure its Maven building, running or testing works as expected, use instead the
+    Jakarta EE dependency with groupId `com.sun.activation`
+  ruleID: maven-javax-to-jakarta-00002
+  when:
+    java.dependency:
+      lowerbound: 0.0.0
+      name: javax.activation.activation

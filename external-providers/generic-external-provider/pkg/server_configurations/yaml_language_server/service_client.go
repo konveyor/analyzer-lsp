@@ -9,13 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3gen"
 	"github.com/go-logr/logr"
 	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
@@ -49,7 +48,12 @@ type YamlServiceClient struct {
 	configParams []map[string]any
 }
 
-func NewYamlServiceClient(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
+// Tidy alias
+type serviceClientFn = base.LSPServiceClientFunc[*YamlServiceClient]
+
+type YamlServiceClientBuilder struct{}
+
+func (y *YamlServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
 	sc := &YamlServiceClient{}
 
 	// Unmarshal the config
@@ -111,7 +115,7 @@ func NewYamlServiceClient(ctx context.Context, log logr.Logger, c provider.InitC
 	sc.LSPServiceClientBase = scBase
 
 	// Initialize the fancy evaluator
-	eval, err := base.NewLspServiceClientEvaluator[*YamlServiceClient](sc, YamlServiceClientCapabilities)
+	eval, err := base.NewLspServiceClientEvaluator[*YamlServiceClient](sc, y.GetGenericServiceClientCapabilities(log))
 	if err != nil {
 		return nil, err
 	}
@@ -120,25 +124,19 @@ func NewYamlServiceClient(ctx context.Context, log logr.Logger, c provider.InitC
 	return sc, nil
 }
 
-// Tidy alias
-type serviceClientFn = base.LSPServiceClientFunc[*YamlServiceClient]
-
-func serviceClientTemplateContext(v any) openapi3.SchemaRef {
-	r, _ := openapi3gen.NewSchemaRefForValue(v, nil)
-	return *r
-}
-
-var YamlServiceClientCapabilities = []base.LSPServiceClientCapability{
-	{
-		Name:            "referenced",
-		TemplateContext: serviceClientTemplateContext(referencedCondition{}),
-		Fn:              serviceClientFn((*YamlServiceClient).EvaluateReferenced),
-	},
-	{
-		Name:            "dependency",
-		TemplateContext: serviceClientTemplateContext(base.NoOpCondition{}),
-		Fn:              serviceClientFn(base.EvaluateNoOp[*YamlServiceClient]),
-	},
+func (y *YamlServiceClientBuilder) GetGenericServiceClientCapabilities(log logr.Logger) []base.LSPServiceClientCapability {
+	caps := []base.LSPServiceClientCapability{}
+	r := openapi3.NewReflector()
+	refCap, err := provider.ToProviderCap(r, log, referencedCondition{}, "referenced")
+	if err != nil {
+		log.Error(err, "unable to get referenced cap")
+	} else {
+		caps = append(caps, base.LSPServiceClientCapability{
+			Capability: refCap,
+			Fn:         serviceClientFn((*YamlServiceClient).EvaluateReferenced),
+		})
+	}
+	return caps
 }
 
 type referencedCondition struct {
