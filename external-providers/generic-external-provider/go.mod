@@ -1,12 +1,12 @@
 module github.com/konveyor/generic-external-provider
 
-go 1.19
+go 1.20
 
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-logr/logr v1.2.4
-	github.com/konveyor/analyzer-lsp v0.3.0-beta.2
+	github.com/konveyor/analyzer-lsp v0.3.2-0.20240424154435-a6985630be6b
 	github.com/sirupsen/logrus v1.9.3
 	go.lsp.dev/uri v0.3.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -30,9 +30,9 @@ require (
 	go.opentelemetry.io/otel/exporters/jaeger v1.11.2 // indirect
 	go.opentelemetry.io/otel/sdk v1.11.2 // indirect
 	go.opentelemetry.io/otel/trace v1.11.2 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	google.golang.org/grpc v1.54.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect

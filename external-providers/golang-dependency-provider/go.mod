@@ -1,9 +1,9 @@
 module github.com/konveyor/golang-dependency-provider
 
-go 1.19
+go 1.20
 
 require (
-	github.com/konveyor/analyzer-lsp v0.3.0-beta.2
+	github.com/konveyor/analyzer-lsp v0.3.2-0.20240424154435-a6985630be6b
 	go.lsp.dev/uri v0.3.0
 )
 
@@ -28,9 +28,9 @@ require (
 	go.opentelemetry.io/otel/metric v1.17.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.17.0 // indirect
 	go.opentelemetry.io/otel/trace v1.17.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230803162519-f966b187b2e5 // indirect
 	google.golang.org/grpc v1.58.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
