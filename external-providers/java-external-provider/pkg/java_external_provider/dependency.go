@@ -337,6 +337,7 @@ func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[ur
 }
 
 // getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
+// TODO: what if no wrapper?
 func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	subprojects, err := p.getGradleSubprojects()
 	if err != nil {
