@@ -399,6 +399,11 @@
       description: ""
       category: potential
       incidents:
+      - uri: file:///examples/gradle-multi-project-example/build.gradle
+        message: dependency junit.junit with 4.12 is bad and you should feel bad for using it
+        variables:
+          name: junit.junit
+          version: "4.12"
       - uri: file:///examples/java/pom.xml
         message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you should feel bad for using it
         codeSnip: "26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>\n41        <artifactId>kubernetes-client-api</artifactId>\n42        <version>6.0.0</version>\n43      </dependency>\n44      <dependency>\n45        <groupId>javax</groupId>\n46        <artifactId>javaee-api</artifactId>"
