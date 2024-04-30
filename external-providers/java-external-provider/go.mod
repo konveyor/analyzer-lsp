@@ -6,14 +6,16 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/konveyor/analyzer-lsp v0.4.0-alpha.1.0.20240520232004-8af6f5c84a59
 	github.com/swaggest/openapi-go v0.2.50
-	github.com/vifraa/gopom v1.0.0
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel v1.11.2
 	google.golang.org/grpc v1.62.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require github.com/sirupsen/logrus v1.9.0
+require (
+	github.com/sirupsen/logrus v1.9.0
+	github.com/vifraa/gopom v1.0.0
+)
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect

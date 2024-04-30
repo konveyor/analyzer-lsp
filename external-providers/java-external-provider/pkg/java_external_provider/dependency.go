@@ -351,7 +351,11 @@ func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[u
 	}
 
 	// get the graph output
-	cmd := exec.Command("./gradlew", args...)
+	exe, err := filepath.Abs(filepath.Join(p.config.Location, "gradlew"))
+	if err != nil {
+		return nil, fmt.Errorf("error calculating gradle wrapper path")
+	}
+	cmd := exec.Command(exe, args...)
 	cmd.Dir = p.config.Location
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -384,7 +388,10 @@ func (p *javaServiceClient) getGradleSubprojects() ([]string, error) {
 		return nil, err
 	}
 
-	exe := filepath.Join(p.config.Location, "gradlew")
+	exe, err := filepath.Abs(filepath.Join(p.config.Location, "gradlew"))
+	if err != nil {
+		return nil, fmt.Errorf("error calculating gradle wrapper path")
+	}
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = p.config.Location
 	output, err := cmd.CombinedOutput()
