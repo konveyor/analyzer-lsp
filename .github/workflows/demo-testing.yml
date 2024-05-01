@@ -78,4 +78,5 @@ jobs:
     uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
       component_name: tackle2-addon-analyzer
+      tag: release-0.3
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"
