@@ -1,4 +1,10 @@
 DOCKER_IMAGE = test
+OS := $(shell uname -s)
+ifeq ($(OS),Linux)
+	MOUNT_OPT := :z
+else 
+	MOUNT_OPT := 
+endif
 
 build: analyzer deps golang-dependency-provider external-generic yq-external-provider java-external-provider
 
@@ -42,11 +48,11 @@ build-yq-provider:
 	podman build -f external-providers/yq-external-provider/Dockerfile -t yq-provider .
 
 run-external-providers-local:
-	podman run --name java-provider -d -p 14651:14651 -v $(PWD)/external-providers/java-external-provider/examples:/examples java-provider --port 14651
-	podman run --name yq -d -p 14652:14652 -v $(PWD)/examples:/examples yq-provider --port 14652
-	podman run --name golang-provider -d -p 14653:14653 -v $(PWD)/examples:/examples generic-provider --port 14653
-	podman run --name nodejs -d -p 14654:14654 -v $(PWD)/examples:/examples generic-provider --port 14654 --name nodejs
-	podman run --name python -d -p 14655:14655 -v $(PWD)/examples:/examples generic-provider --port 14655 --name pylsp
+	podman run --name java-provider -d -p 14651:14651 -v $(PWD)/external-providers/java-external-provider/examples:/examples$(MOUNT_OPT) java-provider --port 14651
+	podman run --name yq -d -p 14652:14652 -v $(PWD)/examples:/examples yq-provider$(MOUNT_OPT) --port 14652
+	podman run --name golang-provider -d -p 14653:14653 -v $(PWD)/examples:/examples$(MOUNT_OPT) generic-provider --port 14653
+	podman run --name nodejs -d -p 14654:14654 -v $(PWD)/examples:/examples$(MOUNT_OPT) generic-provider --port 14654 --name nodejs
+	podman run --name python -d -p 14655:14655 -v $(PWD)/examples:/examples$(MOUNT_OPT) generic-provider --port 14655 --name pylsp
 
 stop-external-providers:
 	podman kill java-provider || true
@@ -64,19 +70,19 @@ stop-external-providers:
 run-external-providers-pod:
 	podman volume create test-data
 	# copy data to test data volume
-	podman run --rm -v test-data:/target -v $(PWD)/examples:/src/ --entrypoint=cp alpine -a /src/. /target/
-	podman run --rm -v test-data:/target -v $(PWD)/external-providers/java-external-provider/examples:/src/ --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	# run pods w/ defined ports for the test volumes
 	podman pod create --name=analyzer
-	podman run --pod analyzer --name java-provider -d -v test-data:/analyzer-lsp/examples java-provider --port 14651
-	podman run --pod analyzer --name yq -d -v test-data:/analyzer-lsp/examples yq-provider --port 14652
-	podman run --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples generic-provider --port 14653
-	podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples generic-provider --port 14654 --name nodejs
-	podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples generic-provider --port 14655 --name pylsp
+	podman run --pod analyzer --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) java-provider --port 14651
+	podman run --pod analyzer --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) yq-provider --port 14652
+	podman run --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) generic-provider --port 14653
+	podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) generic-provider --port 14654 --name nodejs
+	podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) generic-provider --port 14655 --name pylsp
 	podman build -f demo-local.Dockerfile -t localhost/testing:latest
 
 run-demo-image:
-	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --dep-output-file=demo-dep-output.yaml
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml
 
 stop-external-providers-pod: stop-external-providers
 	podman pod kill analyzer

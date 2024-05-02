@@ -35,7 +35,7 @@ func (d *dependencyLocationResolverClient) GetLocation(ctx context.Context, dep 
 		},
 		DepFile: depFile,
 	})
-	if res.Location == nil {
+	if res == nil || res.Location == nil {
 		return engine.Location{}, nil
 	}
 	loc := engine.Location{}
