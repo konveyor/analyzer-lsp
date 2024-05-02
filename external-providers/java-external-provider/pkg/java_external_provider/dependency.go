@@ -333,7 +333,6 @@ func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[ur
 }
 
 // getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
-// TODO: what if no wrapper?
 func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	subprojects, err := p.getGradleSubprojects()
 	if err != nil {
@@ -354,6 +353,9 @@ func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[u
 	exe, err := filepath.Abs(filepath.Join(p.config.Location, "gradlew"))
 	if err != nil {
 		return nil, fmt.Errorf("error calculating gradle wrapper path")
+	}
+	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
 	}
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = p.config.Location
@@ -391,6 +393,9 @@ func (p *javaServiceClient) getGradleSubprojects() ([]string, error) {
 	exe, err := filepath.Abs(filepath.Join(p.config.Location, "gradlew"))
 	if err != nil {
 		return nil, fmt.Errorf("error calculating gradle wrapper path")
+	}
+	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
 	}
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = p.config.Location
