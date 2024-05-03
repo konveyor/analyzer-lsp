@@ -19,12 +19,17 @@ we must start the provider before running the analyzer.
 
 ```shell
 podman run -it --rm -P -u 1000:1000 \
-    -v $PWD/external-providers/dotnet-external-provider/examples/:$PWD/external-providers/dotnet-external-provider/examples/ \
+    -v $PWD/external-providers/dotnet-external-provider/examples/:$PWD/external-providers/dotnet-external-provider/examples/:z \
     quay.io/konveyor/dotnet-external-provider:latest
 ```
 
-**NOTE** Using the exact same path inside the container and host is our way of
-simulating a shared filesystem between the analyzer and provider.
+**NOTEs**
+ * Using the exact same path inside the container and host is our way of
+   simulating a shared filesystem between the analyzer and provider.
+ * `:z` is necessary on hosts with labeling systems like SELinux that require
+   proper labels be placed on volume content mounted into a container. See
+   [podman documentation](https://docs.podman.io/en/latest/markdown/podman-run.1.html)
+   for more information (specifically under "Labeling Volume Mounts").
 
 Verify provider is running and take note of open ports:
 
