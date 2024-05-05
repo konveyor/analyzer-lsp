@@ -171,6 +171,11 @@
     labels:
     - konveyor.io/dep-source=downloadable
     - konveyor.io/language=go
+  - name: go
+    version: "1.18"
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
   - name: go.etcd.io/etcd/client/pkg/v3
     version: v3.5.1
     labels:
