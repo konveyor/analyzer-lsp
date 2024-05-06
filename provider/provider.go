@@ -615,13 +615,14 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 }
 
 type DependencyConditionCap struct {
-	Upperbound string `json:"upperbound,omitempty"`
-	Lowerbound string `json:"lowerbound,omitempty"`
-	Name       string `json:"name"`
+	Upperbound string `json:"upperbound,omitempty" title:"Upperbound" description:"Match versions lower than or equal to"`
+	Lowerbound string `json:"lowerbound,omitempty" title:"Lowerbound" description:"Match versions greater than or equal to"`
+	Name       string `json:"name" title:"Name" description:"Name of the dependency"`
+
 	// NameRegex will be a valid go regex that will be used to
 	// search the name of a given dependency.
 	// Examples include kubernetes* or jakarta-.*-2.2.
-	NameRegex string `json:"name_regex,omitempty"`
+	NameRegex string `json:"name_regex,omitempty" title:"NameRegex" description:"Regex pattern to match the name"`
 }
 
 // TODO where should this go
