@@ -9,13 +9,13 @@ require (
 	github.com/vifraa/gopom v1.0.0
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel v1.11.2
-	google.golang.org/grpc v1.62.1
+	google.golang.org/grpc v1.62.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require github.com/sirupsen/logrus v1.9.0
 
-require google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
+require google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
 
 require (
 	github.com/PaesslerAG/gval v1.2.2 // indirect

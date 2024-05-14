@@ -84,6 +84,7 @@ type Config struct {
 	Name         string       `yaml:"name,omitempty" json:"name,omitempty"`
 	BinaryPath   string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
 	Address      string       `yaml:"address,omitempty" json:"address,omitempty"`
+	CertPath     string       `yaml:"certPath,omitempty" json:"certPath,omitempty"`
 	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
 	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
 	ContextLines int
