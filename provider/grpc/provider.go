@@ -16,6 +16,7 @@ import (
 	"github.com/phayes/freeport"
 	"go.lsp.dev/uri"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -263,12 +264,23 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 		return conn, out, nil
 	}
 	if config.Address != "" {
-		conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			log.Fatalf("did not connect: %v", err)
+		if config.CertPath == "" {
+			conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Fatalf("did not connect: %v", err)
+			}
+			return conn, nil, nil
+		} else {
+			creds, err := credentials.NewClientTLSFromFile(config.CertPath, "")
+			if err != nil {
+				return nil, nil, err
+			}
+			conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(creds))
+			if err != nil {
+				log.Fatalf("did not connect: %v", err)
+			}
+			return conn, nil, nil
 		}
-		return conn, nil, nil
-
 	}
 	return nil, nil, fmt.Errorf("must set Address or Binary Path for a GRPC provider")
 }

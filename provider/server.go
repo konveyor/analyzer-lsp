@@ -15,6 +15,7 @@ import (
 	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"go.lsp.dev/uri"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -31,6 +32,8 @@ type server struct {
 	DepLocationResolver DependencyLocationResolver
 	Log                 logr.Logger
 	Port                int
+	CertPath            string
+	KeyPath             string
 
 	mutex   sync.RWMutex
 	clients map[int64]clientMapItem
@@ -47,7 +50,7 @@ type clientMapItem struct {
 
 // Provider GRPC Service
 // TOOD: HANDLE INIT CONFIG CHANGES
-func NewServer(client BaseClient, port int, logger logr.Logger) Server {
+func NewServer(client BaseClient, port int, certPath string, keyPath string, logger logr.Logger) Server {
 	s := rand.NewSource(time.Now().Unix())
 
 	var depLocationResolver DependencyLocationResolver
@@ -67,6 +70,8 @@ func NewServer(client BaseClient, port int, logger logr.Logger) Server {
 		Client:                             client,
 		Port:                               port,
 		Log:                                logger,
+		CertPath:                           certPath,
+		KeyPath:                            keyPath,
 		UnimplementedProviderServiceServer: libgrpc.UnimplementedProviderServiceServer{},
 		mutex:                              sync.RWMutex{},
 		clients:                            make(map[int64]clientMapItem),
@@ -82,7 +87,18 @@ func (s *server) Start(ctx context.Context) error {
 		s.Log.Error(err, "failed to listen")
 		return err
 	}
-	gs := grpc.NewServer()
+	var gs *grpc.Server
+	if s.CertPath != "" && s.KeyPath != "" {
+		creds, err := credentials.NewServerTLSFromFile(s.CertPath, s.KeyPath)
+		if err != nil {
+			return err
+		}
+		gs = grpc.NewServer(grpc.Creds(creds))
+	} else if s.CertPath == "" && s.KeyPath == "" {
+		gs = grpc.NewServer()
+	} else {
+		return fmt.Errorf("cert: %v, and key: %v are invalid", s.CertPath, s.KeyPath)
+	}
 	if s.DepLocationResolver != nil {
 		libgrpc.RegisterProviderDependencyLocationServiceServer(gs, s)
 	}

@@ -15,8 +15,10 @@ import (
 var (
 	port          = flag.Int("port", 0, "Port must be set")
 	logLevel      = flag.Int("log-level", 5, "Level to log")
-	lspServerName = flag.String("name", "java", "Level to log")
+	lspServerName = flag.String("name", "java", "name of the lsp to be used in rules")
 	contextLines  = flag.Int("contxtLines", 10, "lines of context for the code snippet")
+	certFile      = flag.String("certFile", "", "Path to the cert file")
+	keyFile       = flag.String("keyFile", "", "Path to the key file")
 )
 
 func main() {
@@ -38,8 +40,18 @@ func main() {
 		log.Error(fmt.Errorf("port unspecified"), "port number must be specified")
 		panic(1)
 	}
+	var c string
+	var k string
 
-	s := provider.NewServer(client, *port, log)
+	if certFile != nil {
+		c = *certFile
+	}
+
+	if keyFile != nil {
+		k = *keyFile
+	}
+
+	s := provider.NewServer(client, *port, c, k, log)
 	ctx := context.TODO()
 	s.Start(ctx)
 }

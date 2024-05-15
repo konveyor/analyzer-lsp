@@ -13,8 +13,10 @@ import (
 )
 
 var (
-	port = flag.Int("port", 0, "Port must be set")
-	name = flag.String("name", "yaml", "Port must be set")
+	port     = flag.Int("port", 0, "Port must be set")
+	name     = flag.String("name", "yaml", "Port must be set")
+	certFile = flag.String("certFile", "", "Path to the cert file")
+	keyFile  = flag.String("keyFile", "", "Path to the key file")
 )
 
 func main() {
@@ -32,8 +34,18 @@ func main() {
 	if port == nil || *port == 0 {
 		panic(fmt.Errorf("must pass in the port for the external provider"))
 	}
+	var c string
+	var k string
 
-	s := provider.NewServer(client, *port, log)
+	if certFile != nil {
+		c = *certFile
+	}
+
+	if keyFile != nil {
+		k = *keyFile
+	}
+
+	s := provider.NewServer(client, *port, c, k, log)
 	ctx := context.TODO()
 	s.Start(ctx)
 }
