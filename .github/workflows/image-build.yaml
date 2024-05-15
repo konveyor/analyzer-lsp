@@ -75,3 +75,40 @@ jobs:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
       registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}  
     
+  analyzer-windows-build:
+    needs: image-build
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: "quay.io/konveyor"
+        username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
+        password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
+    - name: Docker Build
+      run: |
+        TAG=${GITHUB_REF_NAME/main/latest}
+        IMAGE_NAME=quay.io/konveyor/analyzer-lsp:${TAG}-ltsc2022
+        docker build -t ${IMAGE_NAME} -f ./Dockerfile.windows .
+        docker push ${IMAGE_NAME}
+
+  dotnet-windows-build:
+    needs: image-build
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: "quay.io/konveyor"
+        username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
+        password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
+    - name: Docker Build
+      run: |
+        TAG=${GITHUB_REF_NAME/main/latest}
+        IMAGE_NAME=quay.io/konveyor/dotnet-external-provider:${TAG}-ltsc2022
+        docker build -t ${IMAGE_NAME} -f ./external-providers/dotnet-external-provider/Dockerfile.windows .
+        docker push ${IMAGE_NAME}
