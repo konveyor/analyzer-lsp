@@ -29,7 +29,7 @@ RUN wget "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_B
 
 FROM jaegertracing/all-in-one:latest AS jaeger-builder
 
-FROM quay.io/konveyor/jdtls-server-base
+FROM quay.io/konveyor/jdtls-server-base:release-0.4
 
 RUN microdnf install gcc-c++ python-devel python3-devel -y
 RUN python3 -m ensurepip --upgrade
