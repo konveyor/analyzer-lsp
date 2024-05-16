@@ -142,3 +142,23 @@ func MultilineGrep(ctx context.Context, window int, path, pattern string) (int, 
 
 	return -1, scanner.Err()
 }
+
+// GetIncludedPathsFromConfig returns validated includedPaths from provider settings
+// if allowFilePaths is not set, path to a file is converted into a path to its base dir
+func GetIncludedPathsFromConfig(i InitConfig, allowFilePaths bool) []string {
+	validatedPaths := []string{}
+	if includedPaths, ok := i.ProviderSpecificConfig[IncludedPathsConfigKey].([]interface{}); ok {
+		for _, ipathRaw := range includedPaths {
+			if ipath, ok := ipathRaw.(string); ok {
+				if stat, err := os.Stat(filepath.Join(i.Location, ipath)); err == nil {
+					if allowFilePaths || stat.IsDir() {
+						validatedPaths = append(validatedPaths, ipath)
+					} else {
+						validatedPaths = append(validatedPaths, filepath.Dir(ipath))
+					}
+				}
+			}
+		}
+	}
+	return validatedPaths
+}

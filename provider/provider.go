@@ -33,6 +33,7 @@ const (
 	DepExcludeLabel  = "konveyor.io/exclude"
 	// LspServerPath is a provider specific config used to specify path to a LSP server
 	LspServerPathConfigKey = "lspServerPath"
+	IncludedPathsConfigKey = "includedPaths"
 )
 
 // We need to make these Vars, because you can not take a pointer of the constant.

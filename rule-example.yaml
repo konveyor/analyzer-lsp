@@ -253,3 +253,42 @@
     java.dependency:
       lowerbound: 0.0.0
       name: javax.activation.activation
+- category: mandatory
+  description: |
+    This rule tests includedPaths config of the java provider. There should be two instances of this issue in the example app. 
+    We are filtering one of them using includedPaths in provider config.
+  effort: 3
+  message: Only incidents in util/FileReader.java should be found
+  ruleID: java-inclusion-test
+  when:
+    java.referenced:
+      pattern: java.io.File
+- category: optional
+  description: |
+    This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.
+    We are filtering some out using includedPaths setting.
+  message: Only incidents in dir-0/test.json should be found
+  ruleID: builtin-inclusion-test-json
+  when:
+    and:
+    - builtin.json:
+        xpath: //inclusionTestNode
+    - builtin.file:
+        pattern: inclusion-test.json
+    - builtin.filecontent:
+        pattern: "\"inclusionTestNode\""
+- category: optional
+  description: |
+    This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.
+    We are filtering some out using includedPaths setting.
+  message: Only incidents in dir-0/test.xml should be found
+  ruleID: builtin-inclusion-test-xml
+  when:
+    and:
+    - builtin.xml:
+        xpath: //inclusionTestNode
+    - builtin.file:
+        pattern: inclusion-test.xml
+    - builtin.filecontent:
+        pattern: "<inclusionTestNode>"
+ 

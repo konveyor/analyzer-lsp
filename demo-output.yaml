@@ -302,6 +302,29 @@
         variables:
           name: sigs.k8s.io/structured-merge-diff/v4
           version: v4.2.1
+    java-inclusion-test:
+      description: "This rule tests includedPaths config of the java provider. There should be two instances of this issue in the example app. \nWe are filtering one of them using includedPaths in provider config.\n"
+      category: mandatory
+      incidents:
+      - uri: file:///examples/java/example/src/main/java/com/example/apps/util/FileReader.java
+        message: Only incidents in util/FileReader.java should be found
+        codeSnip: " 1  package com.example.apps.util;\n 2  \n 3  import java.io.File;\n 4  \n 5  public class FileReader {\n 6      public static void main(String[] args) {\n 7          File file = new File(\"test\");\n 8          if (file.exists()) {\n 9              System.out.println(\"file exists\");\n10          }\n11      }\n12  \n13  }"
+        lineNumber: 3
+        variables:
+          file: file:///examples/java/example/src/main/java/com/example/apps/util/FileReader.java
+          kind: Module
+          name: java.io.File
+          package: com.example.apps.util
+      - uri: file:///examples/java/example/src/main/java/com/example/apps/util/FileReader.java
+        message: Only incidents in util/FileReader.java should be found
+        codeSnip: " 1  package com.example.apps.util;\n 2  \n 3  import java.io.File;\n 4  \n 5  public class FileReader {\n 6      public static void main(String[] args) {\n 7          File file = new File(\"test\");\n 8          if (file.exists()) {\n 9              System.out.println(\"file exists\");\n10          }\n11      }\n12  \n13  }\n"
+        lineNumber: 7
+        variables:
+          file: file:///examples/java/example/src/main/java/com/example/apps/util/FileReader.java
+          kind: Method
+          name: main
+          package: com.example.apps.util
+      effort: 3
     java-pomxml-dependencies:
       description: ""
       category: potential
@@ -370,8 +393,8 @@
           file: file:///examples/golang/main.go
       - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
-        lineNumber: 3
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import java.io.File;\n 4  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 5  \n 6  public class App \n 7  {\n 8  \n 9      /**\n10       * {@link CustomResourceDefinition}\n11       * @param args\n12       */\n13      public static void main( String[] args )\n14      {"
+        lineNumber: 4
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Module
@@ -379,8 +402,8 @@
           package: com.example.apps
       - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
-        lineNumber: 14
+        codeSnip: " 5  \n 6  public class App \n 7  {\n 8  \n 9      /**\n10       * {@link CustomResourceDefinition}\n11       * @param args\n12       */\n13      public static void main( String[] args )\n14      {\n15          CustomResourceDefinition crd = new CustomResourceDefinition();\n16          System.out.println( crd );\n17  \n18          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n19          element.get();\n20  \n21          // test file usage\n22          File file = new File(\"test\");\n23          if (file.exists()) {\n24              System.out.println(\"file exists\");\n25          }"
+        lineNumber: 15
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Method
@@ -391,18 +414,18 @@
       category: potential
       incidents:
       - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///examples/java/example/src/main/java/com/example/apps/App.java:14
-        codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
-        lineNumber: 14
+        message: java found apiextensions/v1/customresourcedefinitions found file:///examples/java/example/src/main/java/com/example/apps/App.java:15
+        codeSnip: " 5  \n 6  public class App \n 7  {\n 8  \n 9      /**\n10       * {@link CustomResourceDefinition}\n11       * @param args\n12       */\n13      public static void main( String[] args )\n14      {\n15          CustomResourceDefinition crd = new CustomResourceDefinition();\n16          System.out.println( crd );\n17  \n18          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n19          element.get();\n20  \n21          // test file usage\n22          File file = new File(\"test\");\n23          if (file.exists()) {\n24              System.out.println(\"file exists\");\n25          }"
+        lineNumber: 15
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
           package: com.example.apps
       - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///examples/java/example/src/main/java/com/example/apps/App.java:3
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
-        lineNumber: 3
+        message: java found apiextensions/v1/customresourcedefinitions found file:///examples/java/example/src/main/java/com/example/apps/App.java:4
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import java.io.File;\n 4  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 5  \n 6  public class App \n 7  {\n 8  \n 9      /**\n10       * {@link CustomResourceDefinition}\n11       * @param args\n12       */\n13      public static void main( String[] args )\n14      {"
+        lineNumber: 4
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Module
@@ -414,8 +437,8 @@
       incidents:
       - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
         message: found generic call
-        codeSnip: " 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
-        lineNumber: 18
+        codeSnip: " 9      /**\n10       * {@link CustomResourceDefinition}\n11       * @param args\n12       */\n13      public static void main( String[] args )\n14      {\n15          CustomResourceDefinition crd = new CustomResourceDefinition();\n16          System.out.println( crd );\n17  \n18          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n19          element.get();\n20  \n21          // test file usage\n22          File file = new File(\"test\");\n23          if (file.exists()) {\n24              System.out.println(\"file exists\");\n25          }\n26      }\n27  }\n"
+        lineNumber: 19
         variables:
           VariableName: element
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
@@ -490,21 +513,12 @@
       incidents:
       - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
         message: condition entries should evaluate out of order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8  }\n"
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
         lineNumber: 6
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Singleton
-          package: com.example.apps
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-        message: condition entries should evaluate out of order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 7
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Class
-          name: Bean
           package: com.example.apps
     singleton-sessionbean-00002:
       description: ""
@@ -512,21 +526,12 @@
       incidents:
       - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
         message: condition entries should evaluate in order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8  }\n"
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
         lineNumber: 6
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Singleton
-          package: com.example.apps
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-        message: condition entries should evaluate in order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8  }\n"
-        lineNumber: 7
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Class
-          name: Bean
           package: com.example.apps
     tech-tag-001:
       description: ""
@@ -803,6 +808,8 @@
       unable to get query info: yaml: unmarshal errors:
         line 9: cannot unmarshal !!map into string
   unmatched:
+  - builtin-inclusion-test-json
+  - builtin-inclusion-test-xml
   - file-002
   - lang-ref-002
   - python-sample-rule-003

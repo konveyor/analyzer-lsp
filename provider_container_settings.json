@@ -80,6 +80,19 @@
                 "analysisMode": "source-only"
             },
             {
+                "location": "/analyzer-lsp/examples/java",
+                "providerSpecificConfig": {
+                    "lspServerName": "java",
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "lspServerPath": "/jdtls/bin/jdtls",
+                    "includedPaths": [
+                       "example/src/main/java/com/example/apps/util/FileReader.java"
+                    ]
+                },
+                "analysisMode": "source-only"
+            },
+            {
                 "location": "/analyzer-lsp/examples/customers-tomcat-legacy",
                 "providerSpecificConfig": {
                     "lspServerName": "java",
@@ -97,7 +110,13 @@
             {"location": "examples/java/"},
             {"location": "examples/python/"},
             {"location": "examples/golang/"},
-            {"location": "examples/customers-tomcat-legacy/"}
+            {"location": "examples/customers-tomcat-legacy/"},
+            {
+                "location": "examples/builtin/", 
+                "providerSpecificConfig": {
+                    "includedPaths": "inclusion_tests/dir-0"
+                }
+            }
         ]
     }
 ]

@@ -30,6 +30,7 @@ type builtinServiceClient struct {
 
 	cacheMutex    sync.RWMutex
 	locationCache map[string]float64
+	includedPaths []string
 }
 
 type fileTemplateContext struct {
@@ -57,7 +58,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
 		}
-
+		matchingFiles = p.filterByIncludedPaths(matchingFiles)
 		if len(matchingFiles) != 0 {
 			response.Matched = true
 		}
@@ -155,7 +156,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-
+		xmlFiles = p.filterByIncludedPaths(xmlFiles)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -168,6 +169,9 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					ab, err := filepath.Abs(file)
 					if err != nil {
 						ab = file
+					}
+					if paths := p.filterByIncludedPaths([]string{ab}); len(paths) == 0 {
+						continue
 					}
 					incident := provider.IncidentContext{
 						FileURI: uri.File(ab),
@@ -206,7 +210,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-
+		xmlFiles = p.filterByIncludedPaths(xmlFiles)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -250,6 +254,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
+		jsonFiles = p.filterByIncludedPaths(jsonFiles)
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
 			if err != nil {
@@ -450,4 +455,44 @@ func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, e
 	}()
 	nodes = xmlquery.QuerySelectorAll(doc, query)
 	return nodes, err
+}
+
+// filterByIncludedPaths given a list of file paths,
+// filters-out the ones not present in includedPaths
+func (b *builtinServiceClient) filterByIncludedPaths(paths []string) []string {
+	if b.includedPaths == nil || len(b.includedPaths) == 0 {
+		return paths
+	}
+
+	getSegments := func(path string) []string {
+		segments := []string{}
+		path = filepath.Clean(path)
+		for _, segment := range strings.Split(
+			path, string(os.PathSeparator)) {
+			if segment != "" {
+				segments = append(segments, segment)
+			}
+		}
+		return segments
+	}
+
+	validatedPaths := []string{}
+	for _, p := range paths {
+		absPath := p
+		if path, err := filepath.Abs(p); err == nil {
+			absPath = path
+		}
+		pathSegments := getSegments(absPath)
+		for _, includedPath := range b.includedPaths {
+			includedPathSegments := getSegments(includedPath)
+			if len(pathSegments) >= len(includedPathSegments) &&
+				strings.HasPrefix(strings.Join(pathSegments, ""),
+					strings.Join(includedPathSegments, "")) {
+				validatedPaths = append(validatedPaths, absPath)
+			} else {
+				b.log.V(5).Info("path excluded from search", "path", absPath)
+			}
+		}
+	}
+	return validatedPaths
 }

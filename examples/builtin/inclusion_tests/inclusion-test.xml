@@ -1,0 +1,5 @@
+<xmlTest>
+    <description>Does your XML search work?</description>
+    <name>xml-search</name>
+    <inclusionTestNode>Test this node</inclusionTestNode>
+</xmlTest>
