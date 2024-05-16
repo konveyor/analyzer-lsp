@@ -15,9 +15,11 @@ import (
 	pb "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"github.com/phayes/freeport"
 	"go.lsp.dev/uri"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -275,11 +277,24 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 			if err != nil {
 				return nil, nil, err
 			}
-			conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(creds))
-			if err != nil {
-				log.Fatalf("did not connect: %v", err)
+			if config.JWTToken == "" {
+				conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(creds))
+				if err != nil {
+					log.Fatalf("did not connect: %v", err)
+				}
+				return conn, nil, nil
+
+			} else {
+				i := &jwtTokeInterceptor{
+					Token: config.JWTToken,
+				}
+				conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
+				if err != nil {
+					log.Fatalf("did not connect: %v", err)
+				}
+				return conn, nil, nil
+
 			}
-			return conn, nil, nil
 		}
 	}
 	return nil, nil, fmt.Errorf("must set Address or Binary Path for a GRPC provider")
@@ -291,4 +306,18 @@ func (g *grpcProvider) LogProviderOut(ctx context.Context, out io.ReadCloser) {
 	for scan.Scan() {
 		g.log.V(3).Info(scan.Text())
 	}
+}
+
+type jwtTokeInterceptor struct {
+	Token string
+}
+
+func (t *jwtTokeInterceptor) unaryInterceptor(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	if t.Token != "" {
+		opts = append(opts, grpc.PerRPCCredentials(oauth.TokenSource{
+			TokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: t.Token}),
+		}))
+	}
+	err := invoker(ctx, method, req, reply, cc, opts...)
+	return err
 }
