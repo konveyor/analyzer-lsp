@@ -6,6 +6,58 @@
   - Language=Golang
   - License=Apache
   violations:
+    builtin-inclusion-test-json:
+      description: |
+        This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.
+        We are filtering some out using includedPaths setting.
+      category: optional
+      incidents:
+      - uri: file:///examples/builtin/inclusion_tests/dir-0/inclusion-test.json
+        message: Only incidents in dir-0/test.json should be found
+      - uri: file:///examples/builtin/inclusion_tests/dir-0/inclusion-test.json
+        message: Only incidents in dir-0/test.json should be found
+        codeSnip: |2
+           1  {
+           2      "description": "Does your JSON search work?",
+           3      "name": "test-your-json-search",
+           4      "inclusionTestNode": "Test this node"
+           5  }
+        lineNumber: 4
+        variables:
+          data: inclusionTestNode
+          matchingJSON: Test this node
+      - uri: file:///examples/builtin/inclusion_tests/dir-0/inclusion-test.xml
+        message: Only incidents in dir-0/test.json should be found
+        codeSnip: |2
+           1  <xmlTest>
+           2      <description>Does your XML search work?</description>
+           3      <name>xml-search</name>
+           4      <inclusionTestNode>Test this node</inclusionTestNode>
+           5  </xmlTest>
+        lineNumber: 4
+        variables:
+          matchingText: inclusionTestNode
+    builtin-inclusion-test-xml:
+      description: |
+        This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.
+        We are filtering some out using includedPaths setting.
+      category: optional
+      incidents:
+      - uri: file:///examples/builtin/inclusion_tests/dir-0/inclusion-test.xml
+        message: Only incidents in dir-0/test.xml should be found
+      - uri: file:///examples/builtin/inclusion_tests/dir-0/inclusion-test.xml
+        message: Only incidents in dir-0/test.xml should be found
+        codeSnip: |2
+           1  <xmlTest>
+           2      <description>Does your XML search work?</description>
+           3      <name>xml-search</name>
+           4      <inclusionTestNode>Test this node</inclusionTestNode>
+           5  </xmlTest>
+        lineNumber: 4
+        variables:
+          data: inclusionTestNode
+          innerText: Test this node
+          matchingXML: Test this node
     chain-pom-001:
       description: ""
       category: potential
@@ -306,6 +358,24 @@
       description: "This rule tests includedPaths config of the java provider. There should be two instances of this issue in the example app. \nWe are filtering one of them using includedPaths in provider config.\n"
       category: mandatory
       incidents:
+      - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
+        message: Only incidents in util/FileReader.java should be found
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import java.io.File;\n 4  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 5  \n 6  public class App \n 7  {\n 8  \n 9      /**\n10       * {@link CustomResourceDefinition}\n11       * @param args\n12       */\n13      public static void main( String[] args )"
+        lineNumber: 3
+        variables:
+          file: file:///examples/java/example/src/main/java/com/example/apps/App.java
+          kind: Module
+          name: java.io.File
+          package: com.example.apps
+      - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
+        message: Only incidents in util/FileReader.java should be found
+        codeSnip: "12       */\n13      public static void main( String[] args )\n14      {\n15          CustomResourceDefinition crd = new CustomResourceDefinition();\n16          System.out.println( crd );\n17  \n18          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n19          element.get();\n20  \n21          // test file usage\n22          File file = new File(\"test\");\n23          if (file.exists()) {\n24              System.out.println(\"file exists\");\n25          }\n26      }\n27  }\n"
+        lineNumber: 22
+        variables:
+          file: file:///examples/java/example/src/main/java/com/example/apps/App.java
+          kind: Method
+          name: main
+          package: com.example.apps
       - uri: file:///examples/java/example/src/main/java/com/example/apps/util/FileReader.java
         message: Only incidents in util/FileReader.java should be found
         codeSnip: " 1  package com.example.apps.util;\n 2  \n 3  import java.io.File;\n 4  \n 5  public class FileReader {\n 6      public static void main(String[] args) {\n 7          File file = new File(\"test\");\n 8          if (file.exists()) {\n 9              System.out.println(\"file exists\");\n10          }\n11      }\n12  \n13  }"
@@ -520,6 +590,15 @@
           kind: Class
           name: Singleton
           package: com.example.apps
+      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
+        message: condition entries should evaluate out of order
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
+        lineNumber: 7
+        variables:
+          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
+          kind: Class
+          name: Bean
+          package: com.example.apps
     singleton-sessionbean-00002:
       description: ""
       category: potential
@@ -532,6 +611,15 @@
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Singleton
+          package: com.example.apps
+      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
+        message: condition entries should evaluate in order
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
+        lineNumber: 7
+        variables:
+          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
+          kind: Class
+          name: Bean
           package: com.example.apps
     tech-tag-001:
       description: ""
@@ -808,8 +896,6 @@
       unable to get query info: yaml: unmarshal errors:
         line 9: cannot unmarshal !!map into string
   unmatched:
-  - builtin-inclusion-test-json
-  - builtin-inclusion-test-xml
   - file-002
   - lang-ref-002
   - python-sample-rule-003

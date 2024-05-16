@@ -13,25 +13,49 @@ jobs:
         env:
           PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: |
+          echo "BUILD_BUNDLE=false" >> $GITHUB_OUTPUT
           # if this is a PR, we should use the base branch
           # else, use the branch on which this is running
           if [ ! -z ${GITHUB_BASE_REF} ]; then 
               echo "Using ${GITHUB_BASE_REF}"
               echo "API_TESTS_REF=${GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
-              echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_ENV
+              echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
+              echo "JAVA_BUNDLE_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
           else
               echo "Using ${GITHUB_REF_NAME}"
               echo "API_TESTS_REF=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-              echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_ENV
+              echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
+              echo "JAVA_BUNDLE_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
           fi
           
           # override with explicitely set value in PR description
           echo "${PULL_REQUEST_BODY}"
-          PULL_REQUEST_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[A|a]ddon [P|p][R|r]: \K\d+' || true)
-          if [ ! -z "$PULL_REQUEST_NUMBER" ]; then
-            echo "Using pull/${PULL_REQUEST_NUMBER} for addon"
-            echo "ADDON_REF=refs/pull/$PULL_REQUEST_NUMBER/merge" >>$GITHUB_ENV
-          fi        
+          ADDON_PULL_REQUEST_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[A|a]ddon [P|p][R|r]: \K\d+' || true)
+          if [ ! -z "$ADDON_PULL_REQUEST_NUMBER" ]; then
+            echo "Using pull/${ADDON_PULL_REQUEST_NUMBER} for addon"
+            echo "ADDON_REF=refs/pull/$ADDON_PULL_REQUEST_NUMBER/merge" >>$GITHUB_OUTPUT
+          fi
+
+          JAVA_BUNDLE_PR_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[B|b]undle [P|p][R|r]: \K\d+' || true)
+          if [ ! -z "$JAVA_BUNDLE_PR_NUMBER" ]; then
+            echo "Using bundle PR pull/${JAVA_BUNDLE_PR_NUMBER}"
+            echo "JAVA_BUNDLE_REF=refs/pull/$JAVA_BUNDLE_PR_NUMBER/merge" >> $GITHUB_OUTPUT
+            echo "BUILD_BUNDLE=true" >>$GITHUB_OUTPUT
+          fi
+
+      - uses: actions/checkout@v3
+        if: steps.extract-info.outputs.BUILD_BUNDLE
+        with:
+          fetch-depth: 0
+          repository: konveyor/java-analyzer-bundle
+          ref: "${{ steps.extract-info.outputs.JAVA_BUNDLE_REF }}"
+          path: java-analyzer-bundle
+      
+      - name: build java analyzer bundle image
+        if: steps.extract-info.outputs.BUILD_BUNDLE
+        working-directory: java-analyzer-bundle
+        run: |
+          podman build -t quay.io/konveyor/jdtls-server-base:latest -f Dockerfile .
 
       - uses: actions/checkout@v3
 
@@ -64,7 +88,7 @@ jobs:
         with:
           fetch-depth: 0
           repository: konveyor/tackle2-addon-analyzer
-          ref: "${{ env.ADDON_REF}}"
+          ref: ${{ steps.extract-info.outputs.ADDON_REF }}
           path: tackle2-addon-analyzer
 
       - name: Build addon and save image
