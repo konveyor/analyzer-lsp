@@ -88,6 +88,7 @@ jobs:
         username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
         password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
     - name: Docker Build
+      shell: bash
       run: |
         TAG=${GITHUB_REF_NAME/main/latest}
         IMAGE_NAME=quay.io/konveyor/analyzer-lsp:${TAG}-ltsc2022
@@ -107,6 +108,7 @@ jobs:
         username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
         password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
     - name: Docker Build
+      shell: bash
       run: |
         TAG=${GITHUB_REF_NAME/main/latest}
         IMAGE_NAME=quay.io/konveyor/dotnet-external-provider:${TAG}-ltsc2022
