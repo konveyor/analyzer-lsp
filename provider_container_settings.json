@@ -114,7 +114,7 @@
             {
                 "location": "examples/builtin/", 
                 "providerSpecificConfig": {
-                    "includedPaths": "inclusion_tests/dir-0"
+                    "includedPaths": ["inclusion_tests/dir-0"]
                 }
             }
         ]

@@ -150,11 +150,18 @@ func GetIncludedPathsFromConfig(i InitConfig, allowFilePaths bool) []string {
 	if includedPaths, ok := i.ProviderSpecificConfig[IncludedPathsConfigKey].([]interface{}); ok {
 		for _, ipathRaw := range includedPaths {
 			if ipath, ok := ipathRaw.(string); ok {
-				if stat, err := os.Stat(filepath.Join(i.Location, ipath)); err == nil {
+				absPath := ipath
+				if !filepath.IsAbs(ipath) {
+					if ab, err := filepath.Abs(
+						filepath.Join(i.Location, ipath)); err == nil {
+						absPath = ab
+					}
+				}
+				if stat, err := os.Stat(absPath); err == nil {
 					if allowFilePaths || stat.IsDir() {
-						validatedPaths = append(validatedPaths, ipath)
+						validatedPaths = append(validatedPaths, absPath)
 					} else {
-						validatedPaths = append(validatedPaths, filepath.Dir(ipath))
+						validatedPaths = append(validatedPaths, filepath.Dir(absPath))
 					}
 				}
 			}

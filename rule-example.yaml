@@ -276,7 +276,7 @@
     - builtin.file:
         pattern: inclusion-test.json
     - builtin.filecontent:
-        pattern: "\"inclusionTestNode\""
+        pattern: "inclusionTestNode"
 - category: optional
   description: |
     This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.

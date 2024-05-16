@@ -110,7 +110,13 @@
             {"location": "external-providers/java-external-provider/examples/java"},
             {"location": "external-providers/java-external-provider/examples/customers-tomcat-legacy"},
             {"location": "examples/python/"},
-            {"location": "examples/golang/"}
+            {"location": "examples/golang/"},
+            {
+                "location": "examples/builtin/", 
+                "providerSpecificConfig": {
+                    "includedPaths": ["inclusion_tests/dir-0"]
+                }
+            }
         ]
     }
 ]

@@ -58,31 +58,25 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
 		}
-		matchingFiles = p.filterByIncludedPaths(matchingFiles)
-		if len(matchingFiles) != 0 {
-			response.Matched = true
-		}
 
 		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
 		for _, match := range matchingFiles {
-			if filepath.IsAbs(match) {
-				response.Incidents = append(response.Incidents, provider.IncidentContext{
-					FileURI: uri.File(match),
-				})
-				continue
-
+			absPath := match
+			if !filepath.IsAbs(match) {
+				absPath, err = filepath.Abs(match)
+				if err != nil {
+					p.log.V(5).Error(err, "failed to get absolute path to file", "path", match)
+					absPath = match
+				}
 			}
-			ab, err := filepath.Abs(match)
-			if err != nil {
-				//TODO: Probably want to log or something to let us know we can't get absolute path here.
-				fmt.Printf("\n%v\n\n", err)
-				ab = match
+			if !p.isFileIncluded(absPath) {
+				continue
 			}
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
-				FileURI: uri.File(ab),
+				FileURI: uri.File(absPath),
 			})
-
 		}
+		response.Matched = len(response.Incidents) > 0
 		return response, nil
 	case "filecontent":
 		c := cond.Filecontent
@@ -123,16 +117,21 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				continue
 			}
 
-			ab, err := filepath.Abs(pieces[0])
+			absPath, err := filepath.Abs(pieces[0])
 			if err != nil {
-				ab = pieces[0]
+				absPath = pieces[0]
 			}
+
+			if !p.isFileIncluded(absPath) {
+				continue
+			}
+
 			lineNumber, err := strconv.Atoi(pieces[1])
 			if err != nil {
 				return response, fmt.Errorf("cannot convert line number string to integer")
 			}
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
-				FileURI:    uri.File(ab),
+				FileURI:    uri.File(absPath),
 				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
 					"matchingText": pieces[2],
@@ -156,7 +155,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-		xmlFiles = p.filterByIncludedPaths(xmlFiles)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -166,15 +164,15 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			if len(nodes) != 0 {
 				response.Matched = true
 				for _, node := range nodes {
-					ab, err := filepath.Abs(file)
+					absPath, err := filepath.Abs(file)
 					if err != nil {
-						ab = file
+						absPath = file
 					}
-					if paths := p.filterByIncludedPaths([]string{ab}); len(paths) == 0 {
+					if !p.isFileIncluded(absPath) {
 						continue
 					}
 					incident := provider.IncidentContext{
-						FileURI: uri.File(ab),
+						FileURI: uri.File(absPath),
 						Variables: map[string]interface{}{
 							"matchingXML": node.OutputXML(false),
 							"innerText":   node.InnerText(),
@@ -185,7 +183,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					if content == "" {
 						content = node.Data
 					}
-					location, err := p.getLocation(ctx, ab, content)
+					location, err := p.getLocation(ctx, absPath, content)
 					if err == nil {
 						incident.CodeLocation = &location
 						lineNo := int(location.StartPosition.Line)
@@ -210,7 +208,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-		xmlFiles = p.filterByIncludedPaths(xmlFiles)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -224,12 +221,15 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					if attr.Name.Local == "public-id" {
 						if regex.MatchString(attr.Value) {
 							response.Matched = true
-							ab, err := filepath.Abs(file)
+							absPath, err := filepath.Abs(file)
 							if err != nil {
-								ab = file
+								absPath = file
+							}
+							if !p.isFileIncluded(absPath) {
+								continue
 							}
 							response.Incidents = append(response.Incidents, provider.IncidentContext{
-								FileURI: uri.File(ab),
+								FileURI: uri.File(absPath),
 								Variables: map[string]interface{}{
 									"matchingXML": node.OutputXML(false),
 									"innerText":   node.InnerText(),
@@ -254,7 +254,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
-		jsonFiles = p.filterByIncludedPaths(jsonFiles)
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
 			if err != nil {
@@ -273,18 +272,21 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			if len(list) != 0 {
 				response.Matched = true
 				for _, node := range list {
-					ab, err := filepath.Abs(file)
+					absPath, err := filepath.Abs(file)
 					if err != nil {
-						ab = file
+						absPath = file
+					}
+					if !p.isFileIncluded(absPath) {
+						continue
 					}
 					incident := provider.IncidentContext{
-						FileURI: uri.File(ab),
+						FileURI: uri.File(absPath),
 						Variables: map[string]interface{}{
 							"matchingJSON": node.InnerText(),
 							"data":         node.Data,
 						},
 					}
-					location, err := p.getLocation(ctx, ab, node.InnerText())
+					location, err := p.getLocation(ctx, absPath, node.InnerText())
 					if err == nil {
 						incident.CodeLocation = &location
 						lineNo := int(location.StartPosition.Line)
@@ -459,9 +461,9 @@ func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, e
 
 // filterByIncludedPaths given a list of file paths,
 // filters-out the ones not present in includedPaths
-func (b *builtinServiceClient) filterByIncludedPaths(paths []string) []string {
+func (b *builtinServiceClient) isFileIncluded(absolutePath string) bool {
 	if b.includedPaths == nil || len(b.includedPaths) == 0 {
-		return paths
+		return true
 	}
 
 	getSegments := func(path string) []string {
@@ -476,23 +478,15 @@ func (b *builtinServiceClient) filterByIncludedPaths(paths []string) []string {
 		return segments
 	}
 
-	validatedPaths := []string{}
-	for _, p := range paths {
-		absPath := p
-		if path, err := filepath.Abs(p); err == nil {
-			absPath = path
-		}
-		pathSegments := getSegments(absPath)
-		for _, includedPath := range b.includedPaths {
-			includedPathSegments := getSegments(includedPath)
-			if len(pathSegments) >= len(includedPathSegments) &&
-				strings.HasPrefix(strings.Join(pathSegments, ""),
-					strings.Join(includedPathSegments, "")) {
-				validatedPaths = append(validatedPaths, absPath)
-			} else {
-				b.log.V(5).Info("path excluded from search", "path", absPath)
-			}
+	pathSegments := getSegments(absolutePath)
+	for _, includedPath := range b.includedPaths {
+		includedPathSegments := getSegments(includedPath)
+		if len(pathSegments) >= len(includedPathSegments) &&
+			strings.HasPrefix(strings.Join(pathSegments, ""),
+				strings.Join(includedPathSegments, "")) {
+			return true
 		}
 	}
-	return validatedPaths
+	b.log.V(5).Info("excluding file from search", "file", absolutePath)
+	return false
 }
