@@ -6,19 +6,27 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"go.lsp.dev/uri"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/structpb"
+)
+
+const (
+	JWT_SECRET_ENV_VAR = "JWT_SECRET"
 )
 
 type Server interface {
@@ -34,6 +42,7 @@ type server struct {
 	Port                int
 	CertPath            string
 	KeyPath             string
+	SecretKey           string
 
 	mutex   sync.RWMutex
 	clients map[int64]clientMapItem
@@ -50,7 +59,7 @@ type clientMapItem struct {
 
 // Provider GRPC Service
 // TOOD: HANDLE INIT CONFIG CHANGES
-func NewServer(client BaseClient, port int, certPath string, keyPath string, logger logr.Logger) Server {
+func NewServer(client BaseClient, port int, certPath string, keyPath string, secretKey string, logger logr.Logger) Server {
 	s := rand.NewSource(time.Now().Unix())
 
 	var depLocationResolver DependencyLocationResolver
@@ -66,12 +75,17 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, log
 		codeSnip = nil
 	}
 
+	if secretKey == "" {
+		secretKey = os.Getenv(JWT_SECRET_ENV_VAR)
+	}
+
 	return &server{
 		Client:                             client,
 		Port:                               port,
 		Log:                                logger,
 		CertPath:                           certPath,
 		KeyPath:                            keyPath,
+		SecretKey:                          secretKey,
 		UnimplementedProviderServiceServer: libgrpc.UnimplementedProviderServiceServer{},
 		mutex:                              sync.RWMutex{},
 		clients:                            make(map[int64]clientMapItem),
@@ -87,13 +101,20 @@ func (s *server) Start(ctx context.Context) error {
 		s.Log.Error(err, "failed to listen")
 		return err
 	}
+	if s.SecretKey != "" && (s.CertPath == "" || s.KeyPath == "") {
+		return fmt.Errorf("to use JWT authentication you must use TLS")
+	}
 	var gs *grpc.Server
 	if s.CertPath != "" && s.KeyPath != "" {
 		creds, err := credentials.NewServerTLSFromFile(s.CertPath, s.KeyPath)
 		if err != nil {
 			return err
 		}
-		gs = grpc.NewServer(grpc.Creds(creds))
+		if s.SecretKey != "" {
+			gs = grpc.NewServer(grpc.Creds(creds), grpc.UnaryInterceptor(s.authUnaryInterceptor))
+		} else {
+			gs = grpc.NewServer(grpc.Creds(creds))
+		}
 	} else if s.CertPath == "" && s.KeyPath == "" {
 		gs = grpc.NewServer()
 	} else {
@@ -431,4 +452,43 @@ func (s *server) GetDependenciesLinkedList(ctx context.Context, in *libgrpc.Serv
 		Successful: true,
 		FileDagDep: fileDagDeps,
 	}, nil
+}
+
+func (s *server) authUnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("invalid metadata")
+	}
+
+	tokenRaw, ok := md["authorization"]
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+	if len(tokenRaw) != 1 {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	tokenString := strings.TrimPrefix(tokenRaw[0], "Bearer ")
+
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		return []byte(s.SecretKey), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("unauthorized")
+	}
+	a, _ := token.Claims.GetAudience()
+	i, _ := token.Claims.GetIssuer()
+	sub, _ := token.Claims.GetSubject()
+	var name string
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		name = fmt.Sprint(claims["name"])
+	}
+	s.Log.Info("user making request", "audience", a, "issuer", i, "subject", sub, "name", name)
+
+	return handler(ctx, req)
 }

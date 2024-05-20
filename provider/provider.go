@@ -85,6 +85,7 @@ type Config struct {
 	BinaryPath   string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
 	Address      string       `yaml:"address,omitempty" json:"address,omitempty"`
 	CertPath     string       `yaml:"certPath,omitempty" json:"certPath,omitempty"`
+	JWTToken     string       `yaml:"jwtToken,omitempty" json:"jwtToken,omitempty"`
 	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
 	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
 	ContextLines int

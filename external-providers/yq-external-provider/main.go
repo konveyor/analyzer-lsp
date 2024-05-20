@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	port     = flag.Int("port", 0, "Port must be set")
-	name     = flag.String("name", "yaml", "Port must be set")
-	certFile = flag.String("certFile", "", "Path to the cert file")
-	keyFile  = flag.String("keyFile", "", "Path to the key file")
+	port      = flag.Int("port", 0, "Port must be set")
+	name      = flag.String("name", "yaml", "Port must be set")
+	certFile  = flag.String("certFile", "", "Path to the cert file")
+	keyFile   = flag.String("keyFile", "", "Path to the key file")
+	secretKey = flag.String("secretKey", "", "Secret Key value")
 )
 
 func main() {
@@ -36,6 +37,7 @@ func main() {
 	}
 	var c string
 	var k string
+	var secret string
 
 	if certFile != nil {
 		c = *certFile
@@ -45,7 +47,11 @@ func main() {
 		k = *keyFile
 	}
 
-	s := provider.NewServer(client, *port, c, k, log)
+	if secretKey != nil {
+		secret = *secretKey
+	}
+
+	s := provider.NewServer(client, *port, c, k, secret, log)
 	ctx := context.TODO()
 	s.Start(ctx)
 }
