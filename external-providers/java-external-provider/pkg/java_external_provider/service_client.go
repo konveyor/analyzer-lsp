@@ -32,6 +32,7 @@ type javaServiceClient struct {
 	depsMutex         sync.RWMutex
 	depsCache         map[uri.URI][]*provider.Dep
 	depsLocationCache map[string]int
+	includedPaths     []string
 }
 
 type depLabelItem struct {
@@ -101,11 +102,16 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location s
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
-	argumentsMap := map[string]string{
+	argumentsMap := map[string]interface{}{
 		"query":        query,
 		"project":      "java",
 		"location":     fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
 		"analysisMode": string(p.config.AnalysisMode),
+	}
+
+	if p.includedPaths != nil && len(p.includedPaths) > 0 {
+		argumentsMap[provider.IncludedPathsConfigKey] = p.includedPaths
+		p.log.V(5).Info("setting search scope by filepaths", "paths", p.includedPaths)
 	}
 
 	argumentsBytes, _ := json.Marshal(argumentsMap)

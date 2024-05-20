@@ -308,6 +308,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		isLocationBinary:  isBinary,
 		mvnSettingsFile:   mavenSettingsFile,
 		depsLocationCache: make(map[string]int),
+		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
 	}
 
 	svcClient.initialization(ctx)

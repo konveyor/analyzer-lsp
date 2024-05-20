@@ -150,6 +150,7 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 		UnimplementedDependenciesComponent: provider.UnimplementedDependenciesComponent{},
 		locationCache:                      make(map[string]float64),
 		log:                                log,
+		includedPaths:                      provider.GetIncludedPathsFromConfig(config, true),
 	}, nil
 }
 

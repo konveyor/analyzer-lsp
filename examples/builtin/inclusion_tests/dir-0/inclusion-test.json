@@ -1,0 +1,5 @@
+{
+    "description": "Does your JSON search work?",
+    "name": "test-your-json-search",
+    "inclusionTestNode": "Test this node"
+}
