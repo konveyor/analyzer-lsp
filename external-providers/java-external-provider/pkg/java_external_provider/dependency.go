@@ -42,7 +42,7 @@ const (
 	gradle = "gradle"
 )
 
-func (p *javaServiceClient) getBuildTool() string {
+func (p *javaServiceClient) GetBuildTool() string {
 	bf := ""
 	if bf = p.findPom(); bf != "" {
 		return maven
@@ -90,7 +90,7 @@ func (p *javaServiceClient) findGradleBuild() string {
 }
 
 func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
-	if p.getBuildTool() == gradle {
+	if p.GetBuildTool() == gradle {
 		p.log.V(2).Info("gradle found - retrieving dependencies")
 		m := map[uri.URI][]*provider.Dep{}
 		deps, err := p.getDependenciesForGradle(ctx)
@@ -277,7 +277,7 @@ func pomCoordinate(value *string) string {
 }
 
 func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
-	switch p.getBuildTool() {
+	switch p.GetBuildTool() {
 	case maven:
 		return p.getDependenciesForMaven(ctx)
 	case gradle:

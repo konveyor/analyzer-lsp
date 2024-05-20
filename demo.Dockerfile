@@ -1,4 +1,4 @@
-FROM quay.io/konveyor/analyzer-lsp
+FROM analyzer
 
 WORKDIR /analyzer-lsp
 

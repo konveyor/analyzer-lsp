@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -206,7 +207,7 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 		"classFileContentsSupport": true,
 	}
 	// See https://github.com/eclipse-jdtls/eclipse.jdt.ls/blob/1a3dd9323756113bf39cfab82746d57a2fd19474/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/preferences/Preferences.java
-	// TODO: what if no wrapper?
+	java8home := os.Getenv("JAVA8_HOME")
 	params.InitializationOptions = map[string]interface{}{
 		"bundles":          absBundles,
 		"workspaceFolders": []string{fmt.Sprintf("file://%v", absLocation)},
@@ -226,7 +227,7 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 				"import": map[string]interface{}{
 					"gradle": map[string]interface{}{
 						"java": map[string]interface{}{
-							"home": "/usr/lib/jvm/java-1.8.0-openjdk",
+							"home": java8home,
 						},
 					},
 				},
