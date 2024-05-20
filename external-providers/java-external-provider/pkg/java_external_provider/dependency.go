@@ -74,9 +74,13 @@ func (p *javaServiceClient) findPom() string {
 }
 
 func (p *javaServiceClient) findGradleBuild() string {
-	// TODO: naive?
 	if p.config.Location != "" {
-		f, err := filepath.Abs(filepath.Join(p.config.Location, "build.gradle"))
+		path := filepath.Join(p.config.Location, "build.gradle")
+		_, err := os.Stat(path)
+		if err != nil {
+			return ""
+		}
+		f, err := filepath.Abs(path)
 		if err != nil {
 			return ""
 		}
