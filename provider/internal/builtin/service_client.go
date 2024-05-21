@@ -487,6 +487,6 @@ func (b *builtinServiceClient) isFileIncluded(absolutePath string) bool {
 			return true
 		}
 	}
-	b.log.V(5).Info("excluding file from search", "file", absolutePath)
+	b.log.V(7).Info("excluding file from search", "file", absolutePath)
 	return false
 }
