@@ -44,7 +44,7 @@ jobs:
           fi
 
       - uses: actions/checkout@v3
-        if: steps.extract-info.outputs.BUILD_BUNDLE
+        if: steps.extract-info.outputs.BUILD_BUNDLE == 'true'
         with:
           fetch-depth: 0
           repository: konveyor/java-analyzer-bundle
@@ -52,12 +52,15 @@ jobs:
           path: java-analyzer-bundle
       
       - name: build java analyzer bundle image
-        if: steps.extract-info.outputs.BUILD_BUNDLE
+        if: steps.extract-info.outputs.BUILD_BUNDLE == 'true'
         working-directory: java-analyzer-bundle
         run: |
           podman build -t quay.io/konveyor/jdtls-server-base:latest -f Dockerfile .
 
       - uses: actions/checkout@v3
+
+      - name: pull bundle
+        run: podman pull quay.io/konveyor/jdtls-server-base:latest
 
       # build all provider images and the analyzer-lsp image
       - name: build images

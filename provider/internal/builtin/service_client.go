@@ -478,8 +478,15 @@ func (b *builtinServiceClient) isFileIncluded(absolutePath string) bool {
 		return segments
 	}
 
-	pathSegments := getSegments(absolutePath)
-	for _, includedPath := range b.includedPaths {
+	for _, path := range b.includedPaths {
+		includedPath := filepath.Join(b.config.Location, path)
+		if absPath, err := filepath.Abs(includedPath); err == nil {
+			includedPath = absPath
+		}
+		pathSegments := getSegments(absolutePath)
+		if stat, err := os.Stat(includedPath); err == nil && stat.IsDir() {
+			pathSegments = getSegments(filepath.Dir(absolutePath))
+		}
 		includedPathSegments := getSegments(includedPath)
 		if len(pathSegments) >= len(includedPathSegments) &&
 			strings.HasPrefix(strings.Join(pathSegments, ""),

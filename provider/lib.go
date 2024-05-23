@@ -159,9 +159,9 @@ func GetIncludedPathsFromConfig(i InitConfig, allowFilePaths bool) []string {
 				}
 				if stat, err := os.Stat(absPath); err == nil {
 					if allowFilePaths || stat.IsDir() {
-						validatedPaths = append(validatedPaths, absPath)
+						validatedPaths = append(validatedPaths, ipath)
 					} else {
-						validatedPaths = append(validatedPaths, filepath.Dir(absPath))
+						validatedPaths = append(validatedPaths, filepath.Dir(ipath))
 					}
 				}
 			}
