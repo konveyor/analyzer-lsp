@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags="all=-N -l" -a -o ja
 
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 
-FROM bundle
+FROM quay.io/konveyor/jdtls-server-base:latest
 
 COPY --from=builder /java-provider/java-external-provider /usr/local/bin/java-external-provider
 COPY --from=builder /go/bin/dlv /usr/local/bin/dlv
