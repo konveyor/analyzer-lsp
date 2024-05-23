@@ -354,6 +354,30 @@
         variables:
           name: sigs.k8s.io/structured-merge-diff/v4
           version: v4.2.1
+    java-gradle-project:
+      description: |
+        This rule looks for a class only present in the gradle project
+      category: mandatory
+      incidents:
+      - uri: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
+        message: Only incidents in gradle project should appear
+        codeSnip: " 1  package io.jeffchao.template.server;\n 2  \n 3  import java.io.IOException;\n 4  import java.io.OutputStream;\n 5  import java.net.InetSocketAddress;\n 6  \n 7  import com.sun.net.httpserver.HttpExchange;\n 8  import com.sun.net.httpserver.HttpHandler;\n 9  import com.sun.net.httpserver.HttpServer;\n10  \n11  public class Server {\n12  \n13    public static void main(String[] args) throws IOException {\n14      String portString = System.getenv(\"PORT\");\n15      int port = portString == null ? 8080 : Integer.valueOf(portString);\n16      HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);\n17      server.createContext(\"/\", new MyHandler());"
+        lineNumber: 7
+        variables:
+          file: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
+          kind: Module
+          name: com.sun.net.httpserver.HttpExchange
+          package: io.jeffchao.template.server
+      - uri: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
+        message: Only incidents in gradle project should appear
+        codeSnip: "14      String portString = System.getenv(\"PORT\");\n15      int port = portString == null ? 8080 : Integer.valueOf(portString);\n16      HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);\n17      server.createContext(\"/\", new MyHandler());\n18      server.setExecutor(null); // creates a default executor\n19      server.start();\n20    }\n21  \n22    static class MyHandler implements HttpHandler {\n23      @Override\n24      public void handle(HttpExchange t) throws IOException {\n25        String response = \"Hello from Gradle!\";\n26        t.sendResponseHeaders(200, response.length());\n27        OutputStream os = t.getResponseBody();\n28        os.write(response.getBytes());\n29        os.close();\n30      }\n31    }\n32  }\n"
+        lineNumber: 24
+        variables:
+          file: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
+          kind: Method
+          name: handle
+          package: io.jeffchao.template.server
+      effort: 3
     java-inclusion-test:
       description: "This rule tests includedPaths config of the java provider. There should be two instances of this issue in the example app. \nWe are filtering one of them using includedPaths in provider config.\n"
       category: mandatory
@@ -381,13 +405,24 @@
       description: ""
       category: potential
       incidents:
+      - uri: file:///examples/gradle-multi-project-example/build.gradle
+        message: dependency junit.junit with 4.12 is bad and you should feel bad for using it
+        codeSnip: " 1  apply plugin: 'idea'\n 2  \n 3  ext {\n 4    log4jVersion = '2.9.1'\n 5  }\n 6  \n 7  buildscript {\n 8    repositories {\n 9      jcenter()\n10    }\n11    dependencies {"
+        lineNumber: 0
+        variables:
+          name: junit.junit
+          version: "4.12"
       - uri: file:///examples/java/pom.xml
         message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you should feel bad for using it
+        codeSnip: "26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>\n41        <artifactId>kubernetes-client-api</artifactId>\n42        <version>6.0.0</version>\n43      </dependency>\n44      <dependency>\n45        <groupId>javax</groupId>\n46        <artifactId>javaee-api</artifactId>"
+        lineNumber: 35
         variables:
           name: io.fabric8.kubernetes-client
           version: 6.0.0
       - uri: file:///examples/java/pom.xml
         message: dependency junit.junit with 4.11 is bad and you should feel bad for using it
+        codeSnip: "20    <properties>\n21      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n22      <maven.compiler.source>1.7</maven.compiler.source>\n23      <maven.compiler.target>1.7</maven.compiler.target>\n24      <javaee-api.version>7.0</javaee-api.version>\n25    </properties>\n26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>"
+        lineNumber: 29
         variables:
           name: junit.junit
           version: "4.11"
@@ -499,6 +534,29 @@
       incidents:
       - uri: file:///examples/java/pom.xml
         message: If you migrate your application to JBoss EAP 7.3, or later, and want to ensure its Maven building, running or testing works as expected, use instead the Jakarta EE dependency with groupId `com.sun.activation`
+        codeSnip: |-
+          36        <artifactId>kubernetes-client</artifactId>
+          37        <version>6.0.0</version>
+          38      </dependency>
+          39      <dependency>
+          40        <groupId>io.fabric8</groupId>
+          41        <artifactId>kubernetes-client-api</artifactId>
+          42        <version>6.0.0</version>
+          43      </dependency>
+          44      <dependency>
+          45        <groupId>javax</groupId>
+          46        <artifactId>javaee-api</artifactId>
+          47        <version>${javaee-api.version}</version>
+          48        <scope>provided</scope>
+          49      </dependency>
+          50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
+          51      <dependency>
+          52        <groupId>io.netty</groupId>
+          53        <artifactId>netty-transport-native-epoll</artifactId>
+          54        <version>4.1.76.Final</version>
+          55        <classifier>linux-x86_64</classifier>
+          56        <scope>runtime</scope>
+        lineNumber: 45
         variables:
           name: javax.activation.activation
           version: "1.1"
@@ -555,15 +613,6 @@
           kind: Class
           name: Singleton
           package: com.example.apps
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-        message: condition entries should evaluate out of order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
-        lineNumber: 7
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Class
-          name: Bean
-          package: com.example.apps
     singleton-sessionbean-00002:
       description: ""
       category: potential
@@ -576,15 +625,6 @@
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Singleton
-          package: com.example.apps
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-        message: condition entries should evaluate in order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
-        lineNumber: 7
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Class
-          name: Bean
           package: com.example.apps
     tech-tag-001:
       description: ""

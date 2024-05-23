@@ -291,4 +291,12 @@
         pattern: inclusion-test.xml
     - builtin.filecontent:
         pattern: "<inclusionTestNode>"
- 
+- category: mandatory
+  description: |
+    This rule looks for a class only present in the gradle project
+  effort: 3
+  message: Only incidents in gradle project should appear
+  ruleID: java-gradle-project
+  when:
+    java.referenced:
+      pattern: com.sun.net.httpserver.HttpExchange
