@@ -1494,6 +1494,9 @@
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
     prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.28
+- fileURI: file:///analyzer-lsp/examples/inclusion-tests/pom.xml
+  provider: java
+  dependencies: []
 - fileURI: file:///analyzer-lsp/examples/java/pom.xml
   provider: java
   dependencies:
