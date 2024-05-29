@@ -80,14 +80,14 @@
                 "analysisMode": "source-only"
             },
             {
-                "location": "/analyzer-lsp/examples/java",
+                "location": "/analyzer-lsp/examples/inclusion-tests",
                 "providerSpecificConfig": {
                     "lspServerName": "java",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "includedPaths": [
-                       "example/src/main/java/com/example/apps/util/FileReader.java"
+                       "src/main/java/io/konveyor/util/FileReader.java"
                     ]
                 },
                 "analysisMode": "source-only"
