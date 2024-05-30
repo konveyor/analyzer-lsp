@@ -23,7 +23,7 @@ jobs:
             containerfile: "./Dockerfile"
             pre_build_cmd: |
               TAG=${GITHUB_REF_NAME/main/latest}
-              sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
+              sed -i "s,FROM quay.io/konveyor/jdtls-server-base.*,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
             context: "."
             architectures: '[ "amd64", "arm64", "ppc64le", "s390x" ]'
           - name: dotnet-external-provider
