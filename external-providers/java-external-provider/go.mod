@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/go-logr/logr v1.4.1
-	github.com/konveyor/analyzer-lsp v0.4.0-alpha.1
+	github.com/konveyor/analyzer-lsp v0.4.0
 	github.com/swaggest/openapi-go v0.2.50
 	github.com/vifraa/gopom v1.0.0
 	go.lsp.dev/uri v0.3.0
