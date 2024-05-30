@@ -622,24 +622,6 @@ func TestLoadRules(t *testing.T) {
 			},
 		},
 		{
-			Name:         "failure-no-ruleset",
-			testFileName: "no-ruleset",
-			ShouldErr:    true,
-			ErrorMessage: "unable to find ruleset.yaml",
-			providerNameClient: map[string]provider.InternalProviderClient{
-				"builtin": testProvider{
-					caps: []provider.Capability{{
-						Name: "file",
-					}},
-				},
-				"notadded": testProvider{
-					caps: []provider.Capability{{
-						Name: "fake",
-					}},
-				},
-			},
-		},
-		{
 			Name:         "handle not-valid category",
 			testFileName: "invalid-category.yaml",
 			providerNameClient: map[string]provider.InternalProviderClient{

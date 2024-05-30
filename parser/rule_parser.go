@@ -113,7 +113,6 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	}
 	var ruleSet *engine.RuleSet
 	rules := []engine.Rule{}
-	foundTree := false
 	parserErr := &parserErrors{}
 	for _, f := range files {
 		info, err := os.Stat(path.Join(filepath, f.Name()))
@@ -122,7 +121,6 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 			continue
 		}
 		if info.IsDir() {
-			foundTree = true
 			r, m, err := r.LoadRules(path.Join(filepath, f.Name()))
 			if err != nil {
 				parserErr.errs = append(parserErr.errs, err)
@@ -141,6 +139,12 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 				ruleSet = r.loadRuleSet(filepath)
 				continue
 			}
+			// skip rule tests
+			if strings.HasSuffix(f.Name(), ".test.yaml") ||
+				strings.HasSuffix(f.Name(), ".test.yml") {
+				r.Log.V(7).Info("excluding test file from parsing", "file", f.Name())
+				continue
+			}
 			r, m, err := r.LoadRule(path.Join(filepath, f.Name()))
 			if err != nil {
 				parserErr.errs = append(parserErr.errs, err)
@@ -154,9 +158,6 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 		}
 	}
 
-	if ruleSet == nil && !foundTree {
-		return nil, nil, fmt.Errorf("unable to find %v", RULE_SET_GOLDEN_FILE_NAME)
-	}
 	if ruleSet != nil {
 		ruleSet.Rules = rules
 		ruleSets = append(ruleSets, *ruleSet)
