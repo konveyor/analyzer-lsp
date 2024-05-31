@@ -103,7 +103,7 @@
                 "analysisMode": "source-only"
             },
             {
-                "location": "examples/gradle-multi-project-example",
+                "location": "/analyzer-lsp/examples/gradle-multi-project-example",
                 "providerSpecificConfig": {
                     "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",

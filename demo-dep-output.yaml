@@ -1626,6 +1626,9 @@
   - name: xml-apis.xml-apis
     version: 1.0.b2
     indirect: true
+- fileURI: file:///analyzer-lsp/examples/inclusion-tests/pom.xml
+  provider: java
+  dependencies: []
 - fileURI: file:///analyzer-lsp/examples/java/pom.xml
   provider: java
   dependencies:
