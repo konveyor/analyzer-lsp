@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -36,6 +37,21 @@ const (
 	baseDepKey    = "baseDep"
 )
 
+const (
+	maven  = "maven"
+	gradle = "gradle"
+)
+
+func (p *javaServiceClient) GetBuildTool() string {
+	bf := ""
+	if bf = p.findPom(); bf != "" {
+		return maven
+	} else if bf = p.findGradleBuild(); bf != "" {
+		return gradle
+	}
+	return ""
+}
+
 // TODO implement this for real
 func (p *javaServiceClient) findPom() string {
 	var depPath string
@@ -51,10 +67,45 @@ func (p *javaServiceClient) findPom() string {
 	if err != nil {
 		return ""
 	}
+	if _, err := os.Stat(f); errors.Is(err, os.ErrNotExist) {
+		return ""
+	}
 	return f
 }
 
+func (p *javaServiceClient) findGradleBuild() string {
+	if p.config.Location != "" {
+		path := filepath.Join(p.config.Location, "build.gradle")
+		_, err := os.Stat(path)
+		if err != nil {
+			return ""
+		}
+		f, err := filepath.Abs(path)
+		if err != nil {
+			return ""
+		}
+		return f
+	}
+	return ""
+}
+
 func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	if p.GetBuildTool() == gradle {
+		p.log.V(2).Info("gradle found - retrieving dependencies")
+		m := map[uri.URI][]*provider.Dep{}
+		deps, err := p.getDependenciesForGradle(ctx)
+		for f, ds := range deps {
+			deps := []*provider.Dep{}
+			for _, dep := range ds {
+				d := dep.Dep
+				deps = append(deps, &d)
+				deps = append(deps, provider.ConvertDagItemsToList(dep.AddedDeps)...)
+			}
+			m[f] = deps
+		}
+		return m, err
+	}
+
 	p.depsMutex.RLock()
 	val := p.depsCache
 	p.depsMutex.RUnlock()
@@ -226,6 +277,17 @@ func pomCoordinate(value *string) string {
 }
 
 func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	switch p.GetBuildTool() {
+	case maven:
+		return p.getDependenciesForMaven(ctx)
+	case gradle:
+		return p.getDependenciesForGradle(ctx)
+	default:
+		return nil, fmt.Errorf("no build tool found")
+	}
+}
+
+func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	localRepoPath := getMavenLocalRepoPath(p.mvnSettingsFile)
 
 	path := p.findPom()
@@ -272,6 +334,171 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	}
 
 	return m, nil
+}
+
+// getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
+// TODO: what if no wrapper?
+func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	subprojects, err := p.getGradleSubprojects()
+	if err != nil {
+		return nil, err
+	}
+
+	// command syntax: ./gradlew subproject1:dependencies subproject2:dependencies ...
+	args := []string{}
+	if len(subprojects) > 0 {
+		for _, sp := range subprojects {
+			args = append(args, fmt.Sprintf("%s:dependencies", sp))
+		}
+	} else {
+		args = append(args, "dependencies")
+	}
+
+	// get the graph output
+	exe, err := filepath.Abs(filepath.Join(p.config.Location, "gradlew"))
+	if err != nil {
+		return nil, fmt.Errorf("error calculating gradle wrapper path")
+	}
+	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
+	}
+	cmd := exec.Command(exe, args...)
+	cmd.Dir = p.config.Location
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(string(output), "\n")
+	deps := p.parseGradleDependencyOutput(lines)
+
+	// TODO: do we need to separate by submodule somehow?
+
+	path := p.findGradleBuild()
+	file := uri.File(path)
+	m := map[uri.URI][]provider.DepDAGItem{}
+	m[file] = deps
+
+	// TODO: need error?
+	return m, nil
+}
+
+func (p *javaServiceClient) getGradleSubprojects() ([]string, error) {
+	args := []string{
+		"projects",
+	}
+
+	// Ideally we'd want to set this in gradle.properties, or as a -Dorg.gradle.java.home arg,
+	// but it doesn't seem to work in older Gradle versions. This should only affect child processes in any case.
+	err := os.Setenv("JAVA_HOME", os.Getenv("JAVA8_HOME"))
+	if err != nil {
+		return nil, err
+	}
+
+	exe, err := filepath.Abs(filepath.Join(p.config.Location, "gradlew"))
+	if err != nil {
+		return nil, fmt.Errorf("error calculating gradle wrapper path")
+	}
+	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
+	}
+	cmd := exec.Command(exe, args...)
+	cmd.Dir = p.config.Location
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	beginRegex := regexp.MustCompile(`Root project`)
+	endRegex := regexp.MustCompile(`To see a list of`)
+	npRegex := regexp.MustCompile(`No sub-projects`)
+	pRegex := regexp.MustCompile(`.*- Project '(.*)'`)
+
+	subprojects := []string{}
+
+	gather := false
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if npRegex.Find([]byte(line)) != nil {
+			return []string{}, nil
+		}
+		if beginRegex.Find([]byte(line)) != nil {
+			gather = true
+			continue
+		}
+		if gather {
+			if endRegex.Find([]byte(line)) != nil {
+				return subprojects, nil
+			}
+
+			if p := pRegex.FindStringSubmatch(line); p != nil {
+				subprojects = append(subprojects, p[1])
+			}
+		}
+	}
+
+	return subprojects, fmt.Errorf("error parsing gradle dependency output")
+}
+
+// parseGradleDependencyOutput converts the relevant lines from the dependency output into actual dependencies
+// See https://regex101.com/r/9Gp7dW/1 for context
+func (p *javaServiceClient) parseGradleDependencyOutput(lines []string) []provider.DepDAGItem {
+	deps := []provider.DepDAGItem{}
+
+	treeDepRegex := regexp.MustCompile(`^([| ]+)?[+\\]--- (.*)`)
+
+	// map of <anidation level> to <pointer to last found dependency for given level>
+	// this is so that children can be added to their respective parents
+	lastFoundWithDepth := make(map[int]*provider.DepDAGItem)
+
+	for _, line := range lines {
+		match := treeDepRegex.FindStringSubmatch(line)
+		if match != nil {
+			dep := parseGradleDependencyString(match[2])
+			if reflect.DeepEqual(dep, provider.DepDAGItem{}) { // ignore empty dependency
+				continue
+			} else if match[1] != "" { // transitive dependency
+				dep.Dep.Indirect = true
+				depth := len(match[1]) / 5                                             // get the level of anidation of the dependency within the tree
+				parent := lastFoundWithDepth[depth-1]                                  // find its parent
+				parent.AddedDeps = append(parent.AddedDeps, dep)                       // add child to parent
+				lastFoundWithDepth[depth] = &parent.AddedDeps[len(parent.AddedDeps)-1] // update last found with given depth
+			} else { // root level (direct) dependency
+				deps = append(deps, dep) // add root dependency to result list
+				lastFoundWithDepth[0] = &deps[len(deps)-1]
+				continue
+			}
+		}
+	}
+
+	return deps
+}
+
+// parseGradleDependencyString parses the lines of the gradle dependency output, for instance:
+// org.codehaus.groovy:groovy:3.0.21
+// org.codehaus.groovy:groovy:3.+ -> 3.0.21
+// com.codevineyard:hello-world:{strictly 1.0.1} -> 1.0.1
+// :simple-jar (n)
+func parseGradleDependencyString(s string) provider.DepDAGItem {
+	// (*) - dependencies omitted (listed previously)
+	// (n) - Not resolved (configuration is not meant to be resolved)
+	if strings.HasSuffix(s, "(n)") || strings.HasSuffix(s, "(*)") {
+		return provider.DepDAGItem{}
+	}
+
+	depRegex := regexp.MustCompile(`(.+):(.+):((.*) -> )?(.*)`)
+	libRegex := regexp.MustCompile(`:(.*)`)
+
+	dep := provider.Dep{}
+	match := depRegex.FindStringSubmatch(s)
+	if match != nil {
+		dep.Name = match[1] + "." + match[2]
+		dep.Version = match[5]
+	} else if match = libRegex.FindStringSubmatch(s); match != nil {
+		dep.Name = match[1]
+	}
+
+	return provider.DepDAGItem{Dep: dep, AddedDeps: []provider.DepDAGItem{}}
 }
 
 // extractSubmoduleTrees creates an array of lines for each submodule tree found in the mvn dependency:tree output

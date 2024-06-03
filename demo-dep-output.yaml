@@ -1494,6 +1494,138 @@
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
     prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.28
+- fileURI: file:///analyzer-lsp/examples/gradle-multi-project-example/build.gradle
+  provider: java
+  dependencies:
+  - name: antlr.antlr
+    version: 2.7.7
+    indirect: true
+  - name: com.apple.AppleJavaExtensions
+    version: "1.4"
+    indirect: true
+  - name: com.beust.jcommander
+    version: "1.48"
+    indirect: true
+  - name: com.google.code.findbugs.bcel-findbugs
+    version: "6.0"
+    indirect: true
+  - name: com.google.code.findbugs.findbugs
+    version: 3.0.1
+  - name: com.google.code.findbugs.jFormatString
+    version: 2.0.1
+    indirect: true
+  - name: com.google.code.findbugs.jsr305
+    version: 1.3.9
+    indirect: true
+  - name: com.google.code.findbugs.jsr305
+    version: 2.0.1
+    indirect: true
+  - name: com.google.code.gson.gson
+    version: "2.5"
+    indirect: true
+  - name: com.google.errorprone.error_prone_annotations
+    version: 2.0.18
+    indirect: true
+  - name: com.google.guava.guava
+    version: "23.0"
+  - name: com.google.guava.guava
+    version: 23.2-jre
+    indirect: true
+  - name: com.google.j2objc.j2objc-annotations
+    version: "1.1"
+    indirect: true
+  - name: com.puppycrawl.tools.checkstyle
+    version: "8.4"
+  - name: commons-beanutils.commons-beanutils
+    version: 1.9.3
+    indirect: true
+  - name: commons-cli.commons-cli
+    version: "1.4"
+    indirect: true
+  - name: commons-collections.commons-collections
+    version: 3.2.2
+    indirect: true
+  - name: commons-io.commons-io
+    version: "2.4"
+    indirect: true
+  - name: commons-lang.commons-lang
+    version: "2.6"
+    indirect: true
+  - name: dom4j.dom4j
+    version: 1.6.1
+    indirect: true
+  - name: jaxen.jaxen
+    version: 1.1.6
+    indirect: true
+  - name: junit.junit
+    version: "4.12"
+  - name: net.bytebuddy.byte-buddy
+    version: 1.7.4
+    indirect: true
+  - name: net.bytebuddy.byte-buddy-agent
+    version: 1.7.4
+    indirect: true
+  - name: net.java.dev.javacc.javacc
+    version: "5.0"
+    indirect: true
+  - name: net.jcip.jcip-annotations
+    version: "1.0"
+    indirect: true
+  - name: net.sf.saxon.Saxon-HE
+    version: 9.8.0-5
+    indirect: true
+  - name: net.sourceforge.pmd.pmd-core
+    version: 5.6.1
+    indirect: true
+  - name: net.sourceforge.pmd.pmd-java
+    version: 5.6.1
+  - name: net.sourceforge.saxon.saxon
+    version: 9.1.0.8
+    indirect: true
+  - name: org.antlr.antlr4-runtime
+    version: "4.7"
+    indirect: true
+  - name: org.apache.commons.commons-lang3
+    version: "3.4"
+    indirect: true
+  - name: org.apache.logging.log4j.log4j-api
+    version: 2.9.1
+  - name: org.apache.logging.log4j.log4j-core
+    version: 2.9.1
+  - name: org.apache.logging.log4j.log4j-slf4j-impl
+    version: 2.9.1
+  - name: org.codehaus.mojo.animal-sniffer-annotations
+    version: "1.14"
+    indirect: true
+  - name: org.hamcrest.hamcrest-core
+    version: "1.3"
+    indirect: true
+  - name: org.mockito.mockito-core
+    version: 2.11.0
+  - name: org.objenesis.objenesis
+    version: "2.6"
+    indirect: true
+  - name: org.ow2.asm.asm
+    version: 5.0.2
+    indirect: true
+  - name: org.ow2.asm.asm
+    version: 5.0.4
+    indirect: true
+  - name: org.ow2.asm.asm-commons
+    version: 5.0.2
+    indirect: true
+  - name: org.ow2.asm.asm-debug-all
+    version: 5.0.2
+    indirect: true
+  - name: org.ow2.asm.asm-tree
+    version: 5.0.2
+    indirect: true
+  - name: org.slf4j.slf4j-api
+    version: 1.7.25
+    indirect: true
+  - name: xml-apis.xml-apis
+    version: 1.0.b2
+    indirect: true
 - fileURI: file:///analyzer-lsp/examples/inclusion-tests/pom.xml
   provider: java
   dependencies: []

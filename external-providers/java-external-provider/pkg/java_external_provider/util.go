@@ -131,9 +131,11 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 						"failed to create directories for decompiled file", "path", outputPathDir)
 					continue
 				}
+				// multiple java versions may be installed - chose $JAVA_HOME one
+				java := filepath.Join(os.Getenv("JAVA_HOME"), "bin", "java")
 				// -mpm (max processing method) is required to keep decomp time low
 				cmd := exec.CommandContext(
-					jobCtx, "java", "-jar", "/bin/fernflower.jar", "-mpm=30", job.inputPath, outputPathDir)
+					jobCtx, java, "-jar", "/bin/fernflower.jar", "-mpm=30", job.inputPath, outputPathDir)
 				err := cmd.Run()
 				if err != nil {
 					log.V(5).Error(err, "failed to decompile file", "file", job.inputPath, job.outputPath)
@@ -385,7 +387,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 					artifactPath := filepath.Join(strings.Split(dep.ArtifactId, ".")...)
 					destPath := filepath.Join(m2Repo, groupPath, artifactPath,
 						dep.Version, filepath.Base(filePath))
-					if err := copyFile(filePath, destPath); err != nil {
+					if err := CopyFile(filePath, destPath); err != nil {
 						log.V(8).Error(err, "failed copying jar to m2 local repo")
 					} else {
 						log.V(8).Info("copied jar file", "src", filePath, "dest", destPath)
@@ -433,7 +435,7 @@ func createJavaProject(ctx context.Context, dir string, dependencies []javaArtif
 }
 
 func moveFile(srcPath string, destPath string) error {
-	err := copyFile(srcPath, destPath)
+	err := CopyFile(srcPath, destPath)
 	if err != nil {
 		return err
 	}
@@ -444,7 +446,7 @@ func moveFile(srcPath string, destPath string) error {
 	return nil
 }
 
-func copyFile(srcPath string, destPath string) error {
+func CopyFile(srcPath string, destPath string) error {
 	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 		return err
 	}
@@ -462,6 +464,29 @@ func copyFile(srcPath string, destPath string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func AppendToFile(src string, dst string) error {
+	// Read the contents of the source file
+	content, err := os.ReadFile(src)
+	if err != nil {
+		return fmt.Errorf("error reading source file: %s", err)
+	}
+
+	// Open the destination file in append mode
+	destFile, err := os.OpenFile(dst, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("error opening destination file: %s", err)
+	}
+	defer destFile.Close()
+
+	// Append the content to the destination file
+	_, err = destFile.Write(content)
+	if err != nil {
+		return fmt.Errorf("error apending to destination file: %s", err)
+	}
+
 	return nil
 }
 

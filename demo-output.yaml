@@ -354,6 +354,30 @@
         variables:
           name: sigs.k8s.io/structured-merge-diff/v4
           version: v4.2.1
+    java-gradle-project:
+      description: |
+        This rule looks for a class only present in the gradle project
+      category: mandatory
+      incidents:
+      - uri: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
+        message: Only incidents in gradle project should appear
+        codeSnip: " 1  package io.jeffchao.template.server;\n 2  \n 3  import java.io.IOException;\n 4  import java.io.OutputStream;\n 5  import java.net.InetSocketAddress;\n 6  \n 7  import com.sun.net.httpserver.HttpExchange;\n 8  import com.sun.net.httpserver.HttpHandler;\n 9  import com.sun.net.httpserver.HttpServer;\n10  \n11  public class Server {\n12  \n13    public static void main(String[] args) throws IOException {\n14      String portString = System.getenv(\"PORT\");\n15      int port = portString == null ? 8080 : Integer.valueOf(portString);\n16      HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);\n17      server.createContext(\"/\", new MyHandler());"
+        lineNumber: 7
+        variables:
+          file: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
+          kind: Module
+          name: com.sun.net.httpserver.HttpExchange
+          package: io.jeffchao.template.server
+      - uri: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
+        message: Only incidents in gradle project should appear
+        codeSnip: "14      String portString = System.getenv(\"PORT\");\n15      int port = portString == null ? 8080 : Integer.valueOf(portString);\n16      HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);\n17      server.createContext(\"/\", new MyHandler());\n18      server.setExecutor(null); // creates a default executor\n19      server.start();\n20    }\n21  \n22    static class MyHandler implements HttpHandler {\n23      @Override\n24      public void handle(HttpExchange t) throws IOException {\n25        String response = \"Hello from Gradle!\";\n26        t.sendResponseHeaders(200, response.length());\n27        OutputStream os = t.getResponseBody();\n28        os.write(response.getBytes());\n29        os.close();\n30      }\n31    }\n32  }\n"
+        lineNumber: 24
+        variables:
+          file: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
+          kind: Method
+          name: handle
+          package: io.jeffchao.template.server
+      effort: 3
     java-inclusion-test:
       description: "This rule tests includedPaths config of the java provider. There should be two instances of this issue in the example app. \nWe are filtering one of them using includedPaths in provider config.\n"
       category: mandatory
@@ -381,6 +405,13 @@
       description: ""
       category: potential
       incidents:
+      - uri: file:///examples/gradle-multi-project-example/build.gradle
+        message: dependency junit.junit with 4.12 is bad and you should feel bad for using it
+        codeSnip: " 1  apply plugin: 'idea'\n 2  \n 3  ext {\n 4    log4jVersion = '2.9.1'\n 5  }\n 6  \n 7  buildscript {\n 8    repositories {\n 9      jcenter()\n10    }\n11    dependencies {"
+        lineNumber: 0
+        variables:
+          name: junit.junit
+          version: "4.12"
       - uri: file:///examples/java/pom.xml
         message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you should feel bad for using it
         codeSnip: "26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>\n41        <artifactId>kubernetes-client-api</artifactId>\n42        <version>6.0.0</version>\n43      </dependency>\n44      <dependency>\n45        <groupId>javax</groupId>\n46        <artifactId>javaee-api</artifactId>"

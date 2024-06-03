@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -234,16 +235,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		isBinary = true
 	}
 
-	if mode == provider.FullAnalysisMode {
-		// we attempt to decompile JARs of dependencies that don't have a sources JAR attached
-		// we need to do this for jdtls to correctly recognize source attachment for dep
-		err := resolveSourcesJars(ctx, log, config.Location, mavenSettingsFile)
-		if err != nil {
-			// TODO (pgaikwad): should we ignore this failure?
-			log.Error(err, "failed to resolve sources jar for location", "location", config.Location)
-		}
-	}
-
 	// handle proxy settings
 	for k, v := range config.Proxy.ToEnvVars() {
 		os.Setenv(k, v)
@@ -311,12 +302,193 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
 	}
 
+	if mode == provider.FullAnalysisMode {
+		// we attempt to decompile JARs of dependencies that don't have a sources JAR attached
+		// we need to do this for jdtls to correctly recognize source attachment for dep
+		switch svcClient.GetBuildTool() {
+		case maven:
+			err := resolveSourcesJarsForMaven(ctx, log, config.Location, mavenSettingsFile)
+			if err != nil {
+				// TODO (pgaikwad): should we ignore this failure?
+				log.Error(err, "failed to resolve maven sources jar for location", "location", config.Location)
+			}
+		case gradle:
+			err = resolveSourcesJarsForGradle(ctx, log, config.Location, mavenSettingsFile, &svcClient)
+			if err != nil {
+				log.Error(err, "failed to resolve gradle sources jar for location", "location", config.Location)
+			}
+		}
+
+	}
+
 	svcClient.initialization(ctx)
 	err = svcClient.depInit()
 	if err != nil {
 		return nil, err
 	}
 	return &svcClient, returnErr
+}
+
+func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, location string, mvnSettings string, svc *javaServiceClient) error {
+	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
+	defer span.End()
+
+	log.V(5).Info("resolving dependency sources for gradle")
+
+	gb := svc.findGradleBuild()
+	if gb == "" {
+		return fmt.Errorf("could not find gradle build file for project")
+	}
+
+	// create a temporary build file to append the task for downloading sources
+	taskgb := filepath.Join(filepath.Dir(gb), "tmp.gradle")
+	err := CopyFile(gb, taskgb)
+	if err != nil {
+		return fmt.Errorf("error copying file %s to %s", gb, taskgb)
+	}
+	defer os.Remove(taskgb)
+
+	// append downloader task
+	taskfile := "/root/.gradle/task.gradle"
+	err = AppendToFile(taskfile, taskgb)
+	if err != nil {
+		return fmt.Errorf("error appending file %s to %s", taskfile, taskgb)
+	}
+
+	tmpgbname := filepath.Join(location, "toberenamed.gradle")
+	err = os.Rename(gb, tmpgbname)
+	if err != nil {
+		return fmt.Errorf("error renaming file %s to %s", gb, "toberenamed.gradle")
+	}
+	defer os.Rename(tmpgbname, gb)
+
+	err = os.Rename(taskgb, gb)
+	if err != nil {
+		return fmt.Errorf("error renaming file %s to %s", gb, "toberenamed.gradle")
+	}
+	defer os.Remove(gb)
+
+	// run gradle wrapper with tmp build file
+	exe, err := filepath.Abs(filepath.Join(svc.config.Location, "gradlew"))
+	if err != nil {
+		return fmt.Errorf("error calculating gradle wrapper path")
+	}
+	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("a gradle wrapper must be present in the project")
+	}
+
+	// gradle must run with java 8 (see compatibility matrix)
+	java8home := os.Getenv("JAVA8_HOME")
+	if java8home == "" {
+		return fmt.Errorf("")
+	}
+
+	args := []string{
+		"konveyorDownloadSources",
+	}
+	cmd := exec.CommandContext(ctx, exe, args...)
+	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", java8home))
+	cmd.Dir = location
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	log.V(8).WithValues("output", output).Info("got gradle output")
+
+	// TODO: what if all sources available
+	reader := bytes.NewReader(output)
+	unresolvedSources, err := parseUnresolvedSourcesForGradle(reader)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%d", len(unresolvedSources))
+
+	decompileJobs := []decompileJob{}
+	if len(unresolvedSources) > 1 {
+		// Gradle cache dir structure changes over time - we need to find where the actual dependencies are stored
+		cache, err := findGradleCache(unresolvedSources[0].GroupId)
+		if err != nil {
+			return err
+		}
+
+		for _, artifact := range unresolvedSources {
+			log.V(5).WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
+
+			artifactDir := filepath.Join(cache, artifact.GroupId, artifact.ArtifactId)
+			jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
+			artifactPath, err := findGradleArtifact(artifactDir, jarName)
+			if err != nil {
+				return err
+			}
+			decompileJobs = append(decompileJobs, decompileJob{
+				artifact:   artifact,
+				inputPath:  artifactPath,
+				outputPath: filepath.Join(filepath.Dir(artifactPath), "decompiled", jarName),
+			})
+		}
+		err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, "")
+		if err != nil {
+			return err
+		}
+		// move decompiled files to base location of the jar
+		for _, decompileJob := range decompileJobs {
+			jarName := strings.TrimSuffix(filepath.Base(decompileJob.inputPath), ".jar")
+			err = moveFile(decompileJob.outputPath,
+				filepath.Join(filepath.Dir(decompileJob.inputPath),
+					fmt.Sprintf("%s-sources.jar", jarName)))
+			if err != nil {
+				log.V(5).Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
+			}
+		}
+
+	}
+	return nil
+}
+
+// findGradleCache looks for the folder within the Gradle cache where the actual dependencies are stored
+// by walking the cache directory looking for a directory equal to the given sample group id
+func findGradleCache(sampleGroupId string) (string, error) {
+	// TODO(jmle): atm taking for granted that the cache is going to be here
+	root := "/root/.gradle/caches"
+	cache := ""
+	walker := func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return fmt.Errorf("found error looking for cache directory: %w", err)
+		}
+		if d.IsDir() && d.Name() == sampleGroupId {
+			cache = path
+			return filepath.SkipAll
+		}
+		return nil
+	}
+	err := filepath.WalkDir(root, walker)
+	if err != nil {
+		return "", err
+	}
+	cache = filepath.Dir(cache) // return the parent of the found directory
+	return cache, nil
+}
+
+// findGradleArtifact looks for a given artifact jar within the given root dir
+func findGradleArtifact(root string, artifactId string) (string, error) {
+	artifactPath := ""
+	walker := func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return fmt.Errorf("found error looking for artifact: %w", err)
+		}
+		if !d.IsDir() && d.Name() == artifactId {
+			artifactPath = path
+			return filepath.SkipAll
+		}
+		return nil
+	}
+	err := filepath.WalkDir(root, walker)
+	if err != nil {
+		return "", err
+	}
+	return artifactPath, nil
 }
 
 // GetLocation given a dep, attempts to find line number, caches the line number for a given dep
@@ -385,9 +557,9 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 	return location, nil
 }
 
-// resolveSourcesJars for a given source code location, runs maven to find
+// resolveSourcesJarsForMaven for a given source code location, runs maven to find
 // deps that don't have sources attached and decompiles them
-func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSettings string) error {
+func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, location, mavenSettings string) error {
 	// TODO (pgaikwad): when we move to external provider, inherit context from parent
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
@@ -453,6 +625,50 @@ func resolveSourcesJars(ctx context.Context, log logr.Logger, location, mavenSet
 		}
 	}
 	return nil
+}
+
+// parseUnresolvedSources takes the output from the download sources gradle task and returns the artifacts whose sources
+// could not be found. Sample gradle output:
+// Found 0 sources for :simple-jar:
+// Found 1 sources for com.codevineyard:hello-world:1.0.1
+// Found 1 sources for org.codehaus.groovy:groovy:3.0.21
+func parseUnresolvedSourcesForGradle(output io.Reader) ([]javaArtifact, error) {
+	unresolvedSources := []javaArtifact{}
+	unresolvedRegex := regexp.MustCompile(`Found 0 sources for (.*)`)
+	artifactRegex := regexp.MustCompile(`(.+):(.+):(.+)|:(.+):`)
+
+	scanner := bufio.NewScanner(output)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if match := unresolvedRegex.FindStringSubmatch(line); len(match) != 0 {
+			gav := artifactRegex.FindStringSubmatch(match[1])
+			if gav[4] != "" { // internal library, unknown group/version
+				artifact := javaArtifact{
+					ArtifactId: match[4],
+				}
+				unresolvedSources = append(unresolvedSources, artifact)
+			} else { // external dependency
+				artifact := javaArtifact{
+					GroupId:    gav[1],
+					ArtifactId: gav[2],
+					Version:    gav[3],
+				}
+				unresolvedSources = append(unresolvedSources, artifact)
+			}
+		}
+	}
+
+	// dedup artifacts
+	result := []javaArtifact{}
+	for _, artifact := range unresolvedSources {
+		if contains(result, artifact) {
+			continue
+		}
+		result = append(result, artifact)
+	}
+
+	return result, scanner.Err()
 }
 
 // parseUnresolvedSources takes the output from the go-offline maven plugin and returns the artifacts whose sources
