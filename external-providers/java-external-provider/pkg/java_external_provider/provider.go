@@ -31,6 +31,7 @@ const (
 	WebArchive        = ".war"
 	EnterpriseArchive = ".ear"
 	ClassFile         = ".class"
+	MvnURIPrefix      = "mvn://"
 )
 
 // provider specific config keys
@@ -220,6 +221,42 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	var returnErr error
 	// each service client should have their own context
 	ctx, cancelFunc := context.WithCancel(ctx)
+	// location can be a coordinate to a remote mvn artifact
+	if strings.HasPrefix(config.Location, MvnURIPrefix) {
+		mvnUri := strings.Replace(config.Location, MvnURIPrefix, "", 1)
+		// URI format is <group>:<artifact>:<version>:<classifier>:<path>
+		// <path> is optional & points to a local path where it will be downloaded
+		mvnUriParts := strings.Split(mvnUri, ":")
+		if len(mvnUriParts) < 4 || len(mvnUriParts) > 6 {
+			cancelFunc()
+			return nil, fmt.Errorf("invalid maven coordinates in location %s", config.Location)
+		}
+		outputDir := "."
+		if len(mvnUriParts) == 5 {
+			if stat, err := os.Stat(mvnUriParts[len(mvnUriParts)-1]); err != nil || !stat.IsDir() {
+				cancelFunc()
+				return nil, fmt.Errorf("output path does not exist or not a directory")
+			}
+			outputDir = mvnUriParts[len(mvnUriParts)-1]
+		}
+		mvnOptions := []string{
+			"dependency:copy",
+			fmt.Sprintf("-Dartifact=%s", strings.Join(mvnUriParts[:4], ":")),
+			fmt.Sprintf("-DoutputDirectory=%s", outputDir),
+		}
+		if mavenSettingsFile != "" {
+			mvnOptions = append(mvnOptions, "-s", mavenSettingsFile)
+		}
+		cmd := exec.CommandContext(ctx, "mvn", mvnOptions...)
+		cmd.Dir = outputDir
+		if err := cmd.Run(); err != nil {
+			cancelFunc()
+			return nil, fmt.Errorf("error downloading java artifact - %s", mvnUri)
+		}
+		config.Location = filepath.Join(outputDir,
+			fmt.Sprintf("%s.%s", strings.Join(mvnUriParts[1:3], "-"), strings.ToLower(mvnUriParts[3])))
+	}
+
 	extension := strings.ToLower(path.Ext(config.Location))
 	switch extension {
 	case JavaArchive, WebArchive, EnterpriseArchive:

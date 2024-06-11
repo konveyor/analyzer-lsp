@@ -3,6 +3,7 @@
   - Backend=Golang
   - Infra=Kubernetes
   - Java
+  - Java Operator SDK
   - Language=Golang
   - License=Apache
   violations:
@@ -1043,7 +1044,7 @@
   errors:
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:
-        line 9: cannot unmarshal !!map into string
+        line 10: cannot unmarshal !!map into string
   unmatched:
   - file-002
   - lang-ref-002
