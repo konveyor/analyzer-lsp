@@ -14,17 +14,20 @@
       pattern: "*.go"
 - message: not any go files
   ruleID: file-002
+  effort: 1
   when:
     builtin.file:
       pattern:  "*.go"
     not: true
 - message: POM XML dependencies - '{{{matchingXML}}}'
   ruleID: xml-pom-001
+  effort: 1
   when:
     builtin.xml:
       xpath: "//dependencies/dependency"
 - message: '{{{matchingXML}}}'
   ruleID: chain-pom-001
+  effort: 1
   when:
     or:
     - builtin.xml:
@@ -37,6 +40,7 @@
       ignore: true
 - message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
   ruleID: lang-ref-001
+  effort: 1
   when:
     or:
     - java.referenced:
@@ -46,11 +50,13 @@
         pattern: "v1beta1.CustomResourceDefinition"
 - message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: go-lang-ref-001
+  effort: 1
   when:
     go.referenced:
         pattern: "v1beta1.CustomResourceDefinition"
 - message: testing nested conditions
   ruleID: lang-ref-002
+  effort: 1
   when:
     # This is purposfully failing, the golang reference will not
     # find anything. testing that `and` will work correctly
@@ -62,6 +68,7 @@
           location: TYPE
 - message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
   ruleID: lang-ref-003
+  effort: 1
   when:
     java.referenced:
       pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
@@ -109,6 +116,7 @@
       - Java
 - message: "dependency {{name}} with {{version}} is bad and you should feel bad for using it"
   ruleID: golang-gomod-dependencies
+  effort: 1
   when:
     and:
       - go.dependency:
@@ -123,6 +131,7 @@
           upperbound: v4.2.2
 - message: "dependency {{name}} with {{version}} is bad and you should feel bad for using it"
   ruleID: java-pomxml-dependencies
+  effort: 1
   when:
     and:
       - java.dependency:
@@ -134,6 +143,7 @@
           lowerbound: 5.0.100
 - message: "found generic call"
   ruleID: lang-ref-004
+  effort: 1
   customVariables:
    - pattern: '([A-z]+)\.get\(\)'
      name: VariableName
@@ -143,6 +153,7 @@
       pattern: com.example.apps.GenericClass.get
 - message: condition entries should evaluate out of order
   ruleID: singleton-sessionbean-00001
+  effort: 1
   when:
     or:
     - as: sessionbean
@@ -156,6 +167,7 @@
         pattern: javax.ejb.Singleton
 - message: condition entries should evaluate in order
   ruleID: singleton-sessionbean-00002
+  effort: 1
   when:
     or:
     - as: singleton
@@ -169,12 +181,14 @@
         pattern: javax.ejb.SessionBean
 - message: "error test"
   ruleID: error-rule-001
+  effort: 1
   when:
     builtin.xml:
       xpath:
         invalid-query: "test"
 - message: "JBoss 5.x EAR descriptor (jboss-app.xml) was found with public-id"
   ruleID: jboss-eap5-7-xml-02000
+  effort: 1
   when:
     builtin.xmlPublicID:
       regex: .*JBoss.+DTD Java EE.+5.*
@@ -187,6 +201,7 @@
     - Golang
 - message: "Found usage of openjdk base image"
   ruleID: filecontent-codesnip-test
+  effort: 1
   when:
     builtin.filecontent:
       pattern: "^FROM.*openjdk-11.*"
@@ -194,16 +209,19 @@
 
 - message: python sample rule 001
   ruleID: python-sample-rule-001
+  effort: 1
   when:
     python.referenced:
       pattern: "hello_world"
 - message: python sample rule 002
   ruleID: python-sample-rule-002
+  effort: 1
   when:
     python.referenced:
       pattern: "speak"
 - message: python sample rule 003
   ruleID: python-sample-rule-003
+  effort: 1
   when:
     python.referenced:
       pattern: "create_custom_resource_definition"
@@ -235,6 +253,7 @@
   description: "Test code snippets when match is a key of a XML node"
   message: "The code snippet should point to <beans> in the beans.xml file"
   ruleID: xml-test-key-match
+  effort: 1
   when:
     builtin.xml:
       filepaths:
@@ -269,6 +288,7 @@
     We are filtering some out using includedPaths setting.
   message: Only incidents in dir-0/test.json should be found
   ruleID: builtin-inclusion-test-json
+  effort: 1
   when:
     and:
     - builtin.json:
@@ -283,6 +303,7 @@
     We are filtering some out using includedPaths setting.
   message: Only incidents in dir-0/test.xml should be found
   ruleID: builtin-inclusion-test-xml
+  effort: 1
   when:
     and:
     - builtin.xml:

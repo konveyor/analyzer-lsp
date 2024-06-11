@@ -37,6 +37,7 @@
         lineNumber: 4
         variables:
           matchingText: inclusionTestNode
+      effort: 1
     builtin-inclusion-test-xml:
       description: |
         This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.
@@ -58,6 +59,7 @@
           data: inclusionTestNode
           innerText: Test this node
           matchingXML: Test this node
+      effort: 1
     chain-pom-001:
       description: ""
       category: potential
@@ -300,6 +302,7 @@
           data: dependency
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
           matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+      effort: 1
     file-001:
       description: Testing that we can get all the go files in the project
       category: potential
@@ -325,6 +328,7 @@
         lineNumber: 5
         variables:
           matchingText: FROM maven:3.8-openjdk-11 as build
+      effort: 1
     go-lang-ref-001:
       description: ""
       category: potential
@@ -335,6 +339,7 @@
         lineNumber: 11
         variables:
           file: file:///examples/golang/main.go
+      effort: 1
     golang-gomod-dependencies:
       description: ""
       category: potential
@@ -354,6 +359,7 @@
         variables:
           name: sigs.k8s.io/structured-merge-diff/v4
           version: v4.2.1
+      effort: 1
     java-gradle-project:
       description: |
         This rule looks for a class only present in the gradle project
@@ -426,6 +432,7 @@
         variables:
           name: junit.junit
           version: "4.11"
+      effort: 1
     jboss-eap5-7-xml-02000:
       description: ""
       category: potential
@@ -436,6 +443,7 @@
           data: module
           innerText: "\n        jboss-example-service\n    "
           matchingXML: <service>jboss-example-service</service>
+      effort: 1
     k8s-deprecated-api-001:
       description: Check for usage of deprecated Kubernetes API versions
       category: potential
@@ -492,6 +500,7 @@
           kind: Method
           name: main
           package: com.example.apps
+      effort: 1
     lang-ref-003:
       description: ""
       category: potential
@@ -514,6 +523,7 @@
           kind: Module
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
           package: com.example.apps
+      effort: 1
     lang-ref-004:
       description: ""
       category: potential
@@ -528,6 +538,7 @@
           kind: Method
           name: main
           package: com.example.apps
+      effort: 1
     maven-javax-to-jakarta-00002:
       description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
       category: potential
@@ -561,15 +572,6 @@
           name: javax.activation.activation
           version: "1.1"
       effort: 1
-    multiple-actions-001:
-      description: ""
-      category: potential
-      incidents:
-      - uri: ""
-        message: Tags [Golang] found, creating message and new tag both
-        variables:
-          tags:
-          - Golang
     python-sample-rule-001:
       description: ""
       category: potential
@@ -580,6 +582,7 @@
         lineNumber: 3
         variables:
           file: file:///examples/python/file_a.py
+      effort: 1
     python-sample-rule-002:
       description: ""
       category: potential
@@ -590,6 +593,7 @@
         lineNumber: 6
         variables:
           file: file:///examples/python/file_a.py
+      effort: 1
     singleton-sessionbean-00001:
       description: ""
       category: potential
@@ -612,6 +616,7 @@
           kind: Class
           name: Bean
           package: com.example.apps
+      effort: 1
     singleton-sessionbean-00002:
       description: ""
       category: potential
@@ -634,21 +639,7 @@
           kind: Class
           name: Bean
           package: com.example.apps
-    tech-tag-001:
-      description: ""
-      category: potential
-      incidents:
-      - uri: ""
-        message: Tags [Golang Kubernetes] found
-        variables:
-          tags:
-          - Golang
-          - Kubernetes
-      - uri: ""
-        message: Tags [Java] found
-        variables:
-          tags:
-          - Java
+      effort: 1
     xml-pom-001:
       description: ""
       category: potential
@@ -891,6 +882,7 @@
           data: dependency
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
           matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
+      effort: 1
     xml-test-key-match:
       description: Test code snippets when match is a key of a XML node
       category: potential
@@ -904,6 +896,150 @@
           innerText: |2+
 
           matchingXML: ""
+      effort: 1
+  insights:
+    multiple-actions-001:
+      description: ""
+      labels:
+      - tag=Backend=Golang
+      incidents:
+      - uri: ""
+        message: Tags [Golang] found, creating message and new tag both
+        variables:
+          tags:
+          - Golang
+    tag-go-000:
+      description: ""
+      labels:
+      - tag=Language=Golang
+      incidents:
+      - uri: file:///examples/golang/go.mod
+        message: ""
+    tag-java-000:
+      description: ""
+      labels:
+      - tag=Java
+      incidents:
+      - uri: file:///examples/customers-tomcat-legacy/pom.xml
+        message: ""
+      - uri: file:///examples/java/dummy/pom.xml
+        message: ""
+      - uri: file:///examples/java/example/pom.xml
+        message: ""
+      - uri: file:///examples/java/pom.xml
+        message: ""
+    tag-k8s-000:
+      description: ""
+      labels:
+      - tag=Infra=Kubernetes
+      incidents:
+      - uri: file:///examples/golang/go.mod
+        message: ""
+        codeSnip: " 1  module github.com/konveyor/analyzer-lsp/examples/golang\n 2  \n 3  go 1.18\n 4  \n 5  require k8s.io/apiextensions-apiserver v0.24.4\n 6  \n 7  require (\n 8  \tgithub.com/go-logr/logr v1.2.0 // indirect\n 9  \tgithub.com/gogo/protobuf v1.3.2 // indirect\n10  \tgithub.com/google/gofuzz v1.1.0 // indirect\n11  \tgithub.com/json-iterator/go v1.1.12 // indirect\n12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect"
+        lineNumber: 5
+        variables:
+          matchingText: require k8s.io/apiextensions-apiserver v0.24.4
+      - uri: file:///examples/golang/go.mod
+        message: ""
+        codeSnip: " 9  \tgithub.com/gogo/protobuf v1.3.2 // indirect\n10  \tgithub.com/google/gofuzz v1.1.0 // indirect\n11  \tgithub.com/json-iterator/go v1.1.12 // indirect\n12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        lineNumber: 18
+        variables:
+          matchingText: "\tk8s.io/apimachinery v0.24.4 // indirect"
+      - uri: file:///examples/golang/go.mod
+        message: ""
+        codeSnip: "10  \tgithub.com/google/gofuzz v1.1.0 // indirect\n11  \tgithub.com/json-iterator/go v1.1.12 // indirect\n12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        lineNumber: 19
+        variables:
+          matchingText: "\tk8s.io/klog/v2 v2.60.1 // indirect"
+      - uri: file:///examples/golang/go.mod
+        message: ""
+        codeSnip: "11  \tgithub.com/json-iterator/go v1.1.12 // indirect\n12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        lineNumber: 20
+        variables:
+          matchingText: "\tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect"
+      - uri: file:///examples/golang/go.mod
+        message: ""
+        codeSnip: "12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        lineNumber: 21
+        variables:
+          matchingText: "\tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect"
+      - uri: file:///examples/golang/go.mod
+        message: ""
+        codeSnip: "13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        lineNumber: 22
+        variables:
+          matchingText: "\tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect"
+    tag-license:
+      description: ""
+      labels:
+      - tag=License=Apache
+      incidents:
+      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/exception/ResourceNotFoundException.java
+        message: ""
+        codeSnip: |2-
+           1  /*
+           2   * Copyright 2016-2017 Red Hat, Inc, and individual contributors.
+           3   *
+           4   * Licensed under the Apache License, Version 2.0 (the "License");
+           5   * you may not use this file except in compliance with the License.
+           6   * You may obtain a copy of the License at
+           7   *
+           8   * http://www.apache.org/licenses/LICENSE-2.0
+           9   *
+          10   * Unless required by applicable law or agreed to in writing, software
+          11   * distributed under the License is distributed on an "AS IS" BASIS,
+          12   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+          13   * See the License for the specific language governing permissions and
+          14   * limitations under the License.
+          15   */
+        lineNumber: 4
+        variables:
+          matchingText: Apache
+      - uri: file:///examples/golang/LICENSE
+        message: ""
+        codeSnip: " 1                                   Apache License\n 2                             Version 2.0, January 2004\n 3                          http://www.apache.org/licenses/\n 4  \n 5     TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n 6  \n 7     1. Definitions.\n 8  \n 9        \"License\" shall mean the terms and conditions for use, reproduction,\n10        and distribution as defined by Sections 1 through 9 of this document.\n11  \n12        \"Licensor\" shall mean the copyright owner or entity authorized by"
+        lineNumber: 1
+        variables:
+          matchingText: Apache
+      - uri: file:///examples/golang/LICENSE
+        message: ""
+        codeSnip: "169        License. However, in accepting such obligations, You may act only\n170        on Your own behalf and on Your sole responsibility, not on behalf\n171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]"
+        lineNumber: 178
+        variables:
+          matchingText: Apache
+      - uri: file:///examples/golang/LICENSE
+        message: ""
+        codeSnip: "171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");"
+        lineNumber: 180
+        variables:
+          matchingText: Apache
+      - uri: file:///examples/golang/LICENSE
+        message: ""
+        codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
+        lineNumber: 191
+        variables:
+          matchingText: Apache
+      - uri: file:///examples/java/beans.xml
+        message: ""
+        codeSnip: " 1  <?xml version=\"1.0\" encoding=\"UTF-8\"?>\n 2  <!-- \n 3   * (C) Copyright IBM Corporation 2015.\n 4   *\n 5   * Licensed under the Apache License, Version 2.0 (the \"License\");\n 6   * you may not use this file except in compliance with the License.\n 7   * You may obtain a copy of the License at\n 8   *\n 9   * http://www.apache.org/licenses/LICENSE-2.0\n10   *\n11   * Unless required by applicable law or agreed to in writing, software\n12   * distributed under the License is distributed on an \"AS IS\" BASIS,\n13   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n14   * See the License for the specific language governing permissions and\n15   * limitations under the License.\n16  -->"
+        lineNumber: 5
+        variables:
+          matchingText: Apache
+    tech-tag-001:
+      description: ""
+      category: potential
+      incidents:
+      - uri: ""
+        message: Tags [Golang Kubernetes] found
+        variables:
+          tags:
+          - Golang
+          - Kubernetes
+      - uri: ""
+        message: Tags [Java] found
+        variables:
+          tags:
+          - Java
   errors:
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:

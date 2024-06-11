@@ -118,7 +118,6 @@
         "name": "builtin",
         "initConfig": [
             {"location": "examples/java/"},
-            {"location": "examples/python/"},
             {"location": "examples/golang/"},
             {"location": "examples/customers-tomcat-legacy/"},
             {

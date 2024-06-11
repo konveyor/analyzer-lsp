@@ -150,6 +150,7 @@ func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *konveyor.RuleSet {
 		Description: ruleSet.Description,
 		Tags:        []string{},
 		Violations:  map[string]konveyor.Violation{},
+		Insights:    map[string]konveyor.Violation{},
 		Errors:      map[string]string{},
 		Unmatched:   []string{},
 		Skipped:     []string{},
@@ -204,12 +205,17 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 							}
 						} else {
 							atomic.AddInt32(&matchedRules, 1)
-
 							rs, ok := mapRuleSets[response.RuleSetName]
 							if !ok {
 								r.logger.Info("this should never happen that we don't find the ruleset")
+								return
 							}
-							rs.Violations[response.Rule.RuleID] = violation
+							// when a rule has 0 effort, we should create an insight instead
+							if response.Rule.Effort == nil || *response.Rule.Effort == 0 {
+								rs.Insights[response.Rule.RuleID] = violation
+							} else {
+								rs.Violations[response.Rule.RuleID] = violation
+							}
 						}
 					} else {
 						atomic.AddInt32(&unmatchedRules, 1)
@@ -291,9 +297,9 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 					rule:        rule,
 					ruleSetName: ruleSet.Name,
 				})
-				// if both message and tag are set
-				// split message part into a new rule
-				if rule.Perform.Message.Text != nil {
+				// if both message and tag are set, split message part into a new rule if effort is non-zero
+				// if effort is zero, we do not want to create a violation but only tag and an insight
+				if rule.Perform.Message.Text != nil && rule.Effort != nil && *rule.Effort != 0 {
 					rule.Perform.Tag = nil
 					otherRules = append(
 						otherRules,
@@ -375,6 +381,20 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 					}
 				}
 				mapRuleSets[ruleMessage.ruleSetName] = rs
+			}
+			// create an insight for this tag
+			violation, err := r.createViolation(ctx, response, rule)
+			if err != nil {
+				r.logger.Error(err, "unable to create violation from response", "ruleID", rule.RuleID)
+			}
+			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
+				violation.Effort = nil
+				violation.Category = nil
+				// we need to tie these incidents back to tags that created them
+				for tag := range tags {
+					violation.Labels = append(violation.Labels, fmt.Sprintf("tag=%s", tag))
+				}
+				rs.Insights[rule.RuleID] = violation
 			}
 		} else {
 			r.logger.Info("info rule not matched", "rule", rule.RuleID)

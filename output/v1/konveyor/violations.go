@@ -28,6 +28,11 @@ type RuleSet struct {
 	// their respective generated violations.
 	Violations map[string]Violation `yaml:"violations,omitempty" json:"violations,omitempty"`
 
+	// Insights is a map containing violations generated for informational rules
+	// in a ruleset. These rules do not have an effort. They exist to provide
+	// additional information about a tag.
+	Insights map[string]Violation `yaml:"insights,omitempty" json:"insights,omitempty"`
+
 	// Errors is a map containing errors generated during evaluation
 	// of rules in this ruleset. Keys are rule IDs, values are
 	// their respective generated errors.
