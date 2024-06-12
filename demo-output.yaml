@@ -899,6 +899,30 @@
           matchingXML: ""
       effort: 1
   insights:
+    java-downloaded-maven-artifact:
+      description: |
+        This rule tests the application downloaded from maven artifact
+      labels:
+      - tag=Java Operator SDK
+      incidents:
+      - uri: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
+        message: ""
+        codeSnip: " 1  package io.javaoperatorsdk.operator.sample;\n 2  \n 3  import io.fabric8.kubernetes.client.KubernetesClient;\n 4  import io.javaoperatorsdk.operator.Operator;\n 5  import io.javaoperatorsdk.operator.api.config.ConfigurationService;\n 6  import io.javaoperatorsdk.operator.api.config.ControllerConfiguration;\n 7  import io.quarkus.runtime.Quarkus;\n 8  import io.quarkus.runtime.QuarkusApplication;\n 9  import io.quarkus.runtime.annotations.QuarkusMain;\n10  import javax.inject.Inject;\n11  \n12  @QuarkusMain\n13  public class QuarkusOperator implements QuarkusApplication {\n14     @Inject"
+        lineNumber: 4
+        variables:
+          file: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
+          kind: Module
+          name: io.javaoperatorsdk.operator.Operator
+          package: io.javaoperatorsdk.operator.sample
+      - uri: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
+        message: ""
+        codeSnip: " 7  import io.quarkus.runtime.Quarkus;\n 8  import io.quarkus.runtime.QuarkusApplication;\n 9  import io.quarkus.runtime.annotations.QuarkusMain;\n10  import javax.inject.Inject;\n11  \n12  @QuarkusMain\n13  public class QuarkusOperator implements QuarkusApplication {\n14     @Inject\n15     KubernetesClient client;\n16     @Inject\n17     Operator operator;\n18     @Inject\n19     ConfigurationService configuration;\n20     @Inject\n21     CustomServiceController controller;\n22  \n23     public static void main(String... args) {\n24        Quarkus.run(QuarkusOperator.class, args);\n25     }\n26  \n27     public int run(String... args) throws Exception {"
+        lineNumber: 17
+        variables:
+          file: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
+          kind: Field
+          name: operator
+          package: io.javaoperatorsdk.operator.sample
     multiple-actions-001:
       description: ""
       labels:

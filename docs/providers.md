@@ -92,7 +92,7 @@ Here's an example config for `java` provider that is currently in-tree and does 
 }
 ```
 
-The `location` can be a path to the application's source code or to a binary JAR, WAR, or EAR file. Optionally, coordinates to a maven artifact can be provided as input in the format `mvn://<group-id>.<artifact-id>:<version>:<classifier>:<path>`. The field `<path>` is optional, it specifies a local path where the artifact will be downloaded. If not specified, provider will use a temporary directory to download it.
+The `location` can be a path to the application's source code or to a binary JAR, WAR, or EAR file. Optionally, coordinates to a maven artifact can be provided as input in the format `mvn://<group-id>:<artifact-id>:<version>:<classifier>@<path>`. The field `<path>` is optional, it specifies a local path where the artifact will be downloaded. If not specified, provider will use the current working directory to download it.
 
 The `java` provider also takes following options in `providerSpecificConfig`:
 

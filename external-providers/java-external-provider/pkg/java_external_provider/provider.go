@@ -224,37 +224,47 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// location can be a coordinate to a remote mvn artifact
 	if strings.HasPrefix(config.Location, MvnURIPrefix) {
 		mvnUri := strings.Replace(config.Location, MvnURIPrefix, "", 1)
-		// URI format is <group>:<artifact>:<version>:<classifier>:<path>
+		// URI format is <group>:<artifact>:<version>:<classifier>@<path>
 		// <path> is optional & points to a local path where it will be downloaded
-		mvnUriParts := strings.Split(mvnUri, ":")
-		if len(mvnUriParts) < 4 || len(mvnUriParts) > 6 {
+		mvnCoordinates, destPath, _ := strings.Cut(mvnUri, "@")
+		mvnCoordinatesParts := strings.Split(mvnCoordinates, ":")
+		if mvnCoordinates == "" || len(mvnCoordinatesParts) < 3 {
 			cancelFunc()
-			return nil, fmt.Errorf("invalid maven coordinates in location %s", config.Location)
+			return nil, fmt.Errorf("invalid maven coordinates in location %s, must be in format mvn://<group>:<artifact>:<version>:<classifier>@<path>", config.Location)
 		}
 		outputDir := "."
-		if len(mvnUriParts) == 5 {
-			if stat, err := os.Stat(mvnUriParts[len(mvnUriParts)-1]); err != nil || !stat.IsDir() {
+		if destPath != "" {
+			if stat, err := os.Stat(destPath); err != nil || !stat.IsDir() {
 				cancelFunc()
 				return nil, fmt.Errorf("output path does not exist or not a directory")
 			}
-			outputDir = mvnUriParts[len(mvnUriParts)-1]
+			outputDir = destPath
 		}
 		mvnOptions := []string{
 			"dependency:copy",
-			fmt.Sprintf("-Dartifact=%s", strings.Join(mvnUriParts[:4], ":")),
+			fmt.Sprintf("-Dartifact=%s", mvnCoordinates),
 			fmt.Sprintf("-DoutputDirectory=%s", outputDir),
 		}
 		if mavenSettingsFile != "" {
 			mvnOptions = append(mvnOptions, "-s", mavenSettingsFile)
 		}
+		log.Info("downloading maven artifact", "artifact", mvnCoordinates, "options", mvnOptions)
 		cmd := exec.CommandContext(ctx, "mvn", mvnOptions...)
 		cmd.Dir = outputDir
 		if err := cmd.Run(); err != nil {
 			cancelFunc()
-			return nil, fmt.Errorf("error downloading java artifact - %s", mvnUri)
+			return nil, fmt.Errorf("error downloading java artifact %s - %w", mvnUri, err)
 		}
-		config.Location = filepath.Join(outputDir,
-			fmt.Sprintf("%s.%s", strings.Join(mvnUriParts[1:3], "-"), strings.ToLower(mvnUriParts[3])))
+		downloadedPath := filepath.Join(outputDir,
+			fmt.Sprintf("%s.jar", strings.Join(mvnCoordinatesParts[1:3], "-")))
+		if len(mvnCoordinatesParts) == 4 {
+			downloadedPath = filepath.Join(outputDir,
+				fmt.Sprintf("%s.%s", strings.Join(mvnCoordinatesParts[1:3], "-"), strings.ToLower(mvnCoordinatesParts[3])))
+		}
+		if _, err := os.Stat(downloadedPath); err != nil {
+			return nil, fmt.Errorf("failed to download maven artifact to path %s - %w", downloadedPath, err)
+		}
+		config.Location = downloadedPath
 	}
 
 	extension := strings.ToLower(path.Ext(config.Location))
