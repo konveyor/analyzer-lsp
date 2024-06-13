@@ -321,3 +321,12 @@
   when:
     java.referenced:
       pattern: com.sun.net.httpserver.HttpExchange
+- category: mandatory
+  description: |
+    This rule tests the application downloaded from maven artifact
+  tag:
+  - Java Operator SDK
+  ruleID: java-downloaded-maven-artifact
+  when:
+    java.referenced:
+      pattern: io.javaoperatorsdk.operator.Operator

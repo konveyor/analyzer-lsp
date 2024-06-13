@@ -2473,3 +2473,12 @@
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
     prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.30
+- fileURI: io/javaoperatorsdk/operator/sample
+  provider: java
+  dependencies:
+  - name: io.javaoperatorsdk.operator.sample
+    version: 0.0.0
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file://java-project/src/main/io/javaoperatorsdk/operator/sample
