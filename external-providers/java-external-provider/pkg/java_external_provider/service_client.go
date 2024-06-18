@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -51,14 +52,24 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
 
-	if cond.Referenced.Pattern == "" {
+	// if "annotated" is present, do look for the annotation instead and then filter out according to the
+	// original location and reference
+	location := cond.Referenced.Location
+	pattern := cond.Referenced.Pattern
+	isAnnotated := !reflect.DeepEqual(cond.Referenced.Annotated, annotatedCondition{})
+	if isAnnotated {
+		location = "annotation"
+		pattern = cond.Referenced.Annotated.Pattern
+	}
+
+	if pattern == "" {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
 	}
-	symbols := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location)
+	symbols := p.GetAllSymbols(ctx, pattern, location)
 	p.log.V(5).Info("Symbols retrieved", "symbols", symbols)
 
 	incidents := []provider.IncidentContext{}
-	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
+	switch locationToCode[strings.ToLower(location)] {
 	case 0:
 		// Filter handle for type, find all the referneces to this type.
 		incidents, err = p.filterDefault(symbols)
@@ -69,7 +80,11 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	case 3:
 		incidents, err = p.filterConstructorSymbols(ctx, symbols)
 	case 4:
-		incidents, err = p.filterDefault(symbols)
+		if isAnnotated {
+			incidents, err = p.filterAnnotated(cond, symbols)
+		} else {
+			incidents, err = p.filterDefault(symbols)
+		}
 	case 7:
 		incidents, err = p.filterMethodSymbols(symbols)
 	case 8:

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -21,6 +22,8 @@ const (
 	KIND_EXTRA_KEY        = "kind"
 	SYMBOL_NAME_KEY       = "name"
 	FILE_KEY              = "file"
+	PACKAGE               = "package"
+	CONTAINER_NAME        = "containerName"
 )
 
 func (p *javaServiceClient) filterVariableDeclaration(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
@@ -91,6 +94,40 @@ func (p *javaServiceClient) filterDefault(symbols []protocol.WorkspaceSymbol) ([
 	return incidents, nil
 }
 
+func (p *javaServiceClient) filterAnnotated(cond *javaCondition, symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
+	incidents := []provider.IncidentContext{}
+	for _, symbol := range symbols {
+		incident, err := p.convertToIncidentContext(symbol)
+		if err != nil {
+			return nil, err
+		}
+		// TODO: problem: for kind == METHOD || kind == CLASS, the containerName returns name of the method or the class, which is fine, but when
+		// kind == FIELD we would probably want to look for the type of the field, not the name. That is not possible atm
+		kind := strings.ToLower(incident.Variables[KIND_EXTRA_KEY].(string))
+		containerName := incident.Variables[CONTAINER_NAME].(string)
+		pkg := incident.Variables[PACKAGE].(string)
+		pattern := regexp.MustCompile(cond.Referenced.Pattern)
+		if kind == strings.ToLower(cond.Referenced.Location) {
+			// pattern for annotated classes or methods could be a regex
+			if kind == "class" {
+				// for classes, we need the fully qualified name (package + class name)
+				fqn := strings.Join([]string{pkg, containerName}, ".")
+				if pattern.Match([]byte(fqn)) && kind == strings.ToLower(cond.Referenced.Location) {
+					incidents = append(incidents, incident)
+				}
+			} else if kind == "method" {
+				if pattern.Match([]byte(containerName)) && kind == strings.ToLower(cond.Referenced.Location) {
+					incidents = append(incidents, incident)
+				}
+			} else if incident.Variables[CONTAINER_NAME] == pattern && kind == strings.ToLower(cond.Referenced.Location) {
+				incidents = append(incidents, incident)
+			}
+		}
+	}
+	return incidents, nil
+
+}
+
 // TODO: we will probably want to filter symbols bassed on if in any way the method is being used in the code directly.
 // This will need to be part of a "filtration" concept that windup has. Searching partiular subsets of things (just the application, applicatoin + corp libraries and the everything.)
 // Today this is just giving everything.
@@ -152,7 +189,8 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
 			SYMBOL_NAME_KEY: symbol.Name,
 			FILE_KEY:        string(u),
-			"package":       n,
+			PACKAGE:         n,
+			CONTAINER_NAME:  symbol.ContainerName,
 		},
 	}
 

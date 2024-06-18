@@ -82,8 +82,13 @@ type javaCondition struct {
 }
 
 type referenceCondition struct {
-	Pattern  string `yaml:"pattern"`
-	Location string `yaml:"location"`
+	Pattern   string             `yaml:"pattern"`
+	Location  string             `yaml:"location"`
+	Annotated annotatedCondition `yaml:"annotated""`
+}
+
+type annotatedCondition struct {
+	Pattern string `yaml:"pattern"`
 }
 
 func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int) *javaProvider {
@@ -291,6 +296,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		"-Djava.net.useSystemProxies=true",
 		"-configuration",
 		"./",
+		//"--jvm-arg=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:1044",
 		"-data",
 		workspace,
 	}
