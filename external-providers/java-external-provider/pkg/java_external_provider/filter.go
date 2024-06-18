@@ -104,23 +104,21 @@ func (p *javaServiceClient) filterAnnotated(cond *javaCondition, symbols []proto
 		// TODO: problem: for kind == METHOD || kind == CLASS, the containerName returns name of the method or the class, which is fine, but when
 		// kind == FIELD we would probably want to look for the type of the field, not the name. That is not possible atm
 		kind := strings.ToLower(incident.Variables[KIND_EXTRA_KEY].(string))
-		containerName := incident.Variables[CONTAINER_NAME].(string)
+		name := incident.Variables[CONTAINER_NAME].(string)
 		pkg := incident.Variables[PACKAGE].(string)
 		pattern := regexp.MustCompile(cond.Referenced.Pattern)
 		if kind == strings.ToLower(cond.Referenced.Location) {
 			// pattern for annotated classes or methods could be a regex
 			if kind == "class" {
 				// for classes, we need the fully qualified name (package + class name)
-				fqn := strings.Join([]string{pkg, containerName}, ".")
+				fqn := strings.Join([]string{pkg, name}, ".")
 				if pattern.Match([]byte(fqn)) && kind == strings.ToLower(cond.Referenced.Location) {
 					incidents = append(incidents, incident)
 				}
-			} else if kind == "method" {
-				if pattern.Match([]byte(containerName)) && kind == strings.ToLower(cond.Referenced.Location) {
+			} else if kind == "method" || kind == "field" {
+				if pattern.Match([]byte(name)) && kind == strings.ToLower(cond.Referenced.Location) {
 					incidents = append(incidents, incident)
 				}
-			} else if incident.Variables[CONTAINER_NAME] == pattern && kind == strings.ToLower(cond.Referenced.Location) {
-				incidents = append(incidents, incident)
 			}
 		}
 	}
