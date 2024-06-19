@@ -371,6 +371,7 @@
         codeSnip: " 1  package io.jeffchao.template.server;\n 2  \n 3  import java.io.IOException;\n 4  import java.io.OutputStream;\n 5  import java.net.InetSocketAddress;\n 6  \n 7  import com.sun.net.httpserver.HttpExchange;\n 8  import com.sun.net.httpserver.HttpHandler;\n 9  import com.sun.net.httpserver.HttpServer;\n10  \n11  public class Server {\n12  \n13    public static void main(String[] args) throws IOException {\n14      String portString = System.getenv(\"PORT\");\n15      int port = portString == null ? 8080 : Integer.valueOf(portString);\n16      HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);\n17      server.createContext(\"/\", new MyHandler());"
         lineNumber: 7
         variables:
+          containerName: ""
           file: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
           kind: Module
           name: com.sun.net.httpserver.HttpExchange
@@ -380,6 +381,7 @@
         codeSnip: "14      String portString = System.getenv(\"PORT\");\n15      int port = portString == null ? 8080 : Integer.valueOf(portString);\n16      HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);\n17      server.createContext(\"/\", new MyHandler());\n18      server.setExecutor(null); // creates a default executor\n19      server.start();\n20    }\n21  \n22    static class MyHandler implements HttpHandler {\n23      @Override\n24      public void handle(HttpExchange t) throws IOException {\n25        String response = \"Hello from Gradle!\";\n26        t.sendResponseHeaders(200, response.length());\n27        OutputStream os = t.getResponseBody();\n28        os.write(response.getBytes());\n29        os.close();\n30      }\n31    }\n32  }\n"
         lineNumber: 24
         variables:
+          containerName: MyHandler
           file: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
           kind: Method
           name: handle
@@ -394,6 +396,7 @@
         codeSnip: " 1  package io.konveyor.util;\n 2  \n 3  import java.io.File;\n 4  \n 5  public class FileReader {\n 6      public static boolean fileExists() {\n 7          File file = new File(\"/test\");\n 8          return true;\n 9      }\n10  }\n"
         lineNumber: 3
         variables:
+          containerName: ""
           file: file:///examples/inclusion-tests/src/main/java/io/konveyor/util/FileReader.java
           kind: Module
           name: java.io.File
@@ -403,37 +406,12 @@
         codeSnip: " 1  package io.konveyor.util;\n 2  \n 3  import java.io.File;\n 4  \n 5  public class FileReader {\n 6      public static boolean fileExists() {\n 7          File file = new File(\"/test\");\n 8          return true;\n 9      }\n10  }\n"
         lineNumber: 7
         variables:
+          containerName: FileReader
           file: file:///examples/inclusion-tests/src/main/java/io/konveyor/util/FileReader.java
           kind: Method
           name: fileExists
           package: io.konveyor.util
       effort: 3
-    java-pomxml-dependencies:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/gradle-multi-project-example/build.gradle
-        message: dependency junit.junit with 4.12 is bad and you should feel bad for using it
-        codeSnip: " 1  apply plugin: 'idea'\n 2  \n 3  ext {\n 4    log4jVersion = '2.9.1'\n 5  }\n 6  \n 7  buildscript {\n 8    repositories {\n 9      jcenter()\n10    }\n11    dependencies {"
-        lineNumber: 0
-        variables:
-          name: junit.junit
-          version: "4.12"
-      - uri: file:///examples/java/pom.xml
-        message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you should feel bad for using it
-        codeSnip: "26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>\n41        <artifactId>kubernetes-client-api</artifactId>\n42        <version>6.0.0</version>\n43      </dependency>\n44      <dependency>\n45        <groupId>javax</groupId>\n46        <artifactId>javaee-api</artifactId>"
-        lineNumber: 35
-        variables:
-          name: io.fabric8.kubernetes-client
-          version: 6.0.0
-      - uri: file:///examples/java/pom.xml
-        message: dependency junit.junit with 4.11 is bad and you should feel bad for using it
-        codeSnip: "20    <properties>\n21      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n22      <maven.compiler.source>1.7</maven.compiler.source>\n23      <maven.compiler.target>1.7</maven.compiler.target>\n24      <javaee-api.version>7.0</javaee-api.version>\n25    </properties>\n26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>"
-        lineNumber: 29
-        variables:
-          name: junit.junit
-          version: "4.11"
-      effort: 1
     jboss-eap5-7-xml-02000:
       description: ""
       category: potential
@@ -488,6 +466,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
         lineNumber: 3
         variables:
+          containerName: ""
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Module
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
@@ -497,6 +476,7 @@
         codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
         lineNumber: 14
         variables:
+          containerName: App
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
@@ -511,6 +491,7 @@
         codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
         lineNumber: 14
         variables:
+          containerName: App
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
@@ -520,6 +501,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
         lineNumber: 3
         variables:
+          containerName: ""
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Module
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
@@ -535,6 +517,7 @@
         lineNumber: 18
         variables:
           VariableName: element
+          containerName: App
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
@@ -604,6 +587,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
         lineNumber: 6
         variables:
+          containerName: Bean
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Singleton
@@ -613,6 +597,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
         lineNumber: 7
         variables:
+          containerName: Bean.java
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Bean
@@ -627,6 +612,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
         lineNumber: 6
         variables:
+          containerName: Bean
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Singleton
@@ -636,6 +622,7 @@
         codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
         lineNumber: 7
         variables:
+          containerName: Bean.java
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
           kind: Class
           name: Bean
@@ -910,6 +897,7 @@
         codeSnip: " 1  package io.javaoperatorsdk.operator.sample;\n 2  \n 3  import io.fabric8.kubernetes.client.KubernetesClient;\n 4  import io.javaoperatorsdk.operator.Operator;\n 5  import io.javaoperatorsdk.operator.api.config.ConfigurationService;\n 6  import io.javaoperatorsdk.operator.api.config.ControllerConfiguration;\n 7  import io.quarkus.runtime.Quarkus;\n 8  import io.quarkus.runtime.QuarkusApplication;\n 9  import io.quarkus.runtime.annotations.QuarkusMain;\n10  import javax.inject.Inject;\n11  \n12  @QuarkusMain\n13  public class QuarkusOperator implements QuarkusApplication {\n14     @Inject"
         lineNumber: 4
         variables:
+          containerName: ""
           file: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
           kind: Module
           name: io.javaoperatorsdk.operator.Operator
@@ -919,6 +907,7 @@
         codeSnip: " 7  import io.quarkus.runtime.Quarkus;\n 8  import io.quarkus.runtime.QuarkusApplication;\n 9  import io.quarkus.runtime.annotations.QuarkusMain;\n10  import javax.inject.Inject;\n11  \n12  @QuarkusMain\n13  public class QuarkusOperator implements QuarkusApplication {\n14     @Inject\n15     KubernetesClient client;\n16     @Inject\n17     Operator operator;\n18     @Inject\n19     ConfigurationService configuration;\n20     @Inject\n21     CustomServiceController controller;\n22  \n23     public static void main(String... args) {\n24        Quarkus.run(QuarkusOperator.class, args);\n25     }\n26  \n27     public int run(String... args) throws Exception {"
         lineNumber: 17
         variables:
+          containerName: QuarkusOperator
           file: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
           kind: Field
           name: operator
