@@ -64,7 +64,7 @@ func (p *genericProvider) Capabilities() []provider.Capability {
 // with the rest of the analyzer-lsp. For example, this Init() function returns
 // a provider.ServiceClient to the original analyzer process. genericProvider
 // here just sort of... doesn't matter at all
-func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
+func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 	// return nil, fmt.Errorf("nothing")
 
 	log.Error(fmt.Errorf("Nothing"), "Started generic provider init")
@@ -78,7 +78,7 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 		log.Error(fmt.Errorf("lspServerName must be the same for each instantiation of the generic-external-provider (%s != %s)", p.lspServerName, lspServerName), "Inside genericProvider init")
 		fmt.Fprintf(os.Stderr, "lspservername blah")
 
-		return nil, fmt.Errorf("lspServerName must be the same for each instantiation of the generic-external-provider (%s != %s)", p.lspServerName, lspServerName)
+		return nil, provider.InitConfig{}, fmt.Errorf("lspServerName must be the same for each instantiation of the generic-external-provider (%s != %s)", p.lspServerName, lspServerName)
 	}
 
 	// Simple matter of calling the constructor that we set earlier to get the
@@ -87,8 +87,8 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 	if err != nil {
 		log.Error(err, "ctor error")
 		fmt.Fprintf(os.Stderr, "ctor blah")
-		return nil, fmt.Errorf("ctor error: %w", err)
+		return nil, provider.InitConfig{}, fmt.Errorf("ctor error: %w", err)
 	}
 
-	return sc, nil
+	return sc, provider.InitConfig{}, nil
 }

@@ -24,8 +24,8 @@ func (c *fakeClient) HasCapability(string) bool  { return true }
 func (c *fakeClient) Evaluate(context.Context, string, []byte) (ProviderEvaluateResponse, error) {
 	return ProviderEvaluateResponse{}, nil
 }
-func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClient, error) {
-	return nil, nil
+func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClient, InitConfig, error) {
+	return nil, InitConfig{}, nil
 }
 func (c *fakeClient) Stop() {}
 

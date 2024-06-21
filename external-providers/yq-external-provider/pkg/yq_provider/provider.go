@@ -65,9 +65,9 @@ type k8skey struct {
 	LineNumber string
 }
 
-func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
+func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 	if c.AnalysisMode != provider.FullAnalysisMode {
-		return nil, fmt.Errorf("only full analysis is supported")
+		return nil, provider.InitConfig{}, fmt.Errorf("only full analysis is supported")
 	}
 
 	if c.Proxy != nil {
@@ -79,7 +79,7 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 
 	lspServerPath, ok := c.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	if !ok || lspServerPath == "" {
-		return nil, fmt.Errorf("invalid lspServerPath provided, unable to init yq provider")
+		return nil, provider.InitConfig{}, fmt.Errorf("invalid lspServerPath provided, unable to init yq provider")
 	}
 
 	ctx, cancelFunc := context.WithCancel(ctx)
@@ -88,13 +88,15 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 	if lspArgs, ok := c.ProviderSpecificConfig["lspArgs"]; ok {
 		rawArgs, isArray := lspArgs.([]interface{})
 		if !isArray {
-			return nil, fmt.Errorf("lspArgs is not an array")
+			cancelFunc()
+			return nil, provider.InitConfig{}, fmt.Errorf("lspArgs is not an array")
 		}
 		for _, rawArg := range rawArgs {
 			if arg, ok := rawArg.(string); ok {
 				args = append(args, arg)
 			} else {
-				return nil, fmt.Errorf("item of lspArgs is not a string")
+				cancelFunc()
+				return nil, provider.InitConfig{}, fmt.Errorf("item of lspArgs is not a string")
 			}
 		}
 	}
@@ -116,5 +118,5 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 		config:     c,
 	}
 
-	return &svcClient, nil
+	return &svcClient, provider.InitConfig{}, nil
 }
