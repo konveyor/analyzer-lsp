@@ -112,11 +112,11 @@ func (p *javaServiceClient) filterAnnotated(cond *javaCondition, symbols []proto
 			if kind == "class" {
 				// for classes, we need the fully qualified name (package + class name)
 				fqn := strings.Join([]string{pkg, name}, ".")
-				if pattern.Match([]byte(fqn)) && kind == strings.ToLower(cond.Referenced.Location) {
+				if pattern.Match([]byte(fqn)) {
 					incidents = append(incidents, incident)
 				}
 			} else if kind == "method" || kind == "field" {
-				if pattern.Match([]byte(name)) && kind == strings.ToLower(cond.Referenced.Location) {
+				if pattern.Match([]byte(name)) {
 					incidents = append(incidents, incident)
 				}
 			}
