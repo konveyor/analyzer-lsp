@@ -33,7 +33,7 @@ func TestHopefullyNothingBroke(t *testing.T) {
 
 	prov := generic_external_provider.NewGenericProvider("yaml_language_server", log)
 
-	yamlSC, err := prov.Init(ctx, log, provider.InitConfig{
+	yamlSC, _, err := prov.Init(ctx, log, provider.InitConfig{
 		ProviderSpecificConfig: map[string]interface{}{
 			"lspServerName":    "yaml_language_server",
 			"lspServerPath":    "node",

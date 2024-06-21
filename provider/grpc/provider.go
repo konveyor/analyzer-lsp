@@ -147,16 +147,23 @@ func checkServicesRunning(refClt *reflectClient.Client, log logr.Logger) ([]stri
 	}
 }
 
-func (g *grpcProvider) ProviderInit(ctx context.Context) error {
+func (g *grpcProvider) ProviderInit(ctx context.Context, additionalConfigs []provider.InitConfig) ([]provider.InitConfig, error) {
+	builtinConfs := []provider.InitConfig{}
+	if additionalConfigs != nil {
+		g.config.InitConfig = append(g.config.InitConfig, additionalConfigs...)
+	}
 	for _, c := range g.config.InitConfig {
-		s, err := g.Init(ctx, g.log, c)
+		s, builtinConf, err := g.Init(ctx, g.log, c)
 		if err != nil {
 			g.log.Error(err, "Error inside ProviderInit, after g.Init.")
-			return err
+			return nil, err
 		}
 		g.serviceClients = append(g.serviceClients, s)
+		if builtinConf.Location != "" {
+			builtinConfs = append(builtinConfs, builtinConf)
+		}
 	}
-	return nil
+	return builtinConfs, nil
 }
 
 func (g *grpcProvider) Capabilities() []provider.Capability {
@@ -178,10 +185,10 @@ func (g *grpcProvider) Capabilities() []provider.Capability {
 	return c
 }
 
-func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
+func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 	s, err := structpb.NewStruct(config.ProviderSpecificConfig)
 	if err != nil {
-		return nil, err
+		return nil, provider.InitConfig{}, err
 	}
 
 	c := pb.Config{
@@ -199,16 +206,18 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	r, err := g.Client.Init(ctx, &c)
 
 	if err != nil {
-		return nil, err
+		return nil, provider.InitConfig{}, err
 	}
 	if !r.Successful {
-		return nil, fmt.Errorf(r.Error)
+		return nil, provider.InitConfig{}, fmt.Errorf(r.Error)
 	}
 	return &grpcServiceClient{
-		id:     r.Id,
-		config: config,
-		client: g.Client,
-	}, nil
+			id:     r.Id,
+			config: config,
+			client: g.Client,
+		}, provider.InitConfig{
+			Location: r.BuiltinConfig.Location,
+		}, nil
 }
 
 func (g *grpcProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {

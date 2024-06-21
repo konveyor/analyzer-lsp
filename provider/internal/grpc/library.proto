@@ -29,6 +29,7 @@ message InitResponse {
   string error = 1 ;
   bool successful = 2;
   int64 id = 3;
+  Config builtinConfig = 4;
 }
 
 message ExternalLink {

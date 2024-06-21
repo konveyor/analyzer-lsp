@@ -123,24 +123,32 @@ func (p *builtinProvider) Capabilities() []provider.Capability {
 	return caps
 }
 
-func (p *builtinProvider) ProviderInit(ctx context.Context) error {
+func (p *builtinProvider) ProviderInit(ctx context.Context, additionalInitConfigs []provider.InitConfig) ([]provider.InitConfig, error) {
 	// First load all the tags for all init configs.
 	for _, c := range p.config.InitConfig {
 		p.loadTags(c)
 	}
 
-	for _, c := range p.config.InitConfig {
-		client, err := p.Init(ctx, p.log, c)
-		if err != nil {
-			return nil
-		}
-		p.clients = append(p.clients, client)
+	if additionalInitConfigs != nil {
+		p.config.InitConfig = append(p.config.InitConfig, additionalInitConfigs...)
 	}
-	return nil
+
+	seenLocations := map[string]bool{}
+	for _, c := range p.config.InitConfig {
+		if _, ok := seenLocations[c.Location]; !ok {
+			client, _, err := p.Init(ctx, p.log, c)
+			if err != nil {
+				return nil, nil
+			}
+			p.clients = append(p.clients, client)
+			seenLocations[c.Location] = true
+		}
+	}
+	return nil, nil
 }
 
 // We don't need to init anything
-func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
+func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 	if config.AnalysisMode != provider.AnalysisMode("") {
 		p.log.V(5).Info("skipping analysis mode setting for builtin")
 	}
@@ -151,7 +159,7 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 		locationCache:                      make(map[string]float64),
 		log:                                log,
 		includedPaths:                      provider.GetIncludedPathsFromConfig(config, true),
-	}, nil
+	}, provider.InitConfig{}, nil
 }
 
 func (p *builtinProvider) loadTags(config provider.InitConfig) error {

@@ -243,7 +243,7 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 	log := s.Log.WithValues("client", id)
 	newCtx := context.Background()
 
-	client, err := s.Client.Init(newCtx, log, c)
+	client, builtinConf, err := s.Client.Init(newCtx, log, c)
 	if err != nil {
 		return &libgrpc.InitResponse{
 			Error:      err.Error(),
@@ -257,9 +257,16 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 	}
 	s.mutex.Unlock()
 
+	builtinRpcConf := &libgrpc.Config{}
+	if builtinConf.Location != "" {
+		builtinRpcConf.Location = builtinConf.Location
+		builtinRpcConf.DependencyPath = builtinConf.DependencyPath
+	}
+
 	return &libgrpc.InitResponse{
-		Id:         id,
-		Successful: true,
+		Id:            id,
+		BuiltinConfig: builtinRpcConf,
+		Successful:    true,
 	}, nil
 }
 
