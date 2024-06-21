@@ -126,7 +126,11 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location s
 	var refs []protocol.WorkspaceSymbol
 	err := p.rpc.Call(ctx, "workspace/executeCommand", wsp, &refs)
 	if err != nil {
-		p.log.Error(err, "unable to ask for tackle rule entry")
+		if jsonrpc2.IsRPCClosed(err) {
+			p.log.Error(err, "connection to the language server is closed, language server is not running")
+		} else {
+			p.log.Error(err, "unable to ask for Konveyor rule entry")
+		}
 	}
 
 	return refs
@@ -167,7 +171,11 @@ func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protoco
 	res := []protocol.Location{}
 	err := p.rpc.Call(ctx, "textDocument/references", params, &res)
 	if err != nil {
-		fmt.Printf("Error rpc: %v", err)
+		if jsonrpc2.IsRPCClosed(err) {
+			p.log.Error(err, "connection to the language server is closed, language server is not running")
+		} else {
+			fmt.Printf("Error rpc: %v", err)
+		}
 	}
 	return res
 }
@@ -238,7 +246,11 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	var result protocol.InitializeResult
 	for i := 0; i < 10; i++ {
 		if err := p.rpc.Call(ctx, "initialize", params, &result); err != nil {
-			p.log.Error(err, "initialize failed")
+			if jsonrpc2.IsRPCClosed(err) {
+				p.log.Error(err, "connection to the language server is closed, language server is not running")
+			} else {
+				p.log.Error(err, "initialize failed")
+			}
 			continue
 		}
 		break
