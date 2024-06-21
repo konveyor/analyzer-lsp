@@ -24,8 +24,8 @@ func (t testProvider) Capabilities() []provider.Capability {
 	return t.caps
 }
 
-func (t testProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
-	return nil, nil
+func (t testProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
+	return nil, provider.InitConfig{}, nil
 }
 
 func (t testProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
@@ -40,8 +40,8 @@ func (t testProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]pro
 	return nil, nil
 }
 
-func (t testProvider) ProviderInit(context.Context) error {
-	return nil
+func (t testProvider) ProviderInit(context.Context, []provider.InitConfig) ([]provider.InitConfig, error) {
+	return nil, nil
 }
 
 func (t testProvider) Stop() {}
