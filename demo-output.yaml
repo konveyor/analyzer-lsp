@@ -912,6 +912,22 @@
           matchingXML: ""
       effort: 1
   insights:
+    java-annotation-inspection-01:
+      description: |
+        This rule looks for a certain class annotated with a certain annotation
+      labels:
+      - tag=Java Operator SDK
+      incidents:
+      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
+        message: ""
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
+        lineNumber: 7
+        variables:
+          containerName: Bean
+          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
+          kind: Class
+          name: Singleton
+          package: com.example.apps
     java-downloaded-maven-artifact:
       description: |
         This rule tests the application downloaded from maven artifact

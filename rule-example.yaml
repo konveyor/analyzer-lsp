@@ -330,3 +330,16 @@
   when:
     java.referenced:
       pattern: io.javaoperatorsdk.operator.Operator
+- category: mandatory
+  description: |
+    This rule looks for a certain class annotated with a certain annotation
+  tag:
+    - Java Operator SDK
+  ruleID: java-annotation-inspection-01
+  when:
+    java.referenced:
+      pattern: com.example.apps*
+      location: CLASS
+      annotated:
+        pattern: javax.ejb.SessionBean
+
