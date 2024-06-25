@@ -330,3 +330,11 @@
   when:
     java.referenced:
       pattern: io.javaoperatorsdk.operator.Operator
+- category: mandatory
+  description: Sample field declaration rule
+  message: "Field found"
+  ruleID: field-rule-00001
+  when:
+    java.referenced:
+      pattern: io.konveyor.demo.ordermanagement.repository.CustomerRepository
+      location: FIELD
