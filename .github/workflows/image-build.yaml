@@ -91,7 +91,7 @@ jobs:
       shell: bash
       run: |
         TAG=${GITHUB_REF_NAME/main/latest}
-        IMAGE_NAME=quay.io/konveyor/analyzer-lsp:${TAG}-ltsc2022
+        IMAGE_NAME=quay.io/konveyor/analyzer-lsp:${TAG}-windowsservercore-ltsc2022
         docker build -t ${IMAGE_NAME} -f ./Dockerfile.windows .
         docker push ${IMAGE_NAME}
 
@@ -111,6 +111,51 @@ jobs:
       shell: bash
       run: |
         TAG=${GITHUB_REF_NAME/main/latest}
-        IMAGE_NAME=quay.io/konveyor/dotnet-external-provider:${TAG}-ltsc2022
+        IMAGE_NAME=quay.io/konveyor/dotnet-external-provider:${TAG}-windowsservercore-ltsc2022
         docker build -t ${IMAGE_NAME} -f ./external-providers/dotnet-external-provider/Dockerfile.windows .
         docker push ${IMAGE_NAME}
+
+  update-analyzer-manifest:
+    needs:
+    - image-build
+    - analyzer-windows-build
+    runs-on: ubuntu-latest
+    steps:
+    - name: update manifest
+      run: |
+        podman manifest create temp
+        podman manifest add temp --all quay.io/konveyor/analyzer-lsp:${tag}
+        podman manifest add temp --all quay.io/konveyor/analyzer-lsp:${tag}-windowsservercore-ltsc2022
+        podman tag temp quay.io/konveyor/analyzer-lsp:${tag}
+    - name: Push manifest to Quay
+      uses: redhat-actions/push-to-registry@main
+      id: push
+      with:
+        image: konveyor/analyzer-lsp
+        tags: ${{ env.tag }}
+        username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
+        password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
+        registry: quay.io
+
+
+  update-dotnet-manifest:
+    needs:
+    - image-build
+    - dotnet-windows-build
+    runs-on: ubuntu-latest
+    steps:
+    - name: update manifest
+      run: |
+        podman manifest create temp
+        podman manifest add temp --all quay.io/konveyor/dotnet-external-provider:${tag}
+        podman manifest add temp --all quay.io/konveyor/dotnet-external-provider:${tag}-windowsservercore-ltsc2022
+        podman tag temp quay.io/konveyor/dotnet-external-provider:${tag}
+    - name: Push manifest to Quay
+      uses: redhat-actions/push-to-registry@main
+      id: push
+      with:
+        image: konveyor/dotnet-external-provider
+        tags: ${{ env.tag }}
+        username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
+        password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
+        registry: quay.io
