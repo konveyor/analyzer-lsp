@@ -2,10 +2,12 @@ package builtin
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/konveyor/analyzer-lsp/provider/grpc"
 	"github.com/swaggest/openapi-go/openapi3"
 	"gopkg.in/yaml.v2"
 )
@@ -74,6 +76,10 @@ func NewBuiltinProvider(config provider.Config, log logr.Logger) *builtinProvide
 	}
 }
 
+func (p *builtinProvider) GetConfig() provider.Config {
+	return p.config
+}
+
 func (p *builtinProvider) Capabilities() []provider.Capability {
 	r := openapi3.NewReflector()
 
@@ -134,16 +140,44 @@ func (p *builtinProvider) ProviderInit(ctx context.Context, additionalInitConfig
 	}
 
 	seenLocations := map[string]bool{}
+	seenAddrLocations := map[string]bool{}
 	for _, c := range p.config.InitConfig {
-		if _, ok := seenLocations[c.Location]; !ok {
-			client, _, err := p.Init(ctx, p.log, c)
+		if addr, ok := c.ProviderSpecificConfig["address"]; ok {
+			var addrString, jwtString, certPath string
+			addrString = addr.(string)
+			jwtString = c.ProviderSpecificConfig["JWTToken"].(string)
+			certPath = c.ProviderSpecificConfig["CertPath"].(string)
+			if _, ok := seenAddrLocations[fmt.Sprintf("%s:%s", addrString, c.Location)]; ok {
+				continue
+			}
+			grpcClient, err := grpc.NewGRPCClient(provider.Config{
+				Address:  addrString,
+				JWTToken: jwtString,
+				CertPath: certPath,
+			}, p.log)
 			if err != nil {
-				return nil, nil
+				return nil, err
+			}
+
+			client, _, err := grpcClient.Init(ctx, p.log, c)
+			if err != nil {
+				return nil, err
 			}
 			p.clients = append(p.clients, client)
-			seenLocations[c.Location] = true
+			seenAddrLocations[fmt.Sprintf("%s:%s", addrString, c.Location)] = true
+		} else {
+			if _, ok := seenLocations[c.Location]; !ok {
+				client, _, err := p.Init(ctx, p.log, c)
+				if err != nil {
+					return nil, nil
+				}
+				p.clients = append(p.clients, client)
+				seenLocations[c.Location] = true
+			}
 		}
 	}
+
+	fmt.Printf("%#v", p.clients)
 	return nil, nil
 }
 

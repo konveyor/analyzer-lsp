@@ -1,4 +1,4 @@
-package provider
+package server
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
+	"github.com/konveyor/analyzer-lsp/provider"
 	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"go.lsp.dev/uri"
 	"google.golang.org/grpc"
@@ -35,14 +36,15 @@ type Server interface {
 }
 
 type server struct {
-	Client              BaseClient
+	Client              provider.BaseClient
 	CodeSnipeResolver   engine.CodeSnip
-	DepLocationResolver DependencyLocationResolver
+	DepLocationResolver provider.DependencyLocationResolver
 	Log                 logr.Logger
 	Port                int
 	CertPath            string
 	KeyPath             string
 	SecretKey           string
+	builtinProviderPort int
 
 	mutex   sync.RWMutex
 	clients map[int64]clientMapItem
@@ -54,18 +56,18 @@ type server struct {
 
 type clientMapItem struct {
 	ctx    context.Context
-	client ServiceClient
+	client provider.ServiceClient
 }
 
 // Provider GRPC Service
 // TOOD: HANDLE INIT CONFIG CHANGES
-func NewServer(client BaseClient, port int, certPath string, keyPath string, secretKey string, logger logr.Logger) Server {
+func NewServer(client provider.BaseClient, port int, certPath string, keyPath string, secretKey string, builtinProviderPort int, logger logr.Logger) Server {
 	s := rand.NewSource(time.Now().Unix())
 
-	var depLocationResolver DependencyLocationResolver
+	var depLocationResolver provider.DependencyLocationResolver
 	var codeSnip engine.CodeSnip
 	var ok bool
-	depLocationResolver, ok = client.(DependencyLocationResolver)
+	depLocationResolver, ok = client.(provider.DependencyLocationResolver)
 	if !ok {
 		depLocationResolver = nil
 	}
@@ -86,6 +88,7 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, sec
 		CertPath:                           certPath,
 		KeyPath:                            keyPath,
 		SecretKey:                          secretKey,
+		builtinProviderPort:                builtinProviderPort,
 		UnimplementedProviderServiceServer: libgrpc.UnimplementedProviderServiceServer{},
 		mutex:                              sync.RWMutex{},
 		clients:                            make(map[int64]clientMapItem),
@@ -96,30 +99,39 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, sec
 }
 
 func (s *server) Start(ctx context.Context) error {
+	if s.SecretKey != "" && (s.CertPath == "" || s.KeyPath == "") {
+		return fmt.Errorf("to use JWT authentication you must use TLS")
+	}
+	if s.builtinProviderPort != 0 {
+		// Find a free port to listen on
+		builtinGS, err := s.createGRPCServer()
+		if err != nil {
+			return err
+		}
+		server, err := NewBuiltinProviderServer(s.Log)
+		if err != nil {
+			return err
+		}
+		libgrpc.RegisterProviderServiceServer(builtinGS, server)
+		reflection.Register(builtinGS)
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.builtinProviderPort))
+		if err != nil {
+			return err
+		}
+		go func() {
+			s.Log.Info("server listening", "address", lis.Addr())
+			err := builtinGS.Serve(lis)
+			if err != nil {
+				s.Log.Error(err, "unable to start the builtin proivider server")
+			}
+		}()
+	}
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
 	if err != nil {
 		s.Log.Error(err, "failed to listen")
 		return err
 	}
-	if s.SecretKey != "" && (s.CertPath == "" || s.KeyPath == "") {
-		return fmt.Errorf("to use JWT authentication you must use TLS")
-	}
-	var gs *grpc.Server
-	if s.CertPath != "" && s.KeyPath != "" {
-		creds, err := credentials.NewServerTLSFromFile(s.CertPath, s.KeyPath)
-		if err != nil {
-			return err
-		}
-		if s.SecretKey != "" {
-			gs = grpc.NewServer(grpc.Creds(creds), grpc.UnaryInterceptor(s.authUnaryInterceptor))
-		} else {
-			gs = grpc.NewServer(grpc.Creds(creds))
-		}
-	} else if s.CertPath == "" && s.KeyPath == "" {
-		gs = grpc.NewServer()
-	} else {
-		return fmt.Errorf("cert: %v, and key: %v are invalid", s.CertPath, s.KeyPath)
-	}
+	gs, err := s.createGRPCServer()
 	if s.DepLocationResolver != nil {
 		libgrpc.RegisterProviderDependencyLocationServiceServer(gs, s)
 	}
@@ -128,11 +140,32 @@ func (s *server) Start(ctx context.Context) error {
 	}
 	libgrpc.RegisterProviderServiceServer(gs, s)
 	reflection.Register(gs)
-	log.Printf("server listening at %v", lis.Addr())
+	s.Log.Info("server listening", "address", lis.Addr())
 	if err := gs.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 	return nil
+}
+
+func (s *server) createGRPCServer() (*grpc.Server, error) {
+	var gs *grpc.Server
+	if s.CertPath != "" && s.KeyPath != "" {
+		creds, err := credentials.NewServerTLSFromFile(s.CertPath, s.KeyPath)
+		if err != nil {
+			return gs, err
+		}
+		if s.SecretKey != "" {
+			gs = grpc.NewServer(grpc.Creds(creds), grpc.UnaryInterceptor(s.authUnaryInterceptor))
+		} else {
+			gs = grpc.NewServer(grpc.Creds(creds), grpc.UnaryInterceptor(s.loggerUnaryInterceptor))
+		}
+	} else if s.CertPath == "" && s.KeyPath == "" {
+		gs = grpc.NewServer()
+	} else {
+		return gs, fmt.Errorf("cert: %v, and key: %v are invalid", s.CertPath, s.KeyPath)
+	}
+	return gs, nil
+
 }
 
 func (s *server) GetDependencyLocation(ctx context.Context, req *libgrpc.GetDependencyLocationRequest) (*libgrpc.GetDependencyLocationResponse, error) {
@@ -217,18 +250,18 @@ func (s *server) Capabilities(ctx context.Context, _ *emptypb.Empty) (*libgrpc.C
 
 func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.InitResponse, error) {
 	//By default if nothing is set for analysis mode, in the config, we should default to full for external providers
-	var a AnalysisMode = AnalysisMode(config.AnalysisMode)
-	if a == AnalysisMode("") {
-		a = FullAnalysisMode
-	} else if !(a == FullAnalysisMode || a == SourceOnlyAnalysisMode) {
+	var a provider.AnalysisMode = provider.AnalysisMode(config.AnalysisMode)
+	if a == provider.AnalysisMode("") {
+		a = provider.FullAnalysisMode
+	} else if !(a == provider.FullAnalysisMode || a == provider.SourceOnlyAnalysisMode) {
 		return nil, fmt.Errorf("invalid Analysis Mode")
 	}
 
-	c := InitConfig{
+	c := provider.InitConfig{
 		Location:       config.Location,
 		DependencyPath: config.DependencyPath,
 		AnalysisMode:   a,
-		Proxy: &Proxy{
+		Proxy: &provider.Proxy{
 			HTTPProxy:  config.Proxy.HTTPProxy,
 			HTTPSProxy: config.Proxy.HTTPSProxy,
 			NoProxy:    config.Proxy.NoProxy,
@@ -258,9 +291,13 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 	s.mutex.Unlock()
 
 	builtinRpcConf := &libgrpc.Config{}
-	if builtinConf.Location != "" {
-		builtinRpcConf.Location = builtinConf.Location
-		builtinRpcConf.DependencyPath = builtinConf.DependencyPath
+
+	if s.builtinProviderPort != 0 {
+		if builtinConf.Location != "" {
+			builtinRpcConf.Location = builtinConf.Location
+			builtinRpcConf.DependencyPath = builtinConf.DependencyPath
+		}
+
 	}
 
 	return &libgrpc.InitResponse{
@@ -276,6 +313,7 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 	client := s.clients[req.Id]
 	s.mutex.RUnlock()
 
+	s.Log.Info("here", "cap", req.Cap)
 	r, err := client.client.Evaluate(ctx, req.Cap, []byte(req.ConditionInfo))
 
 	if err != nil {
@@ -283,6 +321,12 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 			Error:      err.Error(),
 			Successful: false,
 		}, nil
+	}
+
+	for _, v := range r.TemplateContext {
+		if _, ok := v.([]string); ok {
+			s.Log.Info("here")
+		}
 	}
 
 	templateContext, err := structpb.NewStruct(r.TemplateContext)
@@ -409,7 +453,7 @@ func (s *server) GetDependencies(ctx context.Context, in *libgrpc.ServiceRequest
 	}, nil
 }
 
-func recreateDAGAddedItems(items []DepDAGItem) []*libgrpc.DependencyDAGItem {
+func recreateDAGAddedItems(items []provider.DepDAGItem) []*libgrpc.DependencyDAGItem {
 	deps := []*libgrpc.DependencyDAGItem{}
 	for _, i := range items {
 		extras, err := structpb.NewStruct(i.Dep.Extras)
@@ -498,4 +542,14 @@ func (s *server) authUnaryInterceptor(ctx context.Context, req any, info *grpc.U
 	s.Log.Info("user making request", "audience", a, "issuer", i, "subject", sub, "name", name)
 
 	return handler(ctx, req)
+}
+
+func (s *server) loggerUnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	s.Log.Info("req", "req", req)
+
+	a, err := handler(ctx, req)
+	if err != nil {
+		s.Log.Info("error", "err", err)
+	}
+	return a, err
 }

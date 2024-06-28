@@ -44,6 +44,10 @@ func (t testProvider) ProviderInit(context.Context, []provider.InitConfig) ([]pr
 	return nil, nil
 }
 
+func (t testProvider) GetConfig() provider.Config {
+	return provider.Config{}
+}
+
 func (t testProvider) Stop() {}
 
 var _ provider.InternalProviderClient = &testProvider{}

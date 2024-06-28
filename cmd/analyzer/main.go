@@ -141,9 +141,9 @@ func AnalysisCmd() *cobra.Command {
 					for _, i := range config.InitConfig {
 						i.AnalysisMode = provider.AnalysisMode(analysisMode)
 						inits = append(inits, i)
-						builtinConfigs = append(builtinConfigs, provider.InitConfig{
-							Location: i.Location,
-						})
+						// builtinConfigs = append(builtinConfigs, provider.InitConfig{
+						// 	Location: i.Location,
+						// })
 					}
 					config.InitConfig = inits
 				}
@@ -208,7 +208,7 @@ func AnalysisCmd() *cobra.Command {
 				}
 			}
 			// Now that we have all the providers, we need to start them.
-			for name, provider := range needProviders {
+			for name, prov := range needProviders {
 				switch name {
 				// other providers can return additional configs for the builtin provider
 				// therefore, we initiate builtin provider separately at the end
@@ -217,13 +217,33 @@ func AnalysisCmd() *cobra.Command {
 				default:
 					initCtx, initSpan := tracing.StartNewSpan(ctx, "init",
 						attribute.Key("provider").String(name))
-					additionalBuiltinConfs, err := provider.ProviderInit(initCtx, nil)
+					additionalBuiltinConfs, err := prov.ProviderInit(initCtx, nil)
+
 					if err != nil {
 						errLog.Error(err, "unable to init the providers", "provider", name)
 						os.Exit(1)
 					}
+
 					if additionalBuiltinConfs != nil {
-						builtinConfigs = append(builtinConfigs, additionalBuiltinConfs...)
+						config := prov.GetConfig()
+						newConfigs := []provider.InitConfig{}
+						if config.BuiltinAddres != "" {
+							// Builtin provider must understand these specific config items
+							// it will tell to to not use the local builtin provider, but a
+							// GRPC profvider
+							for _, c := range additionalBuiltinConfs {
+								c.Proxy = config.Proxy
+								c.ProviderSpecificConfig = map[string]interface{}{
+									"address":  config.BuiltinAddres,
+									"JWTToken": config.JWTToken,
+									"CertPath": config.CertPath,
+								}
+								newConfigs = append(newConfigs, c)
+							}
+							builtinConfigs = append(builtinConfigs, newConfigs...)
+						} else {
+							builtinConfigs = append(builtinConfigs, additionalBuiltinConfs...)
+						}
 					}
 					initSpan.End()
 				}

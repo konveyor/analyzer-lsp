@@ -166,6 +166,10 @@ func (g *grpcProvider) ProviderInit(ctx context.Context, additionalConfigs []pro
 	return builtinConfs, nil
 }
 
+func (g *grpcProvider) GetConfig() provider.Config {
+	return g.config
+}
+
 func (g *grpcProvider) Capabilities() []provider.Capability {
 	r, err := g.Client.Capabilities(context.TODO(), &emptypb.Empty{})
 	if err != nil {

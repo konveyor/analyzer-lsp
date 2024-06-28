@@ -82,14 +82,15 @@ type Capability struct {
 }
 
 type Config struct {
-	Name         string       `yaml:"name,omitempty" json:"name,omitempty"`
-	BinaryPath   string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
-	Address      string       `yaml:"address,omitempty" json:"address,omitempty"`
-	CertPath     string       `yaml:"certPath,omitempty" json:"certPath,omitempty"`
-	JWTToken     string       `yaml:"jwtToken,omitempty" json:"jwtToken,omitempty"`
-	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
-	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
-	ContextLines int
+	Name          string       `yaml:"name,omitempty" json:"name,omitempty"`
+	BinaryPath    string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
+	Address       string       `yaml:"address,omitempty" json:"address,omitempty"`
+	BuiltinAddres string       `yaml:"builtinAddress,omitempty" json:"builtinAddres,omitempty"`
+	CertPath      string       `yaml:"certPath,omitempty" json:"certPath,omitempty"`
+	JWTToken      string       `yaml:"jwtToken,omitempty" json:"jwtToken,omitempty"`
+	Proxy         *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
+	InitConfig    []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
+	ContextLines  int
 }
 
 type Proxy httpproxy.Config
@@ -357,6 +358,7 @@ func FullResponseFromServiceClients(ctx context.Context, clients []ServiceClient
 	for _, c := range clients {
 		r, err := c.Evaluate(ctx, cap, conditionInfo)
 		if err != nil {
+			fmt.Printf("here, %v", cap)
 			return fullResp, err
 		}
 		if !fullResp.Matched {
@@ -406,7 +408,12 @@ type InternalInit interface {
 	ProviderInit(context.Context, []InitConfig) ([]InitConfig, error)
 }
 
+type BuiltinConfig interface {
+	GetConfig() Config
+}
+
 type InternalProviderClient interface {
+	BuiltinConfig
 	InternalInit
 	Client
 }
