@@ -47,8 +47,8 @@ jobs:
         if: steps.extract-info.outputs.BUILD_BUNDLE == 'true'
         with:
           fetch-depth: 0
-          repository: konveyor/java-analyzer-bundle
-          ref: "${{ steps.extract-info.outputs.JAVA_BUNDLE_REF }}"
+          repository: jmle/java-analyzer-bundle
+          ref: "field-search"
           path: java-analyzer-bundle
       
       - name: build java analyzer bundle image
