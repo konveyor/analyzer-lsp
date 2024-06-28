@@ -59,6 +59,9 @@ func init() {
 	builtinConfig.InitConfig = []InitConfig{
 		{
 			Location: c,
+			ProviderSpecificConfig: map[string]interface{}{
+				"default": true,
+			},
 		},
 	}
 }
@@ -168,6 +171,7 @@ func GetConfig(filepath string) ([]Config, error) {
 		if c.Proxy == nil {
 			c.Proxy = (*Proxy)(httpproxy.FromEnvironment())
 		}
+
 		for jdx := range c.InitConfig {
 			ic := &c.InitConfig[jdx]
 			// if a specific proxy config not present
@@ -180,7 +184,6 @@ func GetConfig(filepath string) ([]Config, error) {
 				return configs, err
 			}
 			ic.ProviderSpecificConfig = newConfig
-
 		}
 	}
 	if !foundBuiltin {

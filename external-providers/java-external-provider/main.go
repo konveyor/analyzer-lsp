@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
@@ -28,7 +27,7 @@ func main() {
 	flag.Parse()
 
 	logrusLog := logrus.New()
-	logrusLog.SetOutput(io.MultiWriter(os.Stderr, os.Stdout))
+	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
 	logrusLog.SetLevel(logrus.Level(5))
 	log := logrusr.New(logrusLog)

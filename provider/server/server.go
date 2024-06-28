@@ -315,6 +315,7 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 
 	s.Log.Info("here", "cap", req.Cap)
 	r, err := client.client.Evaluate(ctx, req.Cap, []byte(req.ConditionInfo))
+	s.Log.Info("here", "r", r, "err", err)
 
 	if err != nil {
 		return &libgrpc.EvaluateResponse{
@@ -323,14 +324,9 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 		}, nil
 	}
 
-	for _, v := range r.TemplateContext {
-		if _, ok := v.([]string); ok {
-			s.Log.Info("here")
-		}
-	}
-
 	templateContext, err := structpb.NewStruct(r.TemplateContext)
 	if err != nil {
+		s.Log.Info("here 329", "r", r, "err", err)
 		return &libgrpc.EvaluateResponse{
 			Error:      err.Error(),
 			Successful: false,
@@ -355,6 +351,7 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 
 		variables, err := structpb.NewStruct(i.Variables)
 		if err != nil {
+			s.Log.Info("here 354", "r", r, "err", err)
 			return &libgrpc.EvaluateResponse{
 				Error:      err.Error(),
 				Successful: false,

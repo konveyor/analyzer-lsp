@@ -41,7 +41,15 @@ var _ provider.ServiceClient = &builtinServiceClient{}
 
 func (p *builtinServiceClient) Stop() {}
 
+func convertToInterface(s []string) []interface{} {
+	n := []interface{}{}
+	for _, v := range s {
+		n = append(n, v)
+	}
+	return n
+}
 func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	fmt.Printf("\nhere: %v\n", cap)
 	var cond builtinCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {
@@ -59,7 +67,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
 		}
 
-		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
+		response.TemplateContext = map[string]interface{}{"filepaths": convertToInterface(matchingFiles)}
 		for _, match := range matchingFiles {
 			absPath := match
 			if !filepath.IsAbs(match) {
@@ -147,14 +155,17 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 		return response, nil
 	case "xml":
+		p.log.Info("Here for XML", "cond", cond, "location", p.config.Location)
 		query, err := xpath.CompileWithNS(cond.XML.XPath, cond.XML.Namespaces)
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
 		}
+		p.log.Info("Here for XML", "cond", cond)
 		xmlFiles, err := findXMLFiles(p.config.Location, cond.XML.Filepaths)
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
+		p.log.Info("Here for XML", "cond", cond)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {

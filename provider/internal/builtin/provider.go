@@ -130,12 +130,25 @@ func (p *builtinProvider) Capabilities() []provider.Capability {
 }
 
 func (p *builtinProvider) ProviderInit(ctx context.Context, additionalInitConfigs []provider.InitConfig) ([]provider.InitConfig, error) {
+	p.log.Info("provider init", "init config", p.config.InitConfig, "additional configs", additionalInitConfigs)
 	// First load all the tags for all init configs.
 	for _, c := range p.config.InitConfig {
 		p.loadTags(c)
 	}
 
-	if additionalInitConfigs != nil {
+	var defaultIndex *int
+	for i, initConfigs := range p.config.InitConfig {
+		if _, ok := initConfigs.ProviderSpecificConfig["default"]; ok {
+			defaultIndex = &i
+		}
+	}
+
+	if additionalInitConfigs != nil && len(additionalInitConfigs) != 0 {
+		if len(p.config.InitConfig) == 1 && defaultIndex != nil {
+			p.config.InitConfig = additionalInitConfigs
+		} else if defaultIndex != nil {
+			p.config.InitConfig = append(p.config.InitConfig[:*defaultIndex], p.config.InitConfig[*defaultIndex+1:]...)
+		}
 		p.config.InitConfig = append(p.config.InitConfig, additionalInitConfigs...)
 	}
 
@@ -186,6 +199,7 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 	if config.AnalysisMode != provider.AnalysisMode("") {
 		p.log.V(5).Info("skipping analysis mode setting for builtin")
 	}
+
 	return &builtinServiceClient{
 		config:                             config,
 		tags:                               p.tags,

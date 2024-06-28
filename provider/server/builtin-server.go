@@ -15,13 +15,15 @@ type builtinServer struct {
 }
 
 func NewBuiltinProviderServer(log logr.Logger) (libgrpc.ProviderServiceServer, error) {
-	builtin := builtin.NewBuiltinProvider(provider.Config{}, log)
+	l := log.WithValues("builtin", "builtin")
+	builtin := builtin.NewBuiltinProvider(provider.Config{}, l)
 	return &builtinServer{
 		server: server{
 			Client:  builtin,
 			mutex:   sync.RWMutex{},
 			clients: map[int64]clientMapItem{},
 			rand:    rand.Rand{},
+			Log:     l,
 		},
 	}, nil
 }
