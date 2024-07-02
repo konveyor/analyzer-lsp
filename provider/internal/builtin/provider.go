@@ -1,14 +1,19 @@
 package builtin
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/grpc"
 	"github.com/swaggest/openapi-go/openapi3"
+	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
@@ -66,7 +71,10 @@ type builtinProvider struct {
 	tags   map[string]bool
 	provider.UnimplementedDependenciesComponent
 
-	clients []provider.ServiceClient
+	clients       []provider.ServiceClient
+	grpcProviders []engine.CodeSnip
+
+	contextLines int
 }
 
 func NewBuiltinProvider(config provider.Config, log logr.Logger) *builtinProvider {
@@ -171,6 +179,8 @@ func (p *builtinProvider) ProviderInit(ctx context.Context, additionalInitConfig
 			if err != nil {
 				return nil, err
 			}
+			// We know that this should work
+			p.grpcProviders = append(p.grpcProviders, grpcClient.(engine.CodeSnip))
 
 			client, _, err := grpcClient.Init(ctx, p.log, c)
 			if err != nil {
@@ -190,8 +200,53 @@ func (p *builtinProvider) ProviderInit(ctx context.Context, additionalInitConfig
 		}
 	}
 
-	fmt.Printf("%#v", p.clients)
 	return nil, nil
+}
+
+func (p *builtinProvider) GetCodeSnip(u uri.URI, loc engine.Location) (string, error) {
+	for _, snip := range p.grpcProviders {
+		s, err := snip.GetCodeSnip(u, loc)
+		// If we can't find if in any GRPC providers we will try locally
+		if err != nil {
+			p.log.Error(err, "unable to get snip")
+			continue
+		}
+		fmt.Printf("here: %v", s)
+		return s, err
+	}
+	if !strings.Contains(string(u), uri.FileScheme) {
+		return "", fmt.Errorf("invalid file uri")
+	}
+	snip, err := p.scanFile(u.Filename(), loc)
+	if err != nil {
+		return "", err
+	}
+	return snip, nil
+}
+
+func (p *builtinProvider) scanFile(path string, loc engine.Location) (string, error) {
+	readFile, err := os.Open(path)
+	if err != nil {
+		p.log.V(5).Error(err, "Unable to read file")
+		return "", err
+	}
+	defer readFile.Close()
+
+	scanner := bufio.NewScanner(readFile)
+	lineNumber := 0
+	codeSnip := ""
+	paddingSize := len(strconv.Itoa(loc.EndPosition.Line + p.contextLines))
+	for scanner.Scan() {
+		if (lineNumber - p.contextLines) == loc.EndPosition.Line {
+			codeSnip = codeSnip + fmt.Sprintf("%*d  %v", paddingSize, lineNumber+1, scanner.Text())
+			break
+		}
+		if (lineNumber + p.contextLines) >= loc.StartPosition.Line {
+			codeSnip = codeSnip + fmt.Sprintf("%*d  %v\n", paddingSize, lineNumber+1, scanner.Text())
+		}
+		lineNumber += 1
+	}
+	return codeSnip, nil
 }
 
 // We don't need to init anything

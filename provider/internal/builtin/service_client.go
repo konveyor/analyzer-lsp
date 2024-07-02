@@ -49,7 +49,6 @@ func convertToInterface(s []string) []interface{} {
 	return n
 }
 func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
-	fmt.Printf("\nhere: %v\n", cap)
 	var cond builtinCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
 	if err != nil {

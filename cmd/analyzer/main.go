@@ -131,7 +131,6 @@ func AnalysisCmd() *cobra.Command {
 			builtinConfigs := []provider.InitConfig{}
 			providerLocations := []string{}
 			for _, config := range configs {
-				fmt.Printf("here: %#v\n", config)
 				config.ContextLines = contextLines
 				for _, ind := range config.InitConfig {
 					providerLocations = append(providerLocations, ind.Location)
@@ -251,7 +250,6 @@ func AnalysisCmd() *cobra.Command {
 			}
 
 			if builtinClient, ok := needProviders["builtin"]; ok {
-				fmt.Printf("here: %v\n", builtinClient)
 				if _, err = builtinClient.ProviderInit(ctx, builtinConfigs); err != nil {
 					errLog.Error(err, "unable to init builtin provider")
 					os.Exit(1)

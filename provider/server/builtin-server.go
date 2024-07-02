@@ -14,18 +14,27 @@ type builtinServer struct {
 	server
 }
 
-func NewBuiltinProviderServer(log logr.Logger) (libgrpc.ProviderServiceServer, error) {
+type BuiltinGRPCServer interface {
+	libgrpc.ProviderCodeLocationServiceServer
+	libgrpc.ProviderServiceServer
+}
+
+func NewBuiltinProviderServer(log logr.Logger, contextLines int) (BuiltinGRPCServer, error) {
 	l := log.WithValues("builtin", "builtin")
-	builtin := builtin.NewBuiltinProvider(provider.Config{}, l)
+	builtin := builtin.NewBuiltinProvider(provider.Config{
+		ContextLines: contextLines,
+	}, l)
 	return &builtinServer{
 		server: server{
-			Client:  builtin,
-			mutex:   sync.RWMutex{},
-			clients: map[int64]clientMapItem{},
-			rand:    rand.Rand{},
-			Log:     l,
+			Client:            builtin,
+			mutex:             sync.RWMutex{},
+			clients:           map[int64]clientMapItem{},
+			rand:              rand.Rand{},
+			Log:               l,
+			CodeSnipeResolver: builtin,
 		},
 	}, nil
 }
 
-var _ libgrpc.ProviderServiceServer = &server{}
+var _ libgrpc.ProviderServiceServer = &builtinServer{}
+var _ libgrpc.ProviderCodeLocationServiceServer = &builtinServer{}

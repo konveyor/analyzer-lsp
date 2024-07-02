@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
-	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/konveyor/analyzer-lsp/provider/server"
 	"github.com/konveyor/yq-external-provider/pkg/yq_provider"
 	"github.com/sirupsen/logrus"
 )
@@ -51,7 +51,7 @@ func main() {
 		secret = *secretKey
 	}
 
-	s := provider.NewServer(client, *port, c, k, secret, log)
+	s := server.NewServer(client, *port, c, k, secret, 0, log)
 	ctx := context.TODO()
 	s.Start(ctx)
 }

@@ -361,7 +361,6 @@ func FullResponseFromServiceClients(ctx context.Context, clients []ServiceClient
 	for _, c := range clients {
 		r, err := c.Evaluate(ctx, cap, conditionInfo)
 		if err != nil {
-			fmt.Printf("here, %v", cap)
 			return fullResp, err
 		}
 		if !fullResp.Matched {

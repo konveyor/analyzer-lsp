@@ -108,11 +108,12 @@ func (s *server) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		server, err := NewBuiltinProviderServer(s.Log)
+		server, err := NewBuiltinProviderServer(s.Log, 50)
 		if err != nil {
 			return err
 		}
 		libgrpc.RegisterProviderServiceServer(builtinGS, server)
+		libgrpc.RegisterProviderCodeLocationServiceServer(builtinGS, server)
 		reflection.Register(builtinGS)
 		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.builtinProviderPort))
 		if err != nil {
@@ -313,9 +314,8 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 	client := s.clients[req.Id]
 	s.mutex.RUnlock()
 
-	s.Log.Info("here", "cap", req.Cap)
+	s.Log.V(5).Info("Evaluating", "cap", req.Cap)
 	r, err := client.client.Evaluate(ctx, req.Cap, []byte(req.ConditionInfo))
-	s.Log.Info("here", "r", r, "err", err)
 
 	if err != nil {
 		return &libgrpc.EvaluateResponse{
@@ -326,7 +326,6 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 
 	templateContext, err := structpb.NewStruct(r.TemplateContext)
 	if err != nil {
-		s.Log.Info("here 329", "r", r, "err", err)
 		return &libgrpc.EvaluateResponse{
 			Error:      err.Error(),
 			Successful: false,
@@ -351,7 +350,6 @@ func (s *server) Evaluate(ctx context.Context, req *libgrpc.EvaluateRequest) (*l
 
 		variables, err := structpb.NewStruct(i.Variables)
 		if err != nil {
-			s.Log.Info("here 354", "r", r, "err", err)
 			return &libgrpc.EvaluateResponse{
 				Error:      err.Error(),
 				Successful: false,
