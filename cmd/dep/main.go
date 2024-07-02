@@ -90,7 +90,7 @@ func DependencyCmd() *cobra.Command {
 
 				time.Sleep(5 * time.Second)
 
-				err = prov.ProviderInit(ctx)
+				_, err = prov.ProviderInit(ctx, nil)
 				b, _ := json.Marshal(config)
 				if err != nil {
 					errLog.Error(err, "unable to init the providers", "provider", config.Name, "the-error-is", err, "config", string(b))

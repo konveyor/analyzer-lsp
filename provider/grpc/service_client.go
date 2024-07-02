@@ -24,6 +24,8 @@ func (g *grpcServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 		Id:            g.id,
 	}
 
+	fmt.Printf("\nhere---%#v\n", string(conditionInfo))
+
 	r, err := g.client.Evaluate(ctx, &m)
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, err

@@ -1,12 +1,19 @@
 package builtin
 
 import (
+	"bufio"
 	"context"
+	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/konveyor/analyzer-lsp/provider/grpc"
 	"github.com/swaggest/openapi-go/openapi3"
+	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
@@ -64,7 +71,10 @@ type builtinProvider struct {
 	tags   map[string]bool
 	provider.UnimplementedDependenciesComponent
 
-	clients []provider.ServiceClient
+	clients       []provider.ServiceClient
+	grpcProviders []engine.CodeSnip
+
+	contextLines int
 }
 
 func NewBuiltinProvider(config provider.Config, log logr.Logger) *builtinProvider {
@@ -72,6 +82,10 @@ func NewBuiltinProvider(config provider.Config, log logr.Logger) *builtinProvide
 		config: config,
 		log:    log,
 	}
+}
+
+func (p *builtinProvider) GetConfig() provider.Config {
+	return p.config
 }
 
 func (p *builtinProvider) Capabilities() []provider.Capability {
@@ -123,27 +137,124 @@ func (p *builtinProvider) Capabilities() []provider.Capability {
 	return caps
 }
 
-func (p *builtinProvider) ProviderInit(ctx context.Context) error {
+func (p *builtinProvider) ProviderInit(ctx context.Context, additionalInitConfigs []provider.InitConfig) ([]provider.InitConfig, error) {
+	p.log.Info("provider init", "init config", p.config.InitConfig, "additional configs", additionalInitConfigs)
 	// First load all the tags for all init configs.
 	for _, c := range p.config.InitConfig {
 		p.loadTags(c)
 	}
 
-	for _, c := range p.config.InitConfig {
-		client, err := p.Init(ctx, p.log, c)
-		if err != nil {
-			return nil
+	var defaultIndex *int
+	for i, initConfigs := range p.config.InitConfig {
+		if _, ok := initConfigs.ProviderSpecificConfig["default"]; ok {
+			defaultIndex = &i
 		}
-		p.clients = append(p.clients, client)
 	}
-	return nil
+
+	if additionalInitConfigs != nil && len(additionalInitConfigs) != 0 {
+		if len(p.config.InitConfig) == 1 && defaultIndex != nil {
+			p.config.InitConfig = additionalInitConfigs
+		} else if defaultIndex != nil {
+			p.config.InitConfig = append(p.config.InitConfig[:*defaultIndex], p.config.InitConfig[*defaultIndex+1:]...)
+		}
+		p.config.InitConfig = append(p.config.InitConfig, additionalInitConfigs...)
+	}
+
+	seenLocations := map[string]bool{}
+	seenAddrLocations := map[string]bool{}
+	for _, c := range p.config.InitConfig {
+		if addr, ok := c.ProviderSpecificConfig["address"]; ok {
+			var addrString, jwtString, certPath string
+			addrString = addr.(string)
+			jwtString = c.ProviderSpecificConfig["JWTToken"].(string)
+			certPath = c.ProviderSpecificConfig["CertPath"].(string)
+			if _, ok := seenAddrLocations[fmt.Sprintf("%s:%s", addrString, c.Location)]; ok {
+				continue
+			}
+			grpcClient, err := grpc.NewGRPCClient(provider.Config{
+				Address:  addrString,
+				JWTToken: jwtString,
+				CertPath: certPath,
+			}, p.log)
+			if err != nil {
+				return nil, err
+			}
+			// We know that this should work
+			p.grpcProviders = append(p.grpcProviders, grpcClient.(engine.CodeSnip))
+
+			client, _, err := grpcClient.Init(ctx, p.log, c)
+			if err != nil {
+				return nil, err
+			}
+			p.clients = append(p.clients, client)
+			seenAddrLocations[fmt.Sprintf("%s:%s", addrString, c.Location)] = true
+		} else {
+			if _, ok := seenLocations[c.Location]; !ok {
+				client, _, err := p.Init(ctx, p.log, c)
+				if err != nil {
+					return nil, nil
+				}
+				p.clients = append(p.clients, client)
+				seenLocations[c.Location] = true
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func (p *builtinProvider) GetCodeSnip(u uri.URI, loc engine.Location) (string, error) {
+	for _, snip := range p.grpcProviders {
+		s, err := snip.GetCodeSnip(u, loc)
+		// If we can't find if in any GRPC providers we will try locally
+		if err != nil {
+			p.log.Error(err, "unable to get snip")
+			continue
+		}
+		fmt.Printf("here: %v", s)
+		return s, err
+	}
+	if !strings.Contains(string(u), uri.FileScheme) {
+		return "", fmt.Errorf("invalid file uri")
+	}
+	snip, err := p.scanFile(u.Filename(), loc)
+	if err != nil {
+		return "", err
+	}
+	return snip, nil
+}
+
+func (p *builtinProvider) scanFile(path string, loc engine.Location) (string, error) {
+	readFile, err := os.Open(path)
+	if err != nil {
+		p.log.V(5).Error(err, "Unable to read file")
+		return "", err
+	}
+	defer readFile.Close()
+
+	scanner := bufio.NewScanner(readFile)
+	lineNumber := 0
+	codeSnip := ""
+	paddingSize := len(strconv.Itoa(loc.EndPosition.Line + p.contextLines))
+	for scanner.Scan() {
+		if (lineNumber - p.contextLines) == loc.EndPosition.Line {
+			codeSnip = codeSnip + fmt.Sprintf("%*d  %v", paddingSize, lineNumber+1, scanner.Text())
+			break
+		}
+		if (lineNumber + p.contextLines) >= loc.StartPosition.Line {
+			codeSnip = codeSnip + fmt.Sprintf("%*d  %v\n", paddingSize, lineNumber+1, scanner.Text())
+		}
+		lineNumber += 1
+	}
+	return codeSnip, nil
 }
 
 // We don't need to init anything
-func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
+func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 	if config.AnalysisMode != provider.AnalysisMode("") {
 		p.log.V(5).Info("skipping analysis mode setting for builtin")
 	}
+
 	return &builtinServiceClient{
 		config:                             config,
 		tags:                               p.tags,
@@ -151,7 +262,7 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 		locationCache:                      make(map[string]float64),
 		log:                                log,
 		includedPaths:                      provider.GetIncludedPathsFromConfig(config, true),
-	}, nil
+	}, provider.InitConfig{}, nil
 }
 
 func (p *builtinProvider) loadTags(config provider.InitConfig) error {

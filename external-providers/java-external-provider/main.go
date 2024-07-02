@@ -7,13 +7,14 @@ import (
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
-	"github.com/konveyor/analyzer-lsp/provider"
+	providerserver "github.com/konveyor/analyzer-lsp/provider/server"
 	java "github.com/konveyor/java-external-provider/pkg/java_external_provider"
 	"github.com/sirupsen/logrus"
 )
 
 var (
 	port          = flag.Int("port", 0, "Port must be set")
+	builtinPort   = flag.Int("builtin-port", 0, "builtin server is optional")
 	logLevel      = flag.Int("log-level", 5, "Level to log")
 	lspServerName = flag.String("name", "java", "name of the lsp to be used in rules")
 	contextLines  = flag.Int("contxtLines", 10, "lines of context for the code snippet")
@@ -41,6 +42,11 @@ func main() {
 		log.Error(fmt.Errorf("port unspecified"), "port number must be specified")
 		panic(1)
 	}
+
+	if builtinPort == nil {
+		p := 0
+		builtinPort = &p
+	}
 	var c string
 	var k string
 	var secret string
@@ -57,7 +63,7 @@ func main() {
 		secret = *secretKey
 	}
 
-	s := provider.NewServer(client, *port, c, k, secret, log)
+	s := providerserver.NewServer(client, *port, c, k, secret, *builtinPort, log)
 	ctx := context.TODO()
 	s.Start(ctx)
 }
