@@ -58,7 +58,6 @@ var locationToCode = map[string]int{
 	"variable_declaration": 9,
 	"type":                 10,
 	"package":              11,
-	"field":                12,
 }
 
 type javaProvider struct {
