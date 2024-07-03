@@ -9,16 +9,16 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/swaggest/openapi-go/openapi3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/swaggest/openapi-go/openapi3"
 
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
 
-type dotnetProvider struct {
+type dotnetProvider struct{
 	Log logr.Logger
 }
 
@@ -41,7 +41,6 @@ type dotnetCondition struct {
 
 // Example:
 // dotnet.referenced:
-//
 //	namespace: System.Web.Mvc
 //	pattern: HttpNotFound
 type referenceCondition struct {
@@ -67,7 +66,7 @@ func (p *dotnetProvider) Capabilities() []provider.Capability {
 
 func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
 	var mode provider.AnalysisMode = provider.AnalysisMode(config.AnalysisMode)
-	if mode != provider.SourceOnlyAnalysisMode {
+	if mode != provider.FullAnalysisMode {
 		return nil, fmt.Errorf("only full analysis is supported")
 	}
 
