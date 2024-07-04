@@ -292,6 +292,9 @@ func (c *Connection) Notify(ctx context.Context, method string, params interface
 		attempted = true
 	})
 	if err != nil {
+		if IsRPCClosed(err) {
+			err = fmt.Errorf("connection to the language server is closed, language server is not running: %w", err)
+		}
 		return err
 	}
 
@@ -351,6 +354,9 @@ func (c *Connection) Call(ctx context.Context, method string, params interface{}
 
 	event.Metric(ctx, tag.Started.Of(1))
 	if err := c.write(ctx, call); err != nil {
+		if IsRPCClosed(err) {
+			err = fmt.Errorf("connection to the language server is closed, language server is not running: %w", err)
+		}
 		// Sending failed. We will never get a response, so deliver a fake one if it
 		// wasn't already retired by the connection breaking.
 		c.updateInFlight(func(s *inFlightState) {

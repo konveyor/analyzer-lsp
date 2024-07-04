@@ -145,7 +145,11 @@ func (c *Conn) Call(ctx context.Context, method string, params, result interface
 	}
 	if err != nil {
 		// sending failed, we will never get a response, so don't leave it pending
+		if IsRPCClosed(err) {
+			err = fmt.Errorf("connection to the language server is closed, language server is not running: %w", err)
+		}
 		return err
+
 	}
 	// now wait for the response
 	select {
