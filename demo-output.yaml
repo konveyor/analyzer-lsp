@@ -899,6 +899,19 @@
           matchingXML: ""
       effort: 1
   insights:
+    field-rule-00001:
+      description: Sample field declaration rule
+      category: mandatory
+      incidents:
+      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
+        message: Field found
+        codeSnip: " 8  import org.springframework.data.domain.Page;\n 9  import org.springframework.data.domain.Pageable;\n10  import org.springframework.stereotype.Service;\n11  import org.springframework.transaction.annotation.Transactional;\n12  \n13  @Service\n14  @Transactional\n15  public class CustomerService implements ICustomerService{\n16  \t\n17  \t@Autowired\n18  \tprivate CustomerRepository repository;\n19  \t\n20  \tprivate static Logger logger = Logger.getLogger( CustomerService.class.getName() );\n21  \t\n22  \tpublic Customer findById(Long id) {\n23  \t\tlogger.debug(\"Entering CustomerService.findById()\");\n24  \t\tCustomer c = repository.findById(id).orElse(null);\n25  \t\tlogger.debug(\"Returning element: \" + c);\n26  \t\treturn c;\n27  \t}\n28  \t"
+        lineNumber: 18
+        variables:
+          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
+          kind: Field
+          name: repository
+          package: io.konveyor.demo.ordermanagement.service
     java-downloaded-maven-artifact:
       description: |
         This rule tests the application downloaded from maven artifact

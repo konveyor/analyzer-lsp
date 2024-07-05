@@ -80,6 +80,8 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 		incidents, err = p.filterDefault(symbols)
 	case 11:
 		incidents, err = p.filterDefault(symbols)
+	case 12:
+		incidents, err = p.filterDefault(symbols)
 	default:
 
 	}
