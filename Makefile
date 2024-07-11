@@ -1,4 +1,9 @@
 DOCKER_IMAGE = test
+IMG_JAVA_PROVIDER ?= java-provider
+IMG_DOTNET_PROVIDER ?= dotnet-provider
+IMG_GENERIC_PROVIDER ?= generic-provider
+IMG_GO_DEP_PROVIDER ?= golang-dep-provider
+IMG_YQ_PROVIDER ?= yq-provider
 OS := $(shell uname -s)
 ifeq ($(OS),Linux)
 	MOUNT_OPT := :z
@@ -32,27 +37,27 @@ image-build:
 build-external: build-dotnet-provider build-golang-dep-provider build-generic-provider build-java-provider build-yq-provider
 
 build-dotnet-provider:
-	podman build -f external-providers/dotnet-external-provider/Dockerfile -t dotnet-provider .
+	podman build -f external-providers/dotnet-external-provider/Dockerfile -t $(IMG_DOTNET_PROVIDER) .
 
 build-generic-provider:
 	sed -i 's,quay.io/konveyor/golang-dependency-provider,golang-dep-provider,g' external-providers/generic-external-provider/Dockerfile
-	podman build -f external-providers/generic-external-provider/Dockerfile -t generic-provider .
+	podman build -f external-providers/generic-external-provider/Dockerfile -t $(IMG_GENERIC_PROVIDER) .
 
 build-golang-dep-provider:
-	podman build -f external-providers/golang-dependency-provider/Dockerfile -t golang-dep-provider .
+	podman build -f external-providers/golang-dependency-provider/Dockerfile -t $(IMG_GO_DEP_PROVIDER) .
 
 build-java-provider:
-	podman build -f external-providers/java-external-provider/Dockerfile -t java-provider .
+	podman build -f external-providers/java-external-provider/Dockerfile -t $(IMG_JAVA_PROVIDER) .
 
 build-yq-provider:
-	podman build -f external-providers/yq-external-provider/Dockerfile -t yq-provider .
+	podman build -f external-providers/yq-external-provider/Dockerfile -t $(IMG_YQ_PROVIDER) .
 
 run-external-providers-local:
-	podman run --name java-provider -d -p 14651:14651 -v $(PWD)/external-providers/java-external-provider/examples:/examples$(MOUNT_OPT) java-provider --port 14651
-	podman run --name yq -d -p 14652:14652 -v $(PWD)/examples:/examples yq-provider$(MOUNT_OPT) --port 14652
-	podman run --name golang-provider -d -p 14653:14653 -v $(PWD)/examples:/examples$(MOUNT_OPT) generic-provider --port 14653
-	podman run --name nodejs -d -p 14654:14654 -v $(PWD)/examples:/examples$(MOUNT_OPT) generic-provider --port 14654 --name nodejs
-	podman run --name python -d -p 14655:14655 -v $(PWD)/examples:/examples$(MOUNT_OPT) generic-provider --port 14655 --name pylsp
+	podman run --name java-provider -d -p 14651:14651 -v $(PWD)/external-providers/java-external-provider/examples:/examples$(MOUNT_OPT) $(IMG_JAVA_PROVIDER) --port 14651
+	podman run --name yq -d -p 14652:14652 -v $(PWD)/examples:/examples $(IMG_YQ_PROVIDER)$(MOUNT_OPT) --port 14652
+	podman run --name golang-provider -d -p 14653:14653 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14653
+	podman run --name nodejs -d -p 14654:14654 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14654 --name nodejs
+	podman run --name python -d -p 14655:14655 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
 
 stop-external-providers:
 	podman kill java-provider || true
@@ -74,11 +79,11 @@ run-external-providers-pod:
 	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	# run pods w/ defined ports for the test volumes
 	podman pod create --name=analyzer
-	podman run --pod analyzer --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) java-provider --port 14651
-	podman run --pod analyzer --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) yq-provider --port 14652
-	podman run --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) generic-provider --port 14653
-	podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) generic-provider --port 14654 --name nodejs
-	podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) generic-provider --port 14655 --name pylsp
+	podman run --pod analyzer --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_JAVA_PROVIDER) --port 14651
+	podman run --pod analyzer --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_YQ_PROVIDER) --port 14652
+	podman run --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14653
+	podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14654 --name nodejs
+	podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
 	podman build -f demo-local.Dockerfile -t localhost/testing:latest
 
 run-demo-image:

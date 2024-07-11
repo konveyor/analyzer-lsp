@@ -2,6 +2,11 @@ name: Demo Testing
 
 on: ["push", "pull_request"]
 
+env:
+  IMG_JAVA_PROVIDER: quay.io/konveyor/java-external-provider:latest
+  IMG_DOTNET_PROVIDER: quay.io/konveyor/dotnet-external-provider:latest
+  IMG_GENERIC_PROVIDER: quay.io/konveyor/generic-external-provider:latest
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -62,13 +67,21 @@ jobs:
       # build all provider images and the analyzer-lsp image
       - name: build images
         run: |
-          make build-external
+          make \
+            IMG_JAVA_PROVIDER=$IMG_JAVA_PROVIDER \
+            IMG_DOTNET_PROVIDER=$IMG_DOTNET_PROVIDER \
+            IMG_GENERIC_PROVIDER=$IMG_GENERIC_PROVIDER \
+            build-external
           podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 
       # run the demo in a podman pod
       - name: run demo image
         run : |
-          make run-external-providers-pod
+          make \
+            IMG_JAVA_PROVIDER=$IMG_JAVA_PROVIDER \
+            IMG_DOTNET_PROVIDER=$IMG_DOTNET_PROVIDER \
+            IMG_GENERIC_PROVIDER=$IMG_GENERIC_PROVIDER \
+            run-external-providers-pod
           podman build -f demo-local.Dockerfile -t localhost/testing:latest
           make run-demo-image
       
@@ -95,7 +108,11 @@ jobs:
         working-directory: tackle2-addon-analyzer
         run: |
           IMG=quay.io/konveyor/tackle2-addon-analyzer:latest make image-podman
-          podman save -o /tmp/tackle2-addon-analyzer.tar quay.io/konveyor/tackle2-addon-analyzer:latest
+          podman save -o /tmp/tackle2-addon-analyzer.tar \
+            quay.io/konveyor/tackle2-addon-analyzer:latest \
+            $IMG_JAVA_PROVIDER \
+            $IMG_GENERIC_PROVIDER \
+            $IMG_DOTNET_PROVIDER
 
       - name: Upload image as artifact
         uses: actions/upload-artifact@v3
