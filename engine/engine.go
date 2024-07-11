@@ -127,8 +127,9 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 		select {
 		case m := <-ruleMessages:
 			logger.V(5).Info("taking rule", "ruleset", m.ruleSetName, "rule", m.rule.RuleID)
+			newLogger := logger.WithValues("ruleID", m.rule.RuleID)
 			m.ctx.Template = make(map[string]ChainTemplate)
-			bo, err := processRule(ctx, m.rule, m.ctx, logger)
+			bo, err := processRule(ctx, m.rule, m.ctx, newLogger)
 			logger.V(5).Info("finished rule", "found", len(bo.Incidents), "error", err, "rule", m.rule.RuleID)
 			m.returnChan <- response{
 				ConditionResponse: bo,
@@ -183,7 +184,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 			select {
 			case response := <-ret:
 				func() {
-					r.logger.Info("rule returned", "rule", response.Rule.RuleID)
+					r.logger.Info("rule returned", "ruleID", response.Rule.RuleID)
 					defer wg.Done()
 					if response.Err != nil {
 						atomic.AddInt32(&failedRules, 1)
@@ -198,7 +199,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 							r.logger.Error(err, "unable to create violation from response", "ruleID", response.Rule.RuleID)
 						}
 						if len(violation.Incidents) == 0 {
-							r.logger.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched", "rule", response.Rule.RuleID)
+							r.logger.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched", "ruleID", response.Rule.RuleID)
 							atomic.AddInt32(&unmatchedRules, 1)
 							if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 								rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
@@ -220,7 +221,7 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 					} else {
 						atomic.AddInt32(&unmatchedRules, 1)
 						// Log that rule did not pass
-						r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "rule", response.Rule.RuleID)
+						r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "ruleID", response.Rule.RuleID)
 
 						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 							rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)

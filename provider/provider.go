@@ -496,6 +496,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 		//TODO(fabianvf)
 		panic(err)
 	}
+	log = log.WithValues("provider info", "cap", p.Capability, "condInfo", p.ConditionInfo)
 	templatedInfo, err := templateCondition(serializedInfo, condCtx.Template)
 	if err != nil {
 		//TODO(fabianvf)
@@ -505,6 +506,11 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 	resp, err := p.Client.Evaluate(ctx, p.Capability, templatedInfo)
 	if err != nil {
 		// If an error always just return the empty
+		return engine.ConditionResponse{}, err
+	}
+
+	if len(resp.Incidents) == 0 {
+		log.V(5).Info("no incidents found")
 		return engine.ConditionResponse{}, err
 	}
 
@@ -565,7 +571,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 
 	log.V(8).Info("condition response", "ruleID", p.Rule.RuleID, "response", cr, "cap", p.Capability, "conditionInfo", p.ConditionInfo, "client", p.Client)
 	if len(resp.Incidents)-len(incidents) > 0 {
-		log.V(5).Info("filtered out incidents based on dep label selector", "filteredOutCount", len(resp.Incidents)-len(incidents))
+		log.V(5).Info("filtered out incidents based on dep label selector", "filteredOutCount", len(resp.Incidents)-len(incidents), "keptCount", len(incidents))
 	}
 	return cr, nil
 
@@ -894,5 +900,4 @@ func ToProviderInputOutputCap(r *openapi3.Reflector, log logr.Logger, input, out
 	})
 	cap.Output = *outputSchemaOrRef
 	return cap, nil
-
 }

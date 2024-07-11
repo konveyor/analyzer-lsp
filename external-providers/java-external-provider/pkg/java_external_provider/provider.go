@@ -22,6 +22,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
+	"github.com/nxadm/tail"
 	"github.com/swaggest/openapi-go/openapi3"
 )
 
@@ -45,7 +46,7 @@ const (
 // Rule Location to location that the bundle understands
 var locationToCode = map[string]int{
 	//Type is the default.
-	"":                 0,
+	"":                 10,
 	"inheritance":      1,
 	"method_call":      2,
 	"constructor_call": 3,
@@ -72,6 +73,8 @@ type javaProvider struct {
 	hasMaven          bool
 	depsMutex         sync.RWMutex
 	depsLocationCache map[string]int
+
+	logFollow sync.Once
 }
 
 var _ provider.BaseClient = &javaProvider{}
@@ -98,6 +101,7 @@ func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int) *j
 		lspServerName:     lspServerName,
 		depsLocationCache: make(map[string]int),
 		contextLines:      contextLines,
+		logFollow:         sync.Once{},
 	}
 }
 
@@ -374,6 +378,28 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	if err != nil {
 		return nil, err
 	}
+	// Will only set up log follow one time
+	// Will work in container image and hub, will not work
+	// When running for long period of time.
+	p.logFollow.Do(func() {
+		go func() {
+			t, err := tail.TailFile(".metadata/.log", tail.Config{
+				ReOpen:    true,
+				MustExist: false,
+				Follow:    true,
+			})
+			if err != nil {
+				log.Error(err, "unable to set up follower")
+				return
+			}
+
+			for line := range t.Lines {
+				if strings.Contains(line.Text, "KONVEYOR_LOG") {
+					log.Info("language server log", "line", line.Text)
+				}
+			}
+		}()
+	})
 	return &svcClient, returnErr
 }
 
@@ -614,7 +640,7 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, location, 
 
 	decompileJobs := []decompileJob{}
 
-	log.V(5).Info("resolving dependency sources")
+	log.Info("resolving dependency sources")
 
 	args := []string{
 		"-B",
@@ -632,7 +658,7 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, location, 
 		return err
 	}
 
-	log.V(8).WithValues("output", mvnOutput).Info("got maven output")
+	log.WithValues("output", mvnOutput).Info("got maven output")
 
 	reader := bytes.NewReader(mvnOutput)
 	artifacts, err := parseUnresolvedSources(reader)
@@ -645,7 +671,7 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, location, 
 		return nil
 	}
 	for _, artifact := range artifacts {
-		log.V(5).WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
+		log.WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
 
 		groupDirs := filepath.Join(strings.Split(artifact.GroupId, ".")...)
 		artifactDirs := filepath.Join(strings.Split(artifact.ArtifactId, ".")...)
@@ -669,7 +695,7 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, location, 
 			filepath.Join(filepath.Dir(decompileJob.inputPath),
 				fmt.Sprintf("%s-sources.jar", jarName)))
 		if err != nil {
-			log.V(5).Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
+			log.Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
 		}
 	}
 	return nil
