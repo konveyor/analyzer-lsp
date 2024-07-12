@@ -65,10 +65,10 @@ func (p *dotnetProvider) Capabilities() []provider.Capability {
 	return caps
 }
 
-func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
+func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 	var mode provider.AnalysisMode = provider.AnalysisMode(config.AnalysisMode)
 	if mode != provider.SourceOnlyAnalysisMode {
-		return nil, fmt.Errorf("only full analysis is supported")
+		return nil, provider.InitConfig{}, fmt.Errorf("only full analysis is supported")
 	}
 
 	// handle proxy settings
@@ -79,7 +79,7 @@ func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provi
 	codePath, err := filepath.Abs(config.Location)
 	if err != nil {
 		log.Error(err, "unable to get path to analyze")
-		return nil, err
+		return nil, provider.InitConfig{}, err
 	}
 
 	ctx, cancelFunc := context.WithCancel(ctx)
@@ -91,7 +91,7 @@ func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provi
 	lspServerPath, ok := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	if !ok || lspServerPath == "" {
 		cancelFunc()
-		return nil, fmt.Errorf("invalid lspServerPath provided, unable to init dotnet provider")
+		return nil, provider.InitConfig{}, fmt.Errorf("invalid lspServerPath provided, unable to init dotnet provider")
 	}
 
 	cmd := exec.CommandContext(ctx, lspServerPath)
@@ -99,19 +99,19 @@ func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provi
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		cancelFunc()
-		return nil, err
+		return nil, provider.InitConfig{}, err
 	}
 	clientWriter := io.MultiWriter(stdin, sentLog)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		cancelFunc()
-		return nil, err
+		return nil, provider.InitConfig{}, err
 	}
 	clientReader := io.TeeReader(stdout, recvLog)
 	if err := cmd.Start(); err != nil {
 		log.Error(err, "failed to start language server process")
 		cancelFunc()
-		return nil, err
+		return nil, provider.InitConfig{}, err
 	}
 	log.V(2).Info("language server started")
 
@@ -175,7 +175,7 @@ func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provi
 	if err := conn.Notify(ctx, protocol.MethodInitialized, &protocol.InitializedParams{}); err != nil {
 		log.Error(err, "initialized notification failed")
 		cancelFunc()
-		return nil, err
+		return nil, provider.InitConfig{}, err
 	}
 
 	log.Info("waiting for language server to load the project")
@@ -189,5 +189,5 @@ func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provi
 		cmd:        cmd,
 		log:        log,
 		config:     config,
-	}, nil
+	}, provider.InitConfig{}, nil
 }

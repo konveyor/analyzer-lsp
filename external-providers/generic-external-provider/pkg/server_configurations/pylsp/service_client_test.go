@@ -37,7 +37,7 @@ func TestHopefullyNothingBroke(t *testing.T) {
 
 	prov := generic_external_provider.NewGenericProvider("generic", log)
 
-	pylspSC, err := prov.Init(ctx, log, provider.InitConfig{
+	pylspSC, _, err := prov.Init(ctx, log, provider.InitConfig{
 		ProviderSpecificConfig: map[string]interface{}{
 			"lspServerName":     "generic",
 			"lspServerPath":     "pylsp",

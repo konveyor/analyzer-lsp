@@ -128,6 +128,7 @@ func AnalysisCmd() *cobra.Command {
 			}
 
 			providers := map[string]provider.InternalProviderClient{}
+			builtinConfigs := []provider.InitConfig{}
 			providerLocations := []string{}
 			for _, config := range configs {
 				config.ContextLines = contextLines
@@ -140,6 +141,9 @@ func AnalysisCmd() *cobra.Command {
 					for _, i := range config.InitConfig {
 						i.AnalysisMode = provider.AnalysisMode(analysisMode)
 						inits = append(inits, i)
+						// builtinConfigs = append(builtinConfigs, provider.InitConfig{
+						// 	Location: i.Location,
+						// })
 					}
 					config.InitConfig = inits
 				}
@@ -204,15 +208,52 @@ func AnalysisCmd() *cobra.Command {
 				}
 			}
 			// Now that we have all the providers, we need to start them.
-			for name, provider := range needProviders {
-				initCtx, initSpan := tracing.StartNewSpan(ctx, "init",
-					attribute.Key("provider").String(name))
-				err := provider.ProviderInit(initCtx)
-				if err != nil {
-					errLog.Error(err, "unable to init the providers", "provider", name)
+			for name, prov := range needProviders {
+				switch name {
+				// other providers can return additional configs for the builtin provider
+				// therefore, we initiate builtin provider separately at the end
+				case "builtin":
+					continue
+				default:
+					initCtx, initSpan := tracing.StartNewSpan(ctx, "init",
+						attribute.Key("provider").String(name))
+					additionalBuiltinConfs, err := prov.ProviderInit(initCtx, nil)
+
+					if err != nil {
+						errLog.Error(err, "unable to init the providers", "provider", name)
+						os.Exit(1)
+					}
+
+					if additionalBuiltinConfs != nil {
+						config := prov.GetConfig()
+						newConfigs := []provider.InitConfig{}
+						if config.BuiltinAddres != "" {
+							// Builtin provider must understand these specific config items
+							// it will tell to to not use the local builtin provider, but a
+							// GRPC profvider
+							for _, c := range additionalBuiltinConfs {
+								c.Proxy = config.Proxy
+								c.ProviderSpecificConfig = map[string]interface{}{
+									"address":  config.BuiltinAddres,
+									"JWTToken": config.JWTToken,
+									"CertPath": config.CertPath,
+								}
+								newConfigs = append(newConfigs, c)
+							}
+							builtinConfigs = append(builtinConfigs, newConfigs...)
+						} else {
+							builtinConfigs = append(builtinConfigs, additionalBuiltinConfs...)
+						}
+					}
+					initSpan.End()
+				}
+			}
+
+			if builtinClient, ok := needProviders["builtin"]; ok {
+				if _, err = builtinClient.ProviderInit(ctx, builtinConfigs); err != nil {
+					errLog.Error(err, "unable to init builtin provider")
 					os.Exit(1)
 				}
-				initSpan.End()
 			}
 
 			wg := &sync.WaitGroup{}

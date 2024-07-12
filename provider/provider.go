@@ -59,6 +59,9 @@ func init() {
 	builtinConfig.InitConfig = []InitConfig{
 		{
 			Location: c,
+			ProviderSpecificConfig: map[string]interface{}{
+				"default": true,
+			},
 		},
 	}
 }
@@ -82,14 +85,15 @@ type Capability struct {
 }
 
 type Config struct {
-	Name         string       `yaml:"name,omitempty" json:"name,omitempty"`
-	BinaryPath   string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
-	Address      string       `yaml:"address,omitempty" json:"address,omitempty"`
-	CertPath     string       `yaml:"certPath,omitempty" json:"certPath,omitempty"`
-	JWTToken     string       `yaml:"jwtToken,omitempty" json:"jwtToken,omitempty"`
-	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
-	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
-	ContextLines int
+	Name          string       `yaml:"name,omitempty" json:"name,omitempty"`
+	BinaryPath    string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
+	Address       string       `yaml:"address,omitempty" json:"address,omitempty"`
+	BuiltinAddres string       `yaml:"builtinAddress,omitempty" json:"builtinAddres,omitempty"`
+	CertPath      string       `yaml:"certPath,omitempty" json:"certPath,omitempty"`
+	JWTToken      string       `yaml:"jwtToken,omitempty" json:"jwtToken,omitempty"`
+	Proxy         *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
+	InitConfig    []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
+	ContextLines  int
 }
 
 type Proxy httpproxy.Config
@@ -167,6 +171,7 @@ func GetConfig(filepath string) ([]Config, error) {
 		if c.Proxy == nil {
 			c.Proxy = (*Proxy)(httpproxy.FromEnvironment())
 		}
+
 		for jdx := range c.InitConfig {
 			ic := &c.InitConfig[jdx]
 			// if a specific proxy config not present
@@ -179,7 +184,6 @@ func GetConfig(filepath string) ([]Config, error) {
 				return configs, err
 			}
 			ic.ProviderSpecificConfig = newConfig
-
 		}
 	}
 	if !foundBuiltin {
@@ -400,12 +404,18 @@ func FullDepDAGResponse(ctx context.Context, clients []ServiceClient) (map[uri.U
 }
 
 // InternalInit interface is going to be used to init the full config of a provider.
-// used by the engine/analyzer to get a provider ready.
+// used by the engine/analyzer to get a provider ready. It takes additional init
+// configs that may be returned by other providers when they are initialized
 type InternalInit interface {
-	ProviderInit(context.Context) error
+	ProviderInit(context.Context, []InitConfig) ([]InitConfig, error)
+}
+
+type BuiltinConfig interface {
+	GetConfig() Config
 }
 
 type InternalProviderClient interface {
+	BuiltinConfig
 	InternalInit
 	Client
 }
@@ -417,7 +427,8 @@ type Client interface {
 
 type BaseClient interface {
 	Capabilities() []Capability
-	Init(context.Context, logr.Logger, InitConfig) (ServiceClient, error)
+	// Init initiates and returns a service client along with additional init config for the builtin provider
+	Init(context.Context, logr.Logger, InitConfig) (ServiceClient, InitConfig, error)
 }
 
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
