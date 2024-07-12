@@ -128,7 +128,7 @@ func (s *server) Start(ctx context.Context) error {
 	}
 	libgrpc.RegisterProviderServiceServer(gs, s)
 	reflection.Register(gs)
-	log.Printf("server listening at %v", lis.Addr())
+	s.Log.Info(fmt.Sprintf("server listening at %v", lis.Addr()))
 	if err := gs.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

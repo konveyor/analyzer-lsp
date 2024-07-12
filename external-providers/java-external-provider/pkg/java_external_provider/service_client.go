@@ -54,8 +54,12 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	if cond.Referenced.Pattern == "" {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
 	}
-	symbols := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location)
-	p.log.V(5).Info("Symbols retrieved", "symbols", symbols)
+	symbols, err := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location)
+	if err != nil {
+		p.log.Error(err, "unable to get symbols", "symbols", symbols, "cap", cap, "conditionInfo", cond)
+		return provider.ProviderEvaluateResponse{}, err
+	}
+	p.log.Info("Symbols retrieved", "symbols", len(symbols), "cap", cap, "conditionInfo", cond)
 
 	incidents := []provider.IncidentContext{}
 	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
@@ -101,7 +105,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}, nil
 }
 
-func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location string) []protocol.WorkspaceSymbol {
+func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location string) ([]protocol.WorkspaceSymbol, error) {
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
@@ -130,12 +134,14 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location s
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
 			p.log.Error(err, "connection to the language server is closed, language server is not running")
+			return refs, fmt.Errorf("connection to the language server is closed, language server is not running")
 		} else {
 			p.log.Error(err, "unable to ask for Konveyor rule entry")
+			return refs, fmt.Errorf("unable to ask for Konveyor rule entry")
 		}
 	}
 
-	return refs
+	return refs, nil
 }
 
 func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protocol.WorkspaceSymbol) []protocol.Location {
@@ -262,4 +268,5 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 		p.log.Error(err, "initialize failed")
 	}
 	p.log.V(2).Info("java connection initialized")
+
 }
