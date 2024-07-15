@@ -256,20 +256,18 @@ type handler struct {
 
 func (h *handler) replyHandler(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
 	method := req.Method()
+	h.log.Info("Got request for " + method)
 	// params, _ := req.Params().MarshalJSON()
 	switch method {
 	case protocol.MethodClientRegisterCapability:
-		h.log.V(2).Info("Got request for " + protocol.MethodClientRegisterCapability)
 		err := reply(ctx, nil, nil)
 		// h.ch <- 1
 		return err
 	case protocol.MethodWorkspaceConfiguration:
-		h.log.V(2).Info("Got request for " + protocol.MethodWorkspaceConfiguration)
 		err := reply(ctx, nil, nil)
 		// h.ch <- 2
 		return err
 	case protocol.MethodWindowShowMessage:
-		h.log.V(2).Info("Got request for " + protocol.MethodWindowShowMessage)
 		var showMessageParams protocol.ShowMessageParams
 		if err := json.Unmarshal(req.Params(), &showMessageParams); err != nil {
 			return reply(ctx, nil, err)
@@ -279,8 +277,28 @@ func (h *handler) replyHandler(ctx context.Context, reply jsonrpc2.Replier, req 
 			h.ch <- 3
 		}
 		return err
+	case protocol.MethodProgress:
+		var methodProgressParams protocol.ProgressParams
+		if err := json.Unmarshal(req.Params(), &methodProgressParams); err != nil {
+			return reply(ctx, nil, err)
+		}
+		h.log.Info("Progress message", "params", methodProgressParams)
+		err := reply(ctx, nil, nil)
+		valueMap, _ := methodProgressParams.Value.(map[string]interface{})
+		if message, ok := valueMap["message"]; ok {
+			h.log.Info("Extracted message", "message", message)
+			if strings.Contains(message.(string), "finished loading solution") {
+				h.ch <- 3
+			}
+		} else {
+			err = fmt.Errorf("Something terrible has happened loading progress message")
+		}
+		return err
+	case protocol.MethodWorkDoneProgressCreate, protocol.MethodWorkDoneProgressCancel:
+		err := reply(ctx, nil, nil)
+		return err
 	}
 
-	h.log.Info("I don't know what to do with this", req)
+	h.log.Info("I don't know what to do with this", "request", req)
 	return jsonrpc2.MethodNotFoundHandler(ctx, reply, req)
 }
