@@ -157,6 +157,9 @@ func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provi
 					},
 					// WorkspaceFolders: true,
 				},
+				Window: &protocol.WindowClientCapabilities{
+					WorkDoneProgress: false,
+				},
 			},
 			// WorkspaceFolders: []protocol.WorkspaceFolder{
 			// 	protocol.WorkspaceFolder{
