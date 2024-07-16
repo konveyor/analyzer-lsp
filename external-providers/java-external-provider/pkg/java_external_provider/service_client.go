@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -54,7 +55,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	if cond.Referenced.Pattern == "" {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
 	}
-	symbols, err := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location)
+	symbols, err := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location, cond.Referenced.Annotated)
 	if err != nil {
 		p.log.Error(err, "unable to get symbols", "symbols", symbols, "cap", cap, "conditionInfo", cond)
 		return provider.ProviderEvaluateResponse{}, err
@@ -86,6 +87,8 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 		incidents, err = p.filterDefault(symbols)
 	case 12:
 		incidents, err = p.filterDefault(symbols)
+	case 13:
+		incidents, err = p.filterDefault(symbols)
 	default:
 
 	}
@@ -105,7 +108,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}, nil
 }
 
-func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location string) ([]protocol.WorkspaceSymbol, error) {
+func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location string, annotation annotated) ([]protocol.WorkspaceSymbol, error) {
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
@@ -114,6 +117,10 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location s
 		"project":      "java",
 		"location":     fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
 		"analysisMode": string(p.config.AnalysisMode),
+	}
+
+	if !reflect.DeepEqual(annotation, annotated{}) {
+		argumentsMap["annotationQuery"] = annotation
 	}
 
 	if p.includedPaths != nil && len(p.includedPaths) > 0 {

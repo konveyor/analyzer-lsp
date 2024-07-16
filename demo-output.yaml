@@ -912,6 +912,48 @@
           kind: Field
           name: repository
           package: io.konveyor.demo.ordermanagement.service
+    java-annotation-inspection-01:
+      description: |
+        This rule looks for a given class annotated with a given annotation
+      category: mandatory
+      incidents:
+      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+        message: Annotation instpection 01
+        codeSnip: "17  import org.springframework.transaction.annotation.EnableTransactionManagement;\n18  \n19  import io.konveyor.demo.config.ApplicationConfiguration;\n20  \n21  @Configuration\n22  @EnableJpaRepositories(basePackages = {\n23          \"io.konveyor.demo.ordermanagement.repository\"\n24  })\n25  @EnableTransactionManagement\n26  @EnableSpringDataWebSupport\n27  public class PersistenceConfig {\n28  \n29      \n30  \t@Bean\n31      public LocalContainerEntityManagerFactoryBean entityManagerFactory() {\n32          final LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();\n33          em.setDataSource(dataSource());\n34          em.setPackagesToScan(\"io.konveyor.demo.ordermanagement.model\");\n35          em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());\n36          em.setJpaProperties(additionalProperties());\n37  "
+        lineNumber: 27
+        variables:
+          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+          kind: Class
+          name: PersistenceConfig
+          package: io.konveyor.demo.ordermanagement.config
+    java-annotation-inspection-02:
+      description: |
+        This rule looks for a given method annotated with a given annotation
+      category: mandatory
+      incidents:
+      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+        message: Annotation instpection 02
+        codeSnip: "46          dataSource.setUrl(config.getProperty(\"jdbc.url\"));\n47          dataSource.setUsername(config.getProperty(\"jdbc.user\"));\n48          dataSource.setPassword(config.getProperty(\"jdbc.password\"));\n49  \n50          return dataSource;\n51      }\n52  \n53      @Bean\n54      public PlatformTransactionManager transactionManager() {\n55          final JpaTransactionManager transactionManager = new JpaTransactionManager();\n56          transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());\n57          return transactionManager;\n58      }\n59  \n60      @Bean\n61      public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {\n62          return new PersistenceExceptionTranslationPostProcessor();\n63      }\n64  \n65      final Properties additionalProperties() {\n66      \tApplicationConfiguration config = new ApplicationConfiguration();"
+        lineNumber: 56
+        variables:
+          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+          kind: Method
+          name: transactionManager
+          package: io.konveyor.demo.ordermanagement.config
+    java-annotation-inspection-03:
+      description: |
+        This rule looks for a given field annotated with a given annotation
+      category: mandatory
+      incidents:
+      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
+        message: Annotation instpection 03
+        codeSnip: "11  import org.springframework.web.bind.annotation.GetMapping;\n12  import org.springframework.web.bind.annotation.PathVariable;\n13  import org.springframework.web.bind.annotation.RequestMapping;\n14  import org.springframework.web.bind.annotation.RestController;\n15  \n16  @RestController\n17  @RequestMapping(\"/customers\")\n18  public class CustomerController {\n19  \t\n20  \t@Autowired\n21  \tprivate CustomerService customerService;\n22  \t\n23  \tprivate static Logger logger = Logger.getLogger( CustomerController.class.getName() );\n24  \t\n25  \t@GetMapping(value = \"/{id}\", produces = MediaType.APPLICATION_JSON_VALUE)\n26      public Customer getById(@PathVariable(\"id\") Long id) {\n27  \t\tCustomer c = customerService.findById(id);\n28  \t\tif (c == null) {\n29  \t\t\tthrow new ResourceNotFoundException(\"Requested order doesn't exist\");\n30  \t\t}\n31  \t\tlogger.debug(\"Returning element: \" + c);"
+        lineNumber: 21
+        variables:
+          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
+          kind: Field
+          name: customerService
+          package: io.konveyor.demo.ordermanagement.controller
     java-downloaded-maven-artifact:
       description: |
         This rule tests the application downloaded from maven artifact
