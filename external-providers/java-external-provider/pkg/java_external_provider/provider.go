@@ -86,15 +86,6 @@ type javaCondition struct {
 	Referenced referenceCondition `yaml:"referenced"`
 }
 
-// java.referenced:
-//   pattern: org.pepito.MiClase
-//   location: FIELD_DECLARATION
-//   annotated:
-//     pattern: org.home.MyAnnotation
-//     elements:
-//       - name: url
-//         value: ...
-
 type referenceCondition struct {
 	Pattern   string    `yaml:"pattern"`
 	Location  string    `yaml:"location"`
