@@ -211,13 +211,15 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	if !r.Successful {
 		return nil, provider.InitConfig{}, fmt.Errorf(r.Error)
 	}
+	additionalBuiltinConfig := provider.InitConfig{}
+	if r.BuiltinConfig != nil {
+		additionalBuiltinConfig.Location = r.BuiltinConfig.Location
+	}
 	return &grpcServiceClient{
-			id:     r.Id,
-			config: config,
-			client: g.Client,
-		}, provider.InitConfig{
-			Location: r.BuiltinConfig.Location,
-		}, nil
+		id:     r.Id,
+		config: config,
+		client: g.Client,
+	}, additionalBuiltinConfig, nil
 }
 
 func (g *grpcProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {

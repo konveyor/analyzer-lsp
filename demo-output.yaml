@@ -533,6 +533,21 @@
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
           package: com.example.apps
       effort: 1
+    lang-ref-004:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
+        message: found generic call
+        codeSnip: " 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
+        lineNumber: 18
+        variables:
+          VariableName: element
+          file: file:///examples/java/example/src/main/java/com/example/apps/App.java
+          kind: Method
+          name: main
+          package: com.example.apps
+      effort: 1
     maven-javax-to-jakarta-00002:
       description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
       category: potential
@@ -1134,5 +1149,4 @@
   unmatched:
   - file-002
   - lang-ref-002
-  - lang-ref-004
   - python-sample-rule-003

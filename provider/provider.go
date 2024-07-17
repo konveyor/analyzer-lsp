@@ -157,12 +157,8 @@ func GetConfig(filepath string) ([]Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	foundBuiltin := false
 	for idx := range configs {
 		c := &configs[idx]
-		if c.Name == builtinConfig.Name {
-			foundBuiltin = true
-		}
 		// default to system-wide proxy
 		if c.Proxy == nil {
 			c.Proxy = (*Proxy)(httpproxy.FromEnvironment())
@@ -181,9 +177,6 @@ func GetConfig(filepath string) ([]Config, error) {
 			ic.ProviderSpecificConfig = newConfig
 
 		}
-	}
-	if !foundBuiltin {
-		configs = append(configs, builtinConfig)
 	}
 
 	// Validate provider names for duplicate providers.

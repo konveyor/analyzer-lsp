@@ -396,8 +396,8 @@ func Test_GetConfigs(t *testing.T) {
 				return
 			}
 			// This is true because of the builtin config that will be added if not there
-			if len(config) != 2 {
-				t.Fatalf("got config longer than one: %v", len(config))
+			if len(config) != 1 {
+				t.Fatalf("got config not equal to one: %v", len(config))
 			}
 			c := config[0]
 			if len(c.InitConfig) != 1 {
