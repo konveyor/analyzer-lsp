@@ -318,12 +318,14 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 		}
 		javaFileAbsolutePath = filepath.Join(filepath.Dir(sourcesFile), filepath.Dir(path), javaFileName)
 
-		cmd := exec.Command("jar", "xf", filepath.Base(sourcesFile))
-		cmd.Dir = filepath.Dir(sourcesFile)
-		err = cmd.Run()
-		if err != nil {
-			fmt.Printf("\n java error%v", err)
-			return "", "", err
+		if _, err := os.Stat(filepath.Dir(javaFileAbsolutePath)); err != nil {
+			cmd := exec.Command("jar", "xf", filepath.Base(sourcesFile))
+			cmd.Dir = filepath.Dir(sourcesFile)
+			err = cmd.Run()
+			if err != nil {
+				fmt.Printf("\n java error%v", err)
+				return "", "", err
+			}
 		}
 	}
 
