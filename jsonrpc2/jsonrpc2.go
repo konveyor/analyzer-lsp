@@ -159,6 +159,9 @@ func (c *Conn) Call(ctx context.Context, method string, params, result interface
 		}
 		// is it an error response?
 		if response.Error != nil {
+			if IsOOMError(response.Error) {
+				return fmt.Errorf("out of memory error, query is too broad or we need more resources")
+			}
 			return response.Error
 		}
 		if result == nil || response.Result == nil {

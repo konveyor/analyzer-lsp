@@ -46,7 +46,7 @@ const (
 // Rule Location to location that the bundle understands
 var locationToCode = map[string]int{
 	//Type is the default.
-	"":                 10,
+	"":                 0,
 	"inheritance":      1,
 	"method_call":      2,
 	"constructor_call": 3,
