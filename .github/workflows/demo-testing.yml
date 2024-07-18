@@ -3,9 +3,9 @@ name: Demo Testing
 on: ["push", "pull_request"]
 
 env:
-  IMG_JAVA_PROVIDER: quay.io/konveyor/java-external-provider:latest
-  IMG_DOTNET_PROVIDER: quay.io/konveyor/dotnet-external-provider:latest
-  IMG_GENERIC_PROVIDER: quay.io/konveyor/generic-external-provider:latest
+  IMG_JAVA_PROVIDER: ttl.sh/konveyor-java-external-provider:2hr
+  IMG_DOTNET_PROVIDER: ttl.sh/konveyor-dotnet-external-provider:2h
+  IMG_GENERIC_PROVIDER: ttl.sh/konveyor-generic-external-provider:2h
 
 jobs:
   test:
@@ -101,29 +101,31 @@ jobs:
         with:
           fetch-depth: 0
           repository: konveyor/tackle2-addon-analyzer
-          ref: ${{ steps.extract-info.outputs.ADDON_REF }}
+          ref: refs/pull/97/merge
           path: tackle2-addon-analyzer
 
-      - name: Build addon and save image
+      - name: Build addon and push images
         working-directory: tackle2-addon-analyzer
         run: |
-          IMG=quay.io/konveyor/tackle2-addon-analyzer:latest make image-podman
-          podman save -o /tmp/tackle2-addon-analyzer.tar \
-            quay.io/konveyor/tackle2-addon-analyzer:latest \
-            $IMG_JAVA_PROVIDER \
-            $IMG_GENERIC_PROVIDER \
-            $IMG_DOTNET_PROVIDER
-
-      - name: Upload image as artifact
-        uses: actions/upload-artifact@v3
+          IMG=ttl.sh/konveyor-tackle2-addon-analyzer:2h make image-podman
+          podman push ttl.sh/konveyor-tackle2-addon-analyzer:2h
+          podman push $IMG_JAVA_PROVIDER
+          podman push $IMG_DOTNET_PROVIDER
+          podman push $IMG_GENERIC_PROVIDER
+      
+      - name: Make bundle image
+        uses: konveyor/operator/.github/actions/make-bundle@main
         with:
-          name: tackle2-addon-analyzer
-          path: /tmp/tackle2-addon-analyzer.tar
-          retention-days: 1
-
+          operator_bundle: ttl.sh/konveyor-operator-bundle-shawn-test:2h
+          addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer:2h
+          provider_generic: ${{ env.IMG_GENERIC_PROVIDER }}
+          provider_java: ${{ env.IMG_JAVA_PROVIDER}}
+      - name: push bundle image 
+        run: |
+          podman push ttl.sh/konveyor-operator-bundle-shawn-test:2h
   e2e:
     needs: test
-    uses: konveyor/ci/.github/workflows/global-ci.yml@main
+    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
-      component_name: tackle2-addon-analyzer
+      operator_bundle: ttl.sh/konveyor-operator-bundle-shawn-test:2h
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"

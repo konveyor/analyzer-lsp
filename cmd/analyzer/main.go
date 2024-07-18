@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -127,10 +128,41 @@ func AnalysisCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			providers := map[string]provider.InternalProviderClient{}
-			builtinConfigs := []provider.InitConfig{}
-			providerLocations := []string{}
+			// we add builtin configs by default for all locations
+			defaultBuiltinConfigs := []provider.InitConfig{}
+			seenBuiltinConfigs := map[string]bool{}
+			finalConfigs := []provider.Config{}
 			for _, config := range configs {
+				if config.Name != "builtin" {
+					finalConfigs = append(finalConfigs, config)
+				}
+				for _, initConf := range config.InitConfig {
+					if _, ok := seenBuiltinConfigs[initConf.Location]; !ok {
+						if initConf.Location != "" {
+							if stat, err := os.Stat(initConf.Location); err == nil && stat.IsDir() {
+								builtinLocation, err := filepath.Abs(initConf.Location)
+								if err != nil {
+									builtinLocation = initConf.Location
+								}
+								seenBuiltinConfigs[builtinLocation] = true
+								builtinConf := provider.InitConfig{Location: builtinLocation}
+								if config.Name == "builtin" {
+									builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
+								}
+								defaultBuiltinConfigs = append(defaultBuiltinConfigs, builtinConf)
+							}
+						}
+					}
+				}
+			}
+			finalConfigs = append(finalConfigs, provider.Config{
+				Name:       "builtin",
+				InitConfig: defaultBuiltinConfigs,
+			})
+
+			providers := map[string]provider.InternalProviderClient{}
+			providerLocations := []string{}
+			for _, config := range finalConfigs {
 				config.ContextLines = contextLines
 				for _, ind := range config.InitConfig {
 					providerLocations = append(providerLocations, ind.Location)
@@ -141,9 +173,6 @@ func AnalysisCmd() *cobra.Command {
 					for _, i := range config.InitConfig {
 						i.AnalysisMode = provider.AnalysisMode(analysisMode)
 						inits = append(inits, i)
-						builtinConfigs = append(builtinConfigs, provider.InitConfig{
-							Location: i.Location,
-						})
 					}
 					config.InitConfig = inits
 				}
@@ -208,6 +237,7 @@ func AnalysisCmd() *cobra.Command {
 				}
 			}
 			// Now that we have all the providers, we need to start them.
+			additionalBuiltinConfigs := []provider.InitConfig{}
 			for name, provider := range needProviders {
 				switch name {
 				// other providers can return additional configs for the builtin provider
@@ -223,14 +253,14 @@ func AnalysisCmd() *cobra.Command {
 						os.Exit(1)
 					}
 					if additionalBuiltinConfs != nil {
-						builtinConfigs = append(builtinConfigs, additionalBuiltinConfs...)
+						additionalBuiltinConfigs = append(additionalBuiltinConfigs, additionalBuiltinConfs...)
 					}
 					initSpan.End()
 				}
 			}
 
 			if builtinClient, ok := needProviders["builtin"]; ok {
-				if _, err = builtinClient.ProviderInit(ctx, builtinConfigs); err != nil {
+				if _, err = builtinClient.ProviderInit(ctx, additionalBuiltinConfigs); err != nil {
 					errLog.Error(err, "unable to init builtin provider")
 					os.Exit(1)
 				}
