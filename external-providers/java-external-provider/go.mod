@@ -44,5 +44,3 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.33.1-0.20240408130810-98873a205002 // indirect
 )
-
-replace github.com/konveyor/analyzer-lsp => ../../
