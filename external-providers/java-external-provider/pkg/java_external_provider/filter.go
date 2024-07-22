@@ -2,7 +2,6 @@ package java
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -63,22 +62,6 @@ func (p *javaServiceClient) filterTypesInheritance(symbols []protocol.WorkspaceS
 	return incidents, nil
 }
 
-func (p *javaServiceClient) filterTypeReferences(ctx context.Context, symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
-	incidents := []provider.IncidentContext{}
-	for _, symbol := range symbols {
-		references := p.GetAllReferences(ctx, symbol)
-
-		for _, ref := range references {
-			incident, err := p.convertSymbolRefToIncidentContext(symbol, ref)
-			if err != nil {
-				return nil, err
-			}
-			incidents = append(incidents, incident)
-		}
-	}
-	return incidents, nil
-}
-
 func (p *javaServiceClient) filterDefault(symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
 	incidents := []provider.IncidentContext{}
 	for _, symbol := range symbols {
@@ -106,22 +89,6 @@ func (p *javaServiceClient) filterMethodSymbols(symbols []protocol.WorkspaceSymb
 	}
 	return incidents, nil
 
-}
-
-func (p *javaServiceClient) filterConstructorSymbols(ctx context.Context, symbols []protocol.WorkspaceSymbol) ([]provider.IncidentContext, error) {
-
-	incidents := []provider.IncidentContext{}
-	for _, symbol := range symbols {
-		references := p.GetAllReferences(ctx, symbol)
-		for _, ref := range references {
-			incident, err := p.convertSymbolRefToIncidentContext(symbol, ref)
-			if err != nil {
-				return nil, err
-			}
-			incidents = append(incidents, incident)
-		}
-	}
-	return incidents, nil
 }
 
 func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSymbol) (provider.IncidentContext, error) {
@@ -177,48 +144,6 @@ func (p *javaServiceClient) convertToIncidentContext(symbol protocol.WorkspaceSy
 	return incident, nil
 }
 
-func (p *javaServiceClient) convertSymbolRefToIncidentContext(symbol protocol.WorkspaceSymbol, ref protocol.Location) (provider.IncidentContext, error) {
-	n, u, err := p.getURI(ref.URI)
-	if err != nil {
-		return provider.IncidentContext{}, err
-	}
-
-	incident := provider.IncidentContext{
-		FileURI: u,
-		Variables: map[string]interface{}{
-			KIND_EXTRA_KEY:  symbolKindToString(symbol.Kind),
-			SYMBOL_NAME_KEY: symbol.Name,
-			FILE_KEY:        string(u),
-			"package":       n,
-		},
-	}
-
-	// based on original URI we got, we can tell if this incident appeared in a dep
-	if strings.HasPrefix(ref.URI, JDT_CLASS_FILE_URI_PREFIX) {
-		incident.IsDependencyIncident = true
-	}
-
-	if ref.Range.Start.Line == 0 && ref.Range.Start.Character == 0 && ref.Range.End.Line == 0 && ref.Range.End.Character == 0 {
-		return incident, nil
-	}
-
-	incident.CodeLocation = &provider.Location{
-		StartPosition: provider.Position{
-			Line:      float64(ref.Range.Start.Line),
-			Character: float64(ref.Range.Start.Character),
-		},
-		EndPosition: provider.Position{
-			Line:      float64(ref.Range.End.Line),
-			Character: float64(ref.Range.End.Character),
-		},
-	}
-	lineNumber := int(ref.Range.Start.Line) + 1
-	incident.LineNumber = &lineNumber
-
-	return incident, nil
-
-}
-
 func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 	if !strings.HasPrefix(refURI, JDT_CLASS_FILE_URI_PREFIX) {
 		u, err := uri.Parse(refURI)
@@ -226,11 +151,11 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 			return "", uri.URI(""), err
 		}
 		file, err := os.Open(u.Filename())
-		defer file.Close()
 		if err != nil {
 			p.log.V(4).Info("unable to get package name", "err", err)
 			return "", u, nil
 		}
+		defer file.Close()
 		scanner := bufio.NewScanner(file)
 		name := ""
 		for scanner.Scan() {
@@ -304,9 +229,6 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 			}
 			if !d.IsDir() && d.Name() == jarFile {
 				sourcesFile = path
-				if err != nil {
-					return fmt.Errorf("found error traversing files: %w", err)
-				}
 				return nil
 			}
 			return nil
@@ -331,11 +253,11 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 
 	ui := uri.New(javaFileAbsolutePath)
 	file, err := os.Open(ui.Filename())
-	defer file.Close()
 	if err != nil {
 		p.log.V(4).Info("unable to get package name", "err", err)
 		return "", ui, nil
 	}
+	defer file.Close()
 	n := ""
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {

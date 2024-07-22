@@ -2,6 +2,7 @@ package java
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,7 +28,7 @@ func TestRenderPom(t *testing.T) {
 	}
 
 	// Call the function with the temporary directory and sample dependencies
-	err := createJavaProject(nil, tmpDir, dependencies)
+	err := createJavaProject(context.Background(), tmpDir, dependencies)
 	if err != nil {
 		t.Fatalf("createJavaProject returned an error: %v", err)
 	}

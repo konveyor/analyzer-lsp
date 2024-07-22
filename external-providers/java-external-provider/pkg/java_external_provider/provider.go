@@ -279,6 +279,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 				fmt.Sprintf("%s.%s", strings.Join(mvnCoordinatesParts[1:3], "-"), strings.ToLower(mvnCoordinatesParts[3])))
 		}
 		if _, err := os.Stat(downloadedPath); err != nil {
+			cancelFunc()
 			return nil, fmt.Errorf("failed to download maven artifact to path %s - %w", downloadedPath, err)
 		}
 		config.Location = downloadedPath
@@ -389,6 +390,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	svcClient.initialization(ctx)
 	err = svcClient.depInit()
 	if err != nil {
+		cancelFunc()
 		return nil, err
 	}
 	// Will only set up log follow one time
@@ -416,7 +418,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	return &svcClient, returnErr
 }
 
-func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, location string, mvnSettings string, svc *javaServiceClient) error {
+func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, location string, _ string, svc *javaServiceClient) error {
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
 
