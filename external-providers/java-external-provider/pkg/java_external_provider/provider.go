@@ -60,6 +60,7 @@ var locationToCode = map[string]int{
 	"type":                 10,
 	"package":              11,
 	"field":                12,
+	"method":               13,
 }
 
 type javaProvider struct {
@@ -86,8 +87,19 @@ type javaCondition struct {
 }
 
 type referenceCondition struct {
-	Pattern  string `yaml:"pattern"`
-	Location string `yaml:"location"`
+	Pattern   string    `yaml:"pattern"`
+	Location  string    `yaml:"location"`
+	Annotated annotated `yaml:"annotated,omitempty" json:"annotated,omitempty"`
+}
+
+type annotated struct {
+	Pattern  string    `yaml:"pattern" json:"pattern"`
+	Elements []element `yaml:"elements,omitempty" json:"elements,omitempty"`
+}
+
+type element struct {
+	Name  string `yaml:"name" json:"name"`
+	Value string `yaml:"value" json:"value"` // can be a (java) regex pattern
 }
 
 func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int) *javaProvider {
@@ -296,6 +308,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		"-Djava.net.useSystemProxies=true",
 		"-configuration",
 		"./",
+		//"--jvm-arg=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:1044",
 		"-data",
 		workspace,
 	}
