@@ -604,7 +604,7 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 	}, nil
 }
 
-func (r *ruleEngine) getCodeLocation(ctx context.Context, m IncidentContext, rule Rule) (codeSnip string, err error) {
+func (r *ruleEngine) getCodeLocation(_ context.Context, m IncidentContext, rule Rule) (codeSnip string, err error) {
 	if m.CodeLocation == nil {
 		r.logger.V(6).Info("unable to get the code snip", "URI", m.FileURI)
 		return "", nil

@@ -117,7 +117,7 @@ func init() {
 	namesTextDocumentSaveReason[int(FocusOut)] = "FocusOut"
 }
 
-func formatEnum(f fmt.State, c rune, i int, names []string, unknown string) {
+func formatEnum(f fmt.State, _ rune, i int, names []string, unknown string) {
 	s := ""
 	if i >= 0 && i < len(names) {
 		s = names[i]
