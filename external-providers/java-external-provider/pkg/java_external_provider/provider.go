@@ -658,8 +658,6 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, location, 
 		return err
 	}
 
-	log.WithValues("output", mvnOutput).Info("got maven output")
-
 	reader := bytes.NewReader(mvnOutput)
 	artifacts, err := parseUnresolvedSources(reader)
 	if err != nil {
