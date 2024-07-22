@@ -763,16 +763,16 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 
 		fullCondition, ok := value.(map[interface{}]interface{})
 		if !ok {
-			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+			return nil, nil, fmt.Errorf("unable to parse dependency condition for %s", langProvider)
 		}
 		for k, v := range fullCondition {
 			key, ok := k.(string)
 			if !ok {
-				return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+				return nil, nil, fmt.Errorf("unable to parse dependency condition for %s", langProvider)
 			}
 			value, ok := v.(string)
 			if !ok {
-				return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s", langProvider)
+				return nil, nil, fmt.Errorf("unable to parse dependency condition for %s", langProvider)
 			}
 			switch key {
 			case "name":
@@ -792,11 +792,11 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 
 		}
 		if depCondition.Name == "" {
-			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (name is required)", langProvider)
+			return nil, nil, fmt.Errorf("unable to parse dependency condition for %s (name is required)", langProvider)
 		}
 
 		if depCondition.Upperbound == "" && depCondition.Lowerbound == "" {
-			return nil, nil, fmt.Errorf("Unable to parse dependency condition for %s (one of upperbound or lowerbound is required)", langProvider)
+			return nil, nil, fmt.Errorf("unable to parse dependency condition for %s (one of upperbound or lowerbound is required)", langProvider)
 		}
 
 		return &depCondition, client, nil

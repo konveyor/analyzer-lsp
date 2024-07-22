@@ -287,7 +287,7 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	}
 }
 
-func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+func (p *javaServiceClient) getDependenciesForMaven(_ context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	localRepoPath := getMavenLocalRepoPath(p.mvnSettingsFile)
 
 	path := p.findPom()
@@ -338,7 +338,7 @@ func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[ur
 
 // getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
 // TODO: what if no wrapper?
-func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+func (p *javaServiceClient) getDependenciesForGradle(_ context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	subprojects, err := p.getGradleSubprojects()
 	if err != nil {
 		return nil, err

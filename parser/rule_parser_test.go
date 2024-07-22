@@ -823,7 +823,7 @@ func TestLoadRules(t *testing.T) {
 				t.Errorf("Got err: %v expected: should have error: %v or message: %v", err, tc.ShouldErr, tc.ErrorMessage)
 				return
 			}
-			if err == nil && tc.ShouldErr {
+			if tc.ShouldErr {
 				t.Errorf("expected error but not none")
 				return
 			}

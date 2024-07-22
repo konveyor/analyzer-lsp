@@ -12,10 +12,6 @@ import (
 
 const TAGS_FILE_INIT_OPTION = "tagsFile"
 
-var (
-	filePathsDescription = "file pattern to search"
-)
-
 var capabilities = []provider.Capability{}
 
 type builtinCondition struct {
@@ -57,7 +53,6 @@ type jsonCondition struct {
 }
 
 type builtinProvider struct {
-	ctx context.Context
 	log logr.Logger
 
 	config provider.Config
@@ -185,5 +180,4 @@ func (p *builtinProvider) Evaluate(ctx context.Context, cap string, conditionInf
 }
 
 func (p *builtinProvider) Stop() {
-	return
 }

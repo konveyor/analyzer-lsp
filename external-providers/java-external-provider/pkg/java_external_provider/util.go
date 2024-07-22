@@ -20,8 +20,6 @@ import (
 	"text/template"
 
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/engine/labels"
-	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -74,20 +72,6 @@ type alwaysDecompileFilter bool
 
 func (a alwaysDecompileFilter) shouldDecompile(j javaArtifact) bool {
 	return bool(a)
-}
-
-type excludeOpenSourceDecompileFilter map[string]*depLabelItem
-
-func (o excludeOpenSourceDecompileFilter) shouldDecompile(j javaArtifact) bool {
-	matchWith := fmt.Sprintf("%s.%s", j.GroupId, j.ArtifactId)
-	for _, r := range o {
-		if r.r.MatchString(matchWith) {
-			if _, ok := r.labels[labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource)]; ok {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 type decompileJob struct {
@@ -414,7 +398,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 	return destDir, decompileJobs, dependencies, nil
 }
 
-func createJavaProject(ctx context.Context, dir string, dependencies []javaArtifact) error {
+func createJavaProject(_ context.Context, dir string, dependencies []javaArtifact) error {
 	tmpl := template.Must(template.New("javaProjectPom").Parse(javaProjectPom))
 
 	err := os.MkdirAll(filepath.Join(dir, "src", "main", "java"), 0755)
@@ -491,7 +475,7 @@ func AppendToFile(src string, dst string) error {
 }
 
 // toDependency returns javaArtifact constructed for a jar
-func toDependency(ctx context.Context, jarFile string) (javaArtifact, error) {
+func toDependency(_ context.Context, jarFile string) (javaArtifact, error) {
 	// attempt to lookup java artifact in maven
 	dep, err := constructArtifactFromSHA(jarFile)
 	if err == nil {
@@ -612,7 +596,7 @@ func constructArtifactFromSHA(jarFile string) (javaArtifact, error) {
 	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
 }
 
-func toFilePathDependency(ctx context.Context, filePath string) (javaArtifact, error) {
+func toFilePathDependency(_ context.Context, filePath string) (javaArtifact, error) {
 	dep := javaArtifact{}
 	// Move up one level to the artifact. we are assuming that we get the full class file here.
 	// For instance the dir /org/springframework/boot/loader/jar/Something.class.

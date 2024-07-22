@@ -72,7 +72,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	case 2:
 		incidents, err = p.filterMethodSymbols(symbols)
 	case 3:
-		incidents, err = p.filterConstructorSymbols(ctx, symbols)
+		incidents, err = p.filterDefault(symbols)
 	case 4:
 		incidents, err = p.filterDefault(symbols)
 	case 7:

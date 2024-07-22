@@ -524,7 +524,6 @@ func Test_parseMavenDepLines(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			lines := strings.Split(tt.mavenOutput, "\n")
-			deps := []provider.DepDAGItem{}
 			var err error
 			p := javaServiceClient{
 				log:         testr.New(t),
@@ -540,6 +539,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 			}
 			// we are not testing dep init here, so ignore error
 			p.depInit()
+			var deps []provider.DepDAGItem
 			if deps, err = p.parseMavenDepLines(lines[1:], "testdata", "pom.xml"); (err != nil) != tt.wantErr {
 				t.Errorf("parseMavenDepLines() error = %v, wantErr %v", err, tt.wantErr)
 			}

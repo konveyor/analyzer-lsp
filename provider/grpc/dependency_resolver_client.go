@@ -35,6 +35,10 @@ func (d *dependencyLocationResolverClient) GetLocation(ctx context.Context, dep 
 		},
 		DepFile: depFile,
 	})
+	if err != nil {
+		// Igonore the error so that some failures just continue processing
+		return engine.Location{}, nil
+	}
 	if res == nil || res.Location == nil {
 		return engine.Location{}, nil
 	}
