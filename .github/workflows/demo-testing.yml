@@ -126,4 +126,4 @@ jobs:
     uses: konveyor/ci/.github/workflows/global-ci.yml@main
     with:
       component_name: tackle2-addon-analyzer
-      api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"
+      api_tests_ref: refs/pull/164/merge
