@@ -259,7 +259,9 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 		if err != nil {
 			return nil, nil, err
 		}
-		conn, err := grpc.Dial(fmt.Sprintf("localhost:%v", port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(fmt.Sprintf("localhost:%v", port),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
+			grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("did not connect: %v", err)
 		}
@@ -267,7 +269,9 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 	}
 	if config.Address != "" {
 		if config.CertPath == "" {
-			conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			conn, err := grpc.Dial(fmt.Sprintf(config.Address),
+				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
+				grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				log.Fatalf("did not connect: %v", err)
 			}
@@ -278,7 +282,9 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 				return nil, nil, err
 			}
 			if config.JWTToken == "" {
-				conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(creds))
+				conn, err := grpc.Dial(fmt.Sprintf(config.Address),
+					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
+					grpc.WithTransportCredentials(creds))
 				if err != nil {
 					log.Fatalf("did not connect: %v", err)
 				}
@@ -288,7 +294,9 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 				i := &jwtTokeInterceptor{
 					Token: config.JWTToken,
 				}
-				conn, err := grpc.Dial(fmt.Sprintf(config.Address), grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
+				conn, err := grpc.Dial(fmt.Sprintf(config.Address),
+					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
+					grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
 				if err != nil {
 					log.Fatalf("did not connect: %v", err)
 				}
