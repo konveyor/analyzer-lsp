@@ -27,6 +27,7 @@ import (
 
 const (
 	JWT_SECRET_ENV_VAR = "JWT_SECRET"
+	MAX_MESSAGE_SIZE   = 1024 * 1024 * 8
 )
 
 type Server interface {
@@ -116,7 +117,7 @@ func (s *server) Start(ctx context.Context) error {
 			gs = grpc.NewServer(grpc.Creds(creds))
 		}
 	} else if s.CertPath == "" && s.KeyPath == "" {
-		gs = grpc.NewServer()
+		gs = grpc.NewServer(grpc.MaxRecvMsgSize(MAX_MESSAGE_SIZE), grpc.MaxSendMsgSize(MAX_MESSAGE_SIZE))
 	} else {
 		return fmt.Errorf("cert: %v, and key: %v are invalid", s.CertPath, s.KeyPath)
 	}
