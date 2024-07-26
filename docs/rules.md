@@ -165,28 +165,29 @@ when:
 
 Depending on the _provider_ and the _capability_, there will be different `<fields>` in the condition. Following table summarizes available providers, their capabilities and all of their fields:
 
-| Provider | Capability  | Fields     | Required | Description                                                   |
-|----------|-------------|------------|----------|---------------------------------------------------------------|
-| java     | referenced  | pattern    | Yes      | Regex pattern                                                 |
-|          |             | location   | No       | Source code location (See [Java Locations](#java-locations))  |
-|          | dependency  | name       | Yes      | Name of the dependency                                        |
-|          |             | nameregex  | No       | Regex pattern to match the name                               |
-|          |             | upperbound | No       | Match versions lower than or equal to                         |
-|          |             | lowerbound | No       | Match versions greater than or equal to                       |
-| builtin  | xml         | xpath      | Yes      | Xpath query                                                   |
-|          |             | namespaces | No       | A map to scope down query to namespaces                       |
-|          |             | filepaths  | No       | Optional list of files to scope down search                   |
-|          | json        | xpath      | Yes      | Xpath query                                                   |
-|          |             | filepaths  | No       | Optional list of files to scope down search                   |
-|          | filecontent | pattern    | Yes      | Regex pattern to match in content                             |
-|          |             | filePattern| No       | Only search in files with names matching this pattern         |
-|          | file        | pattern    | Yes      | Find files with names matching this pattern                   |
-|          | hasTags     |            |          | This is an inline list of string tags. See [Tag Action](#tag-action)|
-| go       | referenced  | pattern    | Yes      | Regex pattern                                                 |
-|          | dependency  | name       | Yes      | Name of the dependency                                        |
-|          |             | nameregex  | No       | Regex pattern to match the name                               |
-|          |             | upperbound | No       | Match versions lower than or equal to                         |
-|          |             | lowerbound | No       | Match versions greater than or equal to                       |
+| Provider | Capability  | Fields      | Required | Description                                                                                   |
+|----------|-------------|-------------|----------|-----------------------------------------------------------------------------------------------|
+| java     | referenced  | pattern     | Yes      | Regex pattern                                                                                 |
+|          |             | location    | No       | Source code location (see [Java Locations](#java-locations))                                  |
+|          |             | annotated   | No       | Additional query to inspect annotations (see [Annotation inspection](#annotation-inspection)) |
+|          | dependency  | name        | Yes      | Name of the dependency                                                                        |
+|          |             | nameregex   | No       | Regex pattern to match the name                                                               |
+|          |             | upperbound  | No       | Match versions lower than or equal to                                                         |
+|          |             | lowerbound  | No       | Match versions greater than or equal to                                                       |
+| builtin  | xml         | xpath       | Yes      | Xpath query                                                                                   |
+|          |             | namespaces  | No       | A map to scope down query to namespaces                                                       |
+|          |             | filepaths   | No       | Optional list of files to scope down search                                                   |
+|          | json        | xpath       | Yes      | Xpath query                                                                                   |
+|          |             | filepaths   | No       | Optional list of files to scope down search                                                   |
+|          | filecontent | pattern     | Yes      | Regex pattern to match in content                                                             |
+|          |             | filePattern | No       | Only search in files with names matching this pattern                                         |
+|          | file        | pattern     | Yes      | Find files with names matching this pattern                                                   |
+|          | hasTags     |             |          | This is an inline list of string tags. See [Tag Action](#tag-action)                          |
+| go       | referenced  | pattern     | Yes      | Regex pattern                                                                                 |
+|          | dependency  | name        | Yes      | Name of the dependency                                                                        |
+|          |             | nameregex   | No       | Regex pattern to match the name                                                               |
+|          |             | upperbound  | No       | Match versions lower than or equal to                                                         |
+|          |             | lowerbound  | No       | Match versions greater than or equal to                                                       |
 
 
 With the information above, we should be able to complete `java` condition we created earlier. We will search for references of a package:
@@ -196,6 +197,43 @@ when:
   java.referenced:
     location: PACKAGE
     pattern: org.jboss.*
+```
+
+##### Annotation inspection
+It is possible to add a query to match against specific annotations and their elements. For instance:
+
+```yaml
+when:
+  java.referenced:
+    location: METHOD
+    pattern: org.package.MyApplication.runApplication(java.lang.String)
+    annotated:
+      pattern: org.framework.Bean
+      elements:
+      - name: url
+        value: "http://www.example.com"
+```
+would match against the `runApplication` method in the following java code:
+```java
+package org.package
+
+import org.framework.Bean;
+
+class MyApplication {
+
+    @Bean(url = "http://www.example.com")
+    public String runApplication(String str) {
+        // ...
+    }
+}
+```
+The structure of the `annotated` YAML element is the following:
+```yaml
+annotated:
+  pattern: a Java regex to match the fully qualified name of the annotation (mandatory)
+  elements: an array of elements to match within the annotation (optional)
+  - name: the exact name of the element to match against
+    value: a Java regex to match the value of the element
 ```
 
 ##### Java Locations
@@ -212,6 +250,8 @@ The java provider allows scoping the search down to certain source code location
 * RETURN_TYPE
 * IMPORT
 * VARIABLE_DECLARATION
+* FIELD (declaration)
+* METHOD (declaration)
 
 
 ##### Custom Variables
