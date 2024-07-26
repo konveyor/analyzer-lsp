@@ -7,9 +7,10 @@ env:
   IMG_DOTNET_PROVIDER: quay.io/konveyor/dotnet-external-provider:latest
   IMG_GENERIC_PROVIDER: quay.io/konveyor/generic-external-provider:latest
 
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
     steps:
@@ -123,7 +124,7 @@ jobs:
 
   e2e:
     needs: test
-    uses: konveyor/ci/.github/workflows/global-ci.yml@main
+    uses: jmontleon/ci/.github/workflows/global-ci.yml@main
     with:
       component_name: tackle2-addon-analyzer
       api_tests_ref: refs/pull/164/merge
