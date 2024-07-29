@@ -44,7 +44,7 @@ USER root
 RUN microdnf -y install dotnet-sdk-7.0 go-toolset \
     && microdnf clean all \
     && rm -rf /var/cache/yum
-RUN dotnet tool install --global csharp-ls
+RUN dotnet tool install --global csharp-ls --version 0.11.0
 ENV PATH="$PATH:/opt/app-root/.dotnet/tools:/home/go/bin"
 USER default
 EXPOSE 3456
