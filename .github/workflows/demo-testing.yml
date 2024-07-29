@@ -2,11 +2,6 @@ name: Demo Testing
 
 on: ["push", "pull_request"]
 
-env:
-  IMG_JAVA_PROVIDER: ttl.sh/konveyor-java-external-provider:2hr
-  IMG_DOTNET_PROVIDER: ttl.sh/konveyor-dotnet-external-provider:2h
-  IMG_GENERIC_PROVIDER: ttl.sh/konveyor-generic-external-provider:2h
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,6 +13,10 @@ jobs:
         env:
           PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: |
+          echo "IMG_JAVA_PROVIDER=ttl.sh/konveyor-java-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
+          echo "IMG_DOTNET_PROVIDER=ttl.sh/konveyor-dotnet-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
+          echo "IMG_GENERIC_PROVIDER=ttl.sh/konveyor-generic-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
+
           echo "BUILD_BUNDLE=false" >> $GITHUB_OUTPUT
           # if this is a PR, we should use the base branch
           # else, use the branch on which this is running
@@ -68,9 +67,9 @@ jobs:
       - name: build images
         run: |
           make \
-            IMG_JAVA_PROVIDER=$IMG_JAVA_PROVIDER \
-            IMG_DOTNET_PROVIDER=$IMG_DOTNET_PROVIDER \
-            IMG_GENERIC_PROVIDER=$IMG_GENERIC_PROVIDER \
+            IMG_JAVA_PROVIDER=${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}\
+            IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
+            IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
             build-external
           podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 
@@ -78,9 +77,9 @@ jobs:
       - name: run demo image
         run : |
           make \
-            IMG_JAVA_PROVIDER=$IMG_JAVA_PROVIDER \
-            IMG_DOTNET_PROVIDER=$IMG_DOTNET_PROVIDER \
-            IMG_GENERIC_PROVIDER=$IMG_GENERIC_PROVIDER \
+            IMG_JAVA_PROVIDER=${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}\
+            IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
+            IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
             run-external-providers-pod
           podman build -f demo-local.Dockerfile -t localhost/testing:latest
           make run-demo-image
@@ -107,25 +106,25 @@ jobs:
       - name: Build addon and push images
         working-directory: tackle2-addon-analyzer
         run: |
-          IMG=ttl.sh/konveyor-tackle2-addon-analyzer:2h make image-podman
-          podman push ttl.sh/konveyor-tackle2-addon-analyzer:2h
-          podman push $IMG_JAVA_PROVIDER
-          podman push $IMG_DOTNET_PROVIDER
-          podman push $IMG_GENERIC_PROVIDER
+          IMG=ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h make image-podman
+          podman push ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h
+          podman push ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
+          podman push ${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}
+          podman push ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
       
       - name: Make bundle image
         uses: konveyor/operator/.github/actions/make-bundle@main
         with:
-          operator_bundle: ttl.sh/konveyor-operator-bundle-shawn-test:2h
-          addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer:2h
-          provider_generic: ${{ env.IMG_GENERIC_PROVIDER }}
-          provider_java: ${{ env.IMG_JAVA_PROVIDER}}
+          operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
+          addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
+          provider_generic: ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
+          provider_java: ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
       - name: push bundle image 
         run: |
-          podman push ttl.sh/konveyor-operator-bundle-shawn-test:2h
+          docker push ttl.sh/konveyor-operator-bundle-${GITHUB_SHA}:2h
   e2e:
     needs: test
     uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
-      operator_bundle: ttl.sh/konveyor-operator-bundle-shawn-test:2h
+      operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"
