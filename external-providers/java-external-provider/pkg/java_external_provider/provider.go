@@ -202,13 +202,17 @@ func symbolKindToString(symbolKind protocol.SymbolKind) string {
 	return ""
 }
 
-func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, error) {
+func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 	// By default, if nothing is set for analysis mode in the config, we should default to full for external providers
 	var mode provider.AnalysisMode = provider.AnalysisMode(config.AnalysisMode)
+	// in case of a binary, provider decompiles it and returns
+	// a builtin config that points to the decompiled archive
+	additionalBuiltinConfig := provider.InitConfig{}
+
 	if mode == provider.AnalysisMode("") {
 		mode = provider.FullAnalysisMode
 	} else if !(mode == provider.FullAnalysisMode || mode == provider.SourceOnlyAnalysisMode) {
-		return nil, fmt.Errorf("invalid Analysis Mode")
+		return nil, additionalBuiltinConfig, fmt.Errorf("invalid Analysis Mode")
 	}
 	log = log.WithValues("provider", "java")
 
@@ -231,7 +235,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 	lspServerPath, ok := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	if !ok || lspServerPath == "" {
-		return nil, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
+		return nil, additionalBuiltinConfig, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
 	}
 
 	isBinary := false
@@ -247,13 +251,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		mvnCoordinatesParts := strings.Split(mvnCoordinates, ":")
 		if mvnCoordinates == "" || len(mvnCoordinatesParts) < 3 {
 			cancelFunc()
-			return nil, fmt.Errorf("invalid maven coordinates in location %s, must be in format mvn://<group>:<artifact>:<version>:<classifier>@<path>", config.Location)
+			return nil, additionalBuiltinConfig, fmt.Errorf("invalid maven coordinates in location %s, must be in format mvn://<group>:<artifact>:<version>:<classifier>@<path>", config.Location)
 		}
 		outputDir := "."
 		if destPath != "" {
 			if stat, err := os.Stat(destPath); err != nil || !stat.IsDir() {
 				cancelFunc()
-				return nil, fmt.Errorf("output path does not exist or not a directory")
+				return nil, additionalBuiltinConfig, fmt.Errorf("output path does not exist or not a directory")
 			}
 			outputDir = destPath
 		}
@@ -270,7 +274,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		cmd.Dir = outputDir
 		if err := cmd.Run(); err != nil {
 			cancelFunc()
-			return nil, fmt.Errorf("error downloading java artifact %s - %w", mvnUri, err)
+			return nil, additionalBuiltinConfig, fmt.Errorf("error downloading java artifact %s - %w", mvnUri, err)
 		}
 		downloadedPath := filepath.Join(outputDir,
 			fmt.Sprintf("%s.jar", strings.Join(mvnCoordinatesParts[1:3], "-")))
@@ -280,7 +284,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 		if _, err := os.Stat(downloadedPath); err != nil {
 			cancelFunc()
-			return nil, fmt.Errorf("failed to download maven artifact to path %s - %w", downloadedPath, err)
+			return nil, additionalBuiltinConfig, fmt.Errorf("failed to download maven artifact to path %s - %w", downloadedPath, err)
 		}
 		config.Location = downloadedPath
 	}
@@ -292,13 +296,15 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			config.Location, getMavenLocalRepoPath(mavenSettingsFile))
 		if err != nil {
 			cancelFunc()
-			return nil, err
+			return nil, additionalBuiltinConfig, err
 		}
 		config.Location = sourceLocation
 		// for binaries, we fallback to looking at .jar files only for deps
 		config.DependencyPath = depLocation
 		isBinary = true
 	}
+	additionalBuiltinConfig.Location = config.Location
+	additionalBuiltinConfig.DependencyPath = config.DependencyPath
 
 	// handle proxy settings
 	for k, v := range config.Proxy.ToEnvVars() {
@@ -320,12 +326,12 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		cancelFunc()
-		return nil, err
+		return nil, additionalBuiltinConfig, err
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		cancelFunc()
-		return nil, err
+		return nil, additionalBuiltinConfig, err
 	}
 
 	go func() {
@@ -391,7 +397,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	err = svcClient.depInit()
 	if err != nil {
 		cancelFunc()
-		return nil, err
+		return nil, provider.InitConfig{}, err
 	}
 	// Will only set up log follow one time
 	// Will work in container image and hub, will not work
@@ -415,7 +421,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			}
 		}()
 	})
-	return &svcClient, returnErr
+	return &svcClient, additionalBuiltinConfig, returnErr
 }
 
 func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, location string, _ string, svc *javaServiceClient) error {

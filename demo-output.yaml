@@ -201,6 +201,14 @@
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+      - uri: file:///examples/java-project/pom.xml
+        message: <groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>
+        codeSnip: "11    <url>http://www.konveyor.io</url>\n12  \n13    <properties>\n14      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n15    </properties>\n16  \n17    <dependencies>\n18  \n19      <dependency>\n20        <groupId>io.javaoperatorsdk.operator</groupId>\n21        <artifactId>sample</artifactId>\n22        <version>0.0.0</version>\n23      </dependency>\n24  \n25    </dependencies>\n26  \n27    <build>\n28    </build>\n29  </project>\n"
+        lineNumber: 20
+        variables:
+          data: dependency
+          innerText: "\n      io.javaoperatorsdk.operator\n      sample\n      0.0.0\n    "
+          matchingXML: <groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>
       - uri: file:///examples/java/dummy/pom.xml
         message: |-
           <groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
@@ -781,6 +789,14 @@
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+      - uri: file:///examples/java-project/pom.xml
+        message: POM XML dependencies - '<groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>'
+        codeSnip: "11    <url>http://www.konveyor.io</url>\n12  \n13    <properties>\n14      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n15    </properties>\n16  \n17    <dependencies>\n18  \n19      <dependency>\n20        <groupId>io.javaoperatorsdk.operator</groupId>\n21        <artifactId>sample</artifactId>\n22        <version>0.0.0</version>\n23      </dependency>\n24  \n25    </dependencies>\n26  \n27    <build>\n28    </build>\n29  </project>\n"
+        lineNumber: 20
+        variables:
+          data: dependency
+          innerText: "\n      io.javaoperatorsdk.operator\n      sample\n      0.0.0\n    "
+          matchingXML: <groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>
       - uri: file:///examples/java/dummy/pom.xml
         message: |-
           POM XML dependencies - '<groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
@@ -960,21 +976,21 @@
       labels:
       - tag=Java Operator SDK
       incidents:
-      - uri: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
+      - uri: file:///examples/java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
         message: ""
         codeSnip: " 1  package io.javaoperatorsdk.operator.sample;\n 2  \n 3  import io.fabric8.kubernetes.client.KubernetesClient;\n 4  import io.javaoperatorsdk.operator.Operator;\n 5  import io.javaoperatorsdk.operator.api.config.ConfigurationService;\n 6  import io.javaoperatorsdk.operator.api.config.ControllerConfiguration;\n 7  import io.quarkus.runtime.Quarkus;\n 8  import io.quarkus.runtime.QuarkusApplication;\n 9  import io.quarkus.runtime.annotations.QuarkusMain;\n10  import javax.inject.Inject;\n11  \n12  @QuarkusMain\n13  public class QuarkusOperator implements QuarkusApplication {\n14     @Inject"
         lineNumber: 4
         variables:
-          file: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
+          file: file:///examples/java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
           kind: Module
           name: io.javaoperatorsdk.operator.Operator
           package: io.javaoperatorsdk.operator.sample
-      - uri: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
+      - uri: file:///examples/java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
         message: ""
         codeSnip: " 7  import io.quarkus.runtime.Quarkus;\n 8  import io.quarkus.runtime.QuarkusApplication;\n 9  import io.quarkus.runtime.annotations.QuarkusMain;\n10  import javax.inject.Inject;\n11  \n12  @QuarkusMain\n13  public class QuarkusOperator implements QuarkusApplication {\n14     @Inject\n15     KubernetesClient client;\n16     @Inject\n17     Operator operator;\n18     @Inject\n19     ConfigurationService configuration;\n20     @Inject\n21     CustomServiceController controller;\n22  \n23     public static void main(String... args) {\n24        Quarkus.run(QuarkusOperator.class, args);\n25     }\n26  \n27     public int run(String... args) throws Exception {"
         lineNumber: 17
         variables:
-          file: file:///java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
+          file: file:///examples/java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
           kind: Field
           name: operator
           package: io.javaoperatorsdk.operator.sample
@@ -1001,6 +1017,12 @@
       - tag=Java
       incidents:
       - uri: file:///examples/customers-tomcat-legacy/pom.xml
+        message: ""
+      - uri: file:///examples/gradle-multi-project-example/gradle/wrapper/gradle-wrapper.jar
+        message: ""
+      - uri: file:///examples/inclusion-tests/pom.xml
+        message: ""
+      - uri: file:///examples/java-project/pom.xml
         message: ""
       - uri: file:///examples/java/dummy/pom.xml
         message: ""

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -127,9 +128,41 @@ func AnalysisCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
+			// we add builtin configs by default for all locations
+			defaultBuiltinConfigs := []provider.InitConfig{}
+			seenBuiltinConfigs := map[string]bool{}
+			finalConfigs := []provider.Config{}
+			for _, config := range configs {
+				if config.Name != "builtin" {
+					finalConfigs = append(finalConfigs, config)
+				}
+				for _, initConf := range config.InitConfig {
+					if _, ok := seenBuiltinConfigs[initConf.Location]; !ok {
+						if initConf.Location != "" {
+							if stat, err := os.Stat(initConf.Location); err == nil && stat.IsDir() {
+								builtinLocation, err := filepath.Abs(initConf.Location)
+								if err != nil {
+									builtinLocation = initConf.Location
+								}
+								seenBuiltinConfigs[builtinLocation] = true
+								builtinConf := provider.InitConfig{Location: builtinLocation}
+								if config.Name == "builtin" {
+									builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
+								}
+								defaultBuiltinConfigs = append(defaultBuiltinConfigs, builtinConf)
+							}
+						}
+					}
+				}
+			}
+			finalConfigs = append(finalConfigs, provider.Config{
+				Name:       "builtin",
+				InitConfig: defaultBuiltinConfigs,
+			})
+
 			providers := map[string]provider.InternalProviderClient{}
 			providerLocations := []string{}
-			for _, config := range configs {
+			for _, config := range finalConfigs {
 				config.ContextLines = contextLines
 				for _, ind := range config.InitConfig {
 					providerLocations = append(providerLocations, ind.Location)
@@ -204,15 +237,33 @@ func AnalysisCmd() *cobra.Command {
 				}
 			}
 			// Now that we have all the providers, we need to start them.
+			additionalBuiltinConfigs := []provider.InitConfig{}
 			for name, provider := range needProviders {
-				initCtx, initSpan := tracing.StartNewSpan(ctx, "init",
-					attribute.Key("provider").String(name))
-				err := provider.ProviderInit(initCtx)
-				if err != nil {
-					errLog.Error(err, "unable to init the providers", "provider", name)
+				switch name {
+				// other providers can return additional configs for the builtin provider
+				// therefore, we initiate builtin provider separately at the end
+				case "builtin":
+					continue
+				default:
+					initCtx, initSpan := tracing.StartNewSpan(ctx, "init",
+						attribute.Key("provider").String(name))
+					additionalBuiltinConfs, err := provider.ProviderInit(initCtx, nil)
+					if err != nil {
+						errLog.Error(err, "unable to init the providers", "provider", name)
+						os.Exit(1)
+					}
+					if additionalBuiltinConfs != nil {
+						additionalBuiltinConfigs = append(additionalBuiltinConfigs, additionalBuiltinConfs...)
+					}
+					initSpan.End()
+				}
+			}
+
+			if builtinClient, ok := needProviders["builtin"]; ok {
+				if _, err = builtinClient.ProviderInit(ctx, additionalBuiltinConfigs); err != nil {
+					errLog.Error(err, "unable to init builtin provider")
 					os.Exit(1)
 				}
-				initSpan.End()
 			}
 
 			wg := &sync.WaitGroup{}

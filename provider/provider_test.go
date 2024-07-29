@@ -24,8 +24,8 @@ func (c *fakeClient) HasCapability(string) bool  { return true }
 func (c *fakeClient) Evaluate(context.Context, string, []byte) (ProviderEvaluateResponse, error) {
 	return ProviderEvaluateResponse{}, nil
 }
-func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClient, error) {
-	return nil, nil
+func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClient, InitConfig, error) {
+	return nil, InitConfig{}, nil
 }
 func (c *fakeClient) Stop() {}
 
@@ -396,8 +396,8 @@ func Test_GetConfigs(t *testing.T) {
 				return
 			}
 			// This is true because of the builtin config that will be added if not there
-			if len(config) != 2 {
-				t.Fatalf("got config longer than one: %v", len(config))
+			if len(config) != 1 {
+				t.Fatalf("got config not equal to one: %v", len(config))
 			}
 			c := config[0]
 			if len(c.InitConfig) != 1 {
