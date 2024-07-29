@@ -13,6 +13,10 @@ jobs:
         env:
           PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: |
+          echo "IMG_JAVA_PROVIDER=ttl.sh/konveyor-java-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
+          echo "IMG_DOTNET_PROVIDER=ttl.sh/konveyor-dotnet-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
+          echo "IMG_GENERIC_PROVIDER=ttl.sh/konveyor-generic-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
+
           echo "BUILD_BUNDLE=false" >> $GITHUB_OUTPUT
           # if this is a PR, we should use the base branch
           # else, use the branch on which this is running
@@ -62,13 +66,21 @@ jobs:
       # build all provider images and the analyzer-lsp image
       - name: build images
         run: |
-          make build-external
+          make \
+            IMG_JAVA_PROVIDER=${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}\
+            IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
+            IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
+            build-external
           podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 
       # run the demo in a podman pod
       - name: run demo image
         run : |
-          make run-external-providers-pod
+          make \
+            IMG_JAVA_PROVIDER=${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}\
+            IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
+            IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
+            run-external-providers-pod
           podman build -f demo-local.Dockerfile -t localhost/testing:latest
           make run-demo-image
       
@@ -88,25 +100,31 @@ jobs:
         with:
           fetch-depth: 0
           repository: konveyor/tackle2-addon-analyzer
-          ref: ${{ steps.extract-info.outputs.ADDON_REF }}
+          ref: refs/pull/97/merge
           path: tackle2-addon-analyzer
 
-      - name: Build addon and save image
+      - name: Build addon and push images
         working-directory: tackle2-addon-analyzer
         run: |
-          IMG=quay.io/konveyor/tackle2-addon-analyzer:latest make image-podman
-          podman save -o /tmp/tackle2-addon-analyzer.tar quay.io/konveyor/tackle2-addon-analyzer:latest
-
-      - name: Upload image as artifact
-        uses: actions/upload-artifact@v3
+          IMG=ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h make image-podman
+          podman push ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h
+          podman push ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
+          podman push ${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}
+          podman push ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
+      
+      - name: Make bundle image
+        uses: konveyor/operator/.github/actions/make-bundle@main
         with:
-          name: tackle2-addon-analyzer
-          path: /tmp/tackle2-addon-analyzer.tar
-          retention-days: 1
-
+          operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
+          addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
+          provider_generic: ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
+          provider_java: ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
+      - name: push bundle image 
+        run: |
+          docker push ttl.sh/konveyor-operator-bundle-${GITHUB_SHA}:2h
   e2e:
     needs: test
-    uses: konveyor/ci/.github/workflows/global-ci.yml@main
+    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
-      component_name: tackle2-addon-analyzer
+      operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"

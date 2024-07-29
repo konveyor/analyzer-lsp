@@ -157,12 +157,8 @@ func GetConfig(filepath string) ([]Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	foundBuiltin := false
 	for idx := range configs {
 		c := &configs[idx]
-		if c.Name == builtinConfig.Name {
-			foundBuiltin = true
-		}
 		// default to system-wide proxy
 		if c.Proxy == nil {
 			c.Proxy = (*Proxy)(httpproxy.FromEnvironment())
@@ -181,9 +177,6 @@ func GetConfig(filepath string) ([]Config, error) {
 			ic.ProviderSpecificConfig = newConfig
 
 		}
-	}
-	if !foundBuiltin {
-		configs = append(configs, builtinConfig)
 	}
 
 	// Validate provider names for duplicate providers.
@@ -400,9 +393,10 @@ func FullDepDAGResponse(ctx context.Context, clients []ServiceClient) (map[uri.U
 }
 
 // InternalInit interface is going to be used to init the full config of a provider.
-// used by the engine/analyzer to get a provider ready.
+// used by the engine/analyzer to get a provider ready. It takes additional init
+// configs that may be returned by other providers when they are initialized
 type InternalInit interface {
-	ProviderInit(context.Context) error
+	ProviderInit(context.Context, []InitConfig) ([]InitConfig, error)
 }
 
 type InternalProviderClient interface {
@@ -417,7 +411,8 @@ type Client interface {
 
 type BaseClient interface {
 	Capabilities() []Capability
-	Init(context.Context, logr.Logger, InitConfig) (ServiceClient, error)
+	// Init initiates and returns a service client along with additional init config for the builtin provider
+	Init(context.Context, logr.Logger, InitConfig) (ServiceClient, InitConfig, error)
 }
 
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries

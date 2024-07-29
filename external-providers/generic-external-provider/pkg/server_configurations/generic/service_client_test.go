@@ -67,7 +67,7 @@ func TestHopefullyNothingBroke(t *testing.T) {
 
 	goplsExamples := "file://" + filepath.Join(examplesDir, "/golang")
 
-	goplsSC, err := prov.Init(ctx, log, provider.InitConfig{
+	goplsSC, _, err := prov.Init(ctx, log, provider.InitConfig{
 		ProviderSpecificConfig: map[string]interface{}{
 			"lspServerName":    "generic",
 			"lspServerPath":    "gopls",
