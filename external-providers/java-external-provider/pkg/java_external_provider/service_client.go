@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
@@ -137,7 +138,9 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location s
 	}
 
 	var refs []protocol.WorkspaceSymbol
-	err := p.rpc.Call(ctx, "workspace/executeCommand", wsp, &refs)
+	// If it takes us 5min to complete a request, then we are in trouble
+	timeOutCtx, _ := context.WithTimeout(ctx, 5*time.Minute)
+	err := p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp, &refs)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
 			p.log.Error(err, "connection to the language server is closed, language server is not running")
