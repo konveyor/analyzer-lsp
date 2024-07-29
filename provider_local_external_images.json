@@ -113,7 +113,7 @@
                 "analysisMode": "source-only"
             },
             {
-                "location": "mvn://io.javaoperatorsdk:quarkus:1.6.2:jar@examples/",
+                "location": "mvn://io.javaoperatorsdk:quarkus:1.6.2:jar@examples/", //notsecret
                 "providerSpecificConfig": {
                     "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
