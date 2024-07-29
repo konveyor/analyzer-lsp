@@ -257,15 +257,12 @@ type handler struct {
 func (h *handler) replyHandler(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
 	method := req.Method()
 	h.log.Info("Got request for " + method)
-	// params, _ := req.Params().MarshalJSON()
 	switch method {
 	case protocol.MethodClientRegisterCapability:
 		err := reply(ctx, nil, nil)
-		// h.ch <- 1
 		return err
 	case protocol.MethodWorkspaceConfiguration:
 		err := reply(ctx, nil, nil)
-		// h.ch <- 2
 		return err
 	case protocol.MethodWindowShowMessage:
 		var showMessageParams protocol.ShowMessageParams
@@ -273,8 +270,10 @@ func (h *handler) replyHandler(ctx context.Context, reply jsonrpc2.Replier, req 
 			return reply(ctx, nil, err)
 		}
 		err := reply(ctx, nil, nil)
-		if strings.HasSuffix(showMessageParams.Message, "project files loaded") || strings.Contains(showMessageParams.Message, "finished loading solution") {
-			h.ch <- 3
+		if strings.HasSuffix(showMessageParams.Message, "project files loaded") ||
+			strings.HasSuffix(showMessageParams.Message, "project file(s) loaded") ||
+			strings.Contains(showMessageParams.Message, "finished loading solution") {
+			h.ch <- 1
 		}
 		return err
 	case protocol.MethodProgress:
@@ -287,7 +286,9 @@ func (h *handler) replyHandler(ctx context.Context, reply jsonrpc2.Replier, req 
 		valueMap, _ := methodProgressParams.Value.(map[string]interface{})
 		if message, ok := valueMap["message"]; ok {
 			h.log.Info("Extracted message", "message", message)
-			if strings.Contains(message.(string), "finished loading solution") {
+			if strings.HasSuffix(message.(string), "project files loaded") ||
+				strings.HasSuffix(message.(string), "project file(s) loaded") ||
+				strings.Contains(message.(string), "finished loading solution") {
 				h.ch <- 3
 			}
 		} else {
