@@ -387,7 +387,7 @@
       annotated:
         elements:
           - name: value
-            value: "/{id}"
+            value: "/\{id\}"
 - category: mandatory
   description: |
     This rule looks for a given annotation used with another annotation
