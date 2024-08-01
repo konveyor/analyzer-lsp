@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/go-logr/logr v1.4.1
-	github.com/konveyor/analyzer-lsp v0.4.0-alpha.1.0.20240520232004-8af6f5c84a59
+	github.com/konveyor/analyzer-lsp v0.5.0-rc.1.0.20240729200152-daea76a602fd
 	github.com/swaggest/openapi-go v0.2.50
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel v1.11.2
