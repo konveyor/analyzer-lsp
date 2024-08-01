@@ -272,7 +272,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		log.Info("downloading maven artifact", "artifact", mvnCoordinates, "options", mvnOptions)
 		cmd := exec.CommandContext(ctx, "mvn", mvnOptions...)
 		cmd.Dir = outputDir
-		if err := cmd.Run(); err != nil {
+		mvnOutput, err := cmd.CombinedOutput()
+		if err != nil {
 			cancelFunc()
 			return nil, additionalBuiltinConfig, fmt.Errorf("error downloading java artifact %s - %w", mvnUri, err)
 		}
@@ -281,6 +282,15 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		if len(mvnCoordinatesParts) == 4 {
 			downloadedPath = filepath.Join(outputDir,
 				fmt.Sprintf("%s.%s", strings.Join(mvnCoordinatesParts[1:3], "-"), strings.ToLower(mvnCoordinatesParts[3])))
+		}
+		outputLinePattern := regexp.MustCompile(`.*?Copying.*?to (.*)`)
+		for _, line := range strings.Split(string(mvnOutput), "\n") {
+			if outputLinePattern.MatchString(line) {
+				match := outputLinePattern.FindStringSubmatch(line)
+				if match != nil {
+					downloadedPath = match[1]
+				}
+			}
 		}
 		if _, err := os.Stat(downloadedPath); err != nil {
 			cancelFunc()
