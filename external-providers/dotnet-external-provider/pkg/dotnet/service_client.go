@@ -86,52 +86,62 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 			// Not a valid regex, can't do anything more
 			return provider.ProviderEvaluateResponse{Matched: false}, nil
 		}
-		var positions []protocol.TextDocumentPositionParams
+		var positions []interface{}
 		positions, err = parallelWalk(d.config.Location, regex)
 		if err != nil {
 			d.log.Error(err, "failed parallel walk")
 			return provider.ProviderEvaluateResponse{Matched: false}, nil
 		}
 		for _, position := range positions {
-			fmt.Println(position)
+			fmt.Println("%#v", position)
 			res := []protocol.Location{}
-			_, err := d.rpc.Call(d.ctx, "textDocument/definition", position, &res)
-			if err != nil {
-				d.log.Error(err, "problem getting definition")
-				continue
-			}
-
-			if len(res) == 0 || len(res) > 1 {
-				d.log.Error(fmt.Errorf("only expect one result"), "too many, or not enough, results")
-				continue
-			}
-
-			switch filename := string(res[0].URI); {
-			case strings.HasPrefix(filename, "csharp"):
-				// As best I understand, this would require the definition to be defined
-				// outside the project...like a third-party dep.
-
-				// "csharp:/metadata/projects/NerdDinner/assemblies/System.Web.Mvc/symbols/System.Web.Mvc.Controller.cs"
-				split := strings.Split(filename, "assemblies/")
-				if strings.HasPrefix(split[1], namespace) {
-					lineNumber := int(position.Position.Line)
-					incidents = append(incidents, provider.IncidentContext{
-						FileURI:    position.TextDocument.URI,
-						LineNumber: &lineNumber,
-						Variables: map[string]interface{}{
-							"file": string(position.TextDocument.URI),
-						},
-						CodeLocation: &provider.Location{
-							StartPosition: provider.Position{Line: float64(lineNumber)},
-							EndPosition:   provider.Position{Line: float64(lineNumber)},
-						},
-					})
+			switch position.(type) {
+			case protocol.ReferenceParams:
+				_, err := d.rpc.Call(d.ctx, protocol.MethodTextDocumentReferences, position, &res)
+				if err != nil {
+					d.log.Error(err, "failed to get references")
 				}
-			case strings.HasPrefix(filename, "file"):
-				// TODO(djzager): do we even need to handle these?
-				d.log.Error(fmt.Errorf("not implemented"), "don't know how to handle file URI")
-				continue
+			case protocol.TextDocumentPositionParams:
+				_, err := d.rpc.Call(d.ctx, "textDocument/definition", position, &res)
+				if err != nil {
+					d.log.Error(err, "problem getting definition")
+					continue
+				}
+				if len(res) == 0 || len(res) > 1 {
+					d.log.Error(fmt.Errorf("only expect one result"), "too many, or not enough, results")
+					continue
+				}
 			}
+
+			for _, r := range res {
+				switch filename := string(res[0].URI); {
+				case strings.HasPrefix(filename, "csharp"):
+					// As best I understand, this would require the definition to be defined
+					// outside the project...like a third-party dep.
+
+					// "csharp:/metadata/projects/NerdDinner/assemblies/System.Web.Mvc/symbols/System.Web.Mvc.Controller.cs"
+					split := strings.Split(filename, "assemblies/")
+					if strings.HasPrefix(split[1], namespace) {
+						lineNumber := int(r.Range.Start.Line)
+						incidents = append(incidents, provider.IncidentContext{
+							FileURI:    r.URI,
+							LineNumber: &lineNumber,
+							Variables: map[string]interface{}{
+								"file": string(r.URI),
+							},
+							CodeLocation: &provider.Location{
+								StartPosition: provider.Position{Line: float64(lineNumber)},
+								EndPosition:   provider.Position{Line: float64(lineNumber)},
+							},
+						})
+					}
+				case strings.HasPrefix(filename, "file"):
+					// TODO(djzager): do we even need to handle these?
+					d.log.Error(fmt.Errorf("not implemented"), "don't know how to handle file URI")
+					continue
+				}
+			}
+
 		}
 	}
 	return provider.ProviderEvaluateResponse{
@@ -140,7 +150,7 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 	}, nil
 }
 
-func processFile(path string, regex *regexp.Regexp, positionsChan chan<- protocol.TextDocumentPositionParams, wg *sync.WaitGroup) {
+func processFile(path string, regex *regexp.Regexp, positionsChan chan<- interface{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	content, err := os.ReadFile(path)
@@ -158,14 +168,28 @@ func processFile(path string, regex *regexp.Regexp, positionsChan chan<- protoco
 				if err != nil {
 					return
 				}
-				positionsChan <- protocol.TextDocumentPositionParams{
-					TextDocument: protocol.TextDocumentIdentifier{
-						URI: uri.New(fmt.Sprintf("file:///%s", absPath)),
-					},
-					Position: protocol.Position{
-						Line:      uint32(lineNumber),
-						Character: uint32(loc[1]),
-					},
+				if strings.Contains(scanner.Text(), "using") {
+					positionsChan <- protocol.ReferenceParams{
+						TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+							TextDocument: protocol.TextDocumentIdentifier{
+								URI: uri.New(fmt.Sprintf("file:///%s", absPath)),
+							},
+							Position: protocol.Position{
+								Line:      uint32(lineNumber),
+								Character: uint32(loc[1]),
+							},
+						},
+					}
+				} else {
+					positionsChan <- protocol.TextDocumentPositionParams{
+						TextDocument: protocol.TextDocumentIdentifier{
+							URI: uri.New(fmt.Sprintf("file:///%s", absPath)),
+						},
+						Position: protocol.Position{
+							Line:      uint32(lineNumber),
+							Character: uint32(loc[1]),
+						},
+					}
 				}
 			}
 			lineNumber++
@@ -173,9 +197,9 @@ func processFile(path string, regex *regexp.Regexp, positionsChan chan<- protoco
 	}
 }
 
-func parallelWalk(location string, regex *regexp.Regexp) ([]protocol.TextDocumentPositionParams, error) {
-	var positions []protocol.TextDocumentPositionParams
-	positionsChan := make(chan protocol.TextDocumentPositionParams)
+func parallelWalk(location string, regex *regexp.Regexp) ([]interface{}, error) {
+	var positions []interface{}
+	positionsChan := make(chan interface{})
 	wg := &sync.WaitGroup{}
 
 	go func() {

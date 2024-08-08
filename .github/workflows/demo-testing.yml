@@ -100,7 +100,7 @@ jobs:
         with:
           fetch-depth: 0
           repository: konveyor/tackle2-addon-analyzer
-          ref: refs/pull/97/merge
+          ref: ${{ steps.extract-info.outputs.ADDON_REF }}
           path: tackle2-addon-analyzer
 
       - name: Build addon and push images
