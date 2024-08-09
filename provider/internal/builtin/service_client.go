@@ -106,30 +106,24 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if c.Pattern == "" {
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
+
 		var outputBytes []byte
-		if runtime.GOOS == "darwin" {
-			cmd := fmt.Sprintf(
-				`find %v -type f | \
-			while read file; do perl -ne '/(%v)/ && print "$ARGV:$.:$1\n";' "$file"; done`,
-				p.config.Location, c.Pattern,
-			)
-			findstr := exec.Command("/bin/sh", "-c", cmd)
-			outputBytes, err = findstr.Output()
-		} else {
-			grep := exec.Command("grep", "-o", "-n", "-R", "-P", c.Pattern)
+		if runtime.GOOS == "linux" {
 			if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
-				grep.Args = append(grep.Args, paths...)
+				outputBytes, err = runOSSpecificGrepCommand(c.Pattern, paths...)
 			} else {
-				grep.Args = append(grep.Args, p.config.Location)
+				outputBytes, err = runOSSpecificGrepCommand(c.Pattern, p.config.Location)
+			}			
+			if err != nil {
+				return response, err
 			}
-			outputBytes, err = grep.Output()
-		}
-		if err != nil {
-			if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
-				return response, nil
+		} else {
+			outputBytes, err = runOSSpecificGrepCommand(c.Pattern, p.config.Location)
+			if err != nil {
+				return response, err
 			}
-			return response, fmt.Errorf("could not run grep with provided pattern %+v", err)
 		}
+
 		matches := []string{}
 		outputString := strings.TrimSpace(string(outputBytes))
 		if outputString != "" {
@@ -137,13 +131,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		for _, match := range matches {
-			//TODO(fabianvf): This will not work if there is a `:` in the filename, do we care?
-			pieces := strings.SplitN(match, ":", 3)
-			if len(pieces) != 3 {
-				//TODO(fabianvf): Just log or return?
-				//(shawn-hurley): I think the return is good personally
-				return response, fmt.Errorf(
-					"malformed response from grep, cannot parse grep output '%s' with pattern {filepath}:{lineNumber}:{matchingText}", match)
+			var pieces []string
+			pieces, err := parseGrepOutputForFileContent(match)
+			if err != nil {
+				return response, fmt.Errorf("could not parse grep output '%s' for the Pattern '%v': %v ", match, c.Pattern, err)
 			}
 
 			containsFile, err := provider.FilterFilePattern(c.FilePattern, pieces[0])
@@ -167,6 +158,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			if err != nil {
 				return response, fmt.Errorf("cannot convert line number string to integer")
 			}
+
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
 				FileURI:    uri.File(absPath),
 				LineNumber: &lineNumber,
@@ -592,4 +584,70 @@ func (b *builtinServiceClient) isFileIncluded(absolutePath string) bool {
 	}
 	b.log.V(7).Info("excluding file from search", "file", absolutePath)
 	return false
+}
+
+func parseGrepOutputForFileContent(match string) ([]string, error) {
+	// This will parse the output of the PowerShell/grep in the form
+	// "Filepath:Linenumber:Matchingtext" to return string array of path, line number and matching text
+	// works with handling both windows and unix based file paths eg: "C:\path\to\file" and "/path/to/file"
+	re, err := regexp.Compile(`^(.*?):(\d+):(.*)$`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile regular expression: %v", err)
+	}
+	submatches := re.FindStringSubmatch(match)
+	if len(submatches) != 4 {
+		return nil, fmt.Errorf(
+			"malformed response from file search, cannot parse result '%s' with pattern %#q", match, re)
+	}
+	return submatches[1:], nil
+}
+
+func runOSSpecificGrepCommand(pattern string, location ...string) ([]byte, error) {
+	var outputBytes []byte
+	var err error
+	var utilName string
+
+	switch runtime.GOOS {
+	case "windows":
+		utilName = "powershell.exe"
+		// Windows does not have grep, so we use PowerShell.exe's Select-String instead
+		// This is a workaround until we can find a better solution
+		psScript := `
+		$pattern = $env:PATTERN
+		$location = $env:FILEPATH
+		Get-ChildItem -Path $location -Recurse -File | ForEach-Object {
+			$file = $_    
+			# Search for the pattern in the file
+			Select-String -Path $file.FullName -Pattern $pattern -AllMatches | ForEach-Object { 
+				foreach ($match in $_.Matches) { 
+					"{0}:{1}:{2}" -f $file.FullName, $_.LineNumber, $match.Value
+				} 
+			}
+		}`
+		findstr := exec.Command(utilName, "-Command", psScript)
+		findstr.Env = append(os.Environ(), "PATTERN="+pattern, "FILEPATH="+location[0])
+		outputBytes, err = findstr.Output()
+
+	case "darwin":
+		cmd := fmt.Sprintf(
+			`find %v -type f | \
+		while read file; do perl -ne '/(%v)/ && print "$ARGV:$.:$1\n";' "$file"; done`,
+			location[0], pattern,
+		)
+		findstr := exec.Command("/bin/sh", "-c", cmd)
+		outputBytes, err = findstr.Output()
+	default:
+		utilName = "grep"
+		// Linux and MacOS use grep
+		grep := exec.Command(utilName, "-o", "-n", "-R", "-P", pattern, location[0])
+		outputBytes, err = grep.Output()
+	}
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("could not run '%s' with provided pattern %+v", utilName, err)
+	}
+
+	return outputBytes, nil
 }
