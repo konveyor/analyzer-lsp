@@ -4,9 +4,9 @@ The analyzer works in tandem with the provider to effectively analyze and transf
 
 ## Provider vs Rulesets
 
-A ruleset is essentially a collection of rules that are used to analyze and transform code from one language to another or to adapt it to a different environment. Rulesets define the specific transformations, checks, and validations needed to handle different programming languages or frameworks.
+A **ruleset** is essentially a collection of rules that are used to analyze and transform code from one language to another or to adapt it to a different environment. Rulesets define the specific transformations, checks, and validations needed to handle different programming languages or frameworks.
 
-A provider refers to the entity or service that supplies these rulesets. Providers are tools that maintain and distribute rulesets for various languages and environments. They are responsible for ensuring that the rulesets are up-to-date, comprehensive, and accurate. Currently, the supported providers are Java, .NET, Go, Python, and Node.js. Java is fully supported, while .NET has a custom rule to assist with project analysis. Go, Python, and Node.js also require custom rules to function properly.
+A **provider** refers to the entity or service that supplies these rulesets. Providers are tools that maintain and distribute rulesets for various languages and environments. They are responsible for ensuring that the rulesets are up-to-date, comprehensive, and accurate. Currently, the supported providers are Java, .NET, Go, Python, and Node.js. Java is fully supported, while .NET has a custom rule to assist with project analysis. Go, Python, and Node.js also require custom rules to function properly.
 
 ## Interaction Between the Analyzer and Provider
 
