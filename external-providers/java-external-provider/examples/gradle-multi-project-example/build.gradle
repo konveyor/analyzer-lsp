@@ -7,10 +7,11 @@ ext {
 buildscript {
   repositories {
     jcenter()
+    mavenCentral()
   }
-  dependencies {
-    classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
-  }
+//   dependencies {
+//     classpath 'com.gradleup.shadow:shadow-gradle-plugin:2.0.3'
+//   }
 }
 
 allprojects {
@@ -24,7 +25,7 @@ apply from: file('gradle/check.gradle')
 apply from: file('gradle/heroku/clean.gradle')
 
 subprojects {
-  apply plugin: 'com.github.johnrengelman.shadow'
+//   apply plugin: 'com.github.johnrengelman.shadow'
   apply plugin: 'java'
 
   group = "io.jeffchao.${rootProject.name}"

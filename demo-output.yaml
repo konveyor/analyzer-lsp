@@ -422,7 +422,7 @@
       incidents:
       - uri: file:///examples/gradle-multi-project-example/build.gradle
         message: dependency junit.junit with 4.12 is bad and you should feel bad for using it
-        codeSnip: " 1  apply plugin: 'idea'\n 2  \n 3  ext {\n 4    log4jVersion = '2.9.1'\n 5  }\n 6  \n 7  buildscript {\n 8    repositories {\n 9      jcenter()\n10    }\n11    dependencies {"
+        codeSnip: " 1  apply plugin: 'idea'\n 2  \n 3  ext {\n 4    log4jVersion = '2.9.1'\n 5  }\n 6  \n 7  buildscript {\n 8    repositories {\n 9      jcenter()\n10      mavenCentral()\n11    }"
         lineNumber: 0
         variables:
           name: junit.junit
@@ -1047,6 +1047,10 @@
       - uri: file:///examples/customers-tomcat-legacy/pom.xml
         message: ""
       - uri: file:///examples/gradle-multi-project-example/gradle/wrapper/gradle-wrapper.jar
+        message: ""
+      - uri: file:///examples/gradle-multi-project-example/template-core/build/libs/template-core.jar
+        message: ""
+      - uri: file:///examples/gradle-multi-project-example/template-server/build/libs/template-server.jar
         message: ""
       - uri: file:///examples/inclusion-tests/pom.xml
         message: ""
