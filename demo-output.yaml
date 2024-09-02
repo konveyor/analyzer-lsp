@@ -1048,10 +1048,6 @@
         message: ""
       - uri: file:///examples/gradle-multi-project-example/gradle/wrapper/gradle-wrapper.jar
         message: ""
-      - uri: file:///examples/gradle-multi-project-example/template-core/build/libs/template-core.jar
-        message: ""
-      - uri: file:///examples/gradle-multi-project-example/template-server/build/libs/template-server.jar
-        message: ""
       - uri: file:///examples/inclusion-tests/pom.xml
         message: ""
       - uri: file:///examples/java-project/pom.xml
