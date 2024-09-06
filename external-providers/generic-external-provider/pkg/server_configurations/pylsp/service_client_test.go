@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/bombsimon/logrusr/v3"
+	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/generic_external_provider"
+	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/generic"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/generic-external-provider/pkg/generic_external_provider"
-	"github.com/konveyor/generic-external-provider/pkg/server_configurations/generic"
 	"gopkg.in/yaml.v2"
 
 	"github.com/sirupsen/logrus"

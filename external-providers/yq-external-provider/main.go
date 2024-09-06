@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
+	"github.com/konveyor/analyzer-lsp/external-providers/yq-external-provider/pkg/yq_provider"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/yq-external-provider/pkg/yq_provider"
 	"github.com/sirupsen/logrus"
 )
 

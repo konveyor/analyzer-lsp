@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/go-logr/logr"
+	serverconf "github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations"
 	"github.com/konveyor/analyzer-lsp/provider"
-	serverconf "github.com/konveyor/generic-external-provider/pkg/server_configurations"
 )
 
 // TODO(shawn-hurley): Pipe the logger through Determine how and where external
