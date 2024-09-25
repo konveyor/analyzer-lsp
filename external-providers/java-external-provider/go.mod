@@ -1,4 +1,4 @@
-module github.com/konveyor/java-external-provider
+module github.com/konveyor/analyzer-lsp/external-providers/java-external-provider
 
 go 1.19
 

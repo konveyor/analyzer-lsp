@@ -1,4 +1,4 @@
-module github.com/konveyor/yq-external-provider
+module github.com/konveyor/analyzer-lsp/external-providers/yq-external-provider
 
 go 1.19
 
@@ -33,7 +33,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.11.2 // indirect
 	go.opentelemetry.io/otel/trace v1.11.2 // indirect
 	golang.org/x/mod v0.8.0
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.33.1-0.20240408130810-98873a205002 // indirect

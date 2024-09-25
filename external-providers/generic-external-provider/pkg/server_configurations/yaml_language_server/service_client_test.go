@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/bombsimon/logrusr/v3"
+	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/generic_external_provider"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/generic-external-provider/pkg/generic_external_provider"
 	"gopkg.in/yaml.v2"
 
 	"github.com/sirupsen/logrus"

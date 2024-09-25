@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
+	java "github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider"
 	"github.com/konveyor/analyzer-lsp/provider"
-	java "github.com/konveyor/java-external-provider/pkg/java_external_provider"
 	"github.com/sirupsen/logrus"
 )
 
