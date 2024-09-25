@@ -230,10 +230,24 @@ class MyApplication {
 The structure of the `annotated` YAML element is the following:
 ```yaml
 annotated:
-  pattern: a Java regex to match the fully qualified name of the annotation (mandatory)
+  pattern: a Java regex to match the fully qualified name of the annotation (optional)
   elements: an array of elements to match within the annotation (optional)
   - name: the exact name of the element to match against
     value: a Java regex to match the value of the element
+```
+
+It is also possible to match an annotation with specific elements, without having to specify the symbol it annotates.
+The following example would also match on the `@Bean` annotation in the same code as the last example. Note that
+the only element specified with a `pattern` is the annotation itself:
+```yaml
+when:
+  java.referenced:
+    location: ANNOTATION
+    pattern: org.framework.Bean
+    annotated:
+      elements:
+        - name: url
+          value: "http://www.example.com"
 ```
 
 ##### Java Locations

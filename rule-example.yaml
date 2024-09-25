@@ -342,7 +342,7 @@
 - category: mandatory
   description: |
     This rule looks for a given class annotated with a given annotation
-  message: "Annotation instpection 01"
+  message: "Annotation inspection 01"
   ruleID: java-annotation-inspection-01
   when:
     java.referenced:
@@ -356,7 +356,7 @@
 - category: mandatory
   description: |
     This rule looks for a given method annotated with a given annotation
-  message: "Annotation instpection 02"
+  message: "Annotation inspection 02"
   ruleID: java-annotation-inspection-02
   when:
     java.referenced:
@@ -367,7 +367,7 @@
 - category: mandatory
   description: |
     This rule looks for a given field annotated with a given annotation
-  message: "Annotation instpection 03"
+  message: "Annotation inspection 03"
   ruleID: java-annotation-inspection-03
   when:
     java.referenced:
@@ -375,3 +375,30 @@
       location: FIELD
       annotated:
         pattern: org.springframework.beans.factory.annotation.Autowired
+- category: mandatory
+  description: |
+    This rule looks for a given annotation used with some given properties (elements)
+  message: "Annotation inspection 04"
+  ruleID: java-annotation-inspection-04
+  when:
+    java.referenced:
+      pattern: org.springframework.web.bind.annotation.GetMapping
+      location: ANNOTATION
+      annotated:
+        elements:
+          - name: value
+            value: "id"
+- category: mandatory
+  description: |
+    This rule looks for a given annotation used with another annotation
+  message: "Annotation inspection 05"
+  ruleID: java-annotation-inspection-05
+  when:
+    java.referenced:
+      pattern: org.springframework.context.annotation.Configuration
+      location: ANNOTATION
+      annotated:
+        pattern: org.springframework.data.jpa.repository.config.EnableJpaRepositories
+        elements:
+          - name: basePackages
+            value: "io.konveyor.demo.ordermanagement.repository"
