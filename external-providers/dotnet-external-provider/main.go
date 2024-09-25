@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/bombsimon/logrusr/v3"
+	"github.com/konveyor/analyzer-lsp/external-providers/dotnet-external-provider/pkg/dotnet"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/dotnet-external-provider/pkg/dotnet"
 	"github.com/sirupsen/logrus"
 )
 

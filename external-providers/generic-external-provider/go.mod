@@ -1,4 +1,4 @@
-module github.com/konveyor/generic-external-provider
+module github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider
 
 go 1.19
 
@@ -28,7 +28,7 @@ require (
 	go.opentelemetry.io/otel/exporters/jaeger v1.11.2 // indirect
 	go.opentelemetry.io/otel/sdk v1.11.2 // indirect
 	go.opentelemetry.io/otel/trace v1.11.2 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
