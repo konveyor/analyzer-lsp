@@ -24,6 +24,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/nxadm/tail"
 	"github.com/swaggest/openapi-go/openapi3"
+	"go.lsp.dev/uri"
 )
 
 const (
@@ -64,6 +65,7 @@ var locationToCode = map[string]int{
 }
 
 type javaProvider struct {
+	config       provider.Config
 	Log          logr.Logger
 	contextLines int
 
@@ -79,6 +81,8 @@ type javaProvider struct {
 }
 
 var _ provider.BaseClient = &javaProvider{}
+
+var _ provider.InternalProviderClient = &javaProvider{}
 
 var _ provider.DependencyLocationResolver = &javaProvider{}
 
@@ -102,11 +106,12 @@ type element struct {
 	Value string `yaml:"value" json:"value"` // can be a (java) regex pattern
 }
 
-func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int) *javaProvider {
+func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int, config provider.Config) *javaProvider {
 
 	_, mvnBinaryError := exec.LookPath("mvn")
 
 	return &javaProvider{
+		config:            config,
 		hasMaven:          mvnBinaryError == nil,
 		Log:               log,
 		clients:           []provider.ServiceClient{},
@@ -845,4 +850,34 @@ func contains(artifacts []javaArtifact, artifactToFind javaArtifact) bool {
 	}
 
 	return false
+}
+
+func (p *javaProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	return provider.FullResponseFromServiceClients(ctx, p.clients, cap, conditionInfo)
+}
+
+func (p *javaProvider) ProviderInit(ctx context.Context, additionalConfigs []provider.InitConfig) ([]provider.InitConfig, error) {
+	builtinConfs := []provider.InitConfig{}
+	if additionalConfigs != nil {
+		p.config.InitConfig = append(p.config.InitConfig, additionalConfigs...)
+	}
+	for _, c := range p.config.InitConfig {
+		client, builtinConf, err := p.Init(ctx, p.Log, c)
+		if err != nil {
+			return nil, err
+		}
+		p.clients = append(p.clients, client)
+		if builtinConf.Location != "" {
+			builtinConfs = append(builtinConfs, builtinConf)
+		}
+	}
+	return builtinConfs, nil
+}
+
+func (p *javaProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	return provider.FullDepsResponse(ctx, p.clients)
+}
+
+func (p *javaProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	return provider.FullDepDAGResponse(ctx, p.clients)
 }
