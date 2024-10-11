@@ -740,8 +740,9 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		incident := engine.IncidentContext{
 			FileURI: matchedDep.uri,
 			Variables: map[string]interface{}{
-				"name":    matchedDep.dep.Name,
-				"version": matchedDep.dep.Version,
+				"name":                                 matchedDep.dep.Name,
+				"version":                              matchedDep.dep.Version,
+				"konveyor.io/internal/dependency-rule": true,
 			},
 		}
 		if depLocationResolver != nil {
