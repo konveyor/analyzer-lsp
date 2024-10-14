@@ -425,6 +425,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 				ReOpen:    true,
 				MustExist: false,
 				Follow:    true,
+				Logger:    tail.DiscardingLogger,
 			})
 			if err != nil {
 				log.Error(err, "unable to set up follower")
