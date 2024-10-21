@@ -1,5 +1,5 @@
 # TODO: fix version mismatch in final container
-FROM golang:1.20 as go-builder
+FROM golang:1.21 as go-builder
 
 COPY / /analyzer-lsp
 
