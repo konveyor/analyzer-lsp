@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp
 
-go 1.18
+go 1.21
 
 require (
 	github.com/PaesslerAG/gval v1.2.2
