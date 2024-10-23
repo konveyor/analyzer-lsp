@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.21 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:latest as builder
 
 COPY / /analyzer-lsp
 
