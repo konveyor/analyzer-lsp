@@ -1,5 +1,5 @@
 # TODO: fix version mismatch in final container
-FROM registry.access.redhat.com/ubi9/go-toolset:latest as go-builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.21 as go-builder
 
 COPY / /analyzer-lsp
 
