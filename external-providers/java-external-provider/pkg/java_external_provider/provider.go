@@ -280,6 +280,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		mvnOutput, err := cmd.CombinedOutput()
 		if err != nil {
 			cancelFunc()
+			p.Log.Error(err, string(mvnOutput))
 			return nil, additionalBuiltinConfig, fmt.Errorf("error downloading java artifact %s - %w", mvnUri, err)
 		}
 		downloadedPath := filepath.Join(outputDir,
@@ -694,6 +695,7 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, location, 
 	cmd.Dir = location
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
+		log.Error(err, string(mvnOutput))
 		return err
 	}
 

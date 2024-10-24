@@ -310,6 +310,7 @@ func (p *javaServiceClient) getDependenciesForMaven(_ context.Context) (map[uri.
 	cmd.Dir = moddir
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
+		p.log.Error(err, string(mvnOutput))
 		return nil, err
 	}
 
