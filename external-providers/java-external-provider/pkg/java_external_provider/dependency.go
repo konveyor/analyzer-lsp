@@ -310,7 +310,7 @@ func (p *javaServiceClient) getDependenciesForMaven(_ context.Context) (map[uri.
 	cmd.Dir = moddir
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("maven dependency:tree command failed with error %w, maven output: %s", err, mvnOutput)
+		return nil, fmt.Errorf("maven dependency:tree command failed with error %w, maven output: %s", err, string(mvnOutput))
 	}
 
 	lines := strings.Split(string(mvnOutput), "\n")
