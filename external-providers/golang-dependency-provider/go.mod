@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp/external-providers/golang-dependency-provider
 
-go 1.19
+go 1.21
 
 require (
 	github.com/konveyor/analyzer-lsp v0.5.0-rc.1.0.20240729200152-daea76a602fd
