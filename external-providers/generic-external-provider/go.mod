@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider
 
-go 1.19
+go 1.21
 
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
