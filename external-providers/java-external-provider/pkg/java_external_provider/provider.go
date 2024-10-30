@@ -41,6 +41,7 @@ const (
 	BUNDLES_INIT_OPTION           = "bundles"
 	WORKSPACE_INIT_OPTION         = "workspace"
 	MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
+	GLOBAL_SETTINGS_INIT_OPTION   = "mavenCacheDir"
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 )
 
@@ -237,6 +238,17 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	if !ok {
 		mavenSettingsFile = ""
 	}
+	var globalSettingsFile string
+	var returnError error
+	globalM2, ok := config.ProviderSpecificConfig[GLOBAL_SETTINGS_INIT_OPTION].(string)
+	if !ok {
+		globalM2 = ""
+	} else {
+		globalSettingsFile, returnError = p.BuildSettingsFile(globalM2)
+		if returnError != nil {
+			return nil, additionalBuiltinConfig, returnError
+		}
+	}
 
 	lspServerPath, ok := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	if !ok || lspServerPath == "" {
@@ -387,6 +399,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		depToLabels:       map[string]*depLabelItem{},
 		isLocationBinary:  isBinary,
 		mvnSettingsFile:   mavenSettingsFile,
+		globalSettings:    globalSettingsFile,
 		depsLocationCache: make(map[string]int),
 		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
 	}
@@ -883,4 +896,31 @@ func (p *javaProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*prov
 
 func (p *javaProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	return provider.FullDepDAGResponse(ctx, p.clients)
+}
+
+func (p *javaProvider) BuildSettingsFile(m2CacheDir string) (settingsFile string, err error) {
+	fileContentTemplate := `
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <localRepository>%v</localRepository>
+</settings>
+	`
+	var settingsFilePath string
+	m2Home := os.Getenv("M2_HOME")
+	if m2Home != "" {
+		settingsFilePath = filepath.Join(m2Home, "conf", "globalSettings.xml")
+		f, err := os.Create(settingsFilePath)
+		if err != nil {
+			return "", err
+		}
+		defer func() {
+			_ = f.Close()
+		}()
+		_, err = f.Write([]byte(fmt.Sprintf(fileContentTemplate, m2CacheDir)))
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return settingsFilePath, nil
 }

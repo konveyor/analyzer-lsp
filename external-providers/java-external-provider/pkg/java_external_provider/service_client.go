@@ -32,6 +32,7 @@ type javaServiceClient struct {
 	depToLabels       map[string]*depLabelItem
 	isLocationBinary  bool
 	mvnSettingsFile   string
+	globalSettings    string
 	depsMutex         sync.RWMutex
 	depsCache         map[uri.URI][]*provider.Dep
 	depsLocationCache map[string]int
@@ -241,7 +242,8 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 			"java": map[string]interface{}{
 				"configuration": map[string]interface{}{
 					"maven": map[string]interface{}{
-						"userSettings": p.mvnSettingsFile,
+						"userSettings":   p.mvnSettingsFile,
+						"globalSettings": p.globalSettings,
 					},
 				},
 				"autobuild": map[string]interface{}{
