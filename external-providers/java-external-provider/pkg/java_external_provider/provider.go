@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -905,21 +906,38 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string) (settingsFile string
   <localRepository>%v</localRepository>
 </settings>
 	`
-	var settingsFilePath string
-	m2Home := os.Getenv("M2_HOME")
-	if m2Home != "" {
-		settingsFilePath = filepath.Join(m2Home, "conf", "globalSettings.xml")
-		f, err := os.Create(settingsFilePath)
+	var homeDir string
+	set := true
+	ops := runtime.GOOS
+	if ops == "linux" {
+		homeDir, set = os.LookupEnv("XDG_CONFIG_HOME")
+	}
+	if ops != "linux" || homeDir == "" || !set {
+		// on Unix, including macOS, this returns the $HOME environment variable. On Windows, it returns %USERPROFILE%
+		homeDir, err = os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
-		defer func() {
-			_ = f.Close()
-		}()
-		_, err = f.Write([]byte(fmt.Sprintf(fileContentTemplate, m2CacheDir)))
-		if err != nil {
-			return "", err
-		}
+	}
+	settingsFilePath := filepath.Join(homeDir, ".analyze", "globalSettings.xml")
+	err = os.Mkdir(filepath.Join(homeDir, ".analyze"), 0777)
+	if err != nil && !errors.Is(err, os.ErrExist) {
+		return "", err
+	}
+	f, err := os.Create(settingsFilePath)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	err = os.Chmod(settingsFilePath, 0777)
+	if err != nil {
+		return "", err
+	}
+	_, err = f.Write([]byte(fmt.Sprintf(fileContentTemplate, m2CacheDir)))
+	if err != nil {
+		return "", err
 	}
 
 	return settingsFilePath, nil
