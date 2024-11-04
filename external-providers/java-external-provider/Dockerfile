@@ -20,6 +20,7 @@ FROM quay.io/konveyor/jdtls-server-base
 
 COPY --from=builder /java-provider/java-external-provider /usr/local/bin/java-external-provider
 
+ENV HOME /addon
 EXPOSE 14651
 WORKDIR /addon
 ENTRYPOINT ["java-external-provider", "--port", "14651"]
