@@ -83,7 +83,7 @@ type decompileJob struct {
 // decompile decompiles files submitted via a list of decompileJob concurrently
 // if a .class file is encountered, it will be decompiled to output path right away
 // if a .jar file is encountered, it will be decompiled as a whole, then exploded to project path
-func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, workerCount int, jobs []decompileJob, projectPath string) error {
+func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, workerCount int, jobs []decompileJob, fernflower, projectPath string) error {
 	wg := &sync.WaitGroup{}
 	jobChan := make(chan decompileJob)
 
@@ -118,7 +118,7 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 				java := filepath.Join(os.Getenv("JAVA_HOME"), "bin", "java")
 				// -mpm (max processing method) is required to keep decomp time low
 				cmd := exec.CommandContext(
-					jobCtx, java, "-jar", "/bin/fernflower.jar", "-mpm=30", job.inputPath, outputPathDir)
+					jobCtx, java, "-jar", fernflower, "-mpm=30", job.inputPath, outputPathDir)
 				err := cmd.Run()
 				if err != nil {
 					log.V(5).Error(err, "failed to decompile file", "file", job.inputPath, job.outputPath)
@@ -158,7 +158,7 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 // decompileJava unpacks archive at archivePath, decompiles all .class files in it
 // creates new java project and puts the java files in the tree of the project
 // returns path to exploded archive, path to java project, and an error when encountered
-func decompileJava(ctx context.Context, log logr.Logger, archivePath string, m2RepoPath string) (explodedPath, projectPath string, err error) {
+func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath string, m2RepoPath string) (explodedPath, projectPath string, err error) {
 	ctx, span := tracing.StartNewSpan(ctx, "decompile")
 	defer span.End()
 
@@ -179,7 +179,7 @@ func decompileJava(ctx context.Context, log logr.Logger, archivePath string, m2R
 	}
 	log.V(5).Info("created java project", "path", projectPath)
 
-	err = decompile(ctx, log, decompFilter, 10, decompJobs, projectPath)
+	err = decompile(ctx, log, decompFilter, 10, decompJobs, fernflower, projectPath)
 	if err != nil {
 		log.Error(err, "failed to decompile", "path", archivePath)
 		return "", "", err
