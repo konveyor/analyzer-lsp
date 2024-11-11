@@ -547,8 +547,8 @@ func constructArtifactFromSHA(jarFile string) (javaArtifact, error) {
 
 	sha1sum := hex.EncodeToString(hash.Sum(nil))
 
-	// Make an HTTP request to search.maven.org
-	searchURL := fmt.Sprintf("http://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
+	// Make an HTTPS request to search.maven.org
+	searchURL := fmt.Sprintf("https://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
 	resp, err := http.Get(searchURL)
 	if err != nil {
 		return dep, err
