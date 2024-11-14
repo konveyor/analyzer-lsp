@@ -97,6 +97,7 @@ type referenceCondition struct {
 	Pattern   string    `yaml:"pattern"`
 	Location  string    `yaml:"location"`
 	Annotated annotated `yaml:"annotated,omitempty" json:"annotated,omitempty"`
+	Filepaths []string  `yaml:"filepaths"`
 }
 
 type annotated struct {
