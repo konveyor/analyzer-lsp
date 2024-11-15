@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -59,7 +58,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 		cond.Referenced.Filepaths = strings.Split(cond.Referenced.Filepaths[0], " ")
 	}
 
-	condCtx := &engine.ConditionContext{}
+	condCtx := &provider.ProviderContext{}
 	err = yaml.Unmarshal(conditionInfo, condCtx)
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get condition context info: %v", err)
@@ -68,7 +67,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	if cond.Referenced.Pattern == "" {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
 	}
-	symbols, err := p.GetAllSymbols(ctx, *cond)
+	symbols, err := p.GetAllSymbols(ctx, *cond, condCtx)
 	if err != nil {
 		p.log.Error(err, "unable to get symbols", "symbols", symbols, "cap", cap, "conditionInfo", cond)
 		return provider.ProviderEvaluateResponse{}, err
@@ -121,7 +120,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}, nil
 }
 
-func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition) ([]protocol.WorkspaceSymbol, error) {
+func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, condCTX *provider.ProviderContext) ([]protocol.WorkspaceSymbol, error) {
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
@@ -136,9 +135,14 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition) 
 		argumentsMap["annotationQuery"] = c.Referenced.Annotated
 	}
 
-	if p.includedPaths != nil && len(p.includedPaths) > 0 {
+	log := p.log.WithValues("ruleID", condCTX.RuleID)
+
+	if len(p.includedPaths) > 0 {
 		argumentsMap[provider.IncludedPathsConfigKey] = p.includedPaths
-		p.log.V(5).Info("setting search scope by filepaths", "paths", p.includedPaths)
+		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths)
+	} else if ok, paths := condCTX.GetScopedFilepaths(); ok {
+		argumentsMap[provider.IncludedPathsConfigKey] = paths
+		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths, "argumentMap", argumentsMap)
 	}
 
 	argumentsBytes, _ := json.Marshal(argumentsMap)
@@ -155,10 +159,10 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition) 
 	err := p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp, &refs)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
-			p.log.Error(err, "connection to the language server is closed, language server is not running")
+			log.Error(err, "connection to the language server is closed, language server is not running")
 			return refs, fmt.Errorf("connection to the language server is closed, language server is not running")
 		} else {
-			p.log.Error(err, "unable to ask for Konveyor rule entry")
+			log.Error(err, "unable to ask for Konveyor rule entry")
 			return refs, fmt.Errorf("unable to ask for Konveyor rule entry")
 		}
 	}

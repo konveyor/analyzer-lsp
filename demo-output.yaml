@@ -1187,7 +1187,7 @@
   errors:
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:
-        line 10: cannot unmarshal !!map into string
+        line 11: cannot unmarshal !!map into string
   unmatched:
   - file-002
   - lang-ref-002
