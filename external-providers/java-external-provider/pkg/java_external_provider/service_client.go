@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -53,11 +54,21 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
+	// filepaths get rendered as a string and must be converted
+	if cond.Referenced.Filepaths != nil {
+		cond.Referenced.Filepaths = strings.Split(cond.Referenced.Filepaths[0], " ")
+	}
+
+	condCtx := &engine.ConditionContext{}
+	err = yaml.Unmarshal(conditionInfo, condCtx)
+	if err != nil {
+		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get condition context info: %v", err)
+	}
 
 	if cond.Referenced.Pattern == "" {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
 	}
-	symbols, err := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location, cond.Referenced.Annotated)
+	symbols, err := p.GetAllSymbols(ctx, *cond)
 	if err != nil {
 		p.log.Error(err, "unable to get symbols", "symbols", symbols, "cap", cap, "conditionInfo", cond)
 		return provider.ProviderEvaluateResponse{}, err
@@ -110,19 +121,19 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}, nil
 }
 
-func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location string, annotation annotated) ([]protocol.WorkspaceSymbol, error) {
+func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition) ([]protocol.WorkspaceSymbol, error) {
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
 	argumentsMap := map[string]interface{}{
-		"query":        query,
+		"query":        c.Referenced.Pattern,
 		"project":      "java",
-		"location":     fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
+		"location":     fmt.Sprintf("%v", locationToCode[strings.ToLower(c.Referenced.Location)]),
 		"analysisMode": string(p.config.AnalysisMode),
 	}
 
-	if !reflect.DeepEqual(annotation, annotated{}) {
-		argumentsMap["annotationQuery"] = annotation
+	if !reflect.DeepEqual(c.Referenced.Annotated, annotated{}) {
+		argumentsMap["annotationQuery"] = c.Referenced.Annotated
 	}
 
 	if p.includedPaths != nil && len(p.includedPaths) > 0 {
@@ -150,6 +161,19 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location s
 			p.log.Error(err, "unable to ask for Konveyor rule entry")
 			return refs, fmt.Errorf("unable to ask for Konveyor rule entry")
 		}
+	}
+
+	if c.Referenced.Filepaths != nil {
+		// filter according to the given filepaths
+		var filteredRefs []protocol.WorkspaceSymbol
+		for _, ref := range refs {
+			for _, fp := range c.Referenced.Filepaths {
+				if strings.HasSuffix(ref.Location.Value.(protocol.Location).URI, fp) {
+					filteredRefs = append(filteredRefs, ref)
+				}
+			}
+		}
+		return filteredRefs, nil
 	}
 
 	return refs, nil
