@@ -402,3 +402,20 @@
         elements:
           - name: basePackages
             value: "io.konveyor.demo.ordermanagement.repository"
+- ruleID: java-chaining-01
+  category: mandatory
+  description: "There should only be one instance of this rule"
+  message: |
+    Sample message. This rule checks that the chaining conditions are working. Should only get a single issue.
+  when:
+    and:
+      - java.referenced:
+          pattern: java.lang.Override
+          location: ANNOTATION
+        as: class
+        ignore: true
+      - java.referenced:
+          pattern: org.springframework.web.WebApplicationInitializer
+          location: IMPLEMENTS_TYPE
+          filepaths: "{{class.Filepaths}}"
+        from: class
