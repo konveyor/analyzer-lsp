@@ -342,7 +342,7 @@ when:
 It is also possible to use the output of one condition as the input for filtering another one in an and/or condition. This is called
 *condition chaining*.
 
-What a given condition has in its output, can be seen in the openapi spec, by finding the `<provider>.<condition>.out` component. **NOTE** Every condition, has a list of files where the incidents occurred, and the output for a condition is in the extras section.
+The OpenAPI spec contains more information about what each condition can offer in its output; check the `<provider>.<condition>.out` component.
 
 Example:
 
