@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -215,7 +214,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 
 	// Create the destDir directory using the same permissions as the Java archive file
 	// java.jar should become java-jar-exploded
-	destDir := filepath.Join(path.Dir(archivePath), strings.Replace(path.Base(archivePath), ".", "-", -1)+"-exploded")
+	destDir := filepath.Join(filepath.Dir(archivePath), strings.Replace(filepath.Base(archivePath), ".", "-", -1)+"-exploded")
 	// make sure execute bits are set so that fernflower can decompile
 	err = os.MkdirAll(destDir, fileInfo.Mode()|0111)
 	if err != nil {
