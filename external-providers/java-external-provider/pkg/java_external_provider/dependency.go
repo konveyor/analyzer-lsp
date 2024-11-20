@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -90,6 +91,8 @@ func (p *javaServiceClient) findGradleBuild() string {
 }
 
 func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	p.log.V(4).Info("running dependency analysis")
+
 	if p.GetBuildTool() == gradle {
 		p.log.V(2).Info("gradle found - retrieving dependencies")
 		m := map[uri.URI][]*provider.Dep{}
@@ -120,6 +123,18 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
 		// for binaries we only find JARs embedded in archive
 		p.discoverDepsFromJars(p.config.DependencyPath, ll)
+		if len(ll) == 0 {
+			p.log.Info("unable to get dependencies from jars, looking for pom")
+			pomPaths := p.discoverPoms(p.config.DependencyPath, ll)
+			for _, path := range pomPaths {
+				dep, err := p.GetDependenciesFallback(ctx, path)
+				if err != nil {
+					return m, err
+				}
+				maps.Copy(m, dep)
+			}
+			return m, nil
+		}
 	} else {
 		ll, err = p.GetDependenciesDAG(ctx)
 		if err != nil {
@@ -215,7 +230,7 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 			artifactIdKey: *d.ArtifactID,
 			pomPathKey:    path,
 		}
-		if *d.Version != "" {
+		if d.Version != nil {
 			if strings.Contains(*d.Version, "$") {
 				version := strings.TrimSuffix(strings.TrimPrefix(*d.Version, "${"), "}")
 				p.log.V(10).Info("Searching for property in properties",
@@ -242,6 +257,10 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 			}
 		}
 		deps = append(deps, &dep)
+	}
+	if len(deps) == 0 {
+		p.log.V(1).Info("unable to get dependencies from pom.xml in fallback", "pom", path)
+		return nil, nil
 	}
 
 	m := map[uri.URI][]*provider.Dep{}
@@ -562,6 +581,7 @@ type walker struct {
 	m2RepoPath  string
 	initialPath string
 	seen        map[string]bool
+	pomPaths    []string
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -630,6 +650,32 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 			},
 		}
 		w.seen[relPath] = true
+	}
+	return nil
+}
+
+func (p *javaServiceClient) discoverPoms(pathStart string, ll map[uri.URI][]konveyor.DepDAGItem) []string {
+	w := walker{
+		deps:        ll,
+		depToLabels: p.depToLabels,
+		m2RepoPath:  "",
+		seen:        map[string]bool{},
+		initialPath: pathStart,
+		pomPaths:    []string{},
+	}
+	filepath.WalkDir(pathStart, w.walkDirForPom)
+	return w.pomPaths
+}
+
+func (w *walker) walkDirForPom(path string, info fs.DirEntry, err error) error {
+	if info == nil {
+		return nil
+	}
+	if info.IsDir() {
+		return filepath.WalkDir(filepath.Join(path, info.Name()), w.walkDirForPom)
+	}
+	if strings.Contains(info.Name(), "pom.xml") {
+		w.pomPaths = append(w.pomPaths, path)
 	}
 	return nil
 }
