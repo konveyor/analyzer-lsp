@@ -252,7 +252,7 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 
 	//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
 	params := &protocol.InitializeParams{}
-	params.RootURI = fmt.Sprintf("file://%v", absLocation)
+	params.RootURI = string(uri.File(absLocation))
 	params.Capabilities = protocol.ClientCapabilities{}
 	params.ExtendedClientCapilities = map[string]interface{}{
 		"classFileContentsSupport": true,
@@ -261,7 +261,7 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	java8home := os.Getenv("JAVA8_HOME")
 	params.InitializationOptions = map[string]interface{}{
 		"bundles":          absBundles,
-		"workspaceFolders": []string{fmt.Sprintf("file://%v", absLocation)},
+		"workspaceFolders": []string{string(uri.File(absLocation))},
 		"settings": map[string]interface{}{
 			"java": map[string]interface{}{
 				"configuration": map[string]interface{}{
