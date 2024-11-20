@@ -611,7 +611,7 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	s := strings.ReplaceAll(string(condition), `'{{`, "{{")
 	s = strings.ReplaceAll(s, `}}'`, "}}")
 
-	s, err := mustache.Render(s, true, ctx)
+	s, err := mustache.RenderRaw(s, true, ctx)
 	if err != nil {
 		return nil, err
 	}
