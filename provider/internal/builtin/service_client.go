@@ -101,6 +101,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			if err != nil {
 				return response, err
 			}
+			if !containsFile {
+				continue
+			}
+			lineNumber := int(match.positionParams.Position.Line)
 
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
 				FileURI:    uri.URI(match.positionParams.TextDocument.URI),
