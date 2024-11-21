@@ -165,6 +165,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			if err != nil {
 				return response, err
 			}
+			if !containsFile {
+				continue
+			}
+			lineNumber := int(match.positionParams.Position.Line)
 
 			if !containsFile {
 				continue
