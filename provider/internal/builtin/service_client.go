@@ -1,14 +1,13 @@
 package builtin
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,10 +15,13 @@ import (
 	"github.com/antchfx/jsonquery"
 	"github.com/antchfx/xmlquery"
 	"github.com/antchfx/xpath"
+	"github.com/dlclark/regexp2"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
 )
 
@@ -108,29 +110,33 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 
+<<<<<<< HEAD
 		var outputBytes []byte
 		//Runs on Windows using PowerShell.exe and Unix based systems using grep
 		outputBytes, err := runOSSpecificGrepCommand(c.Pattern, p.config.Location, cond.ProviderContext, p.log)
+=======
+		patternRegex, err := regexp2.Compile(c.Pattern, regexp2.None)
+		if err != nil {
+			return response, fmt.Errorf("could not compile provided regex pattern '%s': %v", c.Pattern, err)
+		}
+
+		matches, err := parallelWalk(p.config.Location, patternRegex)
+>>>>>>> ca8af01 (Initial draft to add cross platform supported grep go package)
 		if err != nil {
 			return response, err
-		}
-		matches := []string{}
-		outputString := strings.TrimSpace(string(outputBytes))
-		if outputString != "" {
-			matches = append(matches, strings.Split(outputString, "\n")...)
 		}
 
 		for _, match := range matches {
 			var pieces []string
-			pieces, err := parseGrepOutputForFileContent(match)
+			pieces, err := parseGrepOutputForFileContent(match.match)
 			if err != nil {
-				return response, fmt.Errorf("could not parse grep output '%s' for the Pattern '%v': %v ", match, c.Pattern, err)
+				return response, fmt.Errorf("could not parse grep output '%v' for the Pattern '%v': %v ", match, c.Pattern, err)
 			}
-
-			containsFile, err := provider.FilterFilePattern(c.FilePattern, pieces[0])
+			containsFile, err := provider.FilterFilePattern(c.FilePattern, match.positionParams.TextDocument.URI)
 			if err != nil {
 				return response, err
 			}
+
 			if !containsFile {
 				continue
 			}
@@ -150,10 +156,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			}
 
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
-				FileURI:    uri.File(absPath),
+				FileURI:    uri.URI(match.positionParams.TextDocument.URI),
 				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
-					"matchingText": pieces[2],
+					"matchingText": match.match,
 				},
 				CodeLocation: &provider.Location{
 					StartPosition: provider.Position{Line: float64(lineNumber)},
@@ -575,6 +581,93 @@ func (b *builtinServiceClient) isFileIncluded(absolutePath string) bool {
 	return false
 }
 
+type walkResult struct {
+	positionParams protocol.TextDocumentPositionParams
+	match          string
+}
+
+func parallelWalk(location string, regex *regexp2.Regexp) ([]walkResult, error) {
+	var positions []walkResult
+	var positionsMu sync.Mutex
+	var eg errgroup.Group
+
+	err := filepath.Walk(location, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if f.Mode().IsRegular() {
+			eg.Go(func() error {
+				pos, err := processFile(path, regex)
+				if err != nil {
+					return err
+				}
+
+				positionsMu.Lock()
+				defer positionsMu.Unlock()
+				positions = append(positions, pos...)
+				return nil
+			})
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	return positions, nil
+}
+
+func processFile(path string, regex *regexp2.Regexp) ([]walkResult, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var r []walkResult
+
+	scanner := bufio.NewScanner(f)
+	lineNumber := 1
+	for scanner.Scan() {
+		line := scanner.Text()
+		match, err := regex.FindStringMatch(line)
+		if err != nil {
+			return nil, err
+		}
+		for match != nil {
+			absPath, err := filepath.Abs(path)
+			if err != nil {
+				return nil, err
+			}
+
+			r = append(r, walkResult{
+				positionParams: protocol.TextDocumentPositionParams{
+					TextDocument: protocol.TextDocumentIdentifier{
+						URI: fmt.Sprintf("file:///%s", filepath.ToSlash(absPath)),
+					},
+					Position: protocol.Position{
+						Line:      uint32(lineNumber),
+						Character: uint32(match.Index),
+					},
+				},
+				match: match.String(),
+			})
+			match, err = regex.FindNextMatch(match)
+			if err != nil {
+				return nil, err
+			}
+		}
+		lineNumber++
+	}
+
+	return r, nil
+}
 func parseGrepOutputForFileContent(match string) ([]string, error) {
 	// This will parse the output of the PowerShell/grep in the form
 	// "Filepath:Linenumber:Matchingtext" to return string array of path, line number and matching text
@@ -590,6 +683,7 @@ func parseGrepOutputForFileContent(match string) ([]string, error) {
 	}
 	return submatches[1:], nil
 }
+<<<<<<< HEAD
 
 func runOSSpecificGrepCommand(pattern string, location string, providerContext provider.ProviderContext, log logr.Logger) ([]byte, error) {
 	var outputBytes []byte
@@ -736,3 +830,5 @@ func getGloblikeExcludePatterns(ctx provider.ProviderContext) []string {
 	}
 	return patterns
 }
+=======
+>>>>>>> ca8af01 (Initial draft to add cross platform supported grep go package)

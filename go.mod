@@ -8,6 +8,7 @@ require (
 	github.com/antchfx/xmlquery v1.3.12
 	github.com/bombsimon/logrusr/v3 v3.0.0
 	github.com/go-logr/logr v1.4.2
+	github.com/dlclark/regexp2 v1.11.4
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/jhump/protoreflect v1.16.0
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
