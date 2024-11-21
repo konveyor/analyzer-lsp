@@ -1,15 +1,13 @@
 package builtin
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
-	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,10 +15,13 @@ import (
 	"github.com/antchfx/jsonquery"
 	"github.com/antchfx/xmlquery"
 	"github.com/antchfx/xpath"
+	"github.com/dlclark/regexp2"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
 )
 
@@ -131,33 +132,42 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
 			Patterns: []string{c.FilePattern},
 		})
+		patternRegex, err := regexp2.Compile(c.Pattern, regexp2.None)
+		if err != nil {
+			return response, fmt.Errorf("could not compile provided regex pattern '%s': %v", c.Pattern, err)
+		}
+
+		matches, err := parallelWalk(p.config.Location, patternRegex)
 		if err != nil {
 			return response, fmt.Errorf("failed to perform search - %w", err)
 		}
 
-		batchSize := 500
-		for start := 0; start < len(filePaths); start += batchSize {
-			end := int(math.Min(float64(start+batchSize), float64(len(filePaths))))
-			currBatch := filePaths[start:end]
-			p.log.V(5).Info("searching for pattern", "pattern", c.Pattern, "batchSize", len(currBatch), "totalFiles", len(filePaths))
-			// Runs on Windows using PowerShell.exe and Unix based systems using grep
-			currOutput, err := runOSSpecificGrepCommand(c.Pattern, currBatch, p.log)
-			if err != nil {
-				return response, err
-			}
-			outputBytes.Write(currOutput)
-		}
-		matches := []string{}
-		outputString := strings.TrimSpace(outputBytes.String())
-		if outputString != "" {
-			matches = append(matches, strings.Split(outputString, "\n")...)
-		}
+		// batchSize := 500
+		// for start := 0; start < len(filePaths); start += batchSize {
+		// 	end := int(math.Min(float64(start+batchSize), float64(len(filePaths))))
+		// 	currBatch := filePaths[start:end]
+		// 	p.log.V(5).Info("searching for pattern", "pattern", c.Pattern, "batchSize", len(currBatch), "totalFiles", len(filePaths))
+		// 	// Runs on Windows using PowerShell.exe and Unix based systems using grep
+		// 	currOutput, err := runOSSpecificGrepCommand(c.Pattern, currBatch, p.log)
+		// 	if err != nil {
+		// 		return response, err
+		// 	}
+		// 	outputBytes.Write(currOutput)
+		// }
 
 		for _, match := range matches {
 			var pieces []string
-			pieces, err := parseGrepOutputForFileContent(match)
+			pieces, err := parseGrepOutputForFileContent(match.match)
 			if err != nil {
-				return response, fmt.Errorf("could not parse grep output '%s' for the Pattern '%v': %v ", match, c.Pattern, err)
+				return response, fmt.Errorf("could not parse grep output '%v' for the Pattern '%v': %v ", match, c.Pattern, err)
+			}
+			containsFile, err := provider.FilterFilePattern(c.FilePattern, match.positionParams.TextDocument.URI)
+			if err != nil {
+				return response, err
+			}
+
+			if !containsFile {
+				continue
 			}
 
 			absPath, err := filepath.Abs(pieces[0])
@@ -171,10 +181,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			}
 
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
-				FileURI:    uri.File(absPath),
+				FileURI:    uri.URI(match.positionParams.TextDocument.URI),
 				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
-					"matchingText": pieces[2],
+					"matchingText": match.match,
 				},
 				CodeLocation: &provider.Location{
 					StartPosition: provider.Position{Line: float64(lineNumber)},
@@ -472,6 +482,93 @@ func (b *builtinServiceClient) getWorkingCopies() ([]string, []string) {
 	return additionalIncludedPaths, excludedPaths
 }
 
+type walkResult struct {
+	positionParams protocol.TextDocumentPositionParams
+	match          string
+}
+
+func parallelWalk(location string, regex *regexp2.Regexp) ([]walkResult, error) {
+	var positions []walkResult
+	var positionsMu sync.Mutex
+	var eg errgroup.Group
+
+	err := filepath.Walk(location, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if f.Mode().IsRegular() {
+			eg.Go(func() error {
+				pos, err := processFile(path, regex)
+				if err != nil {
+					return err
+				}
+
+				positionsMu.Lock()
+				defer positionsMu.Unlock()
+				positions = append(positions, pos...)
+				return nil
+			})
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	return positions, nil
+}
+
+func processFile(path string, regex *regexp2.Regexp) ([]walkResult, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var r []walkResult
+
+	scanner := bufio.NewScanner(f)
+	lineNumber := 1
+	for scanner.Scan() {
+		line := scanner.Text()
+		match, err := regex.FindStringMatch(line)
+		if err != nil {
+			return nil, err
+		}
+		for match != nil {
+			absPath, err := filepath.Abs(path)
+			if err != nil {
+				return nil, err
+			}
+
+			r = append(r, walkResult{
+				positionParams: protocol.TextDocumentPositionParams{
+					TextDocument: protocol.TextDocumentIdentifier{
+						URI: fmt.Sprintf("file:///%s", filepath.ToSlash(absPath)),
+					},
+					Position: protocol.Position{
+						Line:      uint32(lineNumber),
+						Character: uint32(match.Index),
+					},
+				},
+				match: match.String(),
+			})
+			match, err = regex.FindNextMatch(match)
+			if err != nil {
+				return nil, err
+			}
+		}
+		lineNumber++
+	}
+
+	return r, nil
+}
 func parseGrepOutputForFileContent(match string) ([]string, error) {
 	// This will parse the output of the PowerShell/grep in the form
 	// "Filepath:Linenumber:Matchingtext" to return string array of path, line number and matching text
@@ -486,85 +583,4 @@ func parseGrepOutputForFileContent(match string) ([]string, error) {
 			"malformed response from file search, cannot parse result '%s' with pattern %#q", match, re)
 	}
 	return submatches[1:], nil
-}
-
-func runOSSpecificGrepCommand(pattern string, locations []string, log logr.Logger) ([]byte, error) {
-	var outputBytes []byte
-	var err error
-	var utilName string
-
-	if runtime.GOOS == "windows" {
-		utilName = "powershell.exe"
-		// Windows does not have grep, so we use PowerShell.exe's Select-String instead
-		// This is a workaround until we can find a better solution
-		psScript := `
-		$pattern = $env:PATTERN
-		$locations = $env:FILEPATHS -split ','
-		foreach ($location in $locations) {
-			Get-ChildItem -Path $location -Recurse -File |
-			ForEach-Object {
-				$file = $_    
-				# Search for the pattern in the file
-				Select-String -Path $file.FullName -Pattern $pattern -AllMatches | ForEach-Object { 
-					foreach ($match in $_.Matches) { 
-						"{0}:{1}:{2}" -f $file.FullName, $_.LineNumber, $match.Value
-					} 
-				}
-			}
-		}`
-		log.V(7).Info("running perl", "cmd", psScript, "pattern", pattern)
-		findstr := exec.Command(utilName, "-Command", psScript)
-		findstr.Env = append(os.Environ(),
-			"PATTERN="+pattern,
-			"FILEPATHS="+strings.Join(locations, ","),
-		)
-		outputBytes, err = findstr.Output()
-		// TODO eventually replace with platform agnostic solution
-	} else if runtime.GOOS == "darwin" {
-		isEscaped := isSlashEscaped(pattern)
-		escapedPattern := pattern
-		// some rules already escape '/' while others do not
-		if !isEscaped {
-			escapedPattern = strings.ReplaceAll(escapedPattern, "/", "\\/")
-		}
-		// escape other chars used in perl pattern
-		escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
-		escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
-		var fileList bytes.Buffer
-		for _, f := range locations {
-			fileList.WriteString(f)
-			fileList.WriteByte('\x00')
-		}
-		cmdStr := fmt.Sprintf(
-			`xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
-			escapedPattern,
-		)
-		log.V(7).Info("running perl", "cmd", cmdStr)
-		cmd := exec.Command("/bin/sh", "-c", cmdStr)
-		cmd.Stdin = &fileList
-		outputBytes, err = cmd.Output()
-	} else {
-		args := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
-		log.V(7).Info("running grep with args", "args", args)
-		args = append(args, locations...)
-		cmd := exec.Command("grep", args...)
-		outputBytes, err = cmd.Output()
-	}
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("could not run '%s' with provided pattern %+v", utilName, err)
-	}
-
-	return outputBytes, nil
-}
-
-func isSlashEscaped(str string) bool {
-	for i := 0; i < len(str); i++ {
-		if str[i] == '/' && i > 0 && str[i-1] == '\\' {
-			return true
-		}
-	}
-	return false
 }
