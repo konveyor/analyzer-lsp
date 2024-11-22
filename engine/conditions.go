@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"maps"
 	"regexp"
 	"strings"
 
@@ -26,6 +27,17 @@ type ConditionResponse struct {
 type ConditionContext struct {
 	Tags     map[string]interface{}   `yaml:"tags"`
 	Template map[string]ChainTemplate `yaml:"template"`
+	RuleID   string                   `yaml:ruleID`
+}
+
+// This will copy the condition, but this will not copy the ruleID
+func (c *ConditionContext) Copy() ConditionContext {
+	newTags := maps.Clone(c.Tags)
+	newTemplate := maps.Clone(c.Template)
+	return ConditionContext{
+		Tags:     newTags,
+		Template: newTemplate,
+	}
 }
 
 type ConditionEntry struct {

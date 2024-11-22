@@ -73,6 +73,9 @@ func GetFiles(configLocation string, filepaths []string, patterns ...string) ([]
 		// Currently, rendering will render a list as a space separated paths as a single string.
 		patterns := strings.Split(filepaths[0], " ")
 		for _, pattern := range patterns {
+			if p, err := filepath.Rel(configLocation, pattern); err == nil {
+				pattern = p
+			}
 			files, err := FindFilesMatchingPattern(configLocation, pattern)
 			if err != nil {
 				// Something went wrong dealing with the pattern, so we'll assume the user input
@@ -83,7 +86,6 @@ func GetFiles(configLocation string, filepaths []string, patterns ...string) ([]
 			} else {
 				xmlFiles = append(xmlFiles, files...)
 			}
-			//
 		}
 	} else {
 		for _, pattern := range filepaths {
