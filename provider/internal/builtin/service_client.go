@@ -108,22 +108,11 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		var outputBytes []byte
-		if runtime.GOOS == "linux" {
-			if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
-				outputBytes, err = runOSSpecificGrepCommand(c.Pattern, paths...)
-			} else {
-				outputBytes, err = runOSSpecificGrepCommand(c.Pattern, p.config.Location)
-			}			
-			if err != nil {
-				return response, err
-			}
-		} else {
-			outputBytes, err = runOSSpecificGrepCommand(c.Pattern, p.config.Location)
-			if err != nil {
-				return response, err
-			}
+		//Runs on Windows using PowerShell.exe and Unix based systems using grep
+		outputBytes, err := runOSSpecificGrepCommand(c.Pattern, p.config.Location, cond.ProviderContext)
+		if err != nil {
+			return response, err
 		}
-
 		matches := []string{}
 		outputString := strings.TrimSpace(string(outputBytes))
 		if outputString != "" {
@@ -602,13 +591,12 @@ func parseGrepOutputForFileContent(match string) ([]string, error) {
 	return submatches[1:], nil
 }
 
-func runOSSpecificGrepCommand(pattern string, location ...string) ([]byte, error) {
+func runOSSpecificGrepCommand(pattern string, location string, providerContext provider.ProviderContext) ([]byte, error) {
 	var outputBytes []byte
 	var err error
 	var utilName string
 
-	switch runtime.GOOS {
-	case "windows":
+	if runtime.GOOS == "windows" {
 		utilName = "powershell.exe"
 		// Windows does not have grep, so we use PowerShell.exe's Select-String instead
 		// This is a workaround until we can find a better solution
@@ -625,21 +613,24 @@ func runOSSpecificGrepCommand(pattern string, location ...string) ([]byte, error
 			}
 		}`
 		findstr := exec.Command(utilName, "-Command", psScript)
-		findstr.Env = append(os.Environ(), "PATTERN="+pattern, "FILEPATH="+location[0])
+		findstr.Env = append(os.Environ(), "PATTERN="+pattern, "FILEPATH="+location)
 		outputBytes, err = findstr.Output()
 
-	case "darwin":
+	} else if runtime.GOOS == "darwin" {
 		cmd := fmt.Sprintf(
 			`find %v -type f | \
 		while read file; do perl -ne '/(%v)/ && print "$ARGV:$.:$1\n";' "$file"; done`,
-			location[0], pattern,
+			location, pattern,
 		)
 		findstr := exec.Command("/bin/sh", "-c", cmd)
 		outputBytes, err = findstr.Output()
-	default:
-		utilName = "grep"
-		// Linux and MacOS use grep
-		grep := exec.Command(utilName, "-o", "-n", "-R", "-P", pattern, location[0])
+	} else {
+		grep := exec.Command("grep", "-o", "-n", "-R", "-P", pattern)
+		if ok, paths := providerContext.GetScopedFilepaths(); ok {
+			grep.Args = append(grep.Args, paths...)
+		} else {
+			grep.Args = append(grep.Args, location)
+		}
 		outputBytes, err = grep.Output()
 	}
 	if err != nil {
