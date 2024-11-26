@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -84,15 +85,25 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 		var outputBytes []byte
-		grep := exec.Command("grep", "-o", "-n", "-R", "-P", c.Pattern, p.config.Location)
-		outputBytes, err := grep.Output()
+		var err error
+		if runtime.GOOS == "darwin" {
+			cmd := fmt.Sprintf(
+				`find %v -type f | \
+			while read file; do perl -ne '/(%v)/ && print "$ARGV:$.:$1\n";' "$file"; done`,
+				p.config.Location, c.Pattern,
+			)
+			findstr := exec.Command("/bin/sh", "-c", cmd)
+			outputBytes, err = findstr.Output()
+		} else {
+			grep := exec.Command("grep", "-o", "-n", "-R", "-P", c.Pattern, p.config.Location)
+			outputBytes, err = grep.Output()
+		}
 		if err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
 				return response, nil
 			}
 			return response, fmt.Errorf("could not run grep with provided pattern %+v", err)
 		}
-
 		matches := []string{}
 		outputString := strings.TrimSpace(string(outputBytes))
 		if outputString != "" {
