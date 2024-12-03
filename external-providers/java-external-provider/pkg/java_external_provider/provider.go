@@ -44,6 +44,7 @@ const (
 	MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
 	GLOBAL_SETTINGS_INIT_OPTION   = "mavenCacheDir"
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
+	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
 )
 
 // Rule Location to location that the bundle understands
@@ -256,6 +257,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	if !ok || lspServerPath == "" {
 		return nil, additionalBuiltinConfig, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
 	}
+	fernflower, ok := config.ProviderSpecificConfig[FERN_FLOWER_INIT_OPTION].(string)
+	if !ok {
+		fernflower = "/bin/fernflower.jar"
+	}
 
 	isBinary := false
 	var returnErr error
@@ -321,7 +326,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	extension := strings.ToLower(path.Ext(config.Location))
 	switch extension {
 	case JavaArchive, WebArchive, EnterpriseArchive:
-		depLocation, sourceLocation, err := decompileJava(ctx, log,
+		depLocation, sourceLocation, err := decompileJava(ctx, log, fernflower,
 			config.Location, getMavenLocalRepoPath(mavenSettingsFile))
 		if err != nil {
 			cancelFunc()
@@ -411,13 +416,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		// we need to do this for jdtls to correctly recognize source attachment for dep
 		switch svcClient.GetBuildTool() {
 		case maven:
-			err := resolveSourcesJarsForMaven(ctx, log, config.Location, mavenSettingsFile)
+			err := resolveSourcesJarsForMaven(ctx, log, fernflower, config.Location, mavenSettingsFile)
 			if err != nil {
 				// TODO (pgaikwad): should we ignore this failure?
 				log.Error(err, "failed to resolve maven sources jar for location", "location", config.Location)
 			}
 		case gradle:
-			err = resolveSourcesJarsForGradle(ctx, log, config.Location, mavenSettingsFile, &svcClient)
+			err = resolveSourcesJarsForGradle(ctx, log, fernflower, config.Location, mavenSettingsFile, &svcClient)
 			if err != nil {
 				log.Error(err, "failed to resolve gradle sources jar for location", "location", config.Location)
 			}
@@ -457,7 +462,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	return &svcClient, additionalBuiltinConfig, returnErr
 }
 
-func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, location string, _ string, svc *javaServiceClient) error {
+func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflower, location string, _ string, svc *javaServiceClient) error {
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
 
@@ -556,7 +561,7 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, location 
 				outputPath: filepath.Join(filepath.Dir(artifactPath), "decompiled", jarName),
 			})
 		}
-		err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, "")
+		err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "")
 		if err != nil {
 			return err
 		}
@@ -687,7 +692,7 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 
 // resolveSourcesJarsForMaven for a given source code location, runs maven to find
 // deps that don't have sources attached and decompiles them
-func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, location, mavenSettings string) error {
+func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower, location, mavenSettings string) error {
 	// TODO (pgaikwad): when we move to external provider, inherit context from parent
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
@@ -736,7 +741,7 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, location, 
 				m2Repo, groupDirs, artifactDirs, artifact.Version, "decompiled", jarName),
 		})
 	}
-	err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, "")
+	err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "")
 	if err != nil {
 		return err
 	}
