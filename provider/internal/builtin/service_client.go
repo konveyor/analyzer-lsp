@@ -616,14 +616,25 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		findstr.Env = append(os.Environ(), "PATTERN="+pattern, "FILEPATH="+location)
 		outputBytes, err = findstr.Output()
 
+		// TODO eventually replace with platform agnostic solution
 	} else if runtime.GOOS == "darwin" {
+		isEscaped := isSlashEscaped(pattern)
+		escapedPattern := pattern
+		// some rules already escape '/' while others do not
+		if !isEscaped {
+			escapedPattern = strings.ReplaceAll(escapedPattern, "/", "\\/")
+		}
+		// escape other chars used in perl pattern
+		escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
+		escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
 		cmd := fmt.Sprintf(
 			`find %v -type f | \
-		while read file; do perl -ne '/(%v)/ && print "$ARGV:$.:$1\n";' "$file"; done`,
-			location, pattern,
+		while read file; do perl -ne '/%v/ && print "$ARGV:$.:$1\n";' "$file"; done`,
+			location, escapedPattern,
 		)
 		findstr := exec.Command("/bin/sh", "-c", cmd)
 		outputBytes, err = findstr.Output()
+
 	} else {
 		grep := exec.Command("grep", "-o", "-n", "-R", "-P", pattern)
 		if ok, paths := providerContext.GetScopedFilepaths(); ok {
@@ -641,4 +652,13 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 	}
 
 	return outputBytes, nil
+}
+
+func isSlashEscaped(str string) bool {
+	for i := 0; i < len(str); i++ {
+		if str[i] == '/' && i > 0 && str[i-1] == '\\' {
+			return true
+		}
+	}
+	return false
 }
