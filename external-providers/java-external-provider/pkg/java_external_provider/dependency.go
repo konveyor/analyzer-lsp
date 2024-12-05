@@ -177,7 +177,7 @@ func getMavenLocalRepoPath(mvnSettingsFile string) string {
 	}
 
 	// check errors
-	return string(outb.String())
+	return outb.String()
 }
 
 func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, location string) (map[uri.URI][]*provider.Dep, error) {
@@ -329,7 +329,7 @@ func (p *javaServiceClient) getDependenciesForMaven(_ context.Context) (map[uri.
 	cmd.Dir = moddir
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("maven dependency:tree command failed with error %w, maven output: %s", err, string(mvnOutput))
 	}
 
 	lines := strings.Split(string(mvnOutput), "\n")
