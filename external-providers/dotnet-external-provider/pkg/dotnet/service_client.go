@@ -93,7 +93,7 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 			return provider.ProviderEvaluateResponse{Matched: false}, nil
 		}
 		for _, position := range positions {
-			fmt.Println("%#v", position)
+			d.log.V(5).Info("got position", "position", position)
 			res := []protocol.Location{}
 			switch position.(type) {
 			case protocol.ReferenceParams:

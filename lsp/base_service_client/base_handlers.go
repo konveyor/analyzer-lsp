@@ -2,7 +2,6 @@ package base
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
@@ -19,13 +18,7 @@ func (*DefaultHandler) Handle(context.Context, *jsonrpc2.Request) (interface{}, 
 // Logs the requests received
 func LogHandler(log logr.Logger) jsonrpc2.HandlerFunc {
 	return func(ctx context.Context, req *jsonrpc2.Request) (interface{}, error) {
-		log.V(5).Info("Request received", "Method", req.Method)
-		fmt.Printf(
-			"Request received:\n- ID: %v\n- Method: %s\n- Params: %s\n\n",
-			req.ID,
-			req.Method,
-			string(req.Params),
-		)
+		log.V(5).Info("Request received", "Method", req.Method, "Id", req.ID, "params", req.Params)
 		return nil, jsonrpc2.ErrNotHandled
 	}
 }

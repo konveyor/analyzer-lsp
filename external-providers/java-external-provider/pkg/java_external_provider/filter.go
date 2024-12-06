@@ -216,7 +216,7 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 			cmd.Dir = filepath.Dir(jarPath)
 			err := cmd.Run()
 			if err != nil {
-				fmt.Printf("\n java error%v", err)
+				p.log.Error(err, "error unpacking java archive")
 				return "", "", err
 			}
 		}
@@ -245,7 +245,7 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 			cmd.Dir = filepath.Dir(sourcesFile)
 			err = cmd.Run()
 			if err != nil {
-				fmt.Printf("\n java error%v", err)
+				p.log.Error(err, "error unpacking java archive")
 				return "", "", err
 			}
 		}

@@ -158,7 +158,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 	symbols := sc.GetAllDeclarations(ctx, sc.BaseConfig.WorkspaceFolders, query)
 
-	fmt.Printf("symbols: %v\n", symbols)
+	// fmt.Printf("symbols: %v\n", symbols)
 
 	incidents := []provider.IncidentContext{}
 	incidentsMap := make(map[string]provider.IncidentContext) // Remove duplicates
@@ -166,7 +166,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	for _, s := range symbols {
 		references := sc.GetAllReferences(ctx, s.Location.Value.(protocol.Location))
 
-		fmt.Printf("references: %v\n", references)
+		//fmt.Printf("references: %v\n", references)
 
 		breakEarly := false
 		for _, ref := range references {

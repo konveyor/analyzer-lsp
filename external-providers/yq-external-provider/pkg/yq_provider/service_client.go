@@ -139,11 +139,13 @@ func (p *yqServiceClient) GetAllValuesForKey(ctx context.Context, query []string
 
 	matchingYAMLFiles, err := provider.FindFilesMatchingPattern(p.config.Location, "*.yaml")
 	if err != nil {
-		fmt.Printf("unable to find any YAML files: %v\n", err)
+		p.log.Error(err, "unable to find any YML files")
+		return results, err
 	}
 	matchingYMLFiles, err := provider.FindFilesMatchingPattern(p.config.Location, "*.yml")
 	if err != nil {
-		fmt.Printf("unable to find any YML files: %v\n", err)
+		p.log.Error(err, "unable to find any YML files")
+		return results, err
 	}
 	matchingYAMLFiles = append(matchingYAMLFiles, matchingYMLFiles...)
 
@@ -152,11 +154,9 @@ func (p *yqServiceClient) GetAllValuesForKey(ctx context.Context, query []string
 		go func(file string) {
 			defer wg.Done()
 
-			fmt.Printf("Reading YAML file: %s\n", file)
-
 			data, err := os.ReadFile(file)
 			if err != nil {
-				fmt.Printf("Error reading YAML file '%s': %v\n", file, err)
+				p.log.Error(err, "error reading YAML file", "file", file)
 				return
 			}
 

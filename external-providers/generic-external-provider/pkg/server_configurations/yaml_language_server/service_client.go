@@ -203,7 +203,7 @@ func (sc *YamlServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return provider.ProviderEvaluateResponse{}, err
 	}
 
-	fmt.Println(schemaFile.Name())
+	// fmt.Println(schemaFile.Name())
 
 	// Send a workspace/didChangeConfiguration request
 	sc.configParams = []map[string]any{
@@ -278,7 +278,7 @@ func (sc *YamlServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 				return provider.ProviderEvaluateResponse{}, err
 			}
 
-			fmt.Printf("didOpen %s\n", yamlFiles[batchRight])
+			// fmt.Printf("didOpen %s\n", yamlFiles[batchRight])
 
 			err = didOpen(yamlFiles[batchRight], text)
 			if err != nil {

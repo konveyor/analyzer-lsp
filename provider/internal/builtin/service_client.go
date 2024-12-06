@@ -500,8 +500,7 @@ func findXMLFiles(baseLocation string, filePaths []string, log logr.Logger) ([]s
 func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
 	f, err := os.Open(filePath)
 	if err != nil {
-		fmt.Printf("unable to open file '%s': %v\n", filePath, err)
-		return nil, err
+		return nil, fmt.Errorf("unable to open file '%s': %w", filePath, err)
 	}
 	defer f.Close()
 	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
@@ -513,18 +512,15 @@ func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, e
 			var b []byte
 			b, err = os.ReadFile(filePath)
 			if err != nil {
-				fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
-				return nil, err
+				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
 			}
 			docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
 			doc, err = xmlquery.Parse(strings.NewReader(docString))
 			if err != nil {
-				fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
-				return nil, err
+				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
 			}
 		} else {
-			fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
-			return nil, err
+			return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
 		}
 	}
 	defer func() {

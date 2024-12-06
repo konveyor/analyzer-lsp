@@ -536,7 +536,7 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflowe
 		return err
 	}
 
-	fmt.Printf("%d", len(unresolvedSources))
+	log.V(5).Info("total unresolved sources", "count", len(unresolvedSources))
 
 	decompileJobs := []decompileJob{}
 	if len(unresolvedSources) > 1 {

@@ -49,7 +49,7 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 
 	services, err := checkServicesRunning(refClt, log)
 	if err != nil {
-		fmt.Printf("\n%v\n", err)
+		log.Error(err, "failed to check if services are running")
 		return nil, err
 	}
 	foundCodeSnip := false

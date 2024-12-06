@@ -206,7 +206,7 @@ func writeprotocol() {
 	s = s[:i] + h + s[i+len("}"):]
 
 	types["XInitializeParams"] = s
-	fmt.Printf("%s", types["XInitializeParams"])
+	// fmt.Printf("%s", types["XInitializeParams"])
 
 	// and some aliases to make the new code contain the old
 	types["PrepareRename2Gn"] = "type PrepareRename2Gn = Msg_PrepareRename2Gn // (alias) line 13927\n"
