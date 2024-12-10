@@ -370,6 +370,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, additionalBuiltinConfig, err
 	}
 
+	waitErrorChannel := make(chan error)
 	go func() {
 		err := cmd.Start()
 		if err != nil {
@@ -378,6 +379,23 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			log.Error(err, "unable to  start lsp command")
 			return
 		}
+		// Here we need to wait for the command to finish or if the ctx is cancelled,
+		// To close the pipes.
+		select {
+		case err := <-waitErrorChannel:
+			if err != nil {
+				log.Error(err, "language server stopped with error")
+			}
+			log.V(5).Info("language server stopped")
+		case <-ctx.Done():
+			log.Info("language server context cancelled closing pipes")
+			stdin.Close()
+			stdout.Close()
+		}
+	}()
+	// This will close the go routine above when wait has completed.
+	go func() {
+		waitErrorChannel <- cmd.Wait()
 	}()
 	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
 
