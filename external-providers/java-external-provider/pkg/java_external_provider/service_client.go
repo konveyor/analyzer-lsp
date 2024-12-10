@@ -221,7 +221,7 @@ func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protoco
 		if jsonrpc2.IsRPCClosed(err) {
 			p.log.Error(err, "connection to the language server is closed, language server is not running")
 		} else {
-			fmt.Printf("Error rpc: %v", err)
+			p.log.Error(err, "unknown error in RPC connection")
 		}
 	}
 	return res
@@ -304,7 +304,6 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 		break
 	}
 	if err := p.rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
-		fmt.Printf("initialized failed: %v", err)
 		p.log.Error(err, "initialize failed")
 	}
 	p.log.V(2).Info("java connection initialized")
