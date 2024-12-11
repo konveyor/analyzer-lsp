@@ -225,7 +225,10 @@ func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protoco
 
 func (p *javaServiceClient) Stop() {
 	p.cancelFunc()
-	p.cmd.Wait()
+	err := p.cmd.Wait()
+	if err != nil {
+		p.log.Info("stopping java provider", "error", err)
+	}
 }
 
 func (p *javaServiceClient) initialization(ctx context.Context) {
