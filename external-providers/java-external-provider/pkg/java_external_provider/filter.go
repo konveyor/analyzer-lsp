@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -196,6 +197,11 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 	} else {
 		jarName := filepath.Base(u.Path)
 		jarPath = filepath.Join(filepath.Dir(u.Path), jarName)
+	}
+
+	// these are added in bundle
+	if runtime.GOOS == "windows" {
+		jarPath = strings.TrimPrefix(jarPath, "\\")
 	}
 
 	path := filepath.Join(strings.Split(strings.TrimSuffix(packageName, ".class"), ".")...) // path: org/apache/logging/log4j/core/appender/FileManager
