@@ -349,27 +349,30 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 	jdtlsBasePath, err := filepath.Abs(filepath.Dir(filepath.Dir(lspServerPath)))
 	if err != nil {
+		cancelFunc()
 		return nil, additionalBuiltinConfig, fmt.Errorf("failed finding jdtls base path - %w", err)
 	}
 
 	sharedConfigPath, err := getSharedConfigPath(jdtlsBasePath)
 	if err != nil {
+		cancelFunc()
 		return nil, additionalBuiltinConfig, fmt.Errorf("failed to get shared config path - %w", err)
 	}
 
 	jarPath, err := findEquinoxLauncher(jdtlsBasePath)
 	if err != nil {
+		cancelFunc()
 		return nil, additionalBuiltinConfig, fmt.Errorf("failed to find equinox launcher - %w", err)
 	}
 
 	javaExec, err := getJavaExecutable(true)
 	if err != nil {
+		cancelFunc()
 		return nil, additionalBuiltinConfig, fmt.Errorf("failed getting java executable - %v", err)
 	}
 
 	jdtlsArgs := []string{
 		"-Declipse.application=org.eclipse.jdt.ls.core.id1",
-		"-Djava.net.useSystemProxies=true",
 		"-Dosgi.bundles.defaultStartLevel=4",
 		"-Declipse.product=org.eclipse.jdt.ls.core.product",
 		"-Dosgi.checkConfiguration=true",
@@ -382,8 +385,9 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		"--add-opens", "java.base/java.util=ALL-UNNAMED",
 		"--add-opens", "java.base/java.lang=ALL-UNNAMED",
 		"-jar", jarPath,
-		"-data", workspace,
+		"-Djava.net.useSystemProxies=true",
 		"-configuration", "./",
+		"-data", workspace,
 	}
 
 	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
