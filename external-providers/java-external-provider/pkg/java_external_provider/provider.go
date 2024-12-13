@@ -407,7 +407,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	waitErrorChannel := make(chan error)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		err := cmd.Start()
 		if err != nil {
 			cancelFunc()
@@ -429,10 +432,16 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			stdout.Close()
 		}
 	}()
+
 	// This will close the go routine above when wait has completed.
 	go func() {
 		waitErrorChannel <- cmd.Wait()
 	}()
+
+	go func() {
+		wg.Wait()
+	}()
+
 	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
 
 	rpc.AddHandler(jsonrpc2.NewBackoffHandler(log))
