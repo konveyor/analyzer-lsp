@@ -388,6 +388,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		"-Djava.net.useSystemProxies=true",
 		"-configuration", "./",
 		"-data", workspace,
+		//"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:1044",
 	}
 
 	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
