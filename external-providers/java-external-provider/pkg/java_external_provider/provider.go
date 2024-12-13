@@ -347,18 +347,54 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 	}
 
-	args := []string{
+	jdtlsBasePath, err := filepath.Abs(filepath.Dir(filepath.Dir(lspServerPath)))
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, fmt.Errorf("failed finding jdtls base path - %w", err)
+	}
+
+	sharedConfigPath, err := getSharedConfigPath(jdtlsBasePath)
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, fmt.Errorf("failed to get shared config path - %w", err)
+	}
+
+	jarPath, err := findEquinoxLauncher(jdtlsBasePath)
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, fmt.Errorf("failed to find equinox launcher - %w", err)
+	}
+
+	javaExec, err := getJavaExecutable(true)
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, fmt.Errorf("failed getting java executable - %v", err)
+	}
+
+	jdtlsArgs := []string{
+		"-Declipse.application=org.eclipse.jdt.ls.core.id1",
+		"-Dosgi.bundles.defaultStartLevel=4",
+		"-Declipse.product=org.eclipse.jdt.ls.core.product",
+		"-Dosgi.checkConfiguration=true",
+		fmt.Sprintf("-Dosgi.sharedConfiguration.area=%s", sharedConfigPath),
+		"-Dosgi.sharedConfiguration.area.readOnly=true",
+		"-Dosgi.configuration.cascaded=true",
+		"-Xms1g",
+		"-XX:MaxRAMPercentage=70.0",
+		"--add-modules=ALL-SYSTEM",
+		"--add-opens", "java.base/java.util=ALL-UNNAMED",
+		"--add-opens", "java.base/java.lang=ALL-UNNAMED",
+		"-jar", jarPath,
 		"-Djava.net.useSystemProxies=true",
-		"-configuration",
-		"./",
-		//"--jvm-arg=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:1044",
-		"-data",
-		workspace,
+		"-configuration", "./",
+		"-data", workspace,
+		//"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:1044",
 	}
+
 	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
-		args = append(args, fmt.Sprintf("-Xmx%s", val))
+		jdtlsArgs = append(jdtlsArgs, fmt.Sprintf("-Xmx%s", val))
 	}
-	cmd := exec.CommandContext(ctx, lspServerPath, args...)
+	cmd := exec.CommandContext(ctx, javaExec, jdtlsArgs...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		cancelFunc()
@@ -371,8 +407,11 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	waitErrorChannel := make(chan error)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		err := cmd.Start()
+		wg.Done()
 		if err != nil {
 			cancelFunc()
 			returnErr = err
@@ -393,10 +432,14 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			stdout.Close()
 		}
 	}()
+
 	// This will close the go routine above when wait has completed.
 	go func() {
 		waitErrorChannel <- cmd.Wait()
 	}()
+
+	wg.Wait()
+
 	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
 
 	rpc.AddHandler(jsonrpc2.NewBackoffHandler(log))
@@ -965,4 +1008,69 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string) (settingsFile string
 	}
 
 	return settingsFilePath, nil
+}
+
+func getJavaExecutable(validateJavaVersion bool) (string, error) {
+	javaExecutable := "java"
+	if javaHome, exists := os.LookupEnv("JAVA_HOME"); exists {
+		javaExecToTest := filepath.Join(javaHome, "bin", "java")
+		if runtime.GOOS == "windows" {
+			javaExecToTest += ".exe"
+		}
+		if _, err := os.Stat(javaExecToTest); err == nil {
+			javaExecutable = javaExecToTest
+		}
+	}
+
+	if !validateJavaVersion {
+		return javaExecutable, nil
+	}
+
+	out, err := exec.Command(javaExecutable, "-version").CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to run %s -version: %w", javaExecutable, err)
+	}
+
+	re := regexp.MustCompile(`version\s"(\d+)[.\d]*"`)
+	matches := re.FindStringSubmatch(string(out))
+	if len(matches) > 1 {
+		javaVersion := matches[1]
+		if majorVersion := javaVersion; majorVersion < "17" {
+			return "", errors.New("jdtls requires at least Java 17")
+		}
+		return javaExecutable, nil
+	}
+
+	return "", errors.New("could not determine Java version")
+}
+
+func findEquinoxLauncher(jdtlsBaseDir string) (string, error) {
+	pluginsDir := filepath.Join(jdtlsBaseDir, "plugins")
+	files, err := os.ReadDir(pluginsDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to read plugins directory: %w", err)
+	}
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "org.eclipse.equinox.launcher_") && strings.HasSuffix(file.Name(), ".jar") {
+			return filepath.Join(pluginsDir, file.Name()), nil
+		}
+	}
+
+	return "", errors.New("cannot find equinox launcher")
+}
+
+func getSharedConfigPath(jdtlsBaseDir string) (string, error) {
+	var configDir string
+	switch runtime.GOOS {
+	case "linux", "freebsd":
+		configDir = "config_linux"
+	case "darwin":
+		configDir = "config_mac"
+	case "windows":
+		configDir = "config_win"
+	default:
+		return "", fmt.Errorf("unknown platform %s detected", runtime.GOOS)
+	}
+	return filepath.Join(jdtlsBaseDir, configDir), nil
 }
