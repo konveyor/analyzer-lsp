@@ -5,7 +5,7 @@
         "initConfig": [{
             "location": "/analyzer-lsp/examples/golang",
             "providerSpecificConfig": {
-                "lspServerPath": "/root/go/bin/gopls"
+                "lspServerPath": "/usr/local/bin/gopls"
             }
         }]
     },

@@ -1,4 +1,4 @@
-FROM golang:1.21 as go-builder
+FROM golang:1.23 as go-builder
 
 COPY / /analyzer-lsp
 
@@ -12,7 +12,7 @@ COPY external-providers/generic-external-provider/pkg/ pkg/
 
 RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
 
-RUN go build -o generic-external-provider main.go
+RUN go build -o generic-external-provider main.go && go install golang.org/x/tools/gopls@latest
 
 FROM quay.io/konveyor/golang-dependency-provider as go-dep-provider
 
@@ -26,8 +26,9 @@ RUN microdnf install gcc-c++ python-devel go-toolset python3-devel nodejs -y && 
 RUN python3 -m ensurepip --upgrade
 RUN python3 -m pip install 'python-lsp-server>=1.8.2'
 RUN npm install -g typescript-language-server typescript
-RUN go install golang.org/x/tools/gopls@latest
 
+
+COPY --from=go-builder /go/bin/gopls /usr/local/bin/gopls
 COPY --from=go-builder /generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
 COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 
