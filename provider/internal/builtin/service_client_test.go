@@ -2,11 +2,13 @@ package builtin
 
 import (
 	"context"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"testing"
 
 	"github.com/go-logr/logr/testr"
+	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
@@ -120,5 +122,17 @@ func Test_builtinServiceClient_filterByIncludedPaths(t *testing.T) {
 				t.Errorf("builtinServiceClient.filterByIncludedPaths() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func BenchmarkRunOSSpecificGrepCommand(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		path, err := filepath.Abs("../../../external-providers/java-external-provider/examples/customers-tomcat-legacy/")
+		if err != nil {
+			return
+		}
+		runOSSpecificGrepCommand("Apache License 1.1",
+			path,
+			provider.ProviderContext{Template: map[string]engine.ChainTemplate{}})
 	}
 }
