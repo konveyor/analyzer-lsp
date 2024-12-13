@@ -410,8 +410,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		defer wg.Done()
 		err := cmd.Start()
+		wg.Done()
 		if err != nil {
 			cancelFunc()
 			returnErr = err
@@ -438,9 +438,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		waitErrorChannel <- cmd.Wait()
 	}()
 
-	go func() {
-		wg.Wait()
-	}()
+	wg.Wait()
 
 	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
 
