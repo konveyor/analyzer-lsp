@@ -25,11 +25,12 @@ import (
 )
 
 type grpcProvider struct {
-	Client pb.ProviderServiceClient
-	log    logr.Logger
-	ctx    context.Context
-	conn   *grpc.ClientConn
-	config provider.Config
+	Client    pb.ProviderServiceClient
+	log       logr.Logger
+	ctx       context.Context
+	conn      *grpc.ClientConn
+	config    provider.Config
+	cancelCmd context.CancelFunc
 
 	serviceClients []provider.ServiceClient
 }
@@ -39,7 +40,8 @@ var _ provider.InternalProviderClient = &grpcProvider{}
 func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalProviderClient, error) {
 	log = log.WithName(config.Name)
 	log = log.WithValues("provider", "grpc")
-	conn, out, err := start(context.Background(), config)
+	ctxCmd, cancelCmd := context.WithCancel(context.Background())
+	conn, out, err := start(ctxCmd, config)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +73,7 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 		ctx:            refCltCtx,
 		conn:           conn,
 		config:         config,
+		cancelCmd:      cancelCmd,
 		serviceClients: []provider.ServiceClient{},
 	}
 	if out != nil {
@@ -239,6 +242,7 @@ func (g *grpcProvider) Stop() {
 		c.Stop()
 	}
 	g.conn.Close()
+	g.cancelCmd()
 }
 
 func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.ReadCloser, error) {
