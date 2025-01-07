@@ -199,6 +199,24 @@ when:
     pattern: org.jboss.*
 ```
 
+##### Java Locations
+
+The java provider allows scoping the search down to certain source code locations. Any one of the following search locations can be used to scope down java searches:
+
+* CONSTRUCTOR_CALL
+* TYPE
+* INHERITANCE
+* METHOD_CALL
+* ANNOTATION
+* IMPLEMENTS_TYPE
+* ENUM_CONSTANT
+* RETURN_TYPE
+* IMPORT
+* VARIABLE_DECLARATION
+* FIELD (declaration)
+* METHOD (declaration)
+
+
 ##### Annotation inspection
 It is possible to add a query to match against specific annotations and their elements. For instance:
 
@@ -250,22 +268,36 @@ when:
           value: "http://www.example.com"
 ```
 
-##### Java Locations
+##### Condition patterns
+The Language Server used by the Java provider is Eclipse's JDTLS. Internally, the JDTLS uses the Eclipse Java Development Toolkit,
+which includes utilities for searching code in projects. In the `pattern` element of a `java.referenced` condition, we can therefore
+search code using these utilities.
+[The official javadocs contain all the information for building these patterns](https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fsearch%2FSearchPattern.html&anchor=createPattern(java.lang.String,int,int,int))
+in the `createPattern(String, int, int, int)` section.
 
-The java provider allows scoping the search down to certain source code locations. Any one of the following search locations can be used to scope down java searches:
+Here are some examples of what can be used:
 
-* CONSTRUCTOR_CALL
-* TYPE
-* INHERITANCE
-* METHOD_CALL
-* ANNOTATION
-* IMPLEMENTS_TYPE
-* ENUM_CONSTANT
-* RETURN_TYPE
-* IMPORT
-* VARIABLE_DECLARATION
-* FIELD (declaration)
-* METHOD (declaration)
+- Look for method declarations that return `java.lang.String`:
+```yaml
+java.referenced:
+  location: METHOD
+  pattern: '* java.lang.String'
+```
+
+- Look for a method named "method" declared on `org.konveyor.MyClass` that returns a `List` of a type that extendes `java.lang.String`:
+```yaml
+java.referenced:
+  location: METHOD
+  pattern: 'org.konveyor.Myclass.method(*) java.util.List<? extends java.lang.String>'
+```
+
+- Look for a class that implements `java.util.List`:
+```yaml
+java.referenced:
+  location: IMPLEMENTS_TYPE
+  pattern: java.util.List
+```
+
 
 
 ##### Custom Variables
