@@ -324,6 +324,10 @@ func (p *javaServiceClient) getDependenciesForMaven(_ context.Context) (map[uri.
 		args = append(args, "-s", p.mvnSettingsFile)
 	}
 
+	if p.mvnInsecure {
+		args = append(args, "-Dmaven.wagon.http.ssl.insecure=true")
+	}
+
 	// get the graph output
 	cmd := exec.Command("mvn", args...)
 	cmd.Dir = moddir
