@@ -43,6 +43,7 @@ const (
 	WORKSPACE_INIT_OPTION         = "workspace"
 	MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
 	GLOBAL_SETTINGS_INIT_OPTION   = "mavenCacheDir"
+	MVN_INSECURE_SETTING          = "mavenInsecure"
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
 )
@@ -253,6 +254,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 	}
 
+	mavenInsecure, ok := config.ProviderSpecificConfig[MVN_INSECURE_SETTING].(bool)
+	if ok && mavenInsecure {
+		log.Info("maven insecure setting enabled")
+	} else {
+		mavenInsecure = false
+	}
+
 	lspServerPath, ok := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	if !ok || lspServerPath == "" {
 		return nil, additionalBuiltinConfig, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
@@ -292,6 +300,9 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 		if mavenSettingsFile != "" {
 			mvnOptions = append(mvnOptions, "-s", mavenSettingsFile)
+		}
+		if mavenInsecure {
+			mvnOptions = append(mvnOptions, "-Dmaven.wagon.http.ssl.insecure=true")
 		}
 		log.Info("downloading maven artifact", "artifact", mvnCoordinates, "options", mvnOptions)
 		cmd := exec.CommandContext(ctx, "mvn", mvnOptions...)
@@ -466,6 +477,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		log:               log,
 		depToLabels:       map[string]*depLabelItem{},
 		isLocationBinary:  isBinary,
+		mvnInsecure:       mavenInsecure,
 		mvnSettingsFile:   mavenSettingsFile,
 		globalSettings:    globalSettingsFile,
 		depsLocationCache: make(map[string]int),
@@ -477,7 +489,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		// we need to do this for jdtls to correctly recognize source attachment for dep
 		switch svcClient.GetBuildTool() {
 		case maven:
-			err := resolveSourcesJarsForMaven(ctx, log, fernflower, config.Location, mavenSettingsFile)
+			err := resolveSourcesJarsForMaven(ctx, log, fernflower, config.Location, mavenSettingsFile, mavenInsecure)
 			if err != nil {
 				// TODO (pgaikwad): should we ignore this failure?
 				log.Error(err, "failed to resolve maven sources jar for location", "location", config.Location)
@@ -753,7 +765,7 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 
 // resolveSourcesJarsForMaven for a given source code location, runs maven to find
 // deps that don't have sources attached and decompiles them
-func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower, location, mavenSettings string) error {
+func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower, location, mavenSettings string, mvnInsecure bool) error {
 	// TODO (pgaikwad): when we move to external provider, inherit context from parent
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
@@ -770,6 +782,9 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower
 	}
 	if mavenSettings != "" {
 		args = append(args, "-s", mavenSettings)
+	}
+	if mvnInsecure {
+		args = append(args, "-Dmaven.wagon.http.ssl.insecure=true")
 	}
 	cmd := exec.CommandContext(ctx, "mvn", args...)
 	cmd.Dir = location
