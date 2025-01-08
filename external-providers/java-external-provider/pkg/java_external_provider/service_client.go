@@ -31,6 +31,7 @@ type javaServiceClient struct {
 	workspace         string
 	depToLabels       map[string]*depLabelItem
 	isLocationBinary  bool
+	mvnInsecure       bool
 	mvnSettingsFile   string
 	globalSettings    string
 	depsMutex         sync.RWMutex
