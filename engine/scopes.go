@@ -15,6 +15,7 @@ type Scope interface {
 	// For now this is the only place that we are considering adding a scope
 	// in the future, we could scope other things
 	AddToContext(*ConditionContext) error
+	FilterResponse(IncidentContext) bool
 }
 
 type scopeWrapper struct {
@@ -35,13 +36,23 @@ func (s *scopeWrapper) Name() string {
 }
 
 func (s *scopeWrapper) AddToContext(conditionCTX *ConditionContext) error {
-	for _, s := range s.scopes {
-		err := s.AddToContext(conditionCTX)
+	for _, scope := range s.scopes {
+		err := scope.AddToContext(conditionCTX)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (s *scopeWrapper) FilterResponse(response IncidentContext) bool {
+	for _, scope := range s.scopes {
+		shouldFilter := scope.FilterResponse(response)
+		if shouldFilter {
+			return true
+		}
+	}
+	return false
 }
 
 var _ Scope = &scopeWrapper{}
@@ -78,6 +89,15 @@ func (i *includedPathScope) AddToContext(conditionCTX *ConditionContext) error {
 	}
 	return nil
 
+}
+
+func (i *includedPathScope) FilterResponse(response IncidentContext) bool {
+	for _, path := range i.paths {
+		if string(response.FileURI) != "" && response.FileURI.Filename() == path {
+			return false
+		}
+	}
+	return true
 }
 
 func IncludedPathsScope(paths []string, log logr.Logger) Scope {

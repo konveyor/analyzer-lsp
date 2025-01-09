@@ -194,7 +194,7 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 
 	taggingRules, otherRules, mapRuleSets := r.filterRules(ruleSets, selectors...)
 
-	ruleContext := r.runTaggingRules(ctx, taggingRules, mapRuleSets, conditionContext)
+	ruleContext := r.runTaggingRules(ctx, taggingRules, mapRuleSets, conditionContext, scopes)
 
 	// Need a better name for this thing
 	ret := make(chan response)
@@ -220,7 +220,7 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()
 						}
 					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
-						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule)
+						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule, scopes)
 						if err != nil {
 							r.logger.Error(err, "unable to create violation from response", "ruleID", response.Rule.RuleID)
 						}
@@ -345,7 +345,7 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 
 // runTaggingRules filters and runs info rules synchronously
 // returns list of non-info rules, a context to pass to them
-func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*konveyor.RuleSet, context ConditionContext) ConditionContext {
+func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*konveyor.RuleSet, context ConditionContext, scope Scope) ConditionContext {
 	// track unique tags per ruleset
 	rulesetTagsCache := map[string]map[string]bool{}
 	for _, ruleMessage := range infoRules {
@@ -407,7 +407,7 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 				mapRuleSets[ruleMessage.ruleSetName] = rs
 			}
 			// create an insight for this tag
-			violation, err := r.createViolation(ctx, response, rule)
+			violation, err := r.createViolation(ctx, response, rule, scope)
 			if err != nil {
 				r.logger.Error(err, "unable to create violation from response", "ruleID", rule.RuleID)
 			}
@@ -487,7 +487,7 @@ func (r *ruleEngine) getRelativePathForViolation(fileURI uri.URI) (uri.URI, erro
 	return fileURI, nil
 }
 
-func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse ConditionResponse, rule Rule) (konveyor.Violation, error) {
+func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse ConditionResponse, rule Rule, scope Scope) (konveyor.Violation, error) {
 	incidents := []konveyor.Incident{}
 	fileCodeSnipCount := map[string]int{}
 	incidentsSet := map[string]struct{}{} // Set of incidents
@@ -503,6 +503,11 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 		// Exit loop, we don't care about any incidents past the filter.
 		if r.incidentLimit != 0 && len(incidents) == r.incidentLimit {
 			break
+		}
+		// If we should remove the incident because the provider didn't filter it
+		// and the user asked for a certain scope of incidents.
+		if scope != nil && scope.FilterResponse(m) {
+			continue
 		}
 		trimmedUri, err := r.getRelativePathForViolation(m.FileURI)
 		if err != nil {
