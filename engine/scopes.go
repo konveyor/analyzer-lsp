@@ -2,8 +2,11 @@ package engine
 
 import (
 	"fmt"
+	"net/url"
+	"regexp"
 
 	"github.com/go-logr/logr"
+	"go.lsp.dev/uri"
 )
 
 const TemplateContextPathScopeKey = "konveyor.io/path-scope"
@@ -104,5 +107,48 @@ func IncludedPathsScope(paths []string, log logr.Logger) Scope {
 	return &includedPathScope{
 		paths: paths,
 		log:   log,
+	}
+}
+
+type excludedPathsScope struct {
+	paths []string
+}
+
+var _ Scope = &excludedPathsScope{}
+
+func (e *excludedPathsScope) Name() string {
+	return "ExcludedPathsScope"
+}
+
+func (e *excludedPathsScope) AddToContext(conditionCtx *ConditionContext) error {
+	templ := ChainTemplate{}
+	if existingTempl, ok := conditionCtx.Template[TemplateContextPathScopeKey]; ok {
+		templ = existingTempl
+	}
+	templ.ExcludedPaths = e.paths
+	conditionCtx.Template[TemplateContextPathScopeKey] = templ
+	return nil
+}
+
+func (e *excludedPathsScope) FilterResponse(response IncidentContext) bool {
+	if response.FileURI == "" {
+		return false
+	}
+	for _, path := range e.paths {
+		pattern, err := regexp.Compile(path)
+		if err != nil {
+			continue
+		}
+		u, err := url.ParseRequestURI(string(response.FileURI))
+		if err == nil && u.Scheme == uri.FileScheme && pattern.MatchString(response.FileURI.Filename()) {
+			return true
+		}
+	}
+	return false
+}
+
+func ExcludedPathsScope(paths []string) Scope {
+	return &excludedPathsScope{
+		paths: paths,
 	}
 }
