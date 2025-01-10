@@ -80,6 +80,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			if err != nil {
 				return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
 			}
+			_, matchingFiles = cond.ProviderContext.GetScopedFilepaths(matchingFiles...)
 		}
 
 		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
@@ -109,7 +110,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 
 		var outputBytes []byte
 		//Runs on Windows using PowerShell.exe and Unix based systems using grep
-		outputBytes, err := runOSSpecificGrepCommand(c.Pattern, p.config.Location, cond.ProviderContext)
+		outputBytes, err := runOSSpecificGrepCommand(c.Pattern, p.config.Location, cond.ProviderContext, p.log)
 		if err != nil {
 			return response, err
 		}
@@ -201,6 +202,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
+		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -279,6 +281,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
+		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -331,6 +334,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
+		_, jsonFiles = cond.ProviderContext.GetScopedFilepaths(jsonFiles...)
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
 			if err != nil {
@@ -587,10 +591,12 @@ func parseGrepOutputForFileContent(match string) ([]string, error) {
 	return submatches[1:], nil
 }
 
-func runOSSpecificGrepCommand(pattern string, location string, providerContext provider.ProviderContext) ([]byte, error) {
+func runOSSpecificGrepCommand(pattern string, location string, providerContext provider.ProviderContext, log logr.Logger) ([]byte, error) {
 	var outputBytes []byte
 	var err error
 	var utilName string
+
+	excludePatterns := getGloblikeExcludePatterns(providerContext, log)
 
 	if runtime.GOOS == "windows" {
 		utilName = "powershell.exe"
@@ -624,14 +630,29 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
 		escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
 		cmd := fmt.Sprintf(
-			`find %v -type f -exec perl -ne 'print "$ARGV:$.:$1\n" if /%v/; close ARGV if eof;' {} +`,
-			location, escapedPattern,
+			`find %v %s -type f -print0 | \
+		xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
+			location, "%s", escapedPattern,
 		)
+		if len(excludePatterns) == 0 {
+			cmd = fmt.Sprintf(cmd, "")
+		} else {
+			excludeOpts := ""
+			for _, pattern := range excludePatterns {
+				excludeOpts = fmt.Sprintf("%s ! -path %s", excludeOpts, pattern)
+			}
+			cmd = fmt.Sprintf(cmd, excludeOpts)
+		}
 		findstr := exec.Command("/bin/sh", "-c", cmd)
 		outputBytes, err = findstr.Output()
 
 	} else {
-		grep := exec.Command("grep", "-o", "-n", "-R", "-P", pattern)
+		args := []string{"-o", "-n", "-R", "-P"}
+		for _, pattern := range excludePatterns {
+			args = append(args, "--exclude", pattern)
+		}
+		args = append(args, pattern)
+		grep := exec.Command("grep", args...)
 		if ok, paths := providerContext.GetScopedFilepaths(); ok {
 			grep.Args = append(grep.Args, paths...)
 		} else {
@@ -656,4 +677,24 @@ func isSlashEscaped(str string) bool {
 		}
 	}
 	return false
+}
+
+// golang patterns don't work the same as glob patterns on shell
+func getGloblikeExcludePatterns(ctx provider.ProviderContext, log logr.Logger) []string {
+	patterns := []string{}
+	for _, pattern := range ctx.GetExcludePatterns() {
+		pattern = strings.ReplaceAll(pattern, ".*", "*")
+		pattern = strings.ReplaceAll(pattern, ".", "?")
+		re := regexp.MustCompile(`\[\^([^\]]+)\]`)
+		pattern = re.ReplaceAllString(pattern, "[!$1]")
+		pattern = strings.TrimPrefix(pattern, "^")
+		pattern = strings.TrimSuffix(pattern, "$")
+		if strings.Contains(pattern, "\\") || strings.Contains(pattern, "{") {
+			log.V(5).Info("unsupported regex pattern for exclusion", pattern)
+		}
+		if pattern != "" {
+			patterns = append(patterns, pattern)
+		}
+	}
+	return patterns
 }
