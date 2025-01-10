@@ -95,6 +95,10 @@ func (i *includedPathScope) AddToContext(conditionCTX *ConditionContext) error {
 }
 
 func (i *includedPathScope) FilterResponse(response IncidentContext) bool {
+	// when there are no included paths set, everything is included
+	if len(i.paths) == 0 {
+		return false
+	}
 	for _, path := range i.paths {
 		if string(response.FileURI) != "" && response.FileURI.Filename() == path {
 			return false
