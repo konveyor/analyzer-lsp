@@ -330,16 +330,47 @@ type ExternalLinks struct {
 type ProviderContext struct {
 	Tags     map[string]interface{}          `yaml:"tags"`
 	Template map[string]engine.ChainTemplate `yaml:"template"`
-	RuleID   string                          `yaml:ruleID`
+	RuleID   string                          `yaml:"ruleID"`
 }
 
-func (p *ProviderContext) GetScopedFilepaths() (bool, []string) {
+// GetScopedFilepaths returns a list of filepaths based on either included or excluded paths in context
+// when tmpl.Filepaths is set, it is including specific files. we return the value of tmpl.Filepaths as-is
+// when tmpl.ExcludedPaths is set, it will exclude the files but we don't know set of all files to exclude from
+// as a result, we need an input list of paths to exclude files from. this is upto providers how to pass that list
+// when both are set, exclusion happens on union of input paths and included paths.
+func (p *ProviderContext) GetScopedFilepaths(paths ...string) (bool, []string) {
 	if value, ok := p.Template[engine.TemplateContextPathScopeKey]; ok {
-		if len(value.Filepaths) > 0 {
-			return true, value.Filepaths
+		includedPaths := []string{}
+		if (value.Filepaths != nil) && len(value.Filepaths) > 0 {
+			includedPaths = value.Filepaths
 		}
+		includedPaths = append(includedPaths, paths...)
+		if len(includedPaths) == 0 {
+			return false, includedPaths
+		}
+		filtered := []string{}
+		for _, path := range includedPaths {
+			excluded := false
+			for _, excldPattern := range value.ExcludedPaths {
+				if pattern, err := regexp.Compile(excldPattern); err == nil &&
+					pattern.MatchString(path) {
+					excluded = true
+				}
+			}
+			if !excluded {
+				filtered = append(filtered, path)
+			}
+		}
+		return true, filtered
 	}
-	return false, nil
+	return false, paths
+}
+
+func (p *ProviderContext) GetExcludePatterns() []string {
+	if value, ok := p.Template[engine.TemplateContextPathScopeKey]; ok {
+		return value.ExcludedPaths
+	}
+	return nil
 }
 
 func HasCapability(caps []Capability, name string) bool {
