@@ -412,3 +412,84 @@ func Test_GetConfigs(t *testing.T) {
 		})
 	}
 }
+
+func TestProviderContext_GetScopedFilepaths(t *testing.T) {
+	tests := []struct {
+		name       string
+		template   map[string]engine.ChainTemplate
+		inputPaths []string
+		want       []string
+	}{
+		{
+			name: "tc-0: only included filepaths present in context, must return that list as-is",
+			template: map[string]engine.ChainTemplate{
+				engine.TemplateContextPathScopeKey: {
+					Filepaths: []string{"a/", "b/", "c/"},
+				},
+			},
+			inputPaths: []string{},
+			want:       []string{"a/", "b/", "c/"},
+		},
+		{
+			name: "tc-1: included paths present in context, a list of additional paths provided as input, no exclusion, must return union of two lists",
+			template: map[string]engine.ChainTemplate{
+				engine.TemplateContextPathScopeKey: {
+					Filepaths: []string{"a/", "b/"},
+				},
+			},
+			inputPaths: []string{"c/"},
+			want:       []string{"a/", "b/", "c/"},
+		},
+		{
+			name: "tc-2: included paths present in context, a list of additional paths provided as input, and an exclusion list present, must return correctly filtered list",
+			template: map[string]engine.ChainTemplate{
+				engine.TemplateContextPathScopeKey: {
+					Filepaths: []string{"a/", "b/c/", "b/c/a.java", "d/e/f.py"},
+					ExcludedPaths: []string{
+						"b/c/",
+					},
+				},
+			},
+			inputPaths: []string{"c/p.xml"},
+			want:       []string{"a/", "d/e/f.py", "c/p.xml"},
+		},
+		{
+			name:       "tc-3: no included or excluded paths present in context, must return input paths as-is",
+			template:   map[string]engine.ChainTemplate{},
+			inputPaths: []string{"a/", "b/", "c/"},
+			want:       []string{"a/", "b/", "c/"},
+		},
+		{
+			name: "tc-4: no included or excluded paths, must return input paths as-is",
+			template: map[string]engine.ChainTemplate{
+				engine.TemplateContextPathScopeKey: {
+					ExcludedPaths: []string{},
+				},
+			},
+			inputPaths: []string{"a/", "b/", "c/"},
+			want:       []string{"a/", "b/", "c/"},
+		},
+		{
+			name: "tc-5: included and excluded paths given but no input paths, must return correct list of included paths with excluded ones removed",
+			template: map[string]engine.ChainTemplate{
+				engine.TemplateContextPathScopeKey: {
+					Filepaths:     []string{"a/b.py", "c/d/e/f.java", "l/m/n/p.py"},
+					ExcludedPaths: []string{".*e.*"},
+				},
+			},
+			inputPaths: []string{},
+			want:       []string{"a/b.py", "l/m/n/p.py"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &ProviderContext{
+				Template: tt.template,
+				RuleID:   "test",
+			}
+			if _, got := p.GetScopedFilepaths(tt.inputPaths...); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ProviderContext.FilterExcludedPaths() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
