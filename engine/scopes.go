@@ -116,6 +116,7 @@ func IncludedPathsScope(paths []string, log logr.Logger) Scope {
 
 type excludedPathsScope struct {
 	paths []string
+	log logr.Logger
 }
 
 var _ Scope = &excludedPathsScope{}
@@ -139,20 +140,24 @@ func (e *excludedPathsScope) FilterResponse(response IncidentContext) bool {
 		return false
 	}
 	for _, path := range e.paths {
+		e.log.V(5).Info("using path for filtering response", "path", path)
 		pattern, err := regexp.Compile(path)
 		if err != nil {
+			e.log.V(5).Error(err, "invalid pattern", "pattern", path)
 			continue
 		}
 		u, err := url.ParseRequestURI(string(response.FileURI))
 		if err == nil && u.Scheme == uri.FileScheme && pattern.MatchString(response.FileURI.Filename()) {
+			e.log.V(5).Info("excluding the file", "file", response.FileURI.Filename(), "pattern", pattern)
 			return true
 		}
 	}
 	return false
 }
 
-func ExcludedPathsScope(paths []string) Scope {
+func ExcludedPathsScope(paths []string, log logr.Logger) Scope {
 	return &excludedPathsScope{
 		paths: paths,
+		log: log.WithName("excludedPathScope"),
 	}
 }
