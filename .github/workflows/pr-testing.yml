@@ -3,8 +3,13 @@ name: Testing Engine
 on: ["push", "pull_request"]
 
 jobs: 
-  test: 
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      matrix:
+        runs_on:
+        - ubuntu-latest
+        - macos-latest
+    runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Go
