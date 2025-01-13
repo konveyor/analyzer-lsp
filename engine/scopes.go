@@ -2,8 +2,11 @@ package engine
 
 import (
 	"fmt"
+	"net/url"
+	"regexp"
 
 	"github.com/go-logr/logr"
+	"go.lsp.dev/uri"
 )
 
 const TemplateContextPathScopeKey = "konveyor.io/path-scope"
@@ -92,6 +95,10 @@ func (i *includedPathScope) AddToContext(conditionCTX *ConditionContext) error {
 }
 
 func (i *includedPathScope) FilterResponse(response IncidentContext) bool {
+	// when there are no included paths set, everything is included
+	if len(i.paths) == 0 {
+		return false
+	}
 	for _, path := range i.paths {
 		if string(response.FileURI) != "" && response.FileURI.Filename() == path {
 			return false
@@ -104,5 +111,53 @@ func IncludedPathsScope(paths []string, log logr.Logger) Scope {
 	return &includedPathScope{
 		paths: paths,
 		log:   log,
+	}
+}
+
+type excludedPathsScope struct {
+	paths []string
+	log logr.Logger
+}
+
+var _ Scope = &excludedPathsScope{}
+
+func (e *excludedPathsScope) Name() string {
+	return "ExcludedPathsScope"
+}
+
+func (e *excludedPathsScope) AddToContext(conditionCtx *ConditionContext) error {
+	templ := ChainTemplate{}
+	if existingTempl, ok := conditionCtx.Template[TemplateContextPathScopeKey]; ok {
+		templ = existingTempl
+	}
+	templ.ExcludedPaths = e.paths
+	conditionCtx.Template[TemplateContextPathScopeKey] = templ
+	return nil
+}
+
+func (e *excludedPathsScope) FilterResponse(response IncidentContext) bool {
+	if response.FileURI == "" {
+		return false
+	}
+	for _, path := range e.paths {
+		e.log.V(5).Info("using path for filtering response", "path", path)
+		pattern, err := regexp.Compile(path)
+		if err != nil {
+			e.log.V(5).Error(err, "invalid pattern", "pattern", path)
+			continue
+		}
+		u, err := url.ParseRequestURI(string(response.FileURI))
+		if err == nil && u.Scheme == uri.FileScheme && pattern.MatchString(response.FileURI.Filename()) {
+			e.log.V(5).Info("excluding the file", "file", response.FileURI.Filename(), "pattern", pattern)
+			return true
+		}
+	}
+	return false
+}
+
+func ExcludedPathsScope(paths []string, log logr.Logger) Scope {
+	return &excludedPathsScope{
+		paths: paths,
+		log: log.WithName("excludedPathScope"),
 	}
 }

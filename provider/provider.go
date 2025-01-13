@@ -334,8 +334,8 @@ type ProviderContext struct {
 }
 
 func (p *ProviderContext) GetScopedFilepaths() (bool, []string) {
-	for key, value := range p.Template {
-		if key == engine.TemplateContextPathScopeKey {
+	if value, ok := p.Template[engine.TemplateContextPathScopeKey]; ok {
+		if len(value.Filepaths) > 0 {
 			return true, value.Filepaths
 		}
 	}
