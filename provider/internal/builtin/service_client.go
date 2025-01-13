@@ -629,36 +629,57 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		// escape other chars used in perl pattern
 		escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
 		escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
-		cmd := fmt.Sprintf(
-			`find %v %s -type f -print0 | \
-		xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
-			location, "%s", escapedPattern,
-		)
-		if len(excludePatterns) == 0 {
-			cmd = fmt.Sprintf(cmd, "")
+		cmd := ""
+		if ok, paths := providerContext.GetScopedFilepaths(); ok {
+			cmd = fmt.Sprintf(
+				`echo '%s' | \
+			xargs perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
+				strings.Join(paths, "\n"), escapedPattern,
+			)
 		} else {
-			excludeOpts := ""
-			for _, pattern := range excludePatterns {
-				excludeOpts = fmt.Sprintf("%s ! -path %s", excludeOpts, pattern)
+			cmd = fmt.Sprintf(
+				`find %v %s -type f -print0 | \
+			xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
+				location, "%s", escapedPattern,
+			)
+			if len(excludePatterns) == 0 {
+				cmd = fmt.Sprintf(cmd, "")
+			} else {
+				excludeOpts := ""
+				for _, pattern := range excludePatterns {
+					if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
+						excludeOpts = fmt.Sprintf("%s ! -path '%s*'", excludeOpts, pattern)
+					} else {
+						excludeOpts = fmt.Sprintf("%s ! -path '%s'", excludeOpts, pattern)
+					}
+				}
+				cmd = fmt.Sprintf(cmd, excludeOpts)
 			}
-			cmd = fmt.Sprintf(cmd, excludeOpts)
 		}
 		findstr := exec.Command("/bin/sh", "-c", cmd)
 		outputBytes, err = findstr.Output()
-
 	} else {
-		args := []string{"-o", "-n", "-R", "-P"}
-		for _, pattern := range excludePatterns {
-			args = append(args, "--exclude", pattern)
-		}
-		args = append(args, pattern)
-		grep := exec.Command("grep", args...)
+		grepArgs := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
+		find := exec.Command("find")
+		findPaths := []string{location}
 		if ok, paths := providerContext.GetScopedFilepaths(); ok {
-			grep.Args = append(grep.Args, paths...)
-		} else {
-			grep.Args = append(grep.Args, location)
+			findPaths = paths
 		}
-		outputBytes, err = grep.Output()
+		findArgs := []string{}
+		for _, pattern := range excludePatterns {
+			if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
+				findArgs = append(findArgs, "!", "-path", fmt.Sprintf("%s*", pattern))
+			} else {
+				findArgs = append(findArgs, "!", "-path", pattern)
+			}
+		}
+		findArgs = append(findArgs, "-type", "f")
+		findArgs = append(findArgs, "-exec", "grep")
+		findArgs = append(findArgs, grepArgs...)
+		findArgs = append(findArgs, "{}", "+")
+		find.Args = append(find.Args, findPaths...)
+		find.Args = append(find.Args, findArgs...)
+		outputBytes, err = find.Output()
 	}
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
