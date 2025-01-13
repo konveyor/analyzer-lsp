@@ -639,26 +639,38 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		} else {
 			excludeOpts := ""
 			for _, pattern := range excludePatterns {
-				excludeOpts = fmt.Sprintf("%s ! -path %s", excludeOpts, pattern)
+				if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
+					excludeOpts = fmt.Sprintf("%s ! -path %s*", excludeOpts, pattern)
+				} else {
+					excludeOpts = fmt.Sprintf("%s ! -path %s", excludeOpts, pattern)
+				}
 			}
 			cmd = fmt.Sprintf(cmd, excludeOpts)
 		}
 		findstr := exec.Command("/bin/sh", "-c", cmd)
 		outputBytes, err = findstr.Output()
-
 	} else {
-		args := []string{"-o", "-n", "-R", "-P"}
-		for _, pattern := range excludePatterns {
-			args = append(args, "--exclude", pattern)
-		}
-		args = append(args, pattern)
-		grep := exec.Command("grep", args...)
+		grepArgs := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
+		find := exec.Command("find")
+		findPaths := []string{location}
 		if ok, paths := providerContext.GetScopedFilepaths(); ok {
-			grep.Args = append(grep.Args, paths...)
-		} else {
-			grep.Args = append(grep.Args, location)
+			findPaths = paths
 		}
-		outputBytes, err = grep.Output()
+		findArgs := []string{}
+		for _, pattern := range excludePatterns {
+			if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
+				findArgs = append(findArgs, "!", "-path", fmt.Sprintf("%s*", pattern))
+			} else {
+				findArgs = append(findArgs, "!", "-path", pattern)
+			}
+		}
+		findArgs = append(findArgs, "-type", "f")
+		findArgs = append(findArgs, "-exec", "grep")
+		findArgs = append(findArgs, grepArgs...)
+		findArgs = append(findArgs, "{}", "+")
+		find.Args = append(find.Args, findPaths...)
+		find.Args = append(find.Args, findArgs...)
+		outputBytes, err = find.Output()
 	}
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
@@ -688,7 +700,7 @@ func getGloblikeExcludePatterns(ctx provider.ProviderContext, log logr.Logger) [
 		re := regexp.MustCompile(`\[\^([^\]]+)\]`)
 		pattern = re.ReplaceAllString(pattern, "[!$1]")
 		pattern = strings.TrimPrefix(pattern, "^")
-		pattern = strings.TrimSuffix(pattern, "$")	
+		pattern = strings.TrimSuffix(pattern, "$")
 		if strings.Contains(pattern, "\\") || strings.Contains(pattern, "{") {
 			log.V(5).Info("unsupported regex pattern for exclusion", pattern)
 		}

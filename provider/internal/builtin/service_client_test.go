@@ -7,9 +7,11 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"gopkg.in/yaml.v2"
 )
 
 func newLocationForLine(line float64) provider.Location {
@@ -133,6 +135,178 @@ func BenchmarkRunOSSpecificGrepCommand(b *testing.B) {
 		}
 		runOSSpecificGrepCommand("Apache License 1.1",
 			path,
-			provider.ProviderContext{Template: map[string]engine.ChainTemplate{}})
+			provider.ProviderContext{Template: map[string]engine.ChainTemplate{}}, logr.Discard())
+	}
+}
+
+func Test_builtinServiceClient_EvaluateFilecontent(t *testing.T) {
+	baseLocation := filepath.Join(".", "testdata", "search_scopes")
+	baseLocation, err := filepath.Abs(baseLocation)
+	if err != nil {
+		t.Errorf("builtinServiceClient.Evaluate() unable to run tests, cannot get absolute file path for base location err = %v", err)
+		return
+	}
+
+	tests := []struct {
+		name string
+		// this is what we already had before introducing scopes
+		includedPathsFromConfig []string
+		condition               fileContentCondition
+		chainTemplate           engine.ChainTemplate
+		wantFilePaths           []string
+		wantErr                 bool
+	}{
+		{
+			name:                    "No include, no exclude",
+			includedPathsFromConfig: []string{},
+			condition: fileContentCondition{
+				Pattern: "(fox|app.config.property = .*)",
+			},
+			chainTemplate: engine.ChainTemplate{},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.txt"),
+				filepath.Join("dir_a", "a.properties"),
+				filepath.Join("dir_a", "dir_b", "ab.properties"),
+				filepath.Join("dir_a", "dir_b", "ab.txt"),
+				filepath.Join("dir_b", "dir_a", "ba.properties"),
+				filepath.Join("dir_b", "b.properties"),
+				filepath.Join("dir_b", "b.txt"),
+			},
+		},
+		{
+			name: "Include using the config (legacy inclusion), no exclude",
+			includedPathsFromConfig: []string{
+				"dir_a/",
+			},
+			condition: fileContentCondition{
+				Pattern: "(fox|app.config.property = .*)",
+			},
+			chainTemplate: engine.ChainTemplate{},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.txt"),
+				filepath.Join("dir_a", "a.properties"),
+				filepath.Join("dir_a", "dir_b", "ab.properties"),
+				filepath.Join("dir_a", "dir_b", "ab.txt"),
+			},
+		},
+		{
+			name: "Include using the config (legacy inclusion), with exclude",
+			includedPathsFromConfig: []string{
+				"dir_a/",
+				"dir_b/",
+			},
+			condition: fileContentCondition{
+				Pattern: "(fox|app.config.property = .*)",
+			},
+			chainTemplate: engine.ChainTemplate{
+				ExcludedPaths: []string{
+					filepath.Join(baseLocation, "dir_a"),
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "dir_a", "ba.properties"),
+				filepath.Join("dir_b", "b.properties"),
+				filepath.Join("dir_b", "b.txt"),
+			},
+		},
+		{
+			name:                    "Include using the scopes, no exclude",
+			includedPathsFromConfig: []string{},
+			condition: fileContentCondition{
+				Pattern: "(fox|app.config.property = .*)",
+			},
+			chainTemplate: engine.ChainTemplate{
+				Filepaths: []string{
+					filepath.Join("dir_a", "a.txt"),
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.txt"),
+			},
+		},
+		{
+			name:                    "Exclude dir, no include",
+			includedPathsFromConfig: []string{},
+			condition: fileContentCondition{
+				Pattern: "(fox|app.config.property = .*)",
+			},
+			chainTemplate: engine.ChainTemplate{
+				ExcludedPaths: []string{
+					filepath.Join(baseLocation, "dir_a"),
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "dir_a", "ba.properties"),
+				filepath.Join("dir_b", "b.properties"),
+				filepath.Join("dir_b", "b.txt"),
+			},
+		},
+		{
+			name:                    "Exclude using pattern",
+			includedPathsFromConfig: []string{},
+			condition: fileContentCondition{
+				Pattern: "(fox|app.config.property = .*)",
+			},
+			chainTemplate: engine.ChainTemplate{
+				ExcludedPaths: []string{
+					".*ba.*",
+					".*.txt",
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.properties"),
+				filepath.Join("dir_a", "dir_b", "ab.properties"),
+				filepath.Join("dir_b", "b.properties"),
+			},
+		},
+	}
+
+	getAbsolutePaths := func(baseLocation string, relativePaths []string) []string {
+		absPaths := []string{}
+		for _, relPath := range relativePaths {
+			absPaths = append(absPaths, filepath.Join(baseLocation, relPath))
+		}
+		return absPaths
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &builtinServiceClient{
+				config: provider.InitConfig{
+					Location: baseLocation,
+				},
+				log:           testr.New(t),
+				includedPaths: tt.includedPathsFromConfig,
+			}
+			chainTemplate := engine.ChainTemplate{
+				Filepaths:     getAbsolutePaths(p.config.Location, tt.chainTemplate.Filepaths),
+				ExcludedPaths: tt.chainTemplate.ExcludedPaths,
+			}
+			conditionInfo, err := yaml.Marshal(&builtinCondition{
+				Filecontent: tt.condition,
+				ProviderContext: provider.ProviderContext{
+					Template: map[string]engine.ChainTemplate{
+						engine.TemplateContextPathScopeKey: chainTemplate,
+					},
+				},
+			})
+			if err != nil {
+				t.Errorf("builtinServiceClient.Evaluate() invalid test case, please check if condition is correct")
+				return
+			}
+			got, err := p.Evaluate(context.TODO(), "filecontent", conditionInfo)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("builtinServiceClient.Evaluate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			gotFilepaths := []string{}
+			for _, fp := range got.Incidents {
+				gotFilepaths = append(gotFilepaths, fp.FileURI.Filename())
+			}
+			wantFilepaths := getAbsolutePaths(p.config.Location, tt.wantFilePaths)
+			if !reflect.DeepEqual(gotFilepaths, wantFilepaths) {
+				t.Errorf("builtinServiceClient.Evaluate() = %v, want %v", gotFilepaths, wantFilepaths)
+			}
+		})
 	}
 }
