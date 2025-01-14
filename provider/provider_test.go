@@ -405,8 +405,8 @@ func Test_GetConfigs(t *testing.T) {
 			}
 			pc := c.InitConfig[0]
 			if !reflect.DeepEqual(pc.ProviderSpecificConfig, tc.expectedProviderSpecificConfig) {
-				fmt.Printf("\n%#v", pc.ProviderSpecificConfig)
-				fmt.Printf("\n%#v\n", tc.expectedProviderSpecificConfig)
+				fmt.Printf("\\n%#v", pc.ProviderSpecificConfig)
+				fmt.Printf("\\n%#v\\n", tc.expectedProviderSpecificConfig)
 				t.Fatalf("Got config is different than expected config")
 			}
 		})
@@ -479,6 +479,24 @@ func TestProviderContext_GetScopedFilepaths(t *testing.T) {
 			},
 			inputPaths: []string{},
 			want:       []string{"a/b.py", "l/m/n/p.py"},
+		},
+		{
+			name: "tc-6: excluded paths provided with input paths, windows specific case",
+			template: map[string]engine.ChainTemplate{
+				engine.TemplateContextPathScopeKey: {
+					ExcludedPaths: []string{"D:\\a\\analyzer-lsp\\analyzer-lsp\\provider\\internal\\builtin\\testdata\\search_scopes\\dir_a"},
+				},
+			},
+			inputPaths: []string{
+				"D:\\a\\analyzer-lsp\\analyzer-lsp\\provider\\internal\\builtin\\testdata\\search_scopes\\dir_a\\a.properties",
+				"D:\\a\\analyzer-lsp\\analyzer-lsp\\provider\\internal\\builtin\\testdata\\search_scopes\\dir_a\\dir_b\\ab.properties",
+				"D:\\a\\analyzer-lsp\\analyzer-lsp\\provider\\internal\\builtin\\testdata\\search_scopes\\dir_b\\b.properties",
+				"D:\\a\\analyzer-lsp\\analyzer-lsp\\provider\\internal\\builtin\\testdata\\search_scopes\\dir_b\\dir_a\\ba.properties",
+			},
+			want: []string{
+				"D:\\a\\analyzer-lsp\\analyzer-lsp\\provider\\internal\\builtin\\testdata\\search_scopes\\dir_b\\b.properties",
+				"D:\\a\\analyzer-lsp\\analyzer-lsp\\provider\\internal\\builtin\\testdata\\search_scopes\\dir_b\\dir_a\\ba.properties",
+			},
 		},
 	}
 	for _, tt := range tests {
