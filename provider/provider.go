@@ -350,6 +350,8 @@ func (p *ProviderContext) GetScopedFilepaths(paths ...string) (bool, []string) {
 		for _, path := range includedPaths {
 			excluded := false
 			for _, excldPattern := range value.ExcludedPaths {
+				// backslashes in windows paths must be escaped
+				excldPattern = strings.ReplaceAll(excldPattern, "\\", "\\\\")
 				if pattern, err := regexp.Compile(excldPattern); err == nil &&
 					pattern.MatchString(path) {
 					excluded = true
