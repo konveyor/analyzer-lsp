@@ -530,7 +530,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				config: provider.InitConfig{
 					Location: baseLocation,
 				},
-				log:           testr.New(t),
+				log:           testr.NewWithOptions(t, testr.Options{Verbosity: 20}),
 				includedPaths: tt.includedPathsFromConfig,
 				locationCache: map[string]float64{},
 				cacheMutex:    sync.RWMutex{},

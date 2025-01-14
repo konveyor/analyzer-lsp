@@ -596,7 +596,7 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 	var err error
 	var utilName string
 
-	excludePatterns := getGloblikeExcludePatterns(providerContext, log)
+	excludePatterns := getGloblikeExcludePatterns(providerContext)
 
 	if runtime.GOOS == "windows" {
 		utilName = "powershell.exe"
@@ -634,8 +634,9 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 			$excluded_paths = $env.EXCLUDEDPATHS -split ','
 			`
 		}
-		findstr := exec.Command(utilName, "-Command",
-			fmt.Sprintf(psScript, exclusionEnvVar, exclusionScript))
+		psScript = fmt.Sprintf(psScript, exclusionEnvVar, exclusionScript)
+		findstr := exec.Command(utilName, "-Command", psScript)
+		log.Info("running ps script with excluded patterns", "patterns", fmt.Sprintf("%v", excludePatterns))
 		findstr.Env = append(os.Environ(),
 			"PATTERN="+pattern,
 			"FILEPATHS="+strings.Join(locations, ","),
@@ -696,6 +697,7 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		findArgs = append(findArgs, "{}", "+")
 		find.Args = append(find.Args, findPaths...)
 		find.Args = append(find.Args, findArgs...)
+		log.V(5).Info("running find with args", "args", find.Args)
 		outputBytes, err = find.Output()
 	}
 	if err != nil {
@@ -718,7 +720,7 @@ func isSlashEscaped(str string) bool {
 }
 
 // golang patterns don't work the same as glob patterns on shell
-func getGloblikeExcludePatterns(ctx provider.ProviderContext, log logr.Logger) []string {
+func getGloblikeExcludePatterns(ctx provider.ProviderContext) []string {
 	patterns := []string{}
 	for _, pattern := range ctx.GetExcludePatterns() {
 		pattern = strings.ReplaceAll(pattern, ".*", "*")
@@ -727,9 +729,6 @@ func getGloblikeExcludePatterns(ctx provider.ProviderContext, log logr.Logger) [
 		pattern = re.ReplaceAllString(pattern, "[!$1]")
 		pattern = strings.TrimPrefix(pattern, "^")
 		pattern = strings.TrimSuffix(pattern, "$")
-		if strings.Contains(pattern, "\\") || strings.Contains(pattern, "{") {
-			log.V(5).Info("unsupported regex pattern for exclusion", pattern)
-		}
 		if pattern == "" {
 			continue
 		}
