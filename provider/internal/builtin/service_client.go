@@ -604,18 +604,43 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		// This is a workaround until we can find a better solution
 		psScript := `
 		$pattern = $env:PATTERN
-		$location = $env:FILEPATH
-		Get-ChildItem -Path $location -Recurse -File | ForEach-Object {
-			$file = $_    
-			# Search for the pattern in the file
-			Select-String -Path $file.FullName -Pattern $pattern -AllMatches | ForEach-Object { 
-				foreach ($match in $_.Matches) { 
-					"{0}:{1}:{2}" -f $file.FullName, $_.LineNumber, $match.Value
-				} 
+		$locations = $env:FILEPATHS -split ','
+		%s
+		foreach ($location in $locations) {
+			Get-ChildItem -Path $location -Recurse -File |
+			%s
+			ForEach-Object {
+				$file = $_    
+				# Search for the pattern in the file
+				Select-String -Path $file.FullName -Pattern $pattern -AllMatches | ForEach-Object { 
+					foreach ($match in $_.Matches) { 
+						"{0}:{1}:{2}" -f $file.FullName, $_.LineNumber, $match.Value
+					} 
+				}
 			}
 		}`
-		findstr := exec.Command(utilName, "-Command", psScript)
-		findstr.Env = append(os.Environ(), "PATTERN="+pattern, "FILEPATH="+location)
+		exclusionScript := ""
+		exclusionEnvVar := ""
+		locations := []string{location}
+		if ok, paths := providerContext.GetScopedFilepaths(); ok {
+			locations = paths
+		} else if len(excludePatterns) > 0 {
+			exclusionScript = `
+			Where-Object {
+				-not ($excludedPaths | ForEach-Object { $_ -and ($_.FullName -like $_) })
+			} |
+			`
+			exclusionEnvVar = `
+			$excluded_paths = $env.EXCLUDEDPATHS -split ','
+			`
+		}
+		findstr := exec.Command(utilName, "-Command",
+			fmt.Sprintf(psScript, exclusionEnvVar, exclusionScript))
+		findstr.Env = append(os.Environ(),
+			"PATTERN="+pattern,
+			"FILEPATHS="+strings.Join(locations, ","),
+			"EXCLUDEDPATHS="+strings.Join(excludePatterns, ","),
+		)
 		outputBytes, err = findstr.Output()
 
 		// TODO eventually replace with platform agnostic solution
@@ -647,11 +672,7 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 			} else {
 				excludeOpts := ""
 				for _, pattern := range excludePatterns {
-					if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
-						excludeOpts = fmt.Sprintf("%s ! -path '%s*'", excludeOpts, pattern)
-					} else {
-						excludeOpts = fmt.Sprintf("%s ! -path '%s'", excludeOpts, pattern)
-					}
+					excludeOpts = fmt.Sprintf("%s ! -path '%s'", excludeOpts, pattern)
 				}
 				cmd = fmt.Sprintf(cmd, excludeOpts)
 			}
@@ -667,11 +688,7 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		}
 		findArgs := []string{}
 		for _, pattern := range excludePatterns {
-			if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
-				findArgs = append(findArgs, "!", "-path", fmt.Sprintf("%s*", pattern))
-			} else {
-				findArgs = append(findArgs, "!", "-path", pattern)
-			}
+			findArgs = append(findArgs, "!", "-path", pattern)
 		}
 		findArgs = append(findArgs, "-type", "f")
 		findArgs = append(findArgs, "-exec", "grep")
@@ -713,7 +730,12 @@ func getGloblikeExcludePatterns(ctx provider.ProviderContext, log logr.Logger) [
 		if strings.Contains(pattern, "\\") || strings.Contains(pattern, "{") {
 			log.V(5).Info("unsupported regex pattern for exclusion", pattern)
 		}
-		if pattern != "" {
+		if pattern == "" {
+			continue
+		}
+		if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
+			patterns = append(patterns, fmt.Sprintf("%s*", pattern))
+		} else {
 			patterns = append(patterns, pattern)
 		}
 	}
