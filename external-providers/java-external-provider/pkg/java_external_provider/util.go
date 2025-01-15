@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"text/template"
@@ -396,8 +397,11 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			}
 		// any other files, move to java project as-is
 		default:
+			baseName := strings.ToValidUTF8(f.Name, "_")
+			re := regexp.MustCompile(`[^\w\-\.\\/]+`)
+			baseName = re.ReplaceAllString(baseName, "_")
 			destPath := filepath.Join(
-				projectPath, strings.Replace(filepath.Base(archivePath), ".", "-", -1)+"-exploded", f.Name)
+				projectPath, strings.Replace(filepath.Base(archivePath), ".", "-", -1)+"-exploded", baseName)
 			if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 				log.V(8).Error(err, "error creating directory for java file", "path", destPath)
 				continue
