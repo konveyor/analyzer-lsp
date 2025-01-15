@@ -209,6 +209,30 @@
           data: dependency
           innerText: "\n      io.javaoperatorsdk.operator\n      sample\n      0.0.0\n    "
           matchingXML: <groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>
+      - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/maven/io.javaoperatorsdk/quarkus/pom.xml
+        message: <groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-quarkus-extension</artifactId><version>${project.version}</version>
+        codeSnip: "30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>"
+        lineNumber: 39
+        variables:
+          data: dependency
+          innerText: "\n      io.javaoperatorsdk\n      operator-framework-quarkus-extension\n      ${project.version}\n    "
+          matchingXML: <groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-quarkus-extension</artifactId><version>${project.version}</version>
+      - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/maven/io.javaoperatorsdk/quarkus/pom.xml
+        message: <groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-samples-common</artifactId><version>${project.version}</version>
+        codeSnip: "35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>\n51      <plugins>\n52        <plugin>\n53          <groupId>org.apache.maven.plugins</groupId>\n54          <artifactId>maven-compiler-plugin</artifactId>\n55          <version>${compiler-plugin.version}</version>"
+        lineNumber: 44
+        variables:
+          data: dependency
+          innerText: "\n      io.javaoperatorsdk\n      operator-framework-samples-common\n      ${project.version}\n    "
+          matchingXML: <groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-samples-common</artifactId><version>${project.version}</version>
+      - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/maven/io.javaoperatorsdk/quarkus/pom.xml
+        message: <groupId>io.quarkus</groupId><artifactId>quarkus-universe-bom</artifactId><version>${quarkus.version}</version><type>pom</type><scope>import</scope>
+        codeSnip: "19      <maven.compiler.target>11</maven.compiler.target>\n20      <quarkus.version>1.10.5.Final</quarkus.version>\n21      <compiler-plugin.version>3.8.1</compiler-plugin.version>\n22      <maven.compiler.parameters>true</maven.compiler.parameters>\n23    </properties>\n24  \n25    <dependencyManagement>\n26      <dependencies>\n27        <dependency>\n28          <groupId>io.quarkus</groupId>\n29          <artifactId>quarkus-universe-bom</artifactId>\n30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>"
+        lineNumber: 28
+        variables:
+          data: dependency
+          innerText: "\n        io.quarkus\n        quarkus-universe-bom\n        ${quarkus.version}\n        pom\n        import\n      "
+          matchingXML: <groupId>io.quarkus</groupId><artifactId>quarkus-universe-bom</artifactId><version>${quarkus.version}</version><type>pom</type><scope>import</scope>
       - uri: file:///examples/java/dummy/pom.xml
         message: |-
           <groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
@@ -797,6 +821,30 @@
           data: dependency
           innerText: "\n      io.javaoperatorsdk.operator\n      sample\n      0.0.0\n    "
           matchingXML: <groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>
+      - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/maven/io.javaoperatorsdk/quarkus/pom.xml
+        message: POM XML dependencies - '<groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-quarkus-extension</artifactId><version>${project.version}</version>'
+        codeSnip: "30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>"
+        lineNumber: 39
+        variables:
+          data: dependency
+          innerText: "\n      io.javaoperatorsdk\n      operator-framework-quarkus-extension\n      ${project.version}\n    "
+          matchingXML: <groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-quarkus-extension</artifactId><version>${project.version}</version>
+      - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/maven/io.javaoperatorsdk/quarkus/pom.xml
+        message: POM XML dependencies - '<groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-samples-common</artifactId><version>${project.version}</version>'
+        codeSnip: "35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>\n51      <plugins>\n52        <plugin>\n53          <groupId>org.apache.maven.plugins</groupId>\n54          <artifactId>maven-compiler-plugin</artifactId>\n55          <version>${compiler-plugin.version}</version>"
+        lineNumber: 44
+        variables:
+          data: dependency
+          innerText: "\n      io.javaoperatorsdk\n      operator-framework-samples-common\n      ${project.version}\n    "
+          matchingXML: <groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-samples-common</artifactId><version>${project.version}</version>
+      - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/maven/io.javaoperatorsdk/quarkus/pom.xml
+        message: POM XML dependencies - '<groupId>io.quarkus</groupId><artifactId>quarkus-universe-bom</artifactId><version>${quarkus.version}</version><type>pom</type><scope>import</scope>'
+        codeSnip: "19      <maven.compiler.target>11</maven.compiler.target>\n20      <quarkus.version>1.10.5.Final</quarkus.version>\n21      <compiler-plugin.version>3.8.1</compiler-plugin.version>\n22      <maven.compiler.parameters>true</maven.compiler.parameters>\n23    </properties>\n24  \n25    <dependencyManagement>\n26      <dependencies>\n27        <dependency>\n28          <groupId>io.quarkus</groupId>\n29          <artifactId>quarkus-universe-bom</artifactId>\n30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>"
+        lineNumber: 28
+        variables:
+          data: dependency
+          innerText: "\n        io.quarkus\n        quarkus-universe-bom\n        ${quarkus.version}\n        pom\n        import\n      "
+          matchingXML: <groupId>io.quarkus</groupId><artifactId>quarkus-universe-bom</artifactId><version>${quarkus.version}</version><type>pom</type><scope>import</scope>
       - uri: file:///examples/java/dummy/pom.xml
         message: |-
           POM XML dependencies - '<groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
@@ -1066,6 +1114,8 @@
         message: ""
       - uri: file:///examples/java-project/pom.xml
         message: ""
+      - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/maven/io.javaoperatorsdk/quarkus/pom.xml
+        message: ""
       - uri: file:///examples/java/dummy/pom.xml
         message: ""
       - uri: file:///examples/java/example/pom.xml
@@ -1161,6 +1211,12 @@
         message: ""
         codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
         lineNumber: 191
+        variables:
+          matchingText: Apache
+      - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/MANIFEST.MF
+        message: ""
+        codeSnip: " 1  Manifest-Version: 1.0\n 2  Archiver-Version: Plexus Archiver\n 3  Created-By: Apache Maven 3.6.3\n 4  Built-By: runner\n 5  Build-Jdk: 11.0.9\n 6  \n"
+        lineNumber: 3
         variables:
           matchingText: Apache
       - uri: file:///examples/java/beans.xml
