@@ -419,3 +419,19 @@
           location: IMPLEMENTS_TYPE
           filepaths: "{{class.Filepaths}}"
         from: class
+
+- ruleID: annotation-on-any-class-01
+  category: mandatory
+  effort: 1
+  labels:
+    - konveyor.io/source=spring-boot2
+    - konveyor.io/target=spring-boot3+
+  when:
+    java.referenced:
+      pattern: '*'
+      location: CLASS
+      annotated:
+        pattern: javax.ejb.Singleton
+  description: "@Singleton found at class level"
+  message: |
+    A `@Singleton` annotation has been found annotating some class.

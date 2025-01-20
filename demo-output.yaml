@@ -7,6 +7,24 @@
   - Language=Golang
   - License=Apache
   violations:
+    annotation-on-any-class-01:
+      description: '@Singleton found at class level'
+      category: mandatory
+      labels:
+      - konveyor.io/source=spring-boot2
+      - konveyor.io/target=spring-boot3+
+      incidents:
+      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
+        message: |
+          A `@Singleton` annotation has been found annotating some class.
+        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
+        lineNumber: 7
+        variables:
+          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
+          kind: Class
+          name: Bean
+          package: com.example.apps
+      effort: 1
     builtin-inclusion-test-json:
       description: |
         This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.

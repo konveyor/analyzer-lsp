@@ -77,31 +77,19 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 
 	incidents := []provider.IncidentContext{}
 	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
-	case 0:
+	case 0, 3, 4, 6, 10, 11, 12, 13, 14:
 		// Filter handle for type, find all the referneces to this type.
 		incidents, err = p.filterDefault(symbols)
 	case 1, 5:
 		incidents, err = p.filterTypesInheritance(symbols)
 	case 2:
 		incidents, err = p.filterMethodSymbols(symbols)
-	case 3:
-		incidents, err = p.filterDefault(symbols)
-	case 4:
-		incidents, err = p.filterDefault(symbols)
 	case 7:
 		incidents, err = p.filterMethodSymbols(symbols)
 	case 8:
 		incidents, err = p.filterModulesImports(symbols)
 	case 9:
 		incidents, err = p.filterVariableDeclaration(symbols)
-	case 10:
-		incidents, err = p.filterDefault(symbols)
-	case 11:
-		incidents, err = p.filterDefault(symbols)
-	case 12:
-		incidents, err = p.filterDefault(symbols)
-	case 13:
-		incidents, err = p.filterDefault(symbols)
 	default:
 
 	}
