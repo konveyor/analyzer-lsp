@@ -58,7 +58,7 @@ var locationToCode = map[string]int{
 	"annotation":       4,
 	"implements_type":  5,
 	// Not Implemented
-	"enum_constant":        6,
+	"enum":                 6,
 	"return_type":          7,
 	"import":               8,
 	"variable_declaration": 9,
@@ -66,6 +66,7 @@ var locationToCode = map[string]int{
 	"package":              11,
 	"field":                12,
 	"method":               13,
+	"class":                14,
 }
 
 type javaProvider struct {
@@ -389,6 +390,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		"-Dosgi.checkConfiguration=true",
 		fmt.Sprintf("-Dosgi.sharedConfiguration.area=%s", sharedConfigPath),
 		"-Dosgi.sharedConfiguration.area.readOnly=true",
+		//"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:1044",
 		"-Dosgi.configuration.cascaded=true",
 		"-Xms1g",
 		"-XX:MaxRAMPercentage=70.0",
@@ -399,7 +401,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		"-Djava.net.useSystemProxies=true",
 		"-configuration", "./",
 		"-data", workspace,
-		//"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:1044",
 	}
 
 	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
