@@ -48,6 +48,12 @@ category: mandatory (4)
 * potential
   * The issue should be examined during the migration process, but there is not enough detailed information to determine if the task is mandatory for the migration to succeed.
 
+### Rule description
+Each rule should have a `description` field with a short sentence, or "title", summarizing the highlighted problem.
+
+```yaml
+description: "Java class foo.Bar has been deprecated"
+```
 
 ### Rule Actions
 
@@ -215,6 +221,7 @@ The java provider allows scoping the search down to certain source code location
 * VARIABLE_DECLARATION
 * FIELD (declaration)
 * METHOD (declaration)
+* CLASS (declaration)
 
 
 ##### Annotation inspection
