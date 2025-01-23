@@ -116,7 +116,7 @@ func IncludedPathsScope(paths []string, log logr.Logger) Scope {
 
 type excludedPathsScope struct {
 	paths []string
-	log logr.Logger
+	log   logr.Logger
 }
 
 var _ Scope = &excludedPathsScope{}
@@ -158,6 +158,6 @@ func (e *excludedPathsScope) FilterResponse(response IncidentContext) bool {
 func ExcludedPathsScope(paths []string, log logr.Logger) Scope {
 	return &excludedPathsScope{
 		paths: paths,
-		log: log.WithName("excludedPathScope"),
+		log:   log.WithName("excludedPathScope"),
 	}
 }
