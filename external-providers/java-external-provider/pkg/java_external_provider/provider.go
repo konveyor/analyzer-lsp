@@ -340,8 +340,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	explodedBins := []string{}
 	switch extension {
 	case JavaArchive, WebArchive, EnterpriseArchive:
+		cleanBin, ok := config.ProviderSpecificConfig[CLEAN_EXPLODED_BIN_OPTION].(bool)
+
 		depLocation, sourceLocation, err := decompileJava(ctx, log, fernflower,
-			config.Location, getMavenLocalRepoPath(mavenSettingsFile))
+			config.Location, getMavenLocalRepoPath(mavenSettingsFile), ok)
 		if err != nil {
 			cancelFunc()
 			return nil, additionalBuiltinConfig, err
@@ -351,7 +353,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		config.DependencyPath = depLocation
 		isBinary = true
 
-		cleanBin, ok := config.ProviderSpecificConfig[CLEAN_EXPLODED_BIN_OPTION].(bool)
 		if ok && cleanBin {
 			log.Info("removing exploded binaries after analysis")
 			explodedBins = append(explodedBins, depLocation, sourceLocation)
