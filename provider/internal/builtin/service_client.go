@@ -624,8 +624,7 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
 		escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
 		cmd := fmt.Sprintf(
-			`find %v -type f -print0 | \
-		xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
+			`find %v -type f -exec perl -ne 'print "$ARGV:$.:$1\n" if /%v/; close ARGV if eof;' {} +`,
 			location, escapedPattern,
 		)
 		findstr := exec.Command("/bin/sh", "-c", cmd)
