@@ -38,6 +38,7 @@ type javaServiceClient struct {
 	depsCache         map[uri.URI][]*provider.Dep
 	depsLocationCache map[string]int
 	includedPaths     []string
+	cleanExplodedBins []string
 }
 
 type depLabelItem struct {
@@ -221,6 +222,11 @@ func (p *javaServiceClient) Stop() {
 	err := p.cmd.Wait()
 	if err != nil {
 		p.log.Info("stopping java provider", "error", err)
+	}
+	if len(p.cleanExplodedBins) > 0 {
+		for _, explodedPath := range p.cleanExplodedBins {
+			os.RemoveAll(explodedPath)
+		}
 	}
 }
 
