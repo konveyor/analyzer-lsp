@@ -44,6 +44,7 @@ const (
 	MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
 	GLOBAL_SETTINGS_INIT_OPTION   = "mavenCacheDir"
 	MVN_INSECURE_SETTING          = "mavenInsecure"
+	CLEAN_EXPLODED_BIN_OPTION     = "cleanExplodedBin"
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
 )
@@ -335,10 +336,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	extension := strings.ToLower(path.Ext(config.Location))
+	explodedBins := []string{}
 	switch extension {
 	case JavaArchive, WebArchive, EnterpriseArchive:
+		cleanBin, ok := config.ProviderSpecificConfig[CLEAN_EXPLODED_BIN_OPTION].(bool)
+
 		depLocation, sourceLocation, err := decompileJava(ctx, log, fernflower,
-			config.Location, getMavenLocalRepoPath(mavenSettingsFile))
+			config.Location, getMavenLocalRepoPath(mavenSettingsFile), ok)
 		if err != nil {
 			cancelFunc()
 			return nil, additionalBuiltinConfig, err
@@ -347,7 +351,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		// for binaries, we fallback to looking at .jar files only for deps
 		config.DependencyPath = depLocation
 		isBinary = true
+
+		if ok && cleanBin {
+			log.Info("removing exploded binaries after analysis")
+			explodedBins = append(explodedBins, depLocation, sourceLocation)
+		}
 	}
+
 	additionalBuiltinConfig.Location = config.Location
 	additionalBuiltinConfig.DependencyPath = config.DependencyPath
 
@@ -482,6 +492,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		globalSettings:    globalSettingsFile,
 		depsLocationCache: make(map[string]int),
 		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
+		cleanExplodedBins: explodedBins,
 	}
 
 	if mode == provider.FullAnalysisMode {
