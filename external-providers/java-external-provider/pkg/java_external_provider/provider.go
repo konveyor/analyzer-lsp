@@ -43,6 +43,8 @@ const (
 	WORKSPACE_INIT_OPTION         = "workspace"
 	MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
 	GLOBAL_SETTINGS_INIT_OPTION   = "mavenCacheDir"
+	MVN_INSECURE_SETTING          = "mavenInsecure"
+	CLEAN_EXPLODED_BIN_OPTION     = "cleanExplodedBin"
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
 )
@@ -57,7 +59,7 @@ var locationToCode = map[string]int{
 	"annotation":       4,
 	"implements_type":  5,
 	// Not Implemented
-	"enum_constant":        6,
+	"enum":                 6,
 	"return_type":          7,
 	"import":               8,
 	"variable_declaration": 9,
@@ -65,6 +67,7 @@ var locationToCode = map[string]int{
 	"package":              11,
 	"field":                12,
 	"method":               13,
+	"class":                14,
 }
 
 type javaProvider struct {
@@ -253,6 +256,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 	}
 
+	mavenInsecure, ok := config.ProviderSpecificConfig[MVN_INSECURE_SETTING].(bool)
+	if ok && mavenInsecure {
+		log.Info("maven insecure setting enabled")
+	} else {
+		mavenInsecure = false
+	}
+
 	lspServerPath, ok := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	if !ok || lspServerPath == "" {
 		return nil, additionalBuiltinConfig, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
@@ -293,13 +303,16 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		if mavenSettingsFile != "" {
 			mvnOptions = append(mvnOptions, "-s", mavenSettingsFile)
 		}
+		if mavenInsecure {
+			mvnOptions = append(mvnOptions, "-Dmaven.wagon.http.ssl.insecure=true")
+		}
 		log.Info("downloading maven artifact", "artifact", mvnCoordinates, "options", mvnOptions)
 		cmd := exec.CommandContext(ctx, "mvn", mvnOptions...)
 		cmd.Dir = outputDir
 		mvnOutput, err := cmd.CombinedOutput()
 		if err != nil {
 			cancelFunc()
-			return nil, additionalBuiltinConfig, fmt.Errorf("error downloading java artifact %s - %w", mvnUri, err)
+			return nil, additionalBuiltinConfig, fmt.Errorf("error downloading java artifact %s - maven output: %s - with error %w", mvnUri, string(mvnOutput), err)
 		}
 		downloadedPath := filepath.Join(outputDir,
 			fmt.Sprintf("%s.jar", strings.Join(mvnCoordinatesParts[1:3], "-")))
@@ -324,10 +337,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	extension := strings.ToLower(path.Ext(config.Location))
+	explodedBins := []string{}
 	switch extension {
 	case JavaArchive, WebArchive, EnterpriseArchive:
+		cleanBin, ok := config.ProviderSpecificConfig[CLEAN_EXPLODED_BIN_OPTION].(bool)
+
 		depLocation, sourceLocation, err := decompileJava(ctx, log, fernflower,
-			config.Location, getMavenLocalRepoPath(mavenSettingsFile))
+			config.Location, getMavenLocalRepoPath(mavenSettingsFile), ok)
 		if err != nil {
 			cancelFunc()
 			return nil, additionalBuiltinConfig, err
@@ -336,7 +352,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		// for binaries, we fallback to looking at .jar files only for deps
 		config.DependencyPath = depLocation
 		isBinary = true
+
+		if ok && cleanBin {
+			log.Info("removing exploded binaries after analysis")
+			explodedBins = append(explodedBins, depLocation, sourceLocation)
+		}
 	}
+
 	additionalBuiltinConfig.Location = config.Location
 	additionalBuiltinConfig.DependencyPath = config.DependencyPath
 
@@ -347,18 +369,54 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 	}
 
-	args := []string{
+	jdtlsBasePath, err := filepath.Abs(filepath.Dir(filepath.Dir(lspServerPath)))
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, fmt.Errorf("failed finding jdtls base path - %w", err)
+	}
+
+	sharedConfigPath, err := getSharedConfigPath(jdtlsBasePath)
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, fmt.Errorf("failed to get shared config path - %w", err)
+	}
+
+	jarPath, err := findEquinoxLauncher(jdtlsBasePath)
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, fmt.Errorf("failed to find equinox launcher - %w", err)
+	}
+
+	javaExec, err := getJavaExecutable(true)
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, fmt.Errorf("failed getting java executable - %v", err)
+	}
+
+	jdtlsArgs := []string{
+		"-Declipse.application=org.eclipse.jdt.ls.core.id1",
+		"-Dosgi.bundles.defaultStartLevel=4",
+		"-Declipse.product=org.eclipse.jdt.ls.core.product",
+		"-Dosgi.checkConfiguration=true",
+		fmt.Sprintf("-Dosgi.sharedConfiguration.area=%s", sharedConfigPath),
+		"-Dosgi.sharedConfiguration.area.readOnly=true",
+		//"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:1044",
+		"-Dosgi.configuration.cascaded=true",
+		"-Xms1g",
+		"-XX:MaxRAMPercentage=70.0",
+		"--add-modules=ALL-SYSTEM",
+		"--add-opens", "java.base/java.util=ALL-UNNAMED",
+		"--add-opens", "java.base/java.lang=ALL-UNNAMED",
+		"-jar", jarPath,
 		"-Djava.net.useSystemProxies=true",
-		"-configuration",
-		"./",
-		//"--jvm-arg=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:1044",
-		"-data",
-		workspace,
+		"-configuration", "./",
+		"-data", workspace,
 	}
+
 	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
-		args = append(args, fmt.Sprintf("-Xmx%s", val))
+		jdtlsArgs = append(jdtlsArgs, fmt.Sprintf("-Xmx%s", val))
 	}
-	cmd := exec.CommandContext(ctx, lspServerPath, args...)
+	cmd := exec.CommandContext(ctx, javaExec, jdtlsArgs...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		cancelFunc()
@@ -370,15 +428,40 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, additionalBuiltinConfig, err
 	}
 
+	waitErrorChannel := make(chan error)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		err := cmd.Start()
+		wg.Done()
 		if err != nil {
 			cancelFunc()
 			returnErr = err
 			log.Error(err, "unable to  start lsp command")
 			return
 		}
+		// Here we need to wait for the command to finish or if the ctx is cancelled,
+		// To close the pipes.
+		select {
+		case err := <-waitErrorChannel:
+			if err != nil {
+				log.Error(err, "language server stopped with error")
+			}
+			log.V(5).Info("language server stopped")
+		case <-ctx.Done():
+			log.Info("language server context cancelled closing pipes")
+			stdin.Close()
+			stdout.Close()
+		}
 	}()
+
+	// This will close the go routine above when wait has completed.
+	go func() {
+		waitErrorChannel <- cmd.Wait()
+	}()
+
+	wg.Wait()
+
 	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
 
 	rpc.AddHandler(jsonrpc2.NewBackoffHandler(log))
@@ -405,10 +488,12 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		log:               log,
 		depToLabels:       map[string]*depLabelItem{},
 		isLocationBinary:  isBinary,
+		mvnInsecure:       mavenInsecure,
 		mvnSettingsFile:   mavenSettingsFile,
 		globalSettings:    globalSettingsFile,
 		depsLocationCache: make(map[string]int),
 		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
+		cleanExplodedBins: explodedBins,
 	}
 
 	if mode == provider.FullAnalysisMode {
@@ -416,7 +501,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		// we need to do this for jdtls to correctly recognize source attachment for dep
 		switch svcClient.GetBuildTool() {
 		case maven:
-			err := resolveSourcesJarsForMaven(ctx, log, fernflower, config.Location, mavenSettingsFile)
+			err := resolveSourcesJarsForMaven(ctx, log, fernflower, config.Location, mavenSettingsFile, mavenInsecure)
 			if err != nil {
 				// TODO (pgaikwad): should we ignore this failure?
 				log.Error(err, "failed to resolve maven sources jar for location", "location", config.Location)
@@ -536,7 +621,7 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflowe
 		return err
 	}
 
-	fmt.Printf("%d", len(unresolvedSources))
+	log.V(5).Info("total unresolved sources", "count", len(unresolvedSources))
 
 	decompileJobs := []decompileJob{}
 	if len(unresolvedSources) > 1 {
@@ -692,7 +777,7 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 
 // resolveSourcesJarsForMaven for a given source code location, runs maven to find
 // deps that don't have sources attached and decompiles them
-func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower, location, mavenSettings string) error {
+func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower, location, mavenSettings string, mvnInsecure bool) error {
 	// TODO (pgaikwad): when we move to external provider, inherit context from parent
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
@@ -710,11 +795,14 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower
 	if mavenSettings != "" {
 		args = append(args, "-s", mavenSettings)
 	}
+	if mvnInsecure {
+		args = append(args, "-Dmaven.wagon.http.ssl.insecure=true")
+	}
 	cmd := exec.CommandContext(ctx, "mvn", args...)
 	cmd.Dir = location
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("maven downloadSources command failed with error %w, maven output: %s", err, string(mvnOutput))
 	}
 
 	reader := bytes.NewReader(mvnOutput)
@@ -947,4 +1035,69 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string) (settingsFile string
 	}
 
 	return settingsFilePath, nil
+}
+
+func getJavaExecutable(validateJavaVersion bool) (string, error) {
+	javaExecutable := "java"
+	if javaHome, exists := os.LookupEnv("JAVA_HOME"); exists {
+		javaExecToTest := filepath.Join(javaHome, "bin", "java")
+		if runtime.GOOS == "windows" {
+			javaExecToTest += ".exe"
+		}
+		if _, err := os.Stat(javaExecToTest); err == nil {
+			javaExecutable = javaExecToTest
+		}
+	}
+
+	if !validateJavaVersion {
+		return javaExecutable, nil
+	}
+
+	out, err := exec.Command(javaExecutable, "-version").CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to run %s -version: %w", javaExecutable, err)
+	}
+
+	re := regexp.MustCompile(`version\s"(\d+)[.\d]*"`)
+	matches := re.FindStringSubmatch(string(out))
+	if len(matches) > 1 {
+		javaVersion := matches[1]
+		if majorVersion := javaVersion; majorVersion < "17" {
+			return "", errors.New("jdtls requires at least Java 17")
+		}
+		return javaExecutable, nil
+	}
+
+	return "", errors.New("could not determine Java version")
+}
+
+func findEquinoxLauncher(jdtlsBaseDir string) (string, error) {
+	pluginsDir := filepath.Join(jdtlsBaseDir, "plugins")
+	files, err := os.ReadDir(pluginsDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to read plugins directory: %w", err)
+	}
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "org.eclipse.equinox.launcher_") && strings.HasSuffix(file.Name(), ".jar") {
+			return filepath.Join(pluginsDir, file.Name()), nil
+		}
+	}
+
+	return "", errors.New("cannot find equinox launcher")
+}
+
+func getSharedConfigPath(jdtlsBaseDir string) (string, error) {
+	var configDir string
+	switch runtime.GOOS {
+	case "linux", "freebsd":
+		configDir = "config_linux"
+	case "darwin":
+		configDir = "config_mac"
+	case "windows":
+		configDir = "config_win"
+	default:
+		return "", fmt.Errorf("unknown platform %s detected", runtime.GOOS)
+	}
+	return filepath.Join(jdtlsBaseDir, configDir), nil
 }

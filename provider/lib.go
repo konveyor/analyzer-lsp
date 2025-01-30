@@ -73,23 +73,20 @@ func GetFiles(configLocation string, filepaths []string, patterns ...string) ([]
 		// Currently, rendering will render a list as a space separated paths as a single string.
 		patterns := strings.Split(filepaths[0], " ")
 		for _, pattern := range patterns {
+			if p, err := filepath.Rel(configLocation, pattern); err == nil {
+				pattern = p
+			}
 			files, err := FindFilesMatchingPattern(configLocation, pattern)
 			if err != nil {
-				// Something went wrong dealing with the pattern, so we'll assume the user input
-				// is good and pass it on
-				// TODO: If we're ever hitting this for real, we should investigate
-				fmt.Printf("Unable to resolve pattern '%s': %v", pattern, err)
 				xmlFiles = append(xmlFiles, pattern)
 			} else {
 				xmlFiles = append(xmlFiles, files...)
 			}
-			//
 		}
 	} else {
 		for _, pattern := range filepaths {
 			files, err := FindFilesMatchingPattern(configLocation, pattern)
 			if err != nil {
-				fmt.Printf("Unable to find files using pattern `%s`: %v", pattern, err)
 				continue
 			} else {
 				xmlFiles = append(xmlFiles, files...)

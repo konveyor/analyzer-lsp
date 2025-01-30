@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -198,6 +199,11 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 		jarPath = filepath.Join(filepath.Dir(u.Path), jarName)
 	}
 
+	// these are added in bundle
+	if runtime.GOOS == "windows" {
+		jarPath = strings.TrimPrefix(jarPath, "\\")
+	}
+
 	path := filepath.Join(strings.Split(strings.TrimSuffix(packageName, ".class"), ".")...) // path: org/apache/logging/log4j/core/appender/FileManager
 
 	javaFileName := fmt.Sprintf("%s.java", filepath.Base(path))
@@ -216,7 +222,7 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 			cmd.Dir = filepath.Dir(jarPath)
 			err := cmd.Run()
 			if err != nil {
-				fmt.Printf("\n java error%v", err)
+				p.log.Error(err, "error unpacking java archive")
 				return "", "", err
 			}
 		}
@@ -245,7 +251,7 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 			cmd.Dir = filepath.Dir(sourcesFile)
 			err = cmd.Run()
 			if err != nil {
-				fmt.Printf("\n java error%v", err)
+				p.log.Error(err, "error unpacking java archive")
 				return "", "", err
 			}
 		}

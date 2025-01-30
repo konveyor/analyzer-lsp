@@ -49,6 +49,8 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
+	log := p.log.WithValues("ruleID", cond.ProviderContext.RuleID)
+	log.V(5).Info("builtin condition context", "condition", cond, "provider context", cond.ProviderContext)
 	response := provider.ProviderEvaluateResponse{Matched: false}
 	switch cap {
 	case "file":
@@ -56,9 +58,29 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if c.Pattern == "" {
 			return response, fmt.Errorf("could not parse provided file pattern as string: %v", conditionInfo)
 		}
-		matchingFiles, err := findFilesMatchingPattern(p.config.Location, c.Pattern)
-		if err != nil {
-			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
+		matchingFiles := []string{}
+		if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
+			regex, _ := regexp.Compile(c.Pattern)
+			for _, path := range paths {
+				matched := false
+				if regex != nil {
+					matched = regex.MatchString(path)
+				} else {
+					// TODO(fabianvf): is a fileglob style pattern sufficient or do we need regexes?
+					matched, err = filepath.Match(c.Pattern, path)
+					if err != nil {
+						continue
+					}
+				}
+				if matched {
+					matchingFiles = append(matchingFiles, path)
+				}
+			}
+		} else {
+			matchingFiles, err = findFilesMatchingPattern(p.config.Location, c.Pattern)
+			if err != nil {
+				return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
+			}
 		}
 
 		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
@@ -127,14 +149,42 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
 		}
-		xmlFiles, err := findXMLFiles(p.config.Location, cond.XML.Filepaths)
+		filePaths := []string{}
+		if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
+			if len(cond.XML.Filepaths) > 0 {
+				newPaths := []string{}
+				// Sometimes rules have hardcoded filepaths
+				// Or use other searching to get them. If so, then we
+				// Should respect that added filter on the scoped filepaths
+				for _, p := range cond.XML.Filepaths {
+					for _, path := range paths {
+						if p == path {
+							newPaths = append(newPaths, path)
+						}
+						if filepath.Base(path) == p {
+							newPaths = append(newPaths, path)
+						}
+					}
+				}
+				if len(newPaths) == 0 {
+					// There are no files to search, return.
+					return response, nil
+				}
+				filePaths = newPaths
+			} else {
+				filePaths = paths
+			}
+		} else if len(cond.XML.Filepaths) > 0 {
+			filePaths = cond.XML.Filepaths
+		}
+		xmlFiles, err := findXMLFiles(p.config.Location, filePaths, log)
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
-				p.log.V(5).Error(err, "failed to query xml file", "file", file)
+				log.V(5).Error(err, "failed to query xml file", "file", file)
 				continue
 			}
 			if len(nodes) != 0 {
@@ -180,14 +230,39 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse public-id xml query '%s': %v", cond.XML.XPath, err)
 		}
-		xmlFiles, err := findXMLFiles(p.config.Location, cond.XMLPublicID.Filepaths)
+		filePaths := []string{}
+		if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
+			if len(cond.XML.Filepaths) > 0 {
+				newPaths := []string{}
+				// Sometimes rules have hardcoded filepaths
+				// Or use other searching to get them. If so, then we
+				// Should respect that added filter on the scoped filepaths
+				for _, p := range cond.XML.Filepaths {
+					for _, path := range paths {
+						if p == path {
+							newPaths = append(newPaths, path)
+						}
+					}
+				}
+				if len(newPaths) == 0 {
+					// There are no files to search, return.
+					return response, nil
+				}
+				filePaths = newPaths
+			} else {
+				filePaths = paths
+			}
+		} else if len(cond.XML.Filepaths) > 0 {
+			filePaths = cond.XML.Filepaths
+		}
+		xmlFiles, err := findXMLFiles(p.config.Location, filePaths, p.log)
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
-				p.log.V(5).Error(err, "failed to query xml file", "file", file)
+				log.Error(err, "failed to query xml file", "file", file)
 				continue
 			}
 
@@ -226,19 +301,25 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided xpath query as string: %v", conditionInfo)
 		}
 		pattern := "*.json"
-		jsonFiles, err := provider.GetFiles(p.config.Location, cond.JSON.Filepaths, pattern)
+		filePaths := []string{}
+		if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
+			filePaths = paths
+		} else if len(cond.XML.Filepaths) > 0 {
+			filePaths = cond.JSON.Filepaths
+		}
+		jsonFiles, err := provider.GetFiles(p.config.Location, filePaths, pattern)
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
 			if err != nil {
-				p.log.V(5).Error(err, "error opening json file", "file", file)
+				log.V(5).Error(err, "error opening json file", "file", file)
 				continue
 			}
 			doc, err := jsonquery.Parse(f)
 			if err != nil {
-				p.log.V(5).Error(err, "error parsing json file", "file", file)
+				log.V(5).Error(err, "error parsing json file", "file", file)
 				continue
 			}
 			list, err := jsonquery.QueryAll(doc, query)
@@ -389,7 +470,7 @@ func findFilesMatchingPattern(root, pattern string) ([]string, error) {
 	return matches, err
 }
 
-func findXMLFiles(baseLocation string, filePaths []string) ([]string, error) {
+func findXMLFiles(baseLocation string, filePaths []string, log logr.Logger) ([]string, error) {
 	patterns := []string{"*.xml", "*.xhtml"}
 	// TODO(fabianvf): how should we scope the files searched here?
 	xmlFiles, err := provider.GetFiles(baseLocation, filePaths, patterns...)
@@ -399,8 +480,7 @@ func findXMLFiles(baseLocation string, filePaths []string) ([]string, error) {
 func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
 	f, err := os.Open(filePath)
 	if err != nil {
-		fmt.Printf("unable to open file '%s': %v\n", filePath, err)
-		return nil, err
+		return nil, fmt.Errorf("unable to open file '%s': %w", filePath, err)
 	}
 	defer f.Close()
 	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
@@ -412,18 +492,15 @@ func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, e
 			var b []byte
 			b, err = os.ReadFile(filePath)
 			if err != nil {
-				fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
-				return nil, err
+				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
 			}
 			docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
 			doc, err = xmlquery.Parse(strings.NewReader(docString))
 			if err != nil {
-				fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
-				return nil, err
+				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
 			}
 		} else {
-			fmt.Printf("unable to parse xml file '%s': %v\n", filePath, err)
-			return nil, err
+			return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
 		}
 	}
 	defer func() {

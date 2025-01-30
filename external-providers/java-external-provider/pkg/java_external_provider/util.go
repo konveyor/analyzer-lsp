@@ -14,9 +14,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"text/template"
+	"time"
+
+	"math/rand"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/tracing"
@@ -158,11 +162,16 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 // decompileJava unpacks archive at archivePath, decompiles all .class files in it
 // creates new java project and puts the java files in the tree of the project
 // returns path to exploded archive, path to java project, and an error when encountered
-func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath string, m2RepoPath string) (explodedPath, projectPath string, err error) {
+func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath string, m2RepoPath string, cleanBin bool) (explodedPath, projectPath string, err error) {
 	ctx, span := tracing.StartNewSpan(ctx, "decompile")
 	defer span.End()
 
-	projectPath = filepath.Join(filepath.Dir(archivePath), "java-project")
+	// only need random project name if there is not dir cleanup after
+	if cleanBin {
+		projectPath = filepath.Join(filepath.Dir(archivePath), fmt.Sprintf("java-project-%v", RandomName()))
+	} else {
+		projectPath = filepath.Join(filepath.Dir(archivePath), "java-project")
+	}
 
 	decompFilter := alwaysDecompileFilter(true)
 
@@ -247,7 +256,10 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 
 		if f.FileInfo().IsDir() {
 			// make sure execute bits are set so that fernflower can decompile
-			os.MkdirAll(filePath, f.Mode()|0111)
+			err := os.MkdirAll(filePath, f.Mode()|0111)
+			if err != nil {
+				log.V(5).Error(err, "failed to create directory when exploding the archive", "filePath", filePath)
+			}
 			continue
 		}
 
@@ -390,6 +402,22 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 						},
 					})
 				}
+			}
+		// any other files, move to java project as-is
+		default:
+			baseName := strings.ToValidUTF8(f.Name, "_")
+			re := regexp.MustCompile(`[^\w\-\.\\/]+`)
+			baseName = re.ReplaceAllString(baseName, "_")
+			destPath := filepath.Join(
+				projectPath, strings.Replace(filepath.Base(archivePath), ".", "-", -1)+"-exploded", baseName)
+			if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+				log.V(8).Error(err, "error creating directory for java file", "path", destPath)
+				continue
+			}
+			if err := moveFile(filePath, destPath); err != nil {
+				log.V(8).Error(err, "error moving decompiled file to project path",
+					"src", filePath, "dest", destPath)
+				continue
 			}
 		}
 	}
@@ -606,4 +634,14 @@ func toFilePathDependency(_ context.Context, filePath string) (javaArtifact, err
 	dep.Version = "0.0.0"
 	return dep, nil
 
+}
+
+func RandomName() string {
+	rand.Seed(int64(time.Now().Nanosecond()))
+	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	b := make([]byte, 16)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
 }

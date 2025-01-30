@@ -48,6 +48,12 @@ category: mandatory (4)
 * potential
   * The issue should be examined during the migration process, but there is not enough detailed information to determine if the task is mandatory for the migration to succeed.
 
+### Rule description
+Each rule should have a `description` field with a short sentence, or "title", summarizing the highlighted problem.
+
+```yaml
+description: "Java class foo.Bar has been deprecated"
+```
 
 ### Rule Actions
 
@@ -199,6 +205,25 @@ when:
     pattern: org.jboss.*
 ```
 
+##### Java Locations
+
+The java provider allows scoping the search down to certain source code locations. Any one of the following search locations can be used to scope down java searches:
+
+* CONSTRUCTOR_CALL
+* TYPE
+* INHERITANCE
+* METHOD_CALL
+* ANNOTATION
+* IMPLEMENTS_TYPE
+* ENUM_CONSTANT
+* RETURN_TYPE
+* IMPORT
+* VARIABLE_DECLARATION
+* FIELD (declaration)
+* METHOD (declaration)
+* CLASS (declaration)
+
+
 ##### Annotation inspection
 It is possible to add a query to match against specific annotations and their elements. For instance:
 
@@ -250,22 +275,36 @@ when:
           value: "http://www.example.com"
 ```
 
-##### Java Locations
+##### Condition patterns
+The Language Server used by the Java provider is Eclipse's JDTLS. Internally, the JDTLS uses the Eclipse Java Development Toolkit,
+which includes utilities for searching code in projects. In the `pattern` element of a `java.referenced` condition, we can therefore
+search code using these utilities.
+[The official javadocs contain all the information for building these patterns](https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fsearch%2FSearchPattern.html&anchor=createPattern(java.lang.String,int,int,int))
+in the `createPattern(String, int, int, int)` section.
 
-The java provider allows scoping the search down to certain source code locations. Any one of the following search locations can be used to scope down java searches:
+Here are some examples of what can be used:
 
-* CONSTRUCTOR_CALL
-* TYPE
-* INHERITANCE
-* METHOD_CALL
-* ANNOTATION
-* IMPLEMENTS_TYPE
-* ENUM_CONSTANT
-* RETURN_TYPE
-* IMPORT
-* VARIABLE_DECLARATION
-* FIELD (declaration)
-* METHOD (declaration)
+- Look for method declarations that return `java.lang.String`:
+```yaml
+java.referenced:
+  location: METHOD
+  pattern: '* java.lang.String'
+```
+
+- Look for a method named "method" declared on `org.konveyor.MyClass` that returns a `List` of a type that extendes `java.lang.String`:
+```yaml
+java.referenced:
+  location: METHOD
+  pattern: 'org.konveyor.Myclass.method(*) java.util.List<? extends java.lang.String>'
+```
+
+- Look for a class that implements `java.util.List`:
+```yaml
+java.referenced:
+  location: IMPLEMENTS_TYPE
+  pattern: java.util.List
+```
+
 
 
 ##### Custom Variables
@@ -339,9 +378,10 @@ when:
 
 #### Chaining Condition Variables
 
-You can also chain the variables from one condition to be used as input in another condition in a _or_ and _and_ block of conditions
+It is also possible to use the output of one condition as the input for filtering another one in an and/or condition. This is called
+*condition chaining*.
 
-What a given condition has in its output, can be seen in the openapi spec, by finding the `<provider>.<condition>.out` component. **NOTE** Every condition, has a list of files where the incidents occurred, and the output for a condition is in the extras section.
+The OpenAPI spec contains more information about what each condition can offer in its output; check the `<provider>.<condition>.out` component.
 
 Example:
 
@@ -350,7 +390,7 @@ when:
  or:
   - builtin.xml:
       xpath: "//dependencies/dependency"
-      filepaths: "{{poms.extras.filepaths}}"
+      filepaths: "{{poms.filepaths}}"
     from: poms
   - builtin.file:
       pattern: pom.xml
@@ -364,9 +404,9 @@ In the above example the output of `builtin.file` condition is saved `as` poms.
       as: poms
 ```
 
-The variables of `builtin.file` can then be used in the `builtin.xml` condition, by saying `from` and then using [mustache templates](https://mustache.github.io/mustache.5.html) in the _provider_ condition` block.
+The variables of `builtin.file` can then be used in the `builtin.xml` condition, by writing `from` and then using [mustache templates](https://mustache.github.io/mustache.5.html) in the _provider_ condition` block.
 
-This is how this particular condition, knows to use the variables set to the name `poms`. 
+This is how this particular condition knows how to use the variables set to the name `poms`. 
 
 ```yaml
     from: poms
@@ -382,6 +422,21 @@ Then you can use the variables by setting them as mustached templates in any of 
 ```yaml
     ignore: true
 ``` 
+
+#### Note about chaining in the Java provider
+In the java provider, the `filepaths` variable must be uppercased. For instance:
+```yaml
+  when:
+    and:
+      - java.referenced:
+          pattern: org.springframework.web.bind.annotation.RequestMapping
+          location: ANNOTATION
+        as: annotation
+      - java.referenced:
+          pattern: org.springframework.stereotype.Controller
+          location: ANNOTATION
+          filepaths: "{{annotation.Filepaths}}"
+```
 
 
 ## Ruleset

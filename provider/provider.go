@@ -330,6 +330,16 @@ type ExternalLinks struct {
 type ProviderContext struct {
 	Tags     map[string]interface{}          `yaml:"tags"`
 	Template map[string]engine.ChainTemplate `yaml:"template"`
+	RuleID   string                          `yaml:ruleID`
+}
+
+func (p *ProviderContext) GetScopedFilepaths() (bool, []string) {
+	if value, ok := p.Template[engine.TemplateContextPathScopeKey]; ok {
+		if len(value.Filepaths) > 0 {
+			return true, value.Filepaths
+		}
+	}
+	return false, nil
 }
 
 func HasCapability(caps []Capability, name string) bool {
@@ -480,6 +490,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 		ProviderContext: ProviderContext{
 			Tags:     condCtx.Tags,
 			Template: condCtx.Template,
+			RuleID:   condCtx.RuleID,
 		},
 		Capability: map[string]interface{}{
 			p.Capability: p.ConditionInfo,
@@ -491,7 +502,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 		//TODO(fabianvf)
 		panic(err)
 	}
-	log = log.WithValues("provider info", "cap", p.Capability, "condInfo", p.ConditionInfo)
+	log = log.WithValues("provider info", "cap", p.Capability, "condInfo", serializedInfo, "ruleID", condCtx.RuleID)
 	templatedInfo, err := templateCondition(serializedInfo, condCtx.Template)
 	if err != nil {
 		//TODO(fabianvf)
