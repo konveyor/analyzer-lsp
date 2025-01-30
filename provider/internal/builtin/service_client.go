@@ -496,6 +496,10 @@ func parallelWalk(location string, regex *regexp2.Regexp) ([]walkResult, error) 
 	var positionsMu sync.Mutex
 	var eg errgroup.Group
 
+	// Set a parallelism limit to avoid hitting limits related to opening too many files.
+	// On Windows, this can show up as a runtime failure due to a thread limit.
+	eg.SetLimit(256)
+
 	err := filepath.Walk(location, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
