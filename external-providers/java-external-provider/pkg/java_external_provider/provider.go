@@ -455,12 +455,14 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 	}()
 
+	// This is used to make sure that we wait to call the cmd.Wait until
+	// Start has been called
+	wg.Wait()
+
 	// This will close the go routine above when wait has completed.
 	go func() {
 		waitErrorChannel <- cmd.Wait()
 	}()
-
-	wg.Wait()
 
 	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
 
