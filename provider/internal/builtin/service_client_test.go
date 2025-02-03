@@ -2,13 +2,11 @@ package builtin
 
 import (
 	"context"
-	"path/filepath"
 	"reflect"
 	"sync"
 	"testing"
 
 	"github.com/go-logr/logr/testr"
-	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
@@ -124,4 +122,3 @@ func Test_builtinServiceClient_filterByIncludedPaths(t *testing.T) {
 		})
 	}
 }
-
