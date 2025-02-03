@@ -6,15 +6,11 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"sort"
 	"sync"
 	"testing"
 
-	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
-	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"gopkg.in/yaml.v2"
 )
 
 func newLocationForLine(line float64) provider.Location {
@@ -136,6 +132,7 @@ func Test_builtinServiceClient_filterByIncludedPaths(t *testing.T) {
 		})
 	}
 }
+<<<<<<< HEAD
 
 func BenchmarkRunOSSpecificGrepCommand(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -746,3 +743,5 @@ func Test_builtinServiceClient_Evaluate_ExcludeDirs(t *testing.T) {
 		})
 	}
 }
+=======
+>>>>>>> 8fa5b19 (Fix test failure - removed test using OSspecificgrep method)
