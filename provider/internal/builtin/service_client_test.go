@@ -125,14 +125,3 @@ func Test_builtinServiceClient_filterByIncludedPaths(t *testing.T) {
 	}
 }
 
-func BenchmarkRunOSSpecificGrepCommand(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		path, err := filepath.Abs("../../../external-providers/java-external-provider/examples/customers-tomcat-legacy/")
-		if err != nil {
-			return
-		}
-		runOSSpecificGrepCommand("Apache License 1.1",
-			path,
-			provider.ProviderContext{Template: map[string]engine.ChainTemplate{}})
-	}
-}
