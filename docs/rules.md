@@ -131,7 +131,7 @@ For instance, the `java` provider provides `referenced` capability. To search th
 ```yaml
 when:
   java.referenced:
-    pattern: org.kubernetes.*
+    pattern: org.kubernetes*
     location: IMPORT
 ```
 
@@ -202,7 +202,7 @@ With the information above, we should be able to complete `java` condition we cr
 when:
   java.referenced:
     location: PACKAGE
-    pattern: org.jboss.*
+    pattern: org.jboss*
 ```
 
 ##### Java Locations
@@ -284,6 +284,15 @@ in the `createPattern(String, int, int, int)` section.
 
 Here are some examples of what can be used:
 
+- Look for any class under the `javax.xml` package, occurring in any location:
+```yaml
+java.referenced:
+  pattern: javax.xml*
+```
+:warning: when matching against packages, as in the previous example, the asterisk must not be after a dot:
+- :green_circle: `pattern: javax.xml*`
+- :red_circle: `pattern: javax.xml.*`
+
 - Look for method declarations that return `java.lang.String`:
 ```yaml
 java.referenced:
@@ -291,7 +300,7 @@ java.referenced:
   pattern: '* java.lang.String'
 ```
 
-- Look for a method named "method" declared on `org.konveyor.MyClass` that returns a `List` of a type that extendes `java.lang.String`:
+- Look for a method named "method" declared on `org.konveyor.MyClass` that returns a `List` of a type that extends `java.lang.String`:
 ```yaml
 java.referenced:
   location: METHOD
