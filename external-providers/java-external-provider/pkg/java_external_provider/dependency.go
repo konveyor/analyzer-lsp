@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/konveyor/analyzer-lsp/engine/labels"
@@ -721,8 +722,16 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 
 	fp := resolveDepFilepath(&d, p, group, artifact, localRepoPath)
 
+	// if windows home path begins with C:
+	if !strings.HasPrefix(fp, "/") {
+		fp = "/" + fp
+	}
 	d.Labels = addDepLabels(p.depToLabels, d.Name)
 	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
+
+	if runtime.GOOS == "windows" {
+		d.FileURIPrefix = strings.ReplaceAll(d.FileURIPrefix, "\\", "/")
+	}
 
 	d.Extras = map[string]interface{}{
 		groupIdKey:    group,
