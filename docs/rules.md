@@ -463,9 +463,9 @@ labels: (3)
 - key=val
 ```
 
-1. **name**: A unique name for the ruleset.
-2. **description**: Text description about the ruleset.
-3. **labels**: A list of string labels for the ruleset. The labels on a ruleset are automatically inherted by all rules in the ruleset. (See Labels)
+1. **name**: This is a requried field. A unique name for the ruleset.
+2. **description**: This is a requried field. Text description about the ruleset.
+3. **labels**: This is an optional field. A list of string labels for the ruleset. The labels on a ruleset are automatically inherted by all rules in the ruleset. (See Labels)
 
 ## Passing rules as input
 
