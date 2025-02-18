@@ -112,35 +112,16 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		return m, err
 	}
 
-	if pomFile := p.findPom(); pomFile != "" {
-		// Read pom and create a hash.
-		// if pom hash and depCache return cache
-		file, err := os.Open(pomFile)
-		if err != nil {
-			p.log.Error(err, "unable to open the pom file", "pom path", pomFile)
-			return nil, err
-		}
-		hash := sha256.New()
-		if _, err := io.Copy(hash, file); err != nil {
-			p.log.Error(err, "unable to copy file to hash", "pom path", pomFile)
-			return nil, err
-		}
-		hashString := string(hash.Sum(nil))
-		if p.depsFileHash != nil && *p.depsFileHash == hashString && p.depsCache != nil {
-			p.depsMutex.RLock()
-			val := p.depsCache
-			p.depsMutex.RUnlock()
-			if val != nil {
-				return val, nil
-			}
-		}
-		p.depsFileHash = &hashString
-	}
-
 	var err error
 	var ll map[uri.URI][]konveyor.DepDAGItem
 	m := map[uri.URI][]*provider.Dep{}
 	if p.isLocationBinary {
+		p.depsMutex.RLock()
+		val := p.depsCache
+		p.depsMutex.RUnlock()
+		if val != nil {
+			return val, nil
+		}
 		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
 		// for binaries we only find JARs embedded in archive
 		p.discoverDepsFromJars(p.config.DependencyPath, ll)
@@ -157,6 +138,31 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 			return m, nil
 		}
 	} else {
+		// Read pom and create a hash.
+		// if pom hash and depCache return cache
+		hash := sha256.New()
+		var file *os.File
+		file, err = os.Open(p.findPom())
+		if err != nil {
+			p.log.Error(err, "unable to open the pom file", "pom path", file)
+			return nil, err
+		}
+		if _, err = io.Copy(hash, file); err != nil {
+			file.Close()
+			p.log.Error(err, "unable to copy file to hash", "pom path", file)
+			return nil, err
+		}
+		file.Close()
+		hashString := string(hash.Sum(nil))
+		if p.depsFileHash != nil && *p.depsFileHash == hashString && p.depsCache != nil {
+			p.depsMutex.RLock()
+			val := p.depsCache
+			p.depsMutex.RUnlock()
+			if val != nil {
+				return val, nil
+			}
+		}
+		p.depsFileHash = &hashString
 		ll, err = p.GetDependenciesDAG(ctx)
 		if err != nil {
 			p.log.Info("unable to get dependencies, using fallback", "error", err)
