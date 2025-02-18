@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -93,6 +94,8 @@ func (p *javaServiceClient) findGradleBuild() string {
 func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	p.log.V(4).Info("running dependency analysis")
 
+	// TODO: shawn-hurley does not appear that this is returning early if there is a cache.
+	// We should add these to a cache with the hash of the gradle build file.
 	if p.GetBuildTool() == gradle {
 		p.log.V(2).Info("gradle found - retrieving dependencies")
 		m := map[uri.URI][]*provider.Dep{}
@@ -109,11 +112,29 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		return m, err
 	}
 
-	p.depsMutex.RLock()
-	val := p.depsCache
-	p.depsMutex.RUnlock()
-	if val != nil {
-		return val, nil
+	if pomFile := p.findPom(); pomFile != "" {
+		// Read pom and create a hash.
+		// if pom hash and depCache return cache
+		file, err := os.Open(pomFile)
+		if err != nil {
+			p.log.Error(err, "unable to open the pom file", "pom path", pomFile)
+			return nil, err
+		}
+		hash := sha256.New()
+		if _, err := io.Copy(hash, file); err != nil {
+			p.log.Error(err, "unable to copy file to hash", "pom path", pomFile)
+			return nil, err
+		}
+		hashString := string(hash.Sum(nil))
+		if p.depsFileHash != nil && *p.depsFileHash == hashString && p.depsCache != nil {
+			p.depsMutex.RLock()
+			val := p.depsCache
+			p.depsMutex.RUnlock()
+			if val != nil {
+				return val, nil
+			}
+		}
+		p.depsFileHash = &hashString
 	}
 
 	var err error
