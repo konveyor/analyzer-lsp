@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -94,6 +95,8 @@ func (p *javaServiceClient) findGradleBuild() string {
 func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	p.log.V(4).Info("running dependency analysis")
 
+	// TODO: shawn-hurley does not appear that this is returning early if there is a cache.
+	// We should add these to a cache with the hash of the gradle build file.
 	if p.GetBuildTool() == gradle {
 		p.log.V(2).Info("gradle found - retrieving dependencies")
 		m := map[uri.URI][]*provider.Dep{}
@@ -110,17 +113,16 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		return m, err
 	}
 
-	p.depsMutex.RLock()
-	val := p.depsCache
-	p.depsMutex.RUnlock()
-	if val != nil {
-		return val, nil
-	}
-
 	var err error
 	var ll map[uri.URI][]konveyor.DepDAGItem
 	m := map[uri.URI][]*provider.Dep{}
 	if p.isLocationBinary {
+		p.depsMutex.RLock()
+		val := p.depsCache
+		p.depsMutex.RUnlock()
+		if val != nil {
+			return val, nil
+		}
 		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
 		// for binaries we only find JARs embedded in archive
 		p.discoverDepsFromJars(p.config.DependencyPath, ll)
@@ -137,6 +139,31 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 			return m, nil
 		}
 	} else {
+		// Read pom and create a hash.
+		// if pom hash and depCache return cache
+		hash := sha256.New()
+		var file *os.File
+		file, err = os.Open(p.findPom())
+		if err != nil {
+			p.log.Error(err, "unable to open the pom file", "pom path", file)
+			return nil, err
+		}
+		if _, err = io.Copy(hash, file); err != nil {
+			file.Close()
+			p.log.Error(err, "unable to copy file to hash", "pom path", file)
+			return nil, err
+		}
+		file.Close()
+		hashString := string(hash.Sum(nil))
+		if p.depsFileHash != nil && *p.depsFileHash == hashString && p.depsCache != nil {
+			p.depsMutex.RLock()
+			val := p.depsCache
+			p.depsMutex.RUnlock()
+			if val != nil {
+				return val, nil
+			}
+		}
+		p.depsFileHash = &hashString
 		ll, err = p.GetDependenciesDAG(ctx)
 		if err != nil {
 			p.log.Info("unable to get dependencies, using fallback", "error", err)

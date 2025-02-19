@@ -35,6 +35,7 @@ type javaServiceClient struct {
 	mvnSettingsFile   string
 	globalSettings    string
 	depsMutex         sync.RWMutex
+	depsFileHash      *string
 	depsCache         map[uri.URI][]*provider.Dep
 	depsLocationCache map[string]int
 	includedPaths     []string
