@@ -209,19 +209,66 @@ when:
 
 The java provider allows scoping the search down to certain source code locations. Any one of the following search locations can be used to scope down java searches:
 
-* CONSTRUCTOR_CALL
-* TYPE
-* INHERITANCE
-* METHOD_CALL
-* ANNOTATION
-* IMPLEMENTS_TYPE
-* ENUM_CONSTANT
-* RETURN_TYPE
-* IMPORT
-* VARIABLE_DECLARATION
-* FIELD (declaration)
-* METHOD (declaration)
-* CLASS (declaration)
+- **IMPORT**: IMPORT allows for searches on class imports. It can either be used with FQNs or an asterisk to allow for wider matches:
+```yaml
+java.referenced:
+  pattern: org.apache.lucene.search*
+  location: IMPORT
+```
+would match on each of these imports:
+```java
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+```
+:warning: If you want to match using an asterisk (`*`) for a wider range of results, it is recommended to place it directly after the package, not after the dot:
+
+:no_entry_sign: `org.apache.lucene.search.*`
+:white_check_mark: `org.apache.lucene.search*`
+
+- **PACKAGE**: the PACKAGE location matches on any usage of a package, be it in an import or used as part of a fully qualified name in the code:
+```yaml
+java.referenced:
+  pattern: org.apache.lucene.search*
+  location: PACKAGE
+```
+would match on both the import and the fully qualified usage:
+```java
+import org.apache.lucene.search.*;
+```
+```java
+public class Test {
+  private org.apache.lucene.search.Query query;
+}
+```
+:warning: As in the IMPORT condition, try to avoid using asterisk (`*`) right after the package-separation dot (`.`) for better results.
+
+- **CONSTRUCTOR_CALL** and **METHOD_CALL**: for matching constructors and methods respectively. The pattern possibilities are quite varied,
+and it is possible to match against specific return types, arguments, etc.
+
+For instance, looking for a method named "method" declared on `org.konveyor.MyClass` that returns
+a `List` of a type that extends `java.lang.String` and accepts a single parameter:
+```yaml
+java.referenced:
+  location: METHOD
+  pattern: 'org.konveyor.Myclass.method(*) java.util.List<? extends java.lang.String>'
+```
+More information about the possibilities of these patterns can be found in
+[the official javadocs contain all the information for building these patterns](https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fsearch%2FSearchPattern.html&anchor=createPattern(java.lang.String,int,int,int))
+in the `createPattern(String, int, int, int)` section.
+
+:warning: At the moment, fully qualified static method matching is prone to errors.
+
+- **TYPE**: matches against types in general, appearing anywhere.
+- **INHERITANCE**: matches against a class inheriting from a given type.
+- **ANNOTATION**: matches against annotations.
+- **IMPLEMENTS_TYPE**: matches against any type implementing the given type.
+- **ENUM_CONSTANT**: matches against enum constants.
+- **RETURN_TYPE**: matches against a type being returned by a method.
+- **VARIABLE_DECLARATION**: matches against a type being declared as a variable.
+- **FIELD** (declaration): matches against a type appearing in a field declaration. Can be coupled with an annotation match, this is, an annotation happening on the field (see [Annotation inspection](#annotation-inspection))
+- **METHOD**: matches against a given method declaration. Can be coupled with an annotation match (see [Annotation inspection](#annotation-inspection)).
+- **CLASS** (declaration): matches against a given method declaration. Can be coupled with an annotation match (see [Annotation inspection](#annotation-inspection)).
 
 
 ##### Annotation inspection
