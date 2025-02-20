@@ -3,7 +3,10 @@ package engine
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"regexp"
+	"runtime"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"go.lsp.dev/uri"
@@ -79,7 +82,7 @@ func (i *includedPathScope) Name() string {
 func (i *includedPathScope) AddToContext(conditionCTX *ConditionContext) error {
 	// If any chain template has the filepaths set, only use those.
 	for k, chainTemplate := range conditionCTX.Template {
-		if chainTemplate.Filepaths != nil && len(chainTemplate.Filepaths) > 0 {
+		if len(chainTemplate.Filepaths) > 0 {
 			i.log.V(5).Info("includedPathScope not used because filepath set", "filepaths", chainTemplate.Filepaths, "key", k)
 			return nil
 		}
@@ -91,7 +94,6 @@ func (i *includedPathScope) AddToContext(conditionCTX *ConditionContext) error {
 		Extras:    nil,
 	}
 	return nil
-
 }
 
 func (i *includedPathScope) FilterResponse(response IncidentContext) bool {
@@ -116,7 +118,7 @@ func IncludedPathsScope(paths []string, log logr.Logger) Scope {
 
 type excludedPathsScope struct {
 	paths []string
-	log logr.Logger
+	log   logr.Logger
 }
 
 var _ Scope = &excludedPathsScope{}
@@ -141,7 +143,11 @@ func (e *excludedPathsScope) FilterResponse(response IncidentContext) bool {
 	}
 	for _, path := range e.paths {
 		e.log.V(5).Info("using path for filtering response", "path", path)
-		pattern, err := regexp.Compile(path)
+		regex_path := path
+		if runtime.GOOS == "windows" {
+			regex_path = e.convertWindowsPathForRegex(path)
+		}
+		pattern, err := regexp.Compile(regex_path)
 		if err != nil {
 			e.log.V(5).Error(err, "invalid pattern", "pattern", path)
 			continue
@@ -155,9 +161,22 @@ func (e *excludedPathsScope) FilterResponse(response IncidentContext) bool {
 	return false
 }
 
+func (e *excludedPathsScope) convertWindowsPathForRegex(path string) string {
+	escapedPath := regexp.QuoteMeta(path)
+
+	escapedPath = strings.ReplaceAll(escapedPath, `\`, `(\\|/)`)
+
+	return escapedPath
+}
+
 func ExcludedPathsScope(paths []string, log logr.Logger) Scope {
+	cleanedPaths := []string{}
+	for _, path := range paths {
+		cleanedPath := filepath.Clean(path)
+		cleanedPaths = append(cleanedPaths, cleanedPath)
+	}
 	return &excludedPathsScope{
-		paths: paths,
-		log: log.WithName("excludedPathScope"),
+		paths: cleanedPaths,
+		log:   log.WithName("excludedPathScope"),
 	}
 }
