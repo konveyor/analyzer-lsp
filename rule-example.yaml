@@ -361,7 +361,7 @@
   when:
     java.referenced:
       pattern: entityManagerFactory()
-      location: METHOD
+      location: METHOD_DECLARATION
       annotated:
         pattern: org.springframework.context.annotation.Bean
 - category: mandatory
