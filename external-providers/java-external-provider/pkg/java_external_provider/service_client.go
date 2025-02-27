@@ -57,7 +57,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
 	// filepaths get rendered as a string and must be converted
-	if cond.Referenced.Filepaths != nil {
+	if len(cond.Referenced.Filepaths) > 0 {
 		cond.Referenced.Filepaths = strings.Split(cond.Referenced.Filepaths[0], " ")
 	}
 
