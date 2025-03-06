@@ -22,7 +22,11 @@ func (t testConditional) Evaluate(ctx context.Context, log logr.Logger, condCtx 
 	if t.sleep {
 		time.Sleep(5 * time.Second)
 	}
-	return ConditionResponse{Matched: t.ret}, t.err
+	if t.ret {
+		return ConditionResponse{Matched: t.ret, Incidents: []IncidentContext{{FileURI: "test"}}}, t.err
+	} else {
+		return ConditionResponse{Matched: t.ret}, t.err
+	}
 }
 
 func (t testConditional) Ignorable() bool {
@@ -49,6 +53,7 @@ func (t testChainableConditionalAs) Evaluate(ctx context.Context, log logr.Logge
 		TemplateContext: map[string]interface{}{
 			t.documentedKey: t.AsValue,
 		},
+		Incidents: []IncidentContext{{}},
 	}, t.err
 }
 

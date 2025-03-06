@@ -171,10 +171,11 @@ func (a AndCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Con
 			// TODO: determine if this is the right thing, I am assume the full rule should fail here
 			return ConditionResponse{}, fmt.Errorf("unable to find context value: %v", c.From)
 		}
-		response, err := c.ProviderSpecificConfig.Evaluate(ctx, log, condCtx)
+		response, err := c.Evaluate(ctx, log, condCtx)
 		if err != nil {
 			return ConditionResponse{}, err
 		}
+		// Must filter out based on the filepaths.
 		if c.As != "" {
 			condCtx.Template[c.As] = ChainTemplate{
 				Filepaths: incidentsToFilepaths(response.Incidents),
@@ -182,11 +183,7 @@ func (a AndCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Con
 			}
 		}
 
-		matched := response.Matched
-		if c.Not {
-			matched = !matched
-		}
-		if !matched {
+		if !response.Matched {
 			fullResponse.Matched = false
 		}
 
@@ -228,7 +225,7 @@ func (o OrCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Cond
 			return ConditionResponse{}, fmt.Errorf("unable to find context value: %v", c.From)
 		}
 
-		response, err := c.ProviderSpecificConfig.Evaluate(ctx, log, condCtx)
+		response, err := c.Evaluate(ctx, log, condCtx)
 		if err != nil {
 			return ConditionResponse{}, err
 		}
@@ -240,11 +237,7 @@ func (o OrCondition) Evaluate(ctx context.Context, log logr.Logger, condCtx Cond
 			}
 		}
 
-		matched := response.Matched
-		if c.Not {
-			matched = !matched
-		}
-		if matched {
+		if response.Matched {
 			fullResponse.Matched = true
 		}
 
@@ -266,6 +259,12 @@ func (ce ConditionEntry) Evaluate(ctx context.Context, log logr.Logger, condCtx 
 		return ConditionResponse{}, err
 	}
 
+	if value, ok := condCtx.Template[TemplateContextPathScopeKey]; ok {
+		response.Incidents = value.FilterIncidentsByFilePaths(response.Incidents)
+	}
+	if len(response.Incidents) == 0 {
+		response.Matched = false
+	}
 	matched := response.Matched
 	if ce.Not {
 		matched = !matched
@@ -314,4 +313,36 @@ type ChainTemplate struct {
 	Filepaths     []string               `yaml:"filepaths,omitempty"`
 	Extras        map[string]interface{} `yaml:"extras,omitempty"`
 	ExcludedPaths []string               `yaml:"excludedPaths,omitempty"`
+}
+
+func (c *ChainTemplate) FilterIncidentsByFilePaths(incidents []IncidentContext) []IncidentContext {
+	//Convert the Filepaths and ExlucedFilePaths back to scopes.
+
+	updatedIncidetContext := []IncidentContext{}
+	if len(c.Filepaths) > 0 {
+		includedPathScope := IncludedPathsScope(c.Filepaths, logr.Discard())
+
+		for _, incident := range incidents {
+			if !includedPathScope.FilterResponse(incident) {
+				updatedIncidetContext = append(updatedIncidetContext, incident)
+			}
+		}
+	} else {
+		updatedIncidetContext = incidents
+	}
+
+	removedExcludedIncidents := []IncidentContext{}
+	if len(c.ExcludedPaths) > 0 {
+		excludedPathsScope := ExcludedPathsScope(c.ExcludedPaths, logr.Discard())
+
+		for _, incident := range updatedIncidetContext {
+			if !excludedPathsScope.FilterResponse(incident) {
+				removedExcludedIncidents = append(removedExcludedIncidents, incident)
+			}
+		}
+	} else {
+		removedExcludedIncidents = updatedIncidetContext
+	}
+
+	return removedExcludedIncidents
 }
