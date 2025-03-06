@@ -330,16 +330,47 @@ type ExternalLinks struct {
 type ProviderContext struct {
 	Tags     map[string]interface{}          `yaml:"tags"`
 	Template map[string]engine.ChainTemplate `yaml:"template"`
-	RuleID   string                          `yaml:ruleID`
+	RuleID   string                          `yaml:"ruleID"`
 }
 
-func (p *ProviderContext) GetScopedFilepaths() (bool, []string) {
+// GetScopedFilepaths returns a list of filepaths based on either included or excluded paths in context
+// in a chaintemplate, Filepaths controls inclusion and ExcludedPaths controls exclusion
+// when both are set, exclusion applies after inclusion
+func (p *ProviderContext) GetScopedFilepaths(paths ...string) (bool, []string) {
 	if value, ok := p.Template[engine.TemplateContextPathScopeKey]; ok {
-		if len(value.Filepaths) > 0 {
-			return true, value.Filepaths
+		includedPaths := []string{}
+		if (value.Filepaths != nil) && len(value.Filepaths) > 0 {
+			includedPaths = value.Filepaths
 		}
+		includedPaths = append(includedPaths, paths...)
+		if len(includedPaths) == 0 {
+			return false, includedPaths
+		}
+		filtered := []string{}
+		for _, path := range includedPaths {
+			excluded := false
+			for _, excldPattern := range value.ExcludedPaths {
+				// backslashes in windows paths must be escaped
+				excldPattern = strings.ReplaceAll(excldPattern, "\\", "\\\\")
+				if pattern, err := regexp.Compile(excldPattern); err == nil &&
+					pattern.MatchString(path) {
+					excluded = true
+				}
+			}
+			if !excluded {
+				filtered = append(filtered, path)
+			}
+		}
+		return true, filtered
 	}
-	return false, nil
+	return false, paths
+}
+
+func (p *ProviderContext) GetExcludePatterns() []string {
+	if value, ok := p.Template[engine.TemplateContextPathScopeKey]; ok {
+		return value.ExcludedPaths
+	}
+	return nil
 }
 
 func HasCapability(caps []Capability, name string) bool {
