@@ -7,6 +7,7 @@ require (
 	github.com/antchfx/jsonquery v1.3.0
 	github.com/antchfx/xmlquery v1.3.12
 	github.com/bombsimon/logrusr/v3 v3.0.0
+	github.com/dlclark/regexp2 v1.11.4
 	github.com/go-logr/logr v1.2.3
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/jhump/protoreflect v1.16.0
@@ -18,6 +19,7 @@ require (
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel/trace v1.11.2
 	golang.org/x/oauth2 v0.16.0
+	golang.org/x/sync v0.6.0
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.1-0.20240408130810-98873a205002
 	gopkg.in/yaml.v2 v2.4.0
