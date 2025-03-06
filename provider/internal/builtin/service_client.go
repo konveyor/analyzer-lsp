@@ -690,7 +690,7 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		findArgs = append(findArgs, "-type", "f")
 		findArgs = append(findArgs, "-exec", "grep")
 		findArgs = append(findArgs, grepArgs...)
-		findArgs = append(findArgs, "{}", "+")
+		findArgs = append(findArgs, "{}", ";")
 		find.Args = append(find.Args, findPaths...)
 		find.Args = append(find.Args, findArgs...)
 		log.V(5).Info("running find with args", "args", find.Args)
