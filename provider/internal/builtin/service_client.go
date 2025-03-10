@@ -599,14 +599,8 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		psScript := `
 		$pattern = $env:PATTERN
 		$location = $env:FILEPATH
-		Get-ChildItem -Path $location -Recurse -File | ForEach-Object {
-			$file = $_    
-			# Search for the pattern in the file
-			Select-String -Path $file.FullName -Pattern $pattern -AllMatches | ForEach-Object { 
-				foreach ($match in $_.Matches) { 
-					"{0}:{1}:{2}" -f $file.FullName, $_.LineNumber, $match.Value
-				} 
-			}
+		Get-ChildItem -Path $location -Recurse | Select-String -Pattern $pattern -AllMatches | ForEach-Object { 
+			"{0}:{1}:{2}" -f $_.Path, $_.LineNumber, $_.Line
 		}`
 		findstr := exec.Command(utilName, "-Command", psScript)
 		findstr.Env = append(os.Environ(), "PATTERN="+pattern, "FILEPATH="+location)
