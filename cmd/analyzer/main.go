@@ -137,7 +137,9 @@ func AnalysisCmd() *cobra.Command {
 					finalConfigs = append(finalConfigs, config)
 				}
 				for _, initConf := range config.InitConfig {
-					if _, ok := seenBuiltinConfigs[initConf.Location]; !ok {
+					builtinConf := provider.InitConfig{}
+					_, ok := seenBuiltinConfigs[initConf.Location]
+					if !ok {
 						if initConf.Location != "" {
 							if stat, err := os.Stat(initConf.Location); err == nil && stat.IsDir() {
 								builtinLocation, err := filepath.Abs(initConf.Location)
@@ -145,11 +147,20 @@ func AnalysisCmd() *cobra.Command {
 									builtinLocation = initConf.Location
 								}
 								seenBuiltinConfigs[builtinLocation] = true
-								builtinConf := provider.InitConfig{Location: builtinLocation}
+								builtinConf = provider.InitConfig{Location: builtinLocation}
 								if config.Name == "builtin" {
 									builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
 								}
 								defaultBuiltinConfigs = append(defaultBuiltinConfigs, builtinConf)
+							}
+						}
+					}
+					//builtin config that already has location as other prov configs
+					if config.Name == "builtin" && ok {
+						builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
+						for i, c := range defaultBuiltinConfigs {
+							if initConf.Location == c.Location {
+								defaultBuiltinConfigs[i] = initConf
 							}
 						}
 					}

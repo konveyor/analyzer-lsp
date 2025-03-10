@@ -166,3 +166,21 @@ func GetIncludedPathsFromConfig(i InitConfig, allowFilePaths bool) []string {
 	}
 	return validatedPaths
 }
+
+func GetExcludedDirsFromConfig(i InitConfig) []string {
+	validatedPaths := []string{}
+	if excludedDirs, ok := i.ProviderSpecificConfig[ExcludedDirsConfigKey].([]interface{}); ok {
+		for _, dir := range excludedDirs {
+			if expath, ok := dir.(string); ok {
+				ab := expath
+				var err error
+				if !filepath.IsAbs(expath) {
+					if ab, err = filepath.Abs(expath); err == nil {
+					}
+				}
+				validatedPaths = append(validatedPaths, ab)
+			}
+		}
+	}
+	return validatedPaths
+}

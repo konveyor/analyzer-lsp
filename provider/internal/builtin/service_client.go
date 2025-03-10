@@ -32,6 +32,7 @@ type builtinServiceClient struct {
 	cacheMutex    sync.RWMutex
 	locationCache map[string]float64
 	includedPaths []string
+	excludedDirs  []string
 }
 
 type fileTemplateContext struct {
@@ -96,6 +97,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			if !p.isFileIncluded(absPath) {
 				continue
 			}
+			if p.isDirExcluded(absPath) {
+				continue
+			}
+
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
 				FileURI: uri.File(absPath),
 			})
@@ -141,6 +146,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			}
 
 			if !p.isFileIncluded(absPath) {
+				continue
+			}
+
+			if p.isDirExcluded(absPath) {
 				continue
 			}
 
@@ -217,6 +226,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 						absPath = file
 					}
 					if !p.isFileIncluded(absPath) {
+						continue
+					}
+
+					if p.isDirExcluded(absPath) {
 						continue
 					}
 					incident := provider.IncidentContext{
@@ -302,6 +315,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							if !p.isFileIncluded(absPath) {
 								continue
 							}
+
+							if p.isDirExcluded(absPath) {
+								continue
+							}
 							response.Incidents = append(response.Incidents, provider.IncidentContext{
 								FileURI: uri.File(absPath),
 								Variables: map[string]interface{}{
@@ -358,6 +375,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 						absPath = file
 					}
 					if !p.isFileIncluded(absPath) {
+						continue
+					}
+
+					if p.isDirExcluded(absPath) {
 						continue
 					}
 					incident := provider.IncidentContext{
@@ -572,6 +593,20 @@ func (b *builtinServiceClient) isFileIncluded(absolutePath string) bool {
 		}
 	}
 	b.log.V(7).Info("excluding file from search", "file", absolutePath)
+	return false
+}
+
+func (b *builtinServiceClient) isDirExcluded(absolutePath string) bool {
+	if len(b.excludedDirs) == 0 {
+		return false
+	}
+	for _, path := range b.excludedDirs {
+		if absPath, err := filepath.Abs(path); err == nil {
+			if strings.Contains(absolutePath, absPath) {
+				return true
+			}
+		}
+	}
 	return false
 }
 

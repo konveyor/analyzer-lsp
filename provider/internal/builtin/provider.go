@@ -154,6 +154,7 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 		locationCache:                      make(map[string]float64),
 		log:                                log,
 		includedPaths:                      provider.GetIncludedPathsFromConfig(config, true),
+		excludedDirs:                       provider.GetExcludedDirsFromConfig(config),
 	}, provider.InitConfig{}, nil
 }
 
