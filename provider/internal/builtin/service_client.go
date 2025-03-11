@@ -80,6 +80,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			if err != nil {
 				return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
 			}
+			_, matchingFiles = cond.ProviderContext.GetScopedFilepaths(matchingFiles...)
 		}
 
 		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
@@ -109,7 +110,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 
 		var outputBytes []byte
 		//Runs on Windows using PowerShell.exe and Unix based systems using grep
-		outputBytes, err := runOSSpecificGrepCommand(c.Pattern, p.config.Location, cond.ProviderContext)
+		outputBytes, err := runOSSpecificGrepCommand(c.Pattern, p.config.Location, cond.ProviderContext, p.log)
 		if err != nil {
 			return response, err
 		}
@@ -201,6 +202,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
+		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -279,6 +281,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
+		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -331,6 +334,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
+		_, jsonFiles = cond.ProviderContext.GetScopedFilepaths(jsonFiles...)
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
 			if err != nil {
@@ -587,10 +591,12 @@ func parseGrepOutputForFileContent(match string) ([]string, error) {
 	return submatches[1:], nil
 }
 
-func runOSSpecificGrepCommand(pattern string, location string, providerContext provider.ProviderContext) ([]byte, error) {
+func runOSSpecificGrepCommand(pattern string, location string, providerContext provider.ProviderContext, log logr.Logger) ([]byte, error) {
 	var outputBytes []byte
 	var err error
 	var utilName string
+
+	excludePatterns := getGloblikeExcludePatterns(providerContext)
 
 	if runtime.GOOS == "windows" {
 		utilName = "powershell.exe"
@@ -598,20 +604,42 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		// This is a workaround until we can find a better solution
 		psScript := `
 		$pattern = $env:PATTERN
-		$location = $env:FILEPATH
-		Get-ChildItem -Path $location -Recurse -File | ForEach-Object {
-			$file = $_    
-			# Search for the pattern in the file
-			Select-String -Path $file.FullName -Pattern $pattern -AllMatches | ForEach-Object { 
-				foreach ($match in $_.Matches) { 
-					"{0}:{1}:{2}" -f $file.FullName, $_.LineNumber, $match.Value
-				} 
+		$locations = $env:FILEPATHS -split ','
+		%s
+		foreach ($location in $locations) {
+			Get-ChildItem -Path $location -Recurse -File |
+			%s
+			ForEach-Object {
+				$file = $_    
+				# Search for the pattern in the file
+				Select-String -Path $file.FullName -Pattern $pattern -AllMatches | ForEach-Object { 
+					foreach ($match in $_.Matches) { 
+						"{0}:{1}:{2}" -f $file.FullName, $_.LineNumber, $match.Value
+					} 
+				}
 			}
 		}`
-		findstr := exec.Command(utilName, "-Command", psScript)
-		findstr.Env = append(os.Environ(), "PATTERN="+pattern, "FILEPATH="+location)
-		outputBytes, err = findstr.Output()
+		exclusionScript := ""
+		exclusionEnvVar := ""
+		locations := []string{location}
+		if ok, paths := providerContext.GetScopedFilepaths(); ok {
+			locations = paths
+		} else if len(excludePatterns) > 0 {
+			exclusionScript = `Where-Object {
+				$filePath = $_.FullName
+				-not ($excluded_paths | Where-Object { $filePath -like $_ })
+		    } |`
 
+			exclusionEnvVar = `$excluded_paths = $env:EXCLUDEDPATHS -split ','`
+		}
+		psScript = fmt.Sprintf(psScript, exclusionEnvVar, exclusionScript)
+		findstr := exec.Command(utilName, "-Command", psScript)
+		findstr.Env = append(os.Environ(),
+			"PATTERN="+pattern,
+			"FILEPATHS="+strings.Join(locations, ","),
+			"EXCLUDEDPATHS="+strings.Join(excludePatterns, ","),
+		)
+		outputBytes, err = findstr.Output()
 		// TODO eventually replace with platform agnostic solution
 	} else if runtime.GOOS == "darwin" {
 		isEscaped := isSlashEscaped(pattern)
@@ -623,21 +651,50 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		// escape other chars used in perl pattern
 		escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
 		escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
-		cmd := fmt.Sprintf(
-			`find %v -type f -exec perl -ne 'print "$ARGV:$.:$1\n" if /%v/; close ARGV if eof;' {} +`,
-			location, escapedPattern,
-		)
+		cmd := ""
+		if ok, paths := providerContext.GetScopedFilepaths(); ok {
+			cmd = fmt.Sprintf(
+				`echo '%s' | \
+			xargs perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
+				strings.Join(paths, "\n"), escapedPattern,
+			)
+		} else {
+			cmd = fmt.Sprintf(
+				`find %v %s -type f -print0 | \
+			xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
+				location, "%s", escapedPattern,
+			)
+			if len(excludePatterns) == 0 {
+				cmd = fmt.Sprintf(cmd, "")
+			} else {
+				excludeOpts := ""
+				for _, pattern := range excludePatterns {
+					excludeOpts = fmt.Sprintf("%s ! -path '%s'", excludeOpts, pattern)
+				}
+				cmd = fmt.Sprintf(cmd, excludeOpts)
+			}
+		}
 		findstr := exec.Command("/bin/sh", "-c", cmd)
 		outputBytes, err = findstr.Output()
-
 	} else {
-		grep := exec.Command("grep", "-o", "-n", "-R", "-P", pattern)
+		grepArgs := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
+		find := exec.Command("find")
+		findPaths := []string{location}
 		if ok, paths := providerContext.GetScopedFilepaths(); ok {
-			grep.Args = append(grep.Args, paths...)
-		} else {
-			grep.Args = append(grep.Args, location)
+			findPaths = paths
 		}
-		outputBytes, err = grep.Output()
+		findArgs := []string{}
+		for _, pattern := range excludePatterns {
+			findArgs = append(findArgs, "!", "-path", pattern)
+		}
+		findArgs = append(findArgs, "-type", "f")
+		findArgs = append(findArgs, "-exec", "grep")
+		findArgs = append(findArgs, grepArgs...)
+		findArgs = append(findArgs, "{}", ";")
+		find.Args = append(find.Args, findPaths...)
+		find.Args = append(find.Args, findArgs...)
+		log.V(5).Info("running find with args", "args", find.Args)
+		outputBytes, err = find.Output()
 	}
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
@@ -656,4 +713,26 @@ func isSlashEscaped(str string) bool {
 		}
 	}
 	return false
+}
+
+// golang patterns don't work the same as glob patterns on shell
+func getGloblikeExcludePatterns(ctx provider.ProviderContext) []string {
+	patterns := []string{}
+	for _, pattern := range ctx.GetExcludePatterns() {
+		pattern = strings.ReplaceAll(pattern, ".*", "*")
+		pattern = strings.ReplaceAll(pattern, ".", "?")
+		re := regexp.MustCompile(`\[\^([^\]]+)\]`)
+		pattern = re.ReplaceAllString(pattern, "[!$1]")
+		pattern = strings.TrimPrefix(pattern, "^")
+		pattern = strings.TrimSuffix(pattern, "$")
+		if pattern == "" {
+			continue
+		}
+		if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
+			patterns = append(patterns, fmt.Sprintf("%s*", pattern))
+		} else {
+			patterns = append(patterns, pattern)
+		}
+	}
+	return patterns
 }
