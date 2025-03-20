@@ -443,7 +443,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		// To close the pipes.
 		select {
 		case err := <-waitErrorChannel:
-			if err != nil {
+			// language server has not started - don't error yet
+			if err != nil && cmd.ProcessState == nil {
+				log.Info("retrying language server start")
+			} else {
 				log.Error(err, "language server stopped with error")
 			}
 			log.V(5).Info("language server stopped")
