@@ -349,8 +349,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			return nil, additionalBuiltinConfig, err
 		}
 		config.Location = sourceLocation
-		// for binaries, we fallback to looking at .jar files only for deps
-		config.DependencyPath = depLocation
 		isBinary = true
 
 		if ok && cleanBin {
@@ -822,7 +820,7 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower
 		log.WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
 
 		groupDirs := filepath.Join(strings.Split(artifact.GroupId, ".")...)
-		artifactDirs := filepath.Join(strings.Split(artifact.ArtifactId, ".")...)
+		artifactDirs := artifact.ArtifactId
 		jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
 		decompileJobs = append(decompileJobs, decompileJob{
 			artifact: artifact,
@@ -902,7 +900,7 @@ func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
 	scanner := bufio.NewScanner(output)
 
 	unresolvedRegex := regexp.MustCompile(`\[WARNING] The following artifacts could not be resolved`)
-	artifactRegex := regexp.MustCompile(`([\w\.]+):([\w\-]+):\w+:([\w\.]+):?([\w\.]+)?`)
+	artifactRegex := regexp.MustCompile(`([\w\.]+):([\w\-\.]+):\w+:([\w\.]+):?([\w\.\-]+)?`)
 
 	for scanner.Scan() {
 		line := scanner.Text()

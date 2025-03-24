@@ -225,9 +225,9 @@ func (p *javaServiceClient) Stop() {
 		p.log.Info("stopping java provider", "error", err)
 	}
 	if len(p.cleanExplodedBins) > 0 {
-		for _, explodedPath := range p.cleanExplodedBins {
-			os.RemoveAll(explodedPath)
-		}
+		//for _, explodedPath := range p.cleanExplodedBins {
+		//os.RemoveAll(explodedPath)
+		//}
 	}
 }
 

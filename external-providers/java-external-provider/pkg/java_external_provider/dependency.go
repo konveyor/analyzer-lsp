@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -603,6 +604,7 @@ func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]k
 		m2RepoPath:  getMavenLocalRepoPath(p.mvnSettingsFile),
 		seen:        map[string]bool{},
 		initialPath: path,
+		log:         p.log,
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
@@ -614,6 +616,7 @@ type walker struct {
 	initialPath string
 	seen        map[string]bool
 	pomPaths    []string
+	log         logr.Logger
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -632,7 +635,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		artifact, _ := toDependency(context.TODO(), path)
+		artifact, _ := toDependency(context.TODO(), path, w.log)
 		if (artifact != javaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version
