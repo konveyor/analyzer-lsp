@@ -460,6 +460,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 	// This will close the go routine above when wait has completed.
 	go func() {
+		wg.Wait()
 		waitErrorChannel <- cmd.Wait()
 	}()
 
