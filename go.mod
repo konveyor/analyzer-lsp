@@ -17,14 +17,15 @@ require (
 	github.com/swaggest/openapi-go v0.2.45
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel/trace v1.28.0
-	golang.org/x/oauth2 v0.22.0
-	google.golang.org/grpc v1.67.3
+	golang.org/x/oauth2 v0.16.0
+	google.golang.org/grpc v1.62.2
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.5.2 // indirect
+	cloud.google.com/go/compute v1.23.3 // indirect
+	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/bufbuild/protocompile v0.10.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -32,6 +33,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/swaggest/refl v1.3.0 // indirect
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
+	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
