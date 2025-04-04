@@ -12,6 +12,13 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
+const (
+	GenericClient = "generic"
+	PythonClient  = "pylsp"
+	YamlClient    = "yaml_language_server"
+	NodeClient    = "nodejs"
+)
+
 type ServiceClientBuilder interface {
 	Init(context.Context, logr.Logger, provider.InitConfig) (provider.ServiceClient, error)
 	GetGenericServiceClientCapabilities(log logr.Logger) []base.LSPServiceClientCapability
@@ -19,8 +26,8 @@ type ServiceClientBuilder interface {
 
 var SupportedLanguages = map[string]ServiceClientBuilder{
 	// "":        generic.NewGenericServiceClient,
-	"generic":              &generic.GenericServiceClientBuilder{},
-	"pylsp":                &pylsp.PythonServiceClientBuilder{},
-	"yaml_language_server": &yaml.YamlServiceClientBuilder{},
-	"nodejs":               &nodejs.NodeServiceClientBuilder{},
+	GenericClient: &generic.GenericServiceClientBuilder{},
+	PythonClient:  &pylsp.PythonServiceClientBuilder{},
+	YamlClient:    &yaml.YamlServiceClientBuilder{},
+	NodeClient:    &nodejs.NodeServiceClientBuilder{},
 }
