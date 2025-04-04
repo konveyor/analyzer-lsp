@@ -112,6 +112,7 @@ type RuleMeta struct {
 	Category    *konveyor.Category `yaml:"category,omitempty" json:"category,omitempty"`
 	Labels      []string           `yaml:"labels,omitempty" json:"labels,omitempty"`
 	Effort      *int               `json:"effort,omitempty"`
+	UsesHasTags bool
 }
 
 func (r *RuleMeta) GetLabels() []string {

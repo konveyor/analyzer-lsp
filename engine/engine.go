@@ -179,12 +179,11 @@ func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors
 }
 
 func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, scopes Scope, selectors ...RuleSelector) []konveyor.RuleSet {
-	// determine if we should run
-
 	conditionContext := ConditionContext{
 		Tags:     make(map[string]interface{}),
 		Template: make(map[string]ChainTemplate),
 	}
+
 	if scopes != nil {
 		r.logger.Info("using scopes", "scope", scopes.Name())
 		err := scopes.AddToContext(&conditionContext)
@@ -196,28 +195,112 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 		}
 		r.logger.Info("added scopes to condition context", "scopes", scopes, "conditionContext", conditionContext)
 	}
+
 	carrier := propagation.MapCarrier{}
 	otel.GetTextMapPropagator().Inject(ctx, carrier)
 	r.logger.Info("inject span info", "carrier", carrier)
 	ctx, cancelFunc := context.WithCancel(ctx)
 
-	taggingRules, otherRules, mapRuleSets := r.filterRules(ruleSets, selectors...)
+	taggingRules, dependentTaggingRules, violationRules, rulesetsMap := r.filterRules(ruleSets, selectors...)
 
-	ruleContext := r.runTaggingRules(ctx, taggingRules, mapRuleSets, conditionContext, scopes)
+	totalRules := len(taggingRules) + len(dependentTaggingRules) + len(violationRules)
+	r.logger.V(5).Info("initiating rule processing",
+		"totalRules", totalRules, "taggingRules", totalRules-len(violationRules), "violationRules", len(violationRules))
 
-	// Need a better name for this thing
-	ret := make(chan response)
+	// Cannel running go-routine
+	defer cancelFunc()
+	tags, err := r.runRulesBatch(
+		ctx,
+		"initialTaggingRules",
+		int32(totalRules),
+		taggingRules,
+		scopes,
+		conditionContext,
+		carrier,
+		rulesetsMap,
+	)
+	if err != nil {
+		r.logger.Error(err, "context canceled when processing initial tagging rules")
+		return flattenRulesets(rulesetsMap)
+	}
+	r.logger.V(5).Info("processed initial tagging rules", "totalRules", totalRules, "totalProcessed", len(taggingRules))
+	mergeTagsIntoMap(conditionContext.Tags, tags)
+	tags, err = r.runRulesBatch(
+		ctx,
+		"dependentTaggingRules",
+		int32(totalRules),
+		dependentTaggingRules,
+		scopes,
+		conditionContext,
+		carrier,
+		rulesetsMap,
+	)
+	if err != nil {
+		r.logger.Error(err, "context canceled when processing dependent tagging rules")
+		return flattenRulesets(rulesetsMap)
+	}
+	r.logger.V(5).Info("processed dependent tagging rules", "totalRules", totalRules, "totalProcessed", len(dependentTaggingRules)+len(taggingRules))
+	mergeTagsIntoMap(conditionContext.Tags, tags)
+	_, err = r.runRulesBatch(
+		ctx,
+		"violationRules",
+		int32(totalRules),
+		violationRules,
+		scopes,
+		conditionContext,
+		carrier,
+		rulesetsMap,
+	)
+	if err != nil {
+		r.logger.Error(err, "context canceled when processing violation rules")
+	}
+	r.logger.V(5).Info("processed violation rules", "totalRules", totalRules, "totalProcessed", totalRules)
+	return flattenRulesets(rulesetsMap)
+}
+
+// runRulesBatch runs a batch of rules violation or otherwise
+// returns tags if there were any tagging rules in the batch
+// returns error if context was canceled during rule execution
+func (r *ruleEngine) runRulesBatch(
+	ctx context.Context,
+	batchName string,
+	totalRules int32,
+	rules []ruleMessage,
+	scopes Scope,
+	ruleContext ConditionContext,
+	carrier propagation.MapCarrier,
+	rulesetsMap map[string]*konveyor.RuleSet,
+) (map[string]interface{}, error) {
+	ruleResponseChan := make(chan response)
 
 	var matchedRules int32
 	var unmatchedRules int32
 	var failedRules int32
 
+	// tagging rules create new tag
+	allTags := map[string]interface{}{}
+	tagsChan := make(chan string)
+
 	wg := &sync.WaitGroup{}
+
+	// handle tags generated during handling of returns
+	go func() {
+		for {
+			select {
+			case tag := <-tagsChan:
+				allTags[tag] = true
+				wg.Done()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	// Handle returns
 	go func() {
 		for {
 			select {
-			case response := <-ret:
+			case response := <-ruleResponseChan:
 				func() {
 					r.logger.Info("rule returned", "ruleID", response.Rule.RuleID)
 					defer wg.Done()
@@ -225,64 +308,109 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 						atomic.AddInt32(&failedRules, 1)
 						r.logger.Error(response.Err, "failed to evaluate rule", "ruleID", response.Rule.RuleID)
 
-						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
+						if rs, ok := rulesetsMap[response.RuleSetName]; ok {
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()
 						}
 					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
+						r.logger.V(5).Info("rule matched", "ruleID", response.Rule.RuleID, "batch", batchName)
 						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule, scopes)
 						if err != nil {
 							r.logger.Error(err, "unable to create violation from response", "ruleID", response.Rule.RuleID)
 						}
 						if len(violation.Incidents) == 0 {
-							r.logger.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched", "ruleID", response.Rule.RuleID)
+							r.logger.V(5).Info("rule was evaluated but all incidents were filtered out", "ruleID", response.Rule.RuleID)
 							atomic.AddInt32(&unmatchedRules, 1)
-							if rs, ok := mapRuleSets[response.RuleSetName]; ok {
+							if rs, ok := rulesetsMap[response.RuleSetName]; ok {
 								rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
 							}
+							return
+						}
+						atomic.AddInt32(&matchedRules, 1)
+						rs, ok := rulesetsMap[response.RuleSetName]
+						if !ok {
+							r.logger.Info("this should never happen that we don't find the ruleset")
+							return
+						}
+						if response.Rule.Perform.Tag != nil {
+							// handle a tagging rule (info rule)
+							// we create 'insight' for these and add tagsMap
+							// insight is a violation with zero effort
+							violation.Effort = nil
+							violation.Category = nil
+							tagsMap := map[string]bool{}
+							for _, tagString := range response.Rule.Perform.Tag {
+								if strings.Contains(tagString, "{{") && strings.Contains(tagString, "}}") {
+									for _, incident := range response.ConditionResponse.Incidents {
+										// If this is the case then we neeed to use the reponse variables to get the tag
+										variables := make(map[string]interface{})
+										for key, value := range incident.Variables {
+											variables[key] = value
+										}
+										if incident.LineNumber != nil {
+											variables["lineNumber"] = *incident.LineNumber
+										}
+										templateString, err := r.createPerformString(tagString, variables)
+										if err != nil {
+											r.logger.Error(err, "unable to create tag string", "ruleID", response.Rule.RuleID)
+											continue
+										}
+										tagsMap[templateString] = true
+									}
+								} else {
+									tagsMap[tagString] = true
+								}
+								for t := range tagsMap {
+									rs.Tags = append(rs.Tags, t)
+									tags, err := parseTagsFromPerformString(t)
+									if err != nil {
+										r.logger.Error(err, "unable to create tags", "ruleID", response.Rule.RuleID)
+										continue
+									}
+									for _, tag := range tags {
+										// we have to make sure we wait
+										// until all tags are processed
+										wg.Add(1)
+										tagsChan <- tag
+									}
+								}
+							}
+							// we need to tie these incidents back to tags that created them
+							for tag := range tagsMap {
+								violation.Labels = append(violation.Labels, fmt.Sprintf("tag=%s", tag))
+							}
+						}
+						// when a rule has 0 effort, we should create an insight instead
+						if response.Rule.Effort == nil || *response.Rule.Effort == 0 {
+							rs.Insights[response.Rule.RuleID] = violation
 						} else {
-							atomic.AddInt32(&matchedRules, 1)
-							rs, ok := mapRuleSets[response.RuleSetName]
-							if !ok {
-								r.logger.Info("this should never happen that we don't find the ruleset")
-								return
-							}
-							// when a rule has 0 effort, we should create an insight instead
-							if response.Rule.Effort == nil || *response.Rule.Effort == 0 {
-								rs.Insights[response.Rule.RuleID] = violation
-							} else {
-								rs.Violations[response.Rule.RuleID] = violation
-							}
+							rs.Violations[response.Rule.RuleID] = violation
 						}
 					} else {
 						atomic.AddInt32(&unmatchedRules, 1)
-						// Log that rule did not pass
 						r.logger.V(5).Info("rule was evaluated, and we did not find a violation", "ruleID", response.Rule.RuleID)
-
-						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
+						if rs, ok := rulesetsMap[response.RuleSetName]; ok {
 							rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
 						}
 					}
-					r.logger.V(5).Info("rule response received", "total", len(otherRules), "failed", failedRules, "matched", matchedRules, "unmatched", unmatchedRules)
-
+					r.logger.V(5).Info("rule response received", "batch", batchName, "total", totalRules, "failed", failedRules, "matched", matchedRules, "unmatched", unmatchedRules)
 				}()
 			case <-ctx.Done():
-				// At this point we should just return the function, we may want to close the wait group too.
 				return
 			}
 		}
 	}()
 
-	for _, rule := range otherRules {
+	for _, rule := range rules {
 		newContext := ruleContext.Copy()
 		newContext.RuleID = rule.rule.RuleID
 		wg.Add(1)
-		rule.returnChan = ret
+		rule.returnChan = ruleResponseChan
 		rule.conditionContext = newContext
 		rule.scope = scopes
 		rule.carrier = carrier
 		r.ruleProcessing <- rule
 	}
-	r.logger.V(5).Info("All rules added buffer, waiting for engine to complete", "size", len(otherRules))
+	r.logger.V(5).Info("Rules in the current batch added to buffer, waiting for engine to complete", "size", len(rules))
 
 	done := make(chan struct{})
 	go func() {
@@ -290,31 +418,30 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 		wg.Wait()
 	}()
 
-	// Wait for all the rules to process
+	// Wait for all the rules in this batch to process
 	select {
 	case <-done:
-		r.logger.V(2).Info("done processing all the rules")
+		r.logger.V(2).Info("done processing rules in the current batch", "batch", batchName)
 	case <-ctx.Done():
-		r.logger.V(1).Info("processing of rules was canceled")
+		r.logger.V(1).Info("processing of rules was canceled", "batch", batchName)
+		return allTags, ctx.Err()
 	}
-	responses := []konveyor.RuleSet{}
-	for _, ruleSet := range mapRuleSets {
-		if ruleSet != nil {
-			responses = append(responses, *ruleSet)
-		}
-	}
-	// Cannel running go-routine
-	cancelFunc()
-	return responses
+	return allTags, nil
 }
 
-// filterRules splits rules into tagging and other rules
-func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) ([]ruleMessage, []ruleMessage, map[string]*konveyor.RuleSet) {
+// filterRules splits rules into three groups
+// first, tagging rules that do not depend on pther tagging rules
+// second, tagging rules that depend on other tagging rules
+// third, violation rules that may depend on tagging rules
+func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) ([]ruleMessage, []ruleMessage, []ruleMessage, map[string]*konveyor.RuleSet) {
 	// filter rules that generate tags, they run first
-	taggingRules := []ruleMessage{}
-	mapRuleSets := map[string]*konveyor.RuleSet{}
+	initialTaggingRules := []ruleMessage{}
+	// dependent tagging rules depend on above rules
+	dependentTaggingRules := []ruleMessage{}
 	// all rules except meta
 	otherRules := []ruleMessage{}
+
+	mapRuleSets := map[string]*konveyor.RuleSet{}
 	for _, ruleSet := range ruleSets {
 		mapRuleSets[ruleSet.Name] = r.createRuleSet(ruleSet)
 		for _, rule := range ruleSet.Rules {
@@ -333,10 +460,17 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 					ruleSetName: ruleSet.Name,
 				})
 			} else {
-				taggingRules = append(taggingRules, ruleMessage{
-					rule:        rule,
-					ruleSetName: ruleSet.Name,
-				})
+				if rule.UsesHasTags {
+					dependentTaggingRules = append(dependentTaggingRules, ruleMessage{
+						rule:        rule,
+						ruleSetName: ruleSet.Name,
+					})
+				} else {
+					initialTaggingRules = append(initialTaggingRules, ruleMessage{
+						rule:        rule,
+						ruleSetName: ruleSet.Name,
+					})
+				}
 				// if both message and tag are set, split message part into a new rule if effort is non-zero
 				// if effort is zero, we do not want to create a violation but only tag and an insight
 				if rule.Perform.Message.Text != nil && rule.Effort != nil && *rule.Effort != 0 {
@@ -352,94 +486,34 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 			}
 		}
 	}
-	return taggingRules, otherRules, mapRuleSets
+	return initialTaggingRules, dependentTaggingRules, otherRules, mapRuleSets
 }
 
-// runTaggingRules filters and runs info rules synchronously
-// returns list of non-info rules, a context to pass to them
-func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*konveyor.RuleSet, context ConditionContext, scope Scope) ConditionContext {
-	// track unique tags per ruleset
-	rulesetTagsCache := map[string]map[string]bool{}
-	for _, ruleMessage := range infoRules {
-		rule := ruleMessage.rule
-		response, err := processRule(ctx, rule, context, r.logger)
-		if err != nil {
-			r.logger.Error(err, "failed to evaluate rule", "ruleID", rule.RuleID)
-			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
-				rs.Errors[rule.RuleID] = err.Error()
-			}
-		} else if response.Matched && len(response.Incidents) > 0 {
-			r.logger.V(5).Info("info rule was matched", "ruleID", rule.RuleID)
-			tags := map[string]bool{}
-			for _, tagString := range rule.Perform.Tag {
-				if strings.Contains(tagString, "{{") && strings.Contains(tagString, "}}") {
-					for _, incident := range response.Incidents {
-						// If this is the case then we neeed to use the reponse variables to get the tag
-						variables := make(map[string]interface{})
-						for key, value := range incident.Variables {
-							variables[key] = value
-						}
-						if incident.LineNumber != nil {
-							variables["lineNumber"] = *incident.LineNumber
-						}
-						templateString, err := r.createPerformString(tagString, variables)
-						if err != nil {
-							r.logger.Error(err, "unable to create tag string", "ruleID", rule.RuleID)
-							continue
-						}
-						tags[templateString] = true
-					}
-				} else {
-					tags[tagString] = true
-				}
-				for t := range tags {
-					tags, err := parseTagsFromPerformString(t)
-					if err != nil {
-						r.logger.Error(err, "unable to create tags", "ruleID", rule.RuleID)
-						continue
-					}
-					for _, tag := range tags {
-						context.Tags[tag] = true
-					}
+func flattenRulesets(rulesetsMap map[string]*konveyor.RuleSet) []konveyor.RuleSet {
+	flattened := []konveyor.RuleSet{}
+	for _, ruleSet := range rulesetsMap {
+		if ruleSet != nil {
+			rs := *ruleSet
+			// deduplicate tags
+			rsTagsMap := map[string]interface{}{}
+			dedupedTags := []string{}
+			for _, tag := range rs.Tags {
+				if _, ok := rsTagsMap[tag]; !ok {
+					dedupedTags = append(dedupedTags, tag)
+					rsTagsMap[tag] = true
 				}
 			}
-			rs, ok := mapRuleSets[ruleMessage.ruleSetName]
-			if !ok {
-				r.logger.Info("this should never happen that we don't find the ruleset")
-			} else {
-				if _, ok := rulesetTagsCache[rs.Name]; !ok {
-					rulesetTagsCache[rs.Name] = make(map[string]bool)
-				}
-				for tag := range tags {
-					if _, ok := rulesetTagsCache[rs.Name][tag]; !ok {
-						rulesetTagsCache[rs.Name][tag] = true
-						rs.Tags = append(rs.Tags, tag)
-					}
-				}
-				mapRuleSets[ruleMessage.ruleSetName] = rs
-			}
-			// create an insight for this tag
-			violation, err := r.createViolation(ctx, response, rule, scope)
-			if err != nil {
-				r.logger.Error(err, "unable to create violation from response", "ruleID", rule.RuleID)
-			}
-			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
-				violation.Effort = nil
-				violation.Category = nil
-				// we need to tie these incidents back to tags that created them
-				for tag := range tags {
-					violation.Labels = append(violation.Labels, fmt.Sprintf("tag=%s", tag))
-				}
-				rs.Insights[rule.RuleID] = violation
-			}
-		} else {
-			r.logger.Info("info rule not matched", "rule", rule.RuleID)
-			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
-				rs.Unmatched = append(rs.Unmatched, rule.RuleID)
-			}
+			rs.Tags = dedupedTags
+			flattened = append(flattened, rs)
 		}
 	}
-	return context
+	return flattened
+}
+
+func mergeTagsIntoMap(target map[string]interface{}, source map[string]interface{}) {
+	for tag := range source {
+		target[tag] = true
+	}
 }
 
 func parseTagsFromPerformString(tagString string) ([]string, error) {
