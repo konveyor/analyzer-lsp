@@ -27,7 +27,7 @@ type ConditionResponse struct {
 type ConditionContext struct {
 	Tags     map[string]interface{}   `yaml:"tags"`
 	Template map[string]ChainTemplate `yaml:"template"`
-	RuleID   string                   `yaml:ruleID`
+	RuleID   string                   `yaml:"ruleID"`
 }
 
 // This will copy the condition, but this will not copy the ruleID

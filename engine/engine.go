@@ -223,7 +223,8 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 		r.logger.Error(err, "context canceled when processing initial tagging rules")
 		return flattenRulesets(rulesetsMap)
 	}
-	r.logger.V(5).Info("processed initial tagging rules", "totalRules", totalRules, "totalProcessed", len(taggingRules))
+	r.logger.V(5).Info("processed initial tagging rules",
+		"totalRules", totalRules, "totalProcessed", len(taggingRules))
 	mergeTagsIntoMap(conditionContext.Tags, tags)
 	tags, err = r.runRulesBatch(
 		ctx,
@@ -239,7 +240,8 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 		r.logger.Error(err, "context canceled when processing dependent tagging rules")
 		return flattenRulesets(rulesetsMap)
 	}
-	r.logger.V(5).Info("processed dependent tagging rules", "totalRules", totalRules, "totalProcessed", len(dependentTaggingRules)+len(taggingRules))
+	r.logger.V(5).Info("processed dependent tagging rules",
+		"totalRules", totalRules, "totalProcessed", len(dependentTaggingRules)+len(taggingRules))
 	mergeTagsIntoMap(conditionContext.Tags, tags)
 	_, err = r.runRulesBatch(
 		ctx,
@@ -254,7 +256,8 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 	if err != nil {
 		r.logger.Error(err, "context canceled when processing violation rules")
 	}
-	r.logger.V(5).Info("processed violation rules", "totalRules", totalRules, "totalProcessed", totalRules)
+	r.logger.V(5).Info("processed violation rules",
+		"totalRules", totalRules, "totalProcessed", totalRules)
 	return flattenRulesets(rulesetsMap)
 }
 
@@ -430,7 +433,7 @@ func (r *ruleEngine) runRulesBatch(
 }
 
 // filterRules splits rules into three groups
-// first, tagging rules that do not depend on pther tagging rules
+// first, tagging rules that do not depend on other tagging rules
 // second, tagging rules that depend on other tagging rules
 // third, violation rules that may depend on tagging rules
 func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) ([]ruleMessage, []ruleMessage, []ruleMessage, map[string]*konveyor.RuleSet) {
