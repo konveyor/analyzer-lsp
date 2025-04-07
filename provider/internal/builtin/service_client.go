@@ -54,10 +54,14 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	log.V(5).Info("builtin condition context", "condition", cond, "provider context", cond.ProviderContext)
 	response := provider.ProviderEvaluateResponse{Matched: false}
 
-	template := engine.ChainTemplate{}
-	template.ExcludedPaths = append(template.ExcludedPaths, p.excludedDirs...)
-
-	cond.ProviderContext.Template[engine.TemplateContextPathScopeKey] = template
+	if currChainTemp, ok := cond.ProviderContext.Template[engine.TemplateContextPathScopeKey]; ok {
+		currChainTemp.ExcludedPaths = append(currChainTemp.ExcludedPaths, p.excludedDirs...)
+		cond.ProviderContext.Template[engine.TemplateContextPathScopeKey] = currChainTemp
+	} else {
+		template := engine.ChainTemplate{}
+		template.ExcludedPaths = p.excludedDirs
+		cond.ProviderContext.Template[engine.TemplateContextPathScopeKey] = template
+	}
 
 	switch cap {
 	case "file":
@@ -729,7 +733,7 @@ func getGloblikeExcludePatterns(ctx provider.ProviderContext) []string {
 	for _, pattern := range ctx.GetExcludePatterns() {
 		// skip err here in case of exclude pattern not an existing dir
 		info, _ := os.Stat(pattern)
-		if info.IsDir() {
+		if info != nil && info.IsDir() {
 			patterns = append(patterns, fmt.Sprintf("%s*", pattern))
 			continue
 		}
