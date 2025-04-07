@@ -17,6 +17,7 @@ import (
 	"github.com/antchfx/xmlquery"
 	"github.com/antchfx/xpath"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
@@ -32,6 +33,7 @@ type builtinServiceClient struct {
 	cacheMutex    sync.RWMutex
 	locationCache map[string]float64
 	includedPaths []string
+	excludedDirs  []string
 }
 
 type fileTemplateContext struct {
@@ -51,6 +53,12 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	log := p.log.WithValues("ruleID", cond.ProviderContext.RuleID)
 	log.V(5).Info("builtin condition context", "condition", cond, "provider context", cond.ProviderContext)
 	response := provider.ProviderEvaluateResponse{Matched: false}
+
+	template := engine.ChainTemplate{}
+	template.ExcludedPaths = append(template.ExcludedPaths, p.excludedDirs...)
+
+	cond.ProviderContext.Template[engine.TemplateContextPathScopeKey] = template
+
 	switch cap {
 	case "file":
 		c := cond.File
@@ -719,6 +727,12 @@ func isSlashEscaped(str string) bool {
 func getGloblikeExcludePatterns(ctx provider.ProviderContext) []string {
 	patterns := []string{}
 	for _, pattern := range ctx.GetExcludePatterns() {
+		// skip err here in case of exclude pattern not an existing dir
+		info, _ := os.Stat(pattern)
+		if info.IsDir() {
+			patterns = append(patterns, fmt.Sprintf("%s*", pattern))
+			continue
+		}
 		pattern = strings.ReplaceAll(pattern, ".*", "*")
 		pattern = strings.ReplaceAll(pattern, ".", "?")
 		re := regexp.MustCompile(`\[\^([^\]]+)\]`)
