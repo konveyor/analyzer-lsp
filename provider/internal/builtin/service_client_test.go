@@ -576,3 +576,173 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 		})
 	}
 }
+
+func Test_builtinServiceClient_Evaluate_ExcludeDirs(t *testing.T) {
+	baseLocation := filepath.Join(".", "testdata", "search_scopes")
+	baseLocation, err := filepath.Abs(baseLocation)
+	if err != nil {
+		t.Errorf("builtinServiceClient.Evaluate() unable to run tests, cannot get absolute file path for base location err = %v", err)
+		return
+	}
+	tests := []struct {
+		name                   string
+		capability             string
+		condition              builtinCondition
+		excludedDirsFromConfig []string
+		wantFilePaths          []string
+		wantErr                bool
+	}{
+		{
+			name:                   "(filecontent) no exclude, match all",
+			capability:             "filecontent",
+			excludedDirsFromConfig: []string{},
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|app.config.property = .*)",
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.txt"),
+				filepath.Join("dir_a", "a.properties"),
+				filepath.Join("dir_a", "dir_b", "ab.properties"),
+				filepath.Join("dir_a", "dir_b", "ab.txt"),
+				filepath.Join("dir_b", "dir_a", "ba.properties"),
+				filepath.Join("dir_b", "b.properties"),
+				filepath.Join("dir_b", "b.txt"),
+			},
+		},
+		{
+			name:       "(filecontent) excluded all, match none",
+			capability: "filecontent",
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|app.config.property = .*)",
+				},
+			},
+			excludedDirsFromConfig: []string{
+				filepath.Join(baseLocation, "dir_a"),
+				filepath.Join(baseLocation, "dir_b"),
+			},
+			wantFilePaths: []string{},
+		},
+		{
+			name:       "(filecontent) dir_a excluded path given, match only inside dir_b",
+			capability: "filecontent",
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|app.config.property = .*)",
+				},
+			},
+			excludedDirsFromConfig: []string{filepath.Join(baseLocation, "dir_a")},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "dir_a", "ba.properties"),
+				filepath.Join("dir_b", "b.properties"),
+				filepath.Join("dir_b", "b.txt"),
+			},
+		},
+		{
+			name:                   "(file) no exclude, match all",
+			capability:             "file",
+			excludedDirsFromConfig: []string{},
+			condition: builtinCondition{
+				File: fileCondition{
+					Pattern: ".*.properties",
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.properties"),
+				filepath.Join("dir_a", "dir_b", "ab.properties"),
+				filepath.Join("dir_b", "b.properties"),
+				filepath.Join("dir_b", "dir_a", "ba.properties"),
+			},
+		},
+		{
+			name:                   "(file) exclude dir_b, match only dir_a",
+			capability:             "file",
+			excludedDirsFromConfig: []string{filepath.Join(baseLocation, "dir_b")},
+			condition: builtinCondition{
+				File: fileCondition{
+					Pattern: ".*.properties",
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.properties"),
+				filepath.Join("dir_a", "dir_b", "ab.properties"),
+			},
+		},
+		{
+			name:                   "(XML) exclude dir_a",
+			capability:             "xml",
+			excludedDirsFromConfig: []string{filepath.Join(baseLocation, "dir_a")},
+			condition: builtinCondition{
+				XML: xmlCondition{
+					XPath: "//name[text()='Test name']",
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "dir_a", "ba.xml"),
+				filepath.Join("dir_b", "b.xml"),
+			},
+		},
+		{
+			name:                   "(JSON) exclude dir_b",
+			capability:             "json",
+			excludedDirsFromConfig: []string{filepath.Join(baseLocation, "dir_b")},
+			condition: builtinCondition{
+				JSON: jsonCondition{
+					XPath: "//name[text()='Test name']",
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "dir_b", "ab.json"),
+				filepath.Join("dir_a", "a.json"),
+			},
+		},
+	}
+
+	getAbsolutePaths := func(baseLocation string, relativePaths []string) []string {
+		absPaths := []string{}
+		for _, relPath := range relativePaths {
+			absPaths = append(absPaths, filepath.Join(baseLocation, relPath))
+		}
+		return absPaths
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			sc := &builtinServiceClient{
+				config: provider.InitConfig{
+					Location: baseLocation,
+					ProviderSpecificConfig: map[string]interface{}{
+						"excludedDirs": tt.excludedDirsFromConfig,
+					},
+				},
+				excludedDirs:  tt.excludedDirsFromConfig,
+				log:           testr.New(t),
+				locationCache: map[string]float64{},
+				cacheMutex:    sync.RWMutex{},
+			}
+			conditionInfo, err := yaml.Marshal(&tt.condition)
+			if err != nil {
+				t.Errorf("builtinServiceClient.Evaluate() invalid test case, please check if condition is correct")
+				return
+			}
+			got, err := sc.Evaluate(context.TODO(), tt.capability, conditionInfo)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("builtinServiceClient.Evaluate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			gotFilepaths := []string{}
+			for _, fp := range got.Incidents {
+				gotFilepaths = append(gotFilepaths, fp.FileURI.Filename())
+			}
+
+			wantFilepaths := getAbsolutePaths(sc.config.Location, tt.wantFilePaths)
+			sort.Strings(gotFilepaths)
+			sort.Strings(wantFilepaths)
+			if !reflect.DeepEqual(gotFilepaths, wantFilepaths) {
+				t.Errorf("builtinServiceClient.Evaluate() = %v, want %v", gotFilepaths, wantFilepaths)
+			}
+		})
+	}
+}
