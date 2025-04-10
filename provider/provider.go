@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -429,6 +430,16 @@ func FullDepsResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI
 	return deps, nil
 }
 
+func FullNotifyFileChangesResponse(ctx context.Context, clients []ServiceClient, changes ...FileChange) error {
+	errs := []error{}
+	for _, c := range clients {
+		if err := c.NotifyFileChanges(ctx, changes...); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
 func FullDepDAGResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI][]DepDAGItem, error) {
 	deps := map[uri.URI][]DepDAGItem{}
 	for _, c := range clients {
@@ -466,6 +477,12 @@ type BaseClient interface {
 	Init(context.Context, logr.Logger, InitConfig) (ServiceClient, InitConfig, error)
 }
 
+type FileChange struct {
+	Path    string
+	Content string
+	Saved   bool
+}
+
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
 type ServiceClient interface {
 	Evaluate(ctx context.Context, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error)
@@ -478,6 +495,8 @@ type ServiceClient interface {
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
 	GetDependenciesDAG(ctx context.Context) (map[uri.URI][]DepDAGItem, error)
+	// Used to notify changes to files in the project
+	NotifyFileChanges(ctx context.Context, changes ...FileChange) error
 }
 
 type DependencyLocationResolver interface {
