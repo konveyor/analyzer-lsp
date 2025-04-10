@@ -17,14 +17,14 @@ require (
 	github.com/swaggest/openapi-go v0.2.45
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel/trace v1.28.0
-	golang.org/x/oauth2 v0.16.0
-	google.golang.org/grpc v1.62.2
+	golang.org/x/oauth2 v0.18.0
+	google.golang.org/grpc v1.64.1
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
-	cloud.google.com/go/compute v1.23.3 // indirect
+	cloud.google.com/go/compute v1.25.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/bufbuild/protocompile v0.10.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect

@@ -121,6 +121,7 @@ service ProviderService {
   rpc Stop (ServiceRequest) returns (google.protobuf.Empty) {};
   rpc GetDependencies (ServiceRequest) returns (DependencyResponse) {};
   rpc GetDependenciesDAG(ServiceRequest) returns (DependencyDAGResponse) {};
+  rpc NotifyFileChanges(NotifyFileChangesRequest) returns (NotifyFileChangesResponse) {};
 }
 
 message Dependency {
@@ -170,4 +171,17 @@ message Proxy {
   string HTTPProxy = 1;
   string HTTPSProxy = 2;
   string NoProxy = 3;
+}
+
+message FileChange {
+  string Uri = 1;
+  string Content = 2;
+}
+
+message NotifyFileChangesRequest {
+  repeated FileChange changes = 1;
+}
+
+message NotifyFileChangesResponse {
+  string error = 1;
 }
