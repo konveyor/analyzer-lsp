@@ -459,6 +459,7 @@ func parseTagsFromPerformString(tagString string) ([]string, error) {
 }
 
 func processRule(ctx context.Context, rule Rule, ruleCtx ConditionContext, log logr.Logger) (ConditionResponse, error) {
+	log.WithName("process-rule").Info("processing rule", "ruleID", rule.RuleID)
 	ctx, span := tracing.StartNewSpan(
 		ctx, "process-rule", attribute.Key("rule").String(rule.RuleID))
 	defer span.End()
