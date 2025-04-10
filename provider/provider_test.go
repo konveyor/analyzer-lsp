@@ -28,7 +28,9 @@ func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClie
 	return nil, InitConfig{}, nil
 }
 func (c *fakeClient) Stop() {}
-
+func (c *fakeClient) NotifyFileChanges(ctx context.Context, changes ...FileChange) error {
+	return nil
+}
 func (c *fakeClient) GetDependencies(ctx context.Context) (map[uri.URI][]*Dep, error) {
 	m := map[uri.URI][]*Dep{
 		uri.URI("test"): c.dependencies,
