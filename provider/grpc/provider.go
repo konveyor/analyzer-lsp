@@ -245,6 +245,10 @@ func (g *grpcProvider) Stop() {
 	g.cancelCmd()
 }
 
+func (g *grpcProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return provider.FullNotifyFileChangesResponse(ctx, g.serviceClients, changes...)
+}
+
 func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.ReadCloser, error) {
 	// Here the Provider will start the GRPC Server if a binary is set.
 	if config.BinaryPath != "" {
