@@ -1006,6 +1006,10 @@ func (p *javaProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]pr
 	return provider.FullDepDAGResponse(ctx, p.clients)
 }
 
+func (p *javaProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return provider.FullNotifyFileChangesResponse(ctx, p.clients, changes...)
+}
+
 func (p *javaProvider) BuildSettingsFile(m2CacheDir string) (settingsFile string, err error) {
 	fileContentTemplate := `
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

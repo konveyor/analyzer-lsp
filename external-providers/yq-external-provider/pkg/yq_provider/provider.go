@@ -121,3 +121,7 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 
 	return &svcClient, provider.InitConfig{}, nil
 }
+
+func (p *yqProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}
