@@ -167,6 +167,26 @@ func (g *grpcServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 
 }
 
+func (g *grpcServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	fileChanges := []*pb.FileChange{}
+
+	for _, change := range changes {
+		fileChanges = append(fileChanges, &pb.FileChange{
+			Uri:     change.Path,
+			Content: change.Content,
+		})
+	}
+
+	fileChangeResponse, err := g.client.NotifyFileChanges(ctx, &pb.NotifyFileChangesRequest{Changes: fileChanges})
+	if err != nil {
+		return err
+	}
+	if fileChangeResponse.Error != "" {
+		return fmt.Errorf(fileChangeResponse.Error)
+	}
+	return nil
+}
+
 func (g *grpcServiceClient) Stop() {
 	g.client.Stop(context.TODO(), &pb.ServiceRequest{Id: g.id})
 }

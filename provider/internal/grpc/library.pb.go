@@ -1471,6 +1471,7 @@ type FileChange struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uri           string                 `protobuf:"bytes,1,opt,name=Uri,proto3" json:"Uri,omitempty"`
 	Content       string                 `protobuf:"bytes,2,opt,name=Content,proto3" json:"Content,omitempty"`
+	Saved         bool                   `protobuf:"varint,3,opt,name=Saved,proto3" json:"Saved,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1517,6 +1518,13 @@ func (x *FileChange) GetContent() string {
 		return x.Content
 	}
 	return ""
+}
+
+func (x *FileChange) GetSaved() bool {
+	if x != nil {
+		return x.Saved
+	}
+	return false
 }
 
 type NotifyFileChangesRequest struct {
@@ -1727,11 +1735,12 @@ const file_provider_internal_grpc_library_proto_rawDesc = "" +
 	"\n" +
 	"HTTPSProxy\x18\x02 \x01(\tR\n" +
 	"HTTPSProxy\x12\x18\n" +
-	"\aNoProxy\x18\x03 \x01(\tR\aNoProxy\"8\n" +
+	"\aNoProxy\x18\x03 \x01(\tR\aNoProxy\"N\n" +
 	"\n" +
 	"FileChange\x12\x10\n" +
 	"\x03Uri\x18\x01 \x01(\tR\x03Uri\x12\x18\n" +
-	"\aContent\x18\x02 \x01(\tR\aContent\"J\n" +
+	"\aContent\x18\x02 \x01(\tR\aContent\x12\x14\n" +
+	"\x05Saved\x18\x03 \x01(\bR\x05Saved\"J\n" +
 	"\x18NotifyFileChangesRequest\x12.\n" +
 	"\achanges\x18\x01 \x03(\v2\x14.provider.FileChangeR\achanges\"1\n" +
 	"\x19NotifyFileChangesResponse\x12\x14\n" +
