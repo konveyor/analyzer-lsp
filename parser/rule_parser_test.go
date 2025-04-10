@@ -32,6 +32,10 @@ func (t testProvider) Evaluate(ctx context.Context, cap string, conditionInfo []
 	return provider.ProviderEvaluateResponse{}, nil
 }
 
+func (t testProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}
+
 func (t testProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	return nil, nil
 }
