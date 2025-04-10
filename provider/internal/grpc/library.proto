@@ -176,6 +176,7 @@ message Proxy {
 message FileChange {
   string Uri = 1;
   string Content = 2;
+  bool Saved = 3;
 }
 
 message NotifyFileChangesRequest {
