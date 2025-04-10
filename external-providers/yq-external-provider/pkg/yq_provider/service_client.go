@@ -54,6 +54,10 @@ func (p *yqServiceClient) Stop() {
 	p.cmd.Wait()
 }
 
+func (p *yqServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}
+
 func (p *yqServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond yqCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
@@ -137,17 +141,15 @@ func (p *yqServiceClient) GetAllValuesForKey(ctx context.Context, query []string
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	matchingYAMLFiles, err := provider.FindFilesMatchingPattern(p.config.Location, "*.yaml")
-	if err != nil {
-		p.log.Error(err, "unable to find any YML files")
-		return results, err
+	fileSearcher := provider.FileSearcher{
+		BasePath: p.config.Location,
 	}
-	matchingYMLFiles, err := provider.FindFilesMatchingPattern(p.config.Location, "*.yml")
+	matchingYAMLFiles, err := fileSearcher.Search(provider.SearchCriteria{
+		Patterns: []string{"*.yaml", "*.yml"},
+	})
 	if err != nil {
-		p.log.Error(err, "unable to find any YML files")
-		return results, err
+		return results, fmt.Errorf("failed to search files - %w", err)
 	}
-	matchingYAMLFiles = append(matchingYAMLFiles, matchingYMLFiles...)
 
 	for _, file := range matchingYAMLFiles {
 		wg.Add(1)

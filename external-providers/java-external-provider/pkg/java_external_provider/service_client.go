@@ -240,6 +240,11 @@ func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protoco
 	return res
 }
 
+// TODO (pgaikwad) - implement this for real
+func (p *javaServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}
+
 func (p *javaServiceClient) Stop() {
 	p.cancelFunc()
 	err := p.cmd.Wait()

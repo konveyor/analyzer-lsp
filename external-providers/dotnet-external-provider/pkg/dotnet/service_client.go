@@ -271,6 +271,10 @@ func (d *dotnetServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.U
 	return map[uri.URI][]provider.DepDAGItem{}, nil
 }
 
+func (d *dotnetServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}
+
 // this is a struct for providing the server that lives on the client side
 // of the connection to properly respond to requests sent server -> client
 type handler struct {

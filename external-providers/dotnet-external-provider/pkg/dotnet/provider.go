@@ -195,3 +195,7 @@ func (p *dotnetProvider) Init(ctx context.Context, log logr.Logger, config provi
 		config:     config,
 	}, provider.InitConfig{}, nil
 }
+
+func (d *dotnetProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}

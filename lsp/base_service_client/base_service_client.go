@@ -260,6 +260,10 @@ func (sc *LSPServiceClientBase) Stop() {
 	}
 }
 
+func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}
+
 // This GetDependencies method was the one that was present in the
 // generic-external-provider before I got my hands on it. Not too sure what it's
 // used for. I didn't want to break anything so I just made it the default
