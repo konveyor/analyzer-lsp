@@ -79,8 +79,15 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		BasePath:        p.config.Location,
 		AdditionalPaths: wcIncludedPaths,
 		// get global include / exclude paths from provider config
-		IncludePathsOrPatterns: append(includedPaths, p.includedPaths...),
-		ExcludePathsOrPatterns: append(excludedPaths, p.excludedDirs...),
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: p.includedPaths,
+			ExcludePathsOrPatterns: p.excludedDirs,
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedPaths,
+			ExcludePathsOrPatterns: excludedPaths,
+		},
+		FailFast: true,
 	}
 
 	switch cap {
@@ -131,6 +138,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		for start := 0; start < len(filePaths); start += batchSize {
 			end := int(math.Min(float64(start+batchSize), float64(len(filePaths))))
 			currBatch := filePaths[start:end]
+			p.log.V(5).Info("searching for pattern", "pattern", c.Pattern, "batchSize", len(currBatch), "totalFiles", len(filePaths))
 			// Runs on Windows using PowerShell.exe and Unix based systems using grep
 			currOutput, err := runOSSpecificGrepCommand(c.Pattern, currBatch, p.log)
 			if err != nil {
@@ -503,6 +511,7 @@ func runOSSpecificGrepCommand(pattern string, locations []string, log logr.Logge
 				}
 			}
 		}`
+		log.V(7).Info("running perl", "cmd", psScript, "pattern", pattern)
 		findstr := exec.Command(utilName, "-Command", psScript)
 		findstr.Env = append(os.Environ(),
 			"PATTERN="+pattern,
@@ -529,14 +538,15 @@ func runOSSpecificGrepCommand(pattern string, locations []string, log logr.Logge
 			`xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
 			escapedPattern,
 		)
+		log.V(7).Info("running perl", "cmd", cmdStr)
 		cmd := exec.Command("/bin/sh", "-c", cmdStr)
 		cmd.Stdin = &fileList
 		outputBytes, err = cmd.Output()
 	} else {
 		args := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
+		log.V(7).Info("running grep with args", "args", args)
 		args = append(args, locations...)
 		cmd := exec.Command("grep", args...)
-		log.V(5).Info("running grep with args", "args", cmd.Args)
 		outputBytes, err = cmd.Output()
 	}
 	if err != nil {
