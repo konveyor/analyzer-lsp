@@ -151,6 +151,8 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 	if config.AnalysisMode != provider.AnalysisMode("") {
 		p.log.V(5).Info("skipping analysis mode setting for builtin")
 	}
+	wcm := NewTempFileWorkingCopyManger(log)
+	wcm.init()
 	return &builtinServiceClient{
 		config:                             config,
 		tags:                               p.tags,
@@ -159,6 +161,7 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 		log:                                log,
 		includedPaths:                      provider.GetIncludedPathsFromConfig(config, true),
 		excludedDirs:                       provider.GetExcludedDirsFromConfig(config),
+		workingCopyMgr:                     wcm,
 	}, provider.InitConfig{}, nil
 }
 

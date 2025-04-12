@@ -34,6 +34,8 @@ type builtinServiceClient struct {
 	locationCache map[string]float64
 	includedPaths []string
 	excludedDirs  []string
+
+	workingCopyMgr *workingCopyManager
 }
 
 type fileTemplateContext struct {
@@ -43,17 +45,17 @@ type fileTemplateContext struct {
 var _ provider.ServiceClient = &builtinServiceClient{}
 
 func (p *builtinServiceClient) Stop() {
-	// p.workingCopyMgr.stop()
+	p.workingCopyMgr.stop()
 }
 
 func (p *builtinServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
-	// filtered := []provider.FileChange{}
-	// for _, change := range changes {
-	// 	if strings.HasSuffix(change.Path, p.config.Location) {
-	// 		filtered = append(filtered, change)
-	// 	}
-	// }
-	// p.workingCopyMgr.notifyChanges(filtered...)
+	filtered := []provider.FileChange{}
+	for _, change := range changes {
+		if strings.HasSuffix(change.Path, p.config.Location) {
+			filtered = append(filtered, change)
+		}
+	}
+	p.workingCopyMgr.notifyChanges(filtered...)
 	return nil
 }
 
@@ -67,16 +69,18 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	log.V(5).Info("builtin condition context", "condition", cond, "provider context", cond.ProviderContext)
 	response := provider.ProviderEvaluateResponse{Matched: false}
 
-	// wcIncludedPaths, wcExcludedPaths := p.processWorkingCopies()
-
-	incldd, excldd := cond.ProviderContext.GetScopedFilepaths()
-	// excldd = append(excldd, wcExcludedPaths...)
+	// in addition to base location, we have to look at working copies too
+	wcIncludedPaths, wcExcludedPaths := p.getWorkingCopies()
+	// get paths from providerContext
+	includedPaths, excludedPaths := cond.ProviderContext.GetScopedFilepaths()
+	excludedPaths = append(excludedPaths, wcExcludedPaths...)
 
 	fileSearcher := provider.FileSearcher{
-		BasePath: p.config.Location,
-		// AdditionalPaths:        wcIncludedPaths,
-		IncludePathsOrPatterns: append(incldd, p.includedPaths...),
-		ExcludePathsOrPatterns: append(excldd, p.excludedDirs...),
+		BasePath:        p.config.Location,
+		AdditionalPaths: wcIncludedPaths,
+		// get global include / exclude paths from provider config
+		IncludePathsOrPatterns: append(includedPaths, p.includedPaths...),
+		ExcludePathsOrPatterns: append(excludedPaths, p.excludedDirs...),
 	}
 
 	switch cap {
@@ -105,6 +109,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				FileURI: uri.File(absPath),
 			})
 		}
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		response.Matched = len(response.Incidents) > 0
 		return response, nil
 	case "filecontent":
@@ -171,6 +176,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if len(response.Incidents) != 0 {
 			response.Matched = true
 		}
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		return response, nil
 	case "xml":
 		query, err := xpath.CompileWithNS(cond.XML.XPath, cond.XML.Namespaces)
@@ -219,6 +225,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				}
 			}
 		}
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		return response, nil
 	case "xmlPublicID":
 		regex, err := regexp.Compile(cond.XMLPublicID.Regex)
@@ -267,7 +274,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				}
 			}
 		}
-
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		return response, nil
 	case "json":
 		query := cond.JSON.XPath
@@ -320,6 +327,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				}
 			}
 		}
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		return response, nil
 	case "hasTags":
 		found := true
@@ -443,6 +451,16 @@ func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, e
 	}()
 	nodes = xmlquery.QuerySelectorAll(doc, query)
 	return nodes, err
+}
+
+func (b *builtinServiceClient) getWorkingCopies() ([]string, []string) {
+	additionalIncludedPaths := []string{}
+	excludedPaths := []string{}
+	for _, wc := range b.workingCopyMgr.getWorkingCopies() {
+		additionalIncludedPaths = append(additionalIncludedPaths, wc.wcPath)
+		excludedPaths = append(excludedPaths, wc.filePath)
+	}
+	return additionalIncludedPaths, excludedPaths
 }
 
 func parseGrepOutputForFileContent(match string) ([]string, error) {
