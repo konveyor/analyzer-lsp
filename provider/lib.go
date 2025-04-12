@@ -13,6 +13,17 @@ import (
 	"strings"
 )
 
+// FileSearcher takes global include / exclude patterns and base locations for search
+type FileSearcher struct {
+	BasePath string
+	// additional search paths can be added e.g. working copy paths
+	AdditionalPaths           []string
+	ProviderConfigConstraints IncludeExcludeConstraints
+	RuleScopeConstraints      IncludeExcludeConstraints
+	// fail on first file operation error
+	FailFast bool
+}
+
 // SearchCriteria defines a specific search criteria
 // during search time, used for condition specific search
 // this takes the highest priority when searching
@@ -21,14 +32,17 @@ type SearchCriteria struct {
 	ConditionFilepaths []string
 }
 
-// FileSearcher defines a baseline search & include/excludes from either rules scope or global
-type FileSearcher struct {
-	BasePath               string
-	AdditionalPaths        []string
+type IncludeExcludeConstraints struct {
 	IncludePathsOrPatterns []string
 	ExcludePathsOrPatterns []string
 }
 
+// Search searches files using SearchCriteria defining search constraints
+// filters files by inclusion rules, applies exclusion after inclusion
+// constraints take priority in order of -
+// 1. Search time constraints (highest priority)
+// 2. Rule scope constraints
+// 3. Provider config level constraints
 func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	statFunc := newCachedOsStat()
 	walkDirFunc := newCachedWalkDir()
@@ -49,32 +63,51 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 		searchCriteriaPaths = append(searchCriteriaPaths, s.ConditionFilepaths...)
 	}
 
-	// Baseline included file paths take the next priority
-	baseIncludedDirs,
-		baseIncludedFiles,
-		baseIncludedPatterns := splitPathsAndPatterns(statFunc, f.IncludePathsOrPatterns...)
+	// Constraints from provider and rule level take the next priority
+	includedDirs, includedFiles, includedPatterns := splitPathsAndPatterns(statFunc,
+		f.ProviderConfigConstraints.IncludePathsOrPatterns...)
+	ruleLevelIncludedDirs,
+		ruleLevelIncludedFiles,
+		ruleLevelIncludedPatterns := splitPathsAndPatterns(statFunc,
+		f.RuleScopeConstraints.IncludePathsOrPatterns...)
+	// any rule level constraints override provider level constraints
+	if len(ruleLevelIncludedDirs)+len(ruleLevelIncludedFiles)+len(ruleLevelIncludedPatterns) > 0 {
+		includedDirs = ruleLevelIncludedDirs
+		includedFiles = ruleLevelIncludedFiles
+		includedPatterns = ruleLevelIncludedPatterns
+	}
+
 	// If there were included dirs, find files from them
 	walkErrors := []error{}
 	filesFromIncludedDirs := []string{}
-	for _, dir := range baseIncludedDirs {
+	for _, dir := range includedDirs {
 		files, walkError := walkDirFunc(dir)
 		if walkError != nil {
+			if f.FailFast {
+				return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
+			}
 			walkErrors = append(walkErrors, walkError)
 		}
 		filesFromIncludedDirs = append(filesFromIncludedDirs, files...)
 	}
-	baseIncludedFiles = append(baseIncludedFiles, filesFromIncludedDirs...)
-	baseIncludedFiles = dedupSlice(baseIncludedFiles...)
+	includedFiles = append(includedFiles, filesFromIncludedDirs...)
+	includedFiles = dedupSlice(includedFiles...)
 
-	// intersect search criteria paths with baseline, search criteria taking priority
+	// intersect search criteria paths with paths we get from other constraints
 	intersectedFiles := []string{}
 	if len(searchCriteriaPaths) > 0 {
-		for _, bfPath := range baseIncludedFiles {
-			for _, scPath := range searchCriteriaPaths {
-				if bfPath == scPath || filepath.Base(bfPath) == scPath {
-					intersectedFiles = append(intersectedFiles, scPath)
+		if len(includedFiles) > 0 {
+			for _, bfPath := range includedFiles {
+				for _, scPath := range searchCriteriaPaths {
+					if bfPath == scPath || filepath.Base(bfPath) == scPath {
+						intersectedFiles = append(intersectedFiles, scPath)
+					}
 				}
 			}
+		} else {
+			// if there are no inclusion rules, we
+			// scope on everything in condition paths
+			intersectedFiles = searchCriteriaPaths
 		}
 	}
 
@@ -83,28 +116,38 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 		// if there are any intersected files, that's
 		// the most specific set we have found so far
 		allFiles = dedupSlice(intersectedFiles...)
-	} else if len(baseIncludedFiles) > 0 {
-		// if there are baseline included files (global includes)
+	} else if len(includedFiles) > 0 {
+		// if there are baseline included files (rule or provider)
 		// this is the next set of files we want to scope on
-		allFiles = baseIncludedFiles
+		allFiles = includedFiles
 	} else {
 		// if there are no included files so far we have
 		// to search for all files in base path
 		for _, path := range append(f.AdditionalPaths, f.BasePath) {
-			files, err := walkDirFunc(path)
-			if err != nil {
-				walkErrors = append(walkErrors, err)
+			files, walkError := walkDirFunc(path)
+			if walkError != nil {
+				if f.FailFast {
+					return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
+				}
+				walkErrors = append(walkErrors, walkError)
 			}
 			allFiles = append(allFiles, files...)
 		}
 	}
 
-	// apply baseline include patterns
-	allFiles = f.filterFilesByPathsOrPatterns(statFunc, baseIncludedPatterns, allFiles, false)
-	// apply baseline exclude patterns
-	allFiles = f.filterFilesByPathsOrPatterns(statFunc, f.ExcludePathsOrPatterns, allFiles, true)
-	// finally apply any search patterns
+	// apply baseline include patterns and any search patterns
+	allFiles = f.filterFilesByPathsOrPatterns(statFunc, includedPatterns, allFiles, false)
+	// apply patterns from search criteria
 	allFiles = f.filterFilesByPathsOrPatterns(statFunc, s.Patterns, allFiles, false)
+
+	// finally, apply exclusion, rule scope takes priority over provider config
+	if len(f.RuleScopeConstraints.ExcludePathsOrPatterns) > 0 {
+		allFiles = f.filterFilesByPathsOrPatterns(
+			statFunc, f.RuleScopeConstraints.ExcludePathsOrPatterns, allFiles, true)
+	} else {
+		allFiles = f.filterFilesByPathsOrPatterns(
+			statFunc, f.ProviderConfigConstraints.ExcludePathsOrPatterns, allFiles, true)
+	}
 
 	return allFiles, errors.Join(walkErrors...)
 }
@@ -125,8 +168,13 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 			if stat, statErr := statFunc(absPath); statErr == nil {
 				if stat.IsDir() && strings.HasPrefix(file, absPath) {
 					patternMatched = true
-				} else if !stat.IsDir() && (pattern == file || filepath.Base(file) == pattern) {
-					patternMatched = true
+				} else if !stat.IsDir() {
+					if absPath == file {
+						patternMatched = true
+					}
+					if filepath.Base(absPath) == pattern && pattern == filepath.Base(file) {
+						patternMatched = true
+					}
 				}
 			} else {
 				// try matching as go regex or glob pattern

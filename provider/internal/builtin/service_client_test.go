@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -91,6 +92,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 		capability string
 		// this is what we already had before introducing scopes
 		includedPathsFromConfig []string
+		excludedPathsFromConfig []string
 		condition               builtinCondition
 		chainTemplate           engine.ChainTemplate
 		wantFilePaths           []string
@@ -349,7 +351,6 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				filepath.Join("dir_b", "dir_a", "ba.json"),
 			},
 		},
-
 		{
 			name:                    "(Filecontent) Exclude dir, no include",
 			capability:              "filecontent",
@@ -452,6 +453,178 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				filepath.Join("dir_b", "b.properties"),
 			},
 		},
+		{
+			name:                    "(Filecontent) Exclude using pattern & dir",
+			capability:              "filecontent",
+			includedPathsFromConfig: []string{},
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|app.config.property = .*)",
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				ExcludedPaths: []string{
+					".*ba.*",
+					".*.txt",
+					filepath.Join(baseLocation, "dir_a", "dir_b"),
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.properties"),
+				filepath.Join("dir_b", "b.properties"),
+			},
+		},
+		{
+			name:       "(Filecontent) Exclude using pattern, relative path & dir, with legacy inclusion",
+			capability: "filecontent",
+			includedPathsFromConfig: []string{
+				filepath.Join(baseLocation, "dir_a"),
+			},
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|<data>)",
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				ExcludedPaths: []string{
+					"a.json",
+					filepath.Join("dir_a", "a.properties"),
+					filepath.Join(baseLocation, "dir_a", "dir_b"),
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.txt"),
+				filepath.Join("dir_a", "a.xml"),
+			},
+		},
+		{
+			name:       "(Filecontent) Exclude using pattern, relative path & dir at rule scope, with legacy inclusion & filepath inclusion",
+			capability: "filecontent",
+			includedPathsFromConfig: []string{
+				filepath.Join(baseLocation, "dir_b", "dir_a"),
+			},
+			excludedPathsFromConfig: []string{
+				filepath.Join("dir_b", "dir_a", "ba.properties"),
+				"b.json",
+				"dir_a",
+			},
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|<data>|\"description\"|app.config.property = .*)",
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				Filepaths: []string{
+					// in this test, we check if rule scope overrides the
+					// global scope
+					"dir_b",
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "b.properties"),
+				filepath.Join("dir_b", "b.txt"),
+				filepath.Join("dir_b", "b.xml"),
+				filepath.Join("dir_b", "dir_a", "ba.json"),
+				filepath.Join("dir_b", "dir_a", "ba.xml"),
+			},
+		},
+		{
+			name:       "(Filecontent) Exclude using pattern, relative path & dir at provider scope, with legacy inclusion & filepath inclusion",
+			capability: "filecontent",
+			includedPathsFromConfig: []string{
+				filepath.Join(baseLocation, "dir_b", "dir_a"),
+			},
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|<data>|\"description\"|app.config.property = .*)",
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				Filepaths: []string{
+					// in this test, we check if rule scope overrides the
+					// global scope
+					"dir_b",
+				},
+				ExcludedPaths: []string{
+					filepath.Join("dir_b", "dir_a", "ba.properties"),
+					"b.json",
+					"dir_a",
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "b.properties"),
+				filepath.Join("dir_b", "b.txt"),
+				filepath.Join("dir_b", "b.xml"),
+				filepath.Join("dir_b", "dir_a", "ba.json"),
+				filepath.Join("dir_b", "dir_a", "ba.xml"),
+			},
+		},
+		{
+			name:       "(XML) Include files from cond.Filepaths (single rendered path), no include / exclude",
+			capability: "xml",
+			condition: builtinCondition{
+				XML: xmlCondition{
+					XPath: "//name[text()='Test name']",
+					Filepaths: []string{fmt.Sprintf("%s %s",
+						filepath.Join("dir_b", "dir_a", "ba.xml"), filepath.Join("dir_b", "b.xml")),
+					},
+				},
+			},
+			chainTemplate: engine.ChainTemplate{},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "dir_a", "ba.xml"),
+				filepath.Join("dir_b", "b.xml"),
+			},
+		},
+		{
+			name:       "(XML) Include files from cond.Filepaths (single rendered path), with include",
+			capability: "xml",
+			condition: builtinCondition{
+				XML: xmlCondition{
+					XPath: "//name[text()='Test name']",
+					Filepaths: []string{fmt.Sprintf("%s %s",
+						filepath.Join("dir_b", "dir_a", "ba.xml"), filepath.Join("dir_b", "b.xml")),
+					},
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				Filepaths: []string{
+					// here we test whether intersection works as expected
+					filepath.Join("dir_b", "b.xml"),
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "b.xml"),
+			},
+		},
+		{
+			name:       "(XML) Include files from cond.Filepaths, with include & exclude rule scope",
+			capability: "xml",
+			condition: builtinCondition{
+				XML: xmlCondition{
+					XPath: "//name[text()='Test name']",
+					Filepaths: []string{
+						filepath.Join("dir_b", "dir_a", "ba.xml"), filepath.Join("dir_b", "b.xml"),
+						filepath.Join("dir_a", "dir_b", "ab.xml"), filepath.Join("dir_a", "a.xml"),
+					},
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				Filepaths: []string{
+					// here we test whether intersection works as expected
+					filepath.Join("dir_b", "b.xml"),
+					filepath.Join("dir_a", "dir_b"),
+				},
+				ExcludedPaths: []string{
+					filepath.Join("dir_b", "dir_a"),
+					filepath.Join("dir_a", "a.xml"),
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "b.xml"),
+				filepath.Join("dir_a", "dir_b", "ab.xml"),
+			},
+		},
 	}
 
 	getAbsolutePaths := func(baseLocation string, relativePaths []string) []string {
@@ -468,11 +641,12 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				config: provider.InitConfig{
 					Location: baseLocation,
 				},
-				log:           testr.New(t),
-				includedPaths: tt.includedPathsFromConfig,
-				locationCache: map[string]float64{},
-				cacheMutex:    sync.RWMutex{},
-				// workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
+				log:            testr.New(t),
+				includedPaths:  tt.includedPathsFromConfig,
+				excludedDirs:   tt.excludedPathsFromConfig,
+				locationCache:  map[string]float64{},
+				cacheMutex:     sync.RWMutex{},
+				workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
 			}
 			chainTemplate := engine.ChainTemplate{
 				Filepaths:     getAbsolutePaths(p.config.Location, tt.chainTemplate.Filepaths),
@@ -647,11 +821,11 @@ func Test_builtinServiceClient_Evaluate_ExcludeDirs(t *testing.T) {
 						"excludedDirs": tt.excludedDirsFromConfig,
 					},
 				},
-				excludedDirs:  tt.excludedDirsFromConfig,
-				log:           testr.New(t),
-				locationCache: map[string]float64{},
-				cacheMutex:    sync.RWMutex{},
-				// workingCopyMgr: &workingCopyManager{},
+				excludedDirs:   tt.excludedDirsFromConfig,
+				log:            testr.New(t),
+				locationCache:  map[string]float64{},
+				cacheMutex:     sync.RWMutex{},
+				workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
 			}
 			conditionInfo, err := yaml.Marshal(&tt.condition)
 			if err != nil {
