@@ -3,6 +3,7 @@ package provider
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"math"
@@ -12,88 +13,234 @@ import (
 	"strings"
 )
 
-func FilterFilePattern(regex string, filepath string) (bool, error) {
-	// no pattern given, all files should match
-	if regex == "" {
-		return true, nil
-	}
-
-	if filepath == "" {
-		return false, nil
-	}
-
-	filebool, err := regexp.Compile(regex)
-	if err != nil {
-		return false, err
-	}
-
-	return filebool.Match([]byte(filepath)), nil
-
+// SearchCriteria defines a specific search criteria
+// during search time, used for condition specific search
+// this takes the highest priority when searching
+type SearchCriteria struct {
+	Patterns           []string
+	ConditionFilepaths []string
 }
 
-func FindFilesMatchingPattern(root, pattern string) ([]string, error) {
-	var regex *regexp.Regexp
-	// if the regex doesn't compile, we'll default to using filepath.Match on the pattern directly
-	regex, _ = regexp.Compile(pattern)
-	matches := []string{}
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		var matched bool
-		if regex != nil {
-			matched = regex.MatchString(d.Name())
-		} else {
-			// TODO(fabianvf): is a fileglob style pattern sufficient or do we need regexes?
-			matched, err = filepath.Match(pattern, d.Name())
-			if err != nil {
-				return err
-			}
-		}
-		if matched {
-			matches = append(matches, path)
-		}
-		return nil
-	})
-	return matches, err
+// FileSearcher defines a baseline search & include/excludes from either rules scope or global
+type FileSearcher struct {
+	BasePath               string
+	AdditionalPaths        []string
+	IncludePathsOrPatterns []string
+	ExcludePathsOrPatterns []string
 }
 
-func GetFiles(configLocation string, filepaths []string, patterns ...string) ([]string, error) {
-	var xmlFiles []string
-	if len(filepaths) == 0 {
-		for _, pattern := range patterns {
-			files, err := FindFilesMatchingPattern(configLocation, pattern)
-			if err != nil {
-				xmlFiles = append(xmlFiles, pattern)
-			} else {
-				xmlFiles = append(xmlFiles, files...)
+func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
+	statFunc := newCachedOsStat()
+	walkDirFunc := newCachedWalkDir()
+
+	// Patterns from search criteria take the highest priority
+	// they contain patterns from cond.ctx.Filepaths
+	searchCriteriaPaths := []string{}
+	if len(s.ConditionFilepaths) == 1 {
+		// these are rendered filepaths and are usually relative
+		for _, fp := range strings.Split(s.ConditionFilepaths[0], " ") {
+			absFp := fp
+			if !filepath.IsAbs(fp) {
+				absFp = filepath.Join(f.BasePath, fp)
 			}
-		}
-	} else if len(filepaths) == 1 {
-		// Currently, rendering will render a list as a space separated paths as a single string.
-		patterns := strings.Split(filepaths[0], " ")
-		for _, pattern := range patterns {
-			if p, err := filepath.Rel(configLocation, pattern); err == nil {
-				pattern = p
-			}
-			files, err := FindFilesMatchingPattern(configLocation, pattern)
-			if err != nil {
-				xmlFiles = append(xmlFiles, pattern)
-			} else {
-				xmlFiles = append(xmlFiles, files...)
-			}
+			searchCriteriaPaths = append(searchCriteriaPaths, absFp)
 		}
 	} else {
-		for _, pattern := range filepaths {
-			files, err := FindFilesMatchingPattern(configLocation, pattern)
-			if err != nil {
-				continue
-			} else {
-				xmlFiles = append(xmlFiles, files...)
+		searchCriteriaPaths = append(searchCriteriaPaths, s.ConditionFilepaths...)
+	}
+
+	// Baseline included file paths take the next priority
+	baseIncludedDirs,
+		baseIncludedFiles,
+		baseIncludedPatterns := splitPathsAndPatterns(statFunc, f.IncludePathsOrPatterns...)
+	// If there were included dirs, find files from them
+	walkErrors := []error{}
+	filesFromIncludedDirs := []string{}
+	for _, dir := range baseIncludedDirs {
+		files, walkError := walkDirFunc(dir)
+		if walkError != nil {
+			walkErrors = append(walkErrors, walkError)
+		}
+		filesFromIncludedDirs = append(filesFromIncludedDirs, files...)
+	}
+	baseIncludedFiles = append(baseIncludedFiles, filesFromIncludedDirs...)
+	baseIncludedFiles = dedupSlice(baseIncludedFiles...)
+
+	// intersect search criteria paths with baseline, search criteria taking priority
+	intersectedFiles := []string{}
+	if len(searchCriteriaPaths) > 0 {
+		for _, bfPath := range baseIncludedFiles {
+			for _, scPath := range searchCriteriaPaths {
+				if bfPath == scPath || filepath.Base(bfPath) == scPath {
+					intersectedFiles = append(intersectedFiles, scPath)
+				}
 			}
 		}
 	}
-	return xmlFiles, nil
+
+	allFiles := []string{}
+	if len(intersectedFiles) > 0 {
+		// if there are any intersected files, that's
+		// the most specific set we have found so far
+		allFiles = dedupSlice(intersectedFiles...)
+	} else if len(baseIncludedFiles) > 0 {
+		// if there are baseline included files (global includes)
+		// this is the next set of files we want to scope on
+		allFiles = baseIncludedFiles
+	} else {
+		// if there are no included files so far we have
+		// to search for all files in base path
+		for _, path := range append(f.AdditionalPaths, f.BasePath) {
+			files, err := walkDirFunc(path)
+			if err != nil {
+				walkErrors = append(walkErrors, err)
+			}
+			allFiles = append(allFiles, files...)
+		}
+	}
+
+	// apply baseline include patterns
+	allFiles = f.filterFilesByPathsOrPatterns(statFunc, baseIncludedPatterns, allFiles, false)
+	// apply baseline exclude patterns
+	allFiles = f.filterFilesByPathsOrPatterns(statFunc, f.ExcludePathsOrPatterns, allFiles, true)
+	// finally apply any search patterns
+	allFiles = f.filterFilesByPathsOrPatterns(statFunc, s.Patterns, allFiles, false)
+
+	return allFiles, errors.Join(walkErrors...)
+}
+
+func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patterns []string, files []string, filterOut bool) []string {
+	if len(patterns) == 0 {
+		return files
+	}
+	filtered := []string{}
+	for _, file := range files {
+		patternMatched := false
+		for _, pattern := range patterns {
+			// try matching these as file paths first
+			absPath := pattern
+			if !filepath.IsAbs(pattern) {
+				absPath = filepath.Join(f.BasePath, pattern)
+			}
+			if stat, statErr := statFunc(absPath); statErr == nil {
+				if stat.IsDir() && strings.HasPrefix(file, absPath) {
+					patternMatched = true
+				} else if !stat.IsDir() && (pattern == file || filepath.Base(file) == pattern) {
+					patternMatched = true
+				}
+			} else {
+				// try matching as go regex or glob pattern
+				regex, regexErr := regexp.Compile(pattern)
+				if regexErr == nil && (regex.MatchString(file) || regex.MatchString(filepath.Base(file))) {
+					patternMatched = true
+				} else if regexErr != nil {
+					m, err := filepath.Match(pattern, file)
+					if err == nil {
+						patternMatched = m
+					}
+					m, err = filepath.Match(pattern, filepath.Base(file))
+					if err == nil {
+						patternMatched = m
+					}
+				}
+			}
+			// if this is filtering-in we can break early
+			if patternMatched && !filterOut {
+				break
+			}
+		}
+		if filterOut && !patternMatched {
+			filtered = append(filtered, file)
+		}
+		if !filterOut && patternMatched {
+			filtered = append(filtered, file)
+		}
+	}
+	return filtered
+}
+
+func dedupSlice(s ...string) []string {
+	deduped := []string{}
+	mem := map[string]any{}
+	for _, i := range s {
+		if _, ok := mem[i]; !ok {
+			deduped = append(deduped, i)
+			mem[i] = true
+		}
+	}
+	return deduped
+}
+
+func splitPathsAndPatterns(statFunc cachedOsStat, pathsOrPatterns ...string) (dirs []string, files []string, patterns []string) {
+	for _, pathOrPattern := range pathsOrPatterns {
+		if stat, err := statFunc(pathOrPattern); err == nil {
+			if stat.IsDir() {
+				dirs = append(dirs, pathOrPattern)
+			} else {
+				files = append(files, pathOrPattern)
+			}
+		} else {
+			patterns = append(patterns, pathOrPattern)
+		}
+	}
+	return
+}
+
+type cachedWalkDir func(path string) ([]string, error)
+
+func newCachedWalkDir() cachedWalkDir {
+	cache := make(map[string]struct {
+		files []string
+		err   error
+	})
+	return func(basePath string) ([]string, error) {
+		val, ok := cache[basePath]
+		if !ok {
+			files := []string{}
+			err := filepath.WalkDir(basePath, func(path string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+				if !d.IsDir() {
+					files = append(files, path)
+				}
+				return nil
+			})
+			cache[basePath] = struct {
+				files []string
+				err   error
+			}{
+				files: files,
+				err:   err,
+			}
+			return files, err
+		}
+		return val.files, val.err
+	}
+}
+
+type cachedOsStat func(path string) (os.FileInfo, error)
+
+func newCachedOsStat() cachedOsStat {
+	cache := make(map[string]struct {
+		info os.FileInfo
+		err  error
+	})
+	return func(path string) (os.FileInfo, error) {
+		val, ok := cache[path]
+		if !ok {
+			stat, err := os.Stat(path)
+			cache[path] = struct {
+				info os.FileInfo
+				err  error
+			}{
+				info: stat,
+				err:  err,
+			}
+			return stat, err
+		}
+		return val.info, val.err
+	}
 }
 
 // MultilineGrep searches for a multi-line pattern in a file and returns line number when matched

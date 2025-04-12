@@ -148,8 +148,8 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	if len(p.includedPaths) > 0 {
 		argumentsMap[provider.IncludedPathsConfigKey] = p.includedPaths
 		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths)
-	} else if ok, paths := condCTX.GetScopedFilepaths(); ok {
-		argumentsMap[provider.IncludedPathsConfigKey] = paths
+	} else if includedPaths, _ := condCTX.GetScopedFilepaths(); len(includedPaths) > 0 {
+		argumentsMap[provider.IncludedPathsConfigKey] = includedPaths
 		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths, "argumentMap", argumentsMap)
 	}
 
