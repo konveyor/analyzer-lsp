@@ -2,10 +2,8 @@ package builtin
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"sort"
 	"sync"
 	"testing"
@@ -68,75 +66,6 @@ func Test_builtinServiceClient_getLocation(t *testing.T) {
 	}
 }
 
-func Test_builtinServiceClient_filterByIncludedPaths(t *testing.T) {
-	tests := []struct {
-		name          string
-		inputPath     string
-		includedPaths []string
-		want          bool
-	}{
-		{
-			name:          "no included paths given, match all",
-			inputPath:     "/test/a/b",
-			includedPaths: []string{},
-			want:          true,
-		},
-		{
-			name:          "included file path doesn't match",
-			inputPath:     "/test/a/b/file.py",
-			includedPaths: []string{"/test/a/c/file.py"},
-			want:          false,
-		},
-		{
-			name:      "included file path matches",
-			inputPath: filepath.Join(string(os.PathSeparator), "test", "a", "b", "file.py"),
-			includedPaths: []string{filepath.Join(
-				string(os.PathSeparator), "test", "a", "b", "file.py")},
-			want: true,
-		},
-		{
-			name:          "input dir path is equivalent to included paths",
-			inputPath:     "/test/a/b/",
-			includedPaths: []string{"////test/a/b//"},
-			want:          true,
-		},
-		{
-			name:          "input dir path is a sub-tree of included path",
-			inputPath:     "///test/a/b/c/e/",
-			includedPaths: []string{"////test/a/b//"},
-			want:          true,
-		},
-		{
-			name:          "input dir path is not equal to included path and is not a sub-tree",
-			inputPath:     "///test/a/b/c/e/file.java",
-			includedPaths: []string{"////test/a/d//"},
-			want:          false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			b := &builtinServiceClient{
-				config: provider.InitConfig{
-					ProviderSpecificConfig: map[string]interface{}{
-						"includedPaths": tt.includedPaths,
-					},
-				},
-				includedPaths: tt.includedPaths,
-				log:           testr.NewWithOptions(t, testr.Options{Verbosity: 20}),
-			}
-			// this test is tricky to run on windows because we are using
-			// slash characters, skipping this for now, as the main functionality
-			// is also captured in an overall test down below
-			if runtime.GOOS == "windows" {
-				t.SkipNow()
-			}
-			if got := b.isFileIncluded(tt.inputPath); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("builtinServiceClient.filterByIncludedPaths() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func BenchmarkRunOSSpecificGrepCommand(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		path, err := filepath.Abs("../../../external-providers/java-external-provider/examples/customers-tomcat-legacy/")
@@ -144,8 +73,8 @@ func BenchmarkRunOSSpecificGrepCommand(b *testing.B) {
 			return
 		}
 		runOSSpecificGrepCommand("Apache License 1.1",
-			path,
-			provider.ProviderContext{Template: map[string]engine.ChainTemplate{}}, logr.Discard())
+			[]string{path},
+			logr.Discard())
 	}
 }
 
@@ -543,6 +472,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				includedPaths: tt.includedPathsFromConfig,
 				locationCache: map[string]float64{},
 				cacheMutex:    sync.RWMutex{},
+				// workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
 			}
 			chainTemplate := engine.ChainTemplate{
 				Filepaths:     getAbsolutePaths(p.config.Location, tt.chainTemplate.Filepaths),
@@ -721,6 +651,7 @@ func Test_builtinServiceClient_Evaluate_ExcludeDirs(t *testing.T) {
 				log:           testr.New(t),
 				locationCache: map[string]float64{},
 				cacheMutex:    sync.RWMutex{},
+				// workingCopyMgr: &workingCopyManager{},
 			}
 			conditionInfo, err := yaml.Marshal(&tt.condition)
 			if err != nil {
