@@ -228,6 +228,16 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 	log = log.WithValues("provider", "java")
 
+	if config.RPC != nil {
+		return &javaServiceClient{
+			rpc:               config.RPC,
+			config:            config,
+			log:               log,
+			depsLocationCache: make(map[string]int),
+			includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
+		}, provider.InitConfig{}, nil
+	}
+
 	// read provider settings
 	bundlesString, ok := config.ProviderSpecificConfig[BUNDLES_INIT_OPTION].(string)
 	if !ok {
