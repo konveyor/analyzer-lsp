@@ -131,7 +131,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		// Have to trim quotes around the pattern to keep backwards compatibility
 		trimmedPattern := strings.Trim(c.Pattern, "\"")
 		patternRegex, err := regexp2.Compile(trimmedPattern, regexp2.Multiline)
-
 		if err != nil {
 			return response, fmt.Errorf("could not compile provided regex pattern '%s': %v", c.Pattern, err)
 		}
