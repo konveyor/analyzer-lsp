@@ -144,6 +144,14 @@ type InitConfig struct {
 	ProviderSpecificConfig map[string]interface{} `yaml:"providerSpecificConfig,omitempty" json:"providerSpecificConfig,omitempty"`
 
 	Proxy *Proxy `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
+
+	// This will be unusable connecting over a network but can be used in code.
+	RPC RPCClient `yaml:"-" json:"-"`
+}
+
+type RPCClient interface {
+	Call(context.Context, string, interface{}, interface{}) error
+	Notify(context.Context, string, interface{}) error
 }
 
 func GetConfig(filepath string) ([]Config, error) {

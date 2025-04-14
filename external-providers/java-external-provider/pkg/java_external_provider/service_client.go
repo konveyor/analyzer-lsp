@@ -22,7 +22,7 @@ import (
 )
 
 type javaServiceClient struct {
-	rpc               *jsonrpc2.Conn
+	rpc               provider.RPCClient
 	cancelFunc        context.CancelFunc
 	config            provider.InitConfig
 	log               logr.Logger
