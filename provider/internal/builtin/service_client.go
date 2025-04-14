@@ -122,13 +122,9 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 
-<<<<<<< HEAD
-		patternRegex, err := regexp2.Compile(c.Pattern, regexp2.None)
-=======
 		// Have to trim quotes around the pattern to keep backwards compatibility
 		trimmedPattern := strings.Trim(c.Pattern, "\"")
 		patternRegex, err := regexp2.Compile(trimmedPattern, regexp2.Multiline)
->>>>>>> d218269 (Adding a file chunk reader to make the implementation faster)
 		if err != nil {
 			return response, fmt.Errorf("could not compile provided regex pattern '%s': %v", c.Pattern, err)
 		}
@@ -138,9 +134,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not compile provided file pattern '%s': %v", c.FilePattern, err)
 		}
 
-<<<<<<< HEAD
-		matches, err := parallelWalk(p.config.Location, patternRegex)
-=======
 		ok, filePaths := cond.ProviderContext.GetScopedFilepaths()
 		if !ok {
 			// filePaths should not be used to filter paths
@@ -149,7 +142,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		exludedFilePaths := cond.ProviderContext.GetExcludePatterns()
 
 		matches, err := p.parallelWalk(p.config.Location, patternRegex, filePatternRegex, filePaths, exludedFilePaths, log)
->>>>>>> d218269 (Adding a file chunk reader to make the implementation faster)
 		if err != nil {
 			return response, err
 		}
@@ -743,21 +735,3 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, d
 
 	return r, nil
 }
-<<<<<<< HEAD
-func parseGrepOutputForFileContent(match string) ([]string, error) {
-	// This will parse the output of the PowerShell/grep in the form
-	// "Filepath:Linenumber:Matchingtext" to return string array of path, line number and matching text
-	// works with handling both windows and unix based file paths eg: "C:\path\to\file" and "/path/to/file"
-	re, err := regexp.Compile(`^(.*?):(\d+):(.*)$`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile regular expression: %v", err)
-	}
-	submatches := re.FindStringSubmatch(match)
-	if len(submatches) != 4 {
-		return nil, fmt.Errorf(
-			"malformed response from file search, cannot parse result '%s' with pattern %#q", match, re)
-	}
-	return submatches[1:], nil
-}
-=======
->>>>>>> d218269 (Adding a file chunk reader to make the implementation faster)
