@@ -55,14 +55,14 @@ func TestNodeServiceClient(t *testing.T) {
 	var res json.RawMessage
 	_ = res
 
-	f, err := os.ReadFile("/Users/emilymcmullan/Repos/analyzer-lsp/examples/nodejs/test.ts")
+	f, err := os.ReadFile("/Users/emilymcmullan/Repos/analyzer-lsp/examples/nodejs/test_a.ts")
 	if err != nil {
 		panic(err)
 	}
 
 	didOpen := protocol.DidOpenTextDocumentParams{
 		TextDocument: protocol.TextDocumentItem{
-			URI:        "file:///Users/emilymcmullan/Repos/analyzer-lsp/examples/nodejs/test.ts",
+			URI:        "file:///Users/emilymcmullan/Repos/analyzer-lsp/examples/nodejs/test_a.ts",
 			LanguageID: "typescript",
 			Version:    0,
 			Text:       string(f),
@@ -76,8 +76,8 @@ func TestNodeServiceClient(t *testing.T) {
 	var calls []EvaluateCall
 	calls = append(
 		calls,
-		EvaluateCall{nodeSC, "referenced", []byte(`{"referenced":{pattern: "testFunc"}}`)},
-		EvaluateCall{nodeSC, "referenced", []byte(`{"referenced":{pattern: "test"}}`)},
+		EvaluateCall{nodeSC, "referenced", []byte(`{"referenced":{pattern: "hello"}}`)},
+		EvaluateCall{nodeSC, "referenced", []byte(`{"referenced":{pattern: "greet"}}`)},
 	)
 
 	for _, call := range calls {
