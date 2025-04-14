@@ -568,6 +568,7 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, d
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	nBytes := int64(0)
 	nCh := int64(0)
