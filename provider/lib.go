@@ -46,21 +46,26 @@ type IncludeExcludeConstraints struct {
 func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	statFunc := newCachedOsStat()
 	walkDirFunc := newCachedWalkDir()
+	walkErrors := []error{}
 
 	// Patterns from search criteria take the highest priority
 	// they contain patterns from cond.ctx.Filepaths
 	searchCriteriaPaths := []string{}
-	if len(s.ConditionFilepaths) == 1 {
-		// these are rendered filepaths and are usually relative
-		for _, fp := range strings.Split(s.ConditionFilepaths[0], " ") {
-			absFp := fp
-			if !filepath.IsAbs(fp) {
-				absFp = filepath.Join(f.BasePath, fp)
+	for _, pathFromSearchCriteria := range s.ConditionFilepaths {
+		// rendered paths are delimited by spaces
+		searchCriteriaPaths = append(searchCriteriaPaths, strings.Split(pathFromSearchCriteria, " ")...)
+	}
+	_, searchCriteriaFiles, searchCriteriaPatterns := splitPathsAndPatterns(statFunc, searchCriteriaPaths...)
+	if len(searchCriteriaPatterns) > 0 {
+		files, walkError := walkDirFunc(f.BasePath)
+		if walkError != nil {
+			if f.FailFast {
+				return nil, fmt.Errorf("failed to walk dirs - %w", walkError)
 			}
-			searchCriteriaPaths = append(searchCriteriaPaths, absFp)
+			walkErrors = append(walkErrors, walkError)
 		}
-	} else {
-		searchCriteriaPaths = append(searchCriteriaPaths, s.ConditionFilepaths...)
+		files = f.filterFilesByPathsOrPatterns(statFunc, s.Patterns, files, false)
+		searchCriteriaFiles = append(searchCriteriaFiles, files...)
 	}
 
 	// Constraints from provider and rule level take the next priority
@@ -78,7 +83,6 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	}
 
 	// If there were included dirs, find files from them
-	walkErrors := []error{}
 	filesFromIncludedDirs := []string{}
 	for _, dir := range includedDirs {
 		files, walkError := walkDirFunc(dir)
@@ -95,10 +99,10 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 
 	// intersect search criteria paths with paths we get from other constraints
 	intersectedFiles := []string{}
-	if len(searchCriteriaPaths) > 0 {
+	if len(searchCriteriaFiles) > 0 {
 		if len(includedFiles) > 0 {
 			for _, bfPath := range includedFiles {
-				for _, scPath := range searchCriteriaPaths {
+				for _, scPath := range searchCriteriaFiles {
 					if bfPath == scPath || filepath.Base(bfPath) == scPath {
 						intersectedFiles = append(intersectedFiles, scPath)
 					}
@@ -107,7 +111,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 		} else {
 			// if there are no inclusion rules, we
 			// scope on everything in condition paths
-			intersectedFiles = searchCriteriaPaths
+			intersectedFiles = searchCriteriaFiles
 		}
 	}
 
