@@ -566,7 +566,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				XML: xmlCondition{
 					XPath: "//name[text()='Test name']",
 					Filepaths: []string{fmt.Sprintf("%s %s",
-						filepath.Join("dir_b", "dir_a", "ba.xml"), filepath.Join("dir_b", "b.xml")),
+						filepath.Join(baseLocation, "dir_b", "dir_a", "ba.xml"), filepath.Join(baseLocation, "dir_b", "b.xml")),
 					},
 				},
 			},
@@ -583,7 +583,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				XML: xmlCondition{
 					XPath: "//name[text()='Test name']",
 					Filepaths: []string{fmt.Sprintf("%s %s",
-						filepath.Join("dir_b", "dir_a", "ba.xml"), filepath.Join("dir_b", "b.xml")),
+						filepath.Join(baseLocation, "dir_b", "dir_a", "ba.xml"), filepath.Join(baseLocation, "dir_b", "b.xml")),
 					},
 				},
 			},
