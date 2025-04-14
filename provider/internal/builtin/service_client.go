@@ -2,9 +2,10 @@ package builtin
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -127,17 +128,27 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 
-		var outputBytes bytes.Buffer
+		// Have to trim quotes around the pattern to keep backwards compatibility
+		trimmedPattern := strings.Trim(c.Pattern, "\"")
+		patternRegex, err := regexp2.Compile(trimmedPattern, regexp2.Multiline)
 
-		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
-			Patterns: []string{c.FilePattern},
-		})
-		patternRegex, err := regexp2.Compile(c.Pattern, regexp2.None)
 		if err != nil {
 			return response, fmt.Errorf("could not compile provided regex pattern '%s': %v", c.Pattern, err)
 		}
+		// Have to trim quotes around the pattern to keep backwards compatibility
+		filePatternRegex, err := regexp2.Compile(strings.Trim(c.FilePattern, "\""), regexp2.Multiline)
+		if err != nil {
+			return response, fmt.Errorf("could not compile provided file pattern '%s': %v", c.FilePattern, err)
+		}
 
-		matches, err := parallelWalk(p.config.Location, patternRegex)
+		ok, filePaths := cond.ProviderContext.GetScopedFilepaths()
+		if !ok {
+			// filePaths should not be used to filter paths
+			filePaths = nil
+		}
+		exludedFilePaths := cond.ProviderContext.GetExcludePatterns()
+
+		matches, err := p.parallelWalk(p.config.Location, patternRegex, filePatternRegex, filePaths, exludedFilePaths, log)
 		if err != nil {
 			return response, fmt.Errorf("failed to perform search - %w", err)
 		}
@@ -156,18 +167,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		// }
 
 		for _, match := range matches {
-			var pieces []string
-			pieces, err := parseGrepOutputForFileContent(match.match)
-			if err != nil {
-				return response, fmt.Errorf("could not parse grep output '%v' for the Pattern '%v': %v ", match, c.Pattern, err)
-			}
-			containsFile, err := provider.FilterFilePattern(c.FilePattern, match.positionParams.TextDocument.URI)
-			if err != nil {
-				return response, err
-			}
-			if !containsFile {
-				continue
-			}
 			lineNumber := int(match.positionParams.Position.Line)
 
 			if !containsFile {
@@ -177,6 +176,10 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			absPath, err := filepath.Abs(pieces[0])
 			if err != nil {
 				absPath = pieces[0]
+			}
+
+			if !p.isFileIncluded(absPath) {
+				continue
 			}
 
 			lineNumber, err := strconv.Atoi(pieces[1])
@@ -213,6 +216,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
+		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -266,6 +270,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
+		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -311,6 +316,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
+		_, jsonFiles = cond.ProviderContext.GetScopedFilepaths(jsonFiles...)
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
 			if err != nil {
@@ -491,7 +497,7 @@ type walkResult struct {
 	match          string
 }
 
-func parallelWalk(location string, regex *regexp2.Regexp) ([]walkResult, error) {
+func (b *builtinServiceClient) parallelWalk(location string, regex, filePatternRegex *regexp2.Regexp, filePaths, excludedFilePaths []string, log logr.Logger) ([]walkResult, error) {
 	var positions []walkResult
 	var positionsMu sync.Mutex
 	var eg errgroup.Group
@@ -499,25 +505,55 @@ func parallelWalk(location string, regex *regexp2.Regexp) ([]walkResult, error) 
 	// Set a parallelism limit to avoid hitting limits related to opening too many files.
 	// On Windows, this can show up as a runtime failure due to a thread limit.
 	eg.SetLimit(256)
-
-	err := filepath.Walk(location, func(path string, f os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	excludedFilePathRegexs := []*regexp2.Regexp{}
+	if len(filePaths) == 0 && len(excludedFilePaths) != 0 {
+		for _, p := range excludedFilePaths {
+			r, err := regexp2.Compile(p, regexp2.None)
+			if err != nil {
+				return nil, err
+			}
+			excludedFilePathRegexs = append(excludedFilePathRegexs, r)
 		}
+	}
 
-		if f.Mode().IsRegular() {
-			eg.Go(func() error {
-				pos, err := processFile(path, regex)
-				if err != nil {
-					return err
+	err := filepath.WalkDir(location, func(path string, f fs.DirEntry, err error) error {
+		if len(filePaths) != 0 {
+			found := false
+			for _, p := range filePaths {
+				if p == path {
+					found = true
+					break
 				}
-
-				positionsMu.Lock()
-				defer positionsMu.Unlock()
-				positions = append(positions, pos...)
+			}
+			if !found {
 				return nil
-			})
+			}
+		} else if len(excludedFilePathRegexs) != 0 {
+			for _, r := range excludedFilePathRegexs {
+				if match, err := r.MatchString(path); err == nil && match {
+					return nil
+				}
+			}
 		}
+		if !f.Type().IsRegular() {
+			return nil
+		}
+
+		if ok, _ := filePatternRegex.MatchString(path); !ok {
+			return nil
+		}
+		eg.Go(func() error {
+			pos, err := b.processFile(path, regex, f, log)
+			if err != nil {
+				log.Info("here")
+				return err
+			}
+
+			positionsMu.Lock()
+			defer positionsMu.Unlock()
+			positions = append(positions, pos...)
+			return nil
+		})
 
 		return nil
 	})
@@ -532,13 +568,52 @@ func parallelWalk(location string, regex *regexp2.Regexp) ([]walkResult, error) 
 	return positions, nil
 }
 
-func processFile(path string, regex *regexp2.Regexp) ([]walkResult, error) {
+func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, dirEntry fs.DirEntry, log logr.Logger) ([]walkResult, error) {
 	f, err := os.Open(path)
 	if err != nil {
+		log.Info("here", "err", err)
 		return nil, err
 	}
-	defer f.Close()
 
+	nBytes := int64(0)
+	nCh := int64(0)
+	buffer := make([]byte, 15*1024*1024) // Create a buffer to hold 15MB
+	foundMatch := false
+	log.Info("here")
+	for {
+		n, readErr := io.ReadFull(f, buffer)
+		log.Info(fmt.Sprintf("readfull -- %v -- %T", n, readErr))
+		if readErr != io.ErrUnexpectedEOF && readErr != io.EOF {
+			return nil, err
+		} else if readErr != nil && foundMatch {
+			// This case probably shouldn't happen.
+			break
+		}
+		nBytes += int64(n)
+		nCh++
+		log.V(6).Info("read bytes for processing file", "file", path, "bytes_read", nBytes, "chunk_read", nCh)
+		ok, err := regex.MatchString(string(buffer))
+		log.V(6).Info("finding match regex", "file", path, "ok", ok, "err", err, "regex", regex)
+		if err != nil {
+			return nil, err
+		}
+		// If we find a single match we have to go through the file anyway to find the line numbers.
+		if ok {
+			foundMatch = true
+			break
+		}
+		if readErr != nil {
+			// We didn't find a match, we read the full file, return no matches
+			return []walkResult{}, nil
+		}
+	}
+	// This shouldn't happen, but lets be safe and not read files more then we have to.
+	if !foundMatch {
+		return []walkResult{}, nil
+	}
+
+	// Now we we need to go line by line to find the line numbers.
+	f.Seek(0, io.SeekStart)
 	var r []walkResult
 
 	scanner := bufio.NewScanner(f)
@@ -558,7 +633,7 @@ func processFile(path string, regex *regexp2.Regexp) ([]walkResult, error) {
 			r = append(r, walkResult{
 				positionParams: protocol.TextDocumentPositionParams{
 					TextDocument: protocol.TextDocumentIdentifier{
-						URI: fmt.Sprintf("file:///%s", filepath.ToSlash(absPath)),
+						URI: protocol.DocumentURI(uri.File(absPath)),
 					},
 					Position: protocol.Position{
 						Line:      uint32(lineNumber),
@@ -576,19 +651,4 @@ func processFile(path string, regex *regexp2.Regexp) ([]walkResult, error) {
 	}
 
 	return r, nil
-}
-func parseGrepOutputForFileContent(match string) ([]string, error) {
-	// This will parse the output of the PowerShell/grep in the form
-	// "Filepath:Linenumber:Matchingtext" to return string array of path, line number and matching text
-	// works with handling both windows and unix based file paths eg: "C:\path\to\file" and "/path/to/file"
-	re, err := regexp.Compile(`^(.*?):(\d+):(.*)$`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile regular expression: %v", err)
-	}
-	submatches := re.FindStringSubmatch(match)
-	if len(submatches) != 4 {
-		return nil, fmt.Errorf(
-			"malformed response from file search, cannot parse result '%s' with pattern %#q", match, re)
-	}
-	return submatches[1:], nil
 }
