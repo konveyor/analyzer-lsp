@@ -142,10 +142,6 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 			return err
 		}
 
-		// TODO something else with this
-		if info.IsDir() && filepath.Base(path) == "node_modules" {
-			return filepath.SkipDir
-		}
 		if !info.IsDir() && filepath.Ext(path) == ".ts" {
 			path = "file://" + path
 			nodeFiles = append(nodeFiles, path)
@@ -197,7 +193,6 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 			batchRight++
 		}
-		//time.Sleep(2 * time.Second)
 		symbols = sc.GetAllDeclarations(ctx, sc.BaseConfig.WorkspaceFolders, query)
 	}
 
@@ -263,6 +258,10 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
 					"file": ref.URI,
+				},
+				CodeLocation: &provider.Location{
+					StartPosition: provider.Position{Line: float64(lineNumber)},
+					EndPosition:   provider.Position{Line: float64(lineNumber)},
 				},
 			}
 			b, _ := json.Marshal(incident)
