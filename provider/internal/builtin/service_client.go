@@ -202,7 +202,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-		log.Info(fmt.Sprintf("here--found XML files: %+v", filePaths))
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -281,7 +280,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-		log.Info(fmt.Sprintf("here--found xml files to search for public-id: %+v", xmlFiles))
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -334,7 +332,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
-		log.Info(fmt.Sprintf("here--found json files: %+v", jsonFiles))
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
 			if err != nil {
@@ -628,7 +625,6 @@ func (b *builtinServiceClient) parallelWalk(location string, regex, filePatternR
 		eg.Go(func() error {
 			pos, err := b.processFile(path, regex, f, log)
 			if err != nil {
-				log.Info("here")
 				return err
 			}
 
@@ -654,7 +650,6 @@ func (b *builtinServiceClient) parallelWalk(location string, regex, filePatternR
 func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, dirEntry fs.DirEntry, log logr.Logger) ([]walkResult, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		log.Info("here", "err", err)
 		return nil, err
 	}
 
@@ -662,7 +657,6 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, d
 	nCh := int64(0)
 	buffer := make([]byte, 15*1024*1024) // Create a buffer to hold 15MB
 	foundMatch := false
-	log.Info("here")
 	for {
 		n, readErr := io.ReadFull(f, buffer)
 		log.Info(fmt.Sprintf("readfull -- %v -- %T", n, readErr))
@@ -674,9 +668,9 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, d
 		}
 		nBytes += int64(n)
 		nCh++
-		log.V(6).Info("read bytes for processing file", "file", path, "bytes_read", nBytes, "chunk_read", nCh)
+		log.V(7).Info("read bytes for processing file", "file", path, "bytes_read", nBytes, "chunk_read", nCh)
 		ok, err := regex.MatchString(string(buffer))
-		log.V(6).Info("finding match regex", "file", path, "ok", ok, "err", err, "regex", regex)
+		log.V(7).Info("finding match regex", "file", path, "ok", ok, "err", err, "regex", regex)
 		if err != nil {
 			return nil, err
 		}
