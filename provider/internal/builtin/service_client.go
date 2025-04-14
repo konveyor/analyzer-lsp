@@ -655,11 +655,10 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, d
 
 	nBytes := int64(0)
 	nCh := int64(0)
-	buffer := make([]byte, 15*1024*1024) // Create a buffer to hold 15MB
+	buffer := make([]byte, 1024*1024) // Create a buffer to hold 15MB
 	foundMatch := false
 	for {
 		n, readErr := io.ReadFull(f, buffer)
-		log.Info(fmt.Sprintf("readfull -- %v -- %T", n, readErr))
 		if readErr != io.ErrUnexpectedEOF && readErr != io.EOF {
 			return nil, err
 		} else if readErr != nil && foundMatch {
