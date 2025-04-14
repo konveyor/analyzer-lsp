@@ -293,10 +293,12 @@
     and:
     - builtin.json:
         xpath: //inclusionTestNode
+        filepaths: "{{incTest.filepaths}}"
+      from: incTest
     - builtin.file:
         pattern: inclusion-test.json
-    - builtin.filecontent:
-        pattern: "inclusionTestNode"
+      as: incTest
+      ignore: true
 - category: optional
   description: |
     This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.
@@ -308,10 +310,11 @@
     and:
     - builtin.xml:
         xpath: //inclusionTestNode
+        filepaths: "{{incTest.filepaths}}"
+      from: incTest
     - builtin.file:
         pattern: inclusion-test.xml
-    - builtin.filecontent:
-        pattern: "<inclusionTestNode>"
+      as: incTest
 - category: mandatory
   description: |
     This rule looks for a class only present in the gradle project
