@@ -500,7 +500,7 @@ func (b *builtinServiceClient) parallelWalk(location string, regex, filePatternR
 
 	// Set a parallelism limit to avoid hitting limits related to opening too many files.
 	// On Windows, this can show up as a runtime failure due to a thread limit.
-	eg.SetLimit(256)
+	eg.SetLimit(20)
 	excludedFilePathRegexs := []*regexp2.Regexp{}
 	if len(filePaths) == 0 && len(excludedFilePaths) != 0 {
 		for _, p := range excludedFilePaths {
@@ -572,7 +572,7 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, d
 
 	nBytes := int64(0)
 	nCh := int64(0)
-	buffer := make([]byte, 1024*1024) // Create a buffer to hold 15MB
+	buffer := make([]byte, 1024*1024) // Create a buffer to hold 1MB
 	foundMatch := false
 	for {
 		n, readErr := io.ReadFull(f, buffer)
@@ -599,6 +599,7 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, d
 			// We didn't find a match, we read the full file, return no matches
 			return []walkResult{}, nil
 		}
+		buffer = make([]byte, 1024*1024) // Create a buffer to hold 1MB
 	}
 	// This shouldn't happen, but lets be safe and not read files more then we have to.
 	if !foundMatch {
