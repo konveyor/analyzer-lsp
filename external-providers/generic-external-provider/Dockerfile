@@ -1,4 +1,4 @@
-FROM golang:1.23 as go-builder
+FROM golang:1.22 as go-builder
 
 COPY / /analyzer-lsp
 
@@ -12,7 +12,7 @@ COPY external-providers/generic-external-provider/pkg/ pkg/
 
 RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
 
-RUN go build -o generic-external-provider main.go && go install golang.org/x/tools/gopls@latest
+RUN go build -o generic-external-provider main.go && go install golang.org/x/tools/gopls@v0.16.2
 
 FROM quay.io/konveyor/golang-dependency-provider as go-dep-provider
 

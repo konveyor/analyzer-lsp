@@ -1,26 +1,28 @@
 package builtin
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/antchfx/jsonquery"
 	"github.com/antchfx/xmlquery"
 	"github.com/antchfx/xpath"
+	"github.com/dlclark/regexp2"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
 )
 
@@ -120,52 +122,38 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 
-		var outputBytes []byte
-		//Runs on Windows using PowerShell.exe and Unix based systems using grep
-		outputBytes, err := runOSSpecificGrepCommand(c.Pattern, p.config.Location, cond.ProviderContext, p.log)
+		// Have to trim quotes around the pattern to keep backwards compatibility
+		trimmedPattern := strings.Trim(c.Pattern, "\"")
+		patternRegex, err := regexp2.Compile(trimmedPattern, regexp2.Multiline)
+		if err != nil {
+			return response, fmt.Errorf("could not compile provided regex pattern '%s': %v", c.Pattern, err)
+		}
+		// Have to trim quotes around the pattern to keep backwards compatibility
+		filePatternRegex, err := regexp2.Compile(strings.Trim(c.FilePattern, "\""), regexp2.Multiline)
+		if err != nil {
+			return response, fmt.Errorf("could not compile provided file pattern '%s': %v", c.FilePattern, err)
+		}
+
+		ok, filePaths := cond.ProviderContext.GetScopedFilepaths()
+		if !ok {
+			// filePaths should not be used to filter paths
+			filePaths = nil
+		}
+		exludedFilePaths := cond.ProviderContext.GetExcludePatterns()
+
+		matches, err := p.parallelWalk(p.config.Location, patternRegex, filePatternRegex, filePaths, exludedFilePaths, log)
 		if err != nil {
 			return response, err
 		}
-		matches := []string{}
-		outputString := strings.TrimSpace(string(outputBytes))
-		if outputString != "" {
-			matches = append(matches, strings.Split(outputString, "\n")...)
-		}
 
 		for _, match := range matches {
-			var pieces []string
-			pieces, err := parseGrepOutputForFileContent(match)
-			if err != nil {
-				return response, fmt.Errorf("could not parse grep output '%s' for the Pattern '%v': %v ", match, c.Pattern, err)
-			}
-
-			containsFile, err := provider.FilterFilePattern(c.FilePattern, pieces[0])
-			if err != nil {
-				return response, err
-			}
-			if !containsFile {
-				continue
-			}
-
-			absPath, err := filepath.Abs(pieces[0])
-			if err != nil {
-				absPath = pieces[0]
-			}
-
-			if !p.isFileIncluded(absPath) {
-				continue
-			}
-
-			lineNumber, err := strconv.Atoi(pieces[1])
-			if err != nil {
-				return response, fmt.Errorf("cannot convert line number string to integer")
-			}
+			lineNumber := int(match.positionParams.Position.Line)
 
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
-				FileURI:    uri.File(absPath),
+				FileURI:    uri.URI(match.positionParams.TextDocument.URI),
 				LineNumber: &lineNumber,
 				Variables: map[string]interface{}{
-					"matchingText": pieces[2],
+					"matchingText": match.match,
 				},
 				CodeLocation: &provider.Location{
 					StartPosition: provider.Position{Line: float64(lineNumber)},
@@ -214,7 +202,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -293,7 +280,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -346,7 +332,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
 		}
-		_, jsonFiles = cond.ProviderContext.GetScopedFilepaths(jsonFiles...)
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
 			if err != nil {
@@ -587,170 +572,161 @@ func (b *builtinServiceClient) isFileIncluded(absolutePath string) bool {
 	return false
 }
 
-func parseGrepOutputForFileContent(match string) ([]string, error) {
-	// This will parse the output of the PowerShell/grep in the form
-	// "Filepath:Linenumber:Matchingtext" to return string array of path, line number and matching text
-	// works with handling both windows and unix based file paths eg: "C:\path\to\file" and "/path/to/file"
-	re, err := regexp.Compile(`^(.*?):(\d+):(.*)$`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile regular expression: %v", err)
-	}
-	submatches := re.FindStringSubmatch(match)
-	if len(submatches) != 4 {
-		return nil, fmt.Errorf(
-			"malformed response from file search, cannot parse result '%s' with pattern %#q", match, re)
-	}
-	return submatches[1:], nil
+type walkResult struct {
+	positionParams protocol.TextDocumentPositionParams
+	match          string
 }
 
-func runOSSpecificGrepCommand(pattern string, location string, providerContext provider.ProviderContext, log logr.Logger) ([]byte, error) {
-	var outputBytes []byte
-	var err error
-	var utilName string
+func (b *builtinServiceClient) parallelWalk(location string, regex, filePatternRegex *regexp2.Regexp, filePaths, excludedFilePaths []string, log logr.Logger) ([]walkResult, error) {
+	var positions []walkResult
+	var positionsMu sync.Mutex
+	var eg errgroup.Group
 
-	excludePatterns := getGloblikeExcludePatterns(providerContext)
+	// Set a parallelism limit to avoid hitting limits related to opening too many files.
+	// On Windows, this can show up as a runtime failure due to a thread limit.
+	eg.SetLimit(20)
+	excludedFilePathRegexs := []*regexp2.Regexp{}
+	if len(filePaths) == 0 && len(excludedFilePaths) != 0 {
+		for _, p := range excludedFilePaths {
+			r, err := regexp2.Compile(p, regexp2.None)
+			if err != nil {
+				return nil, err
+			}
+			excludedFilePathRegexs = append(excludedFilePathRegexs, r)
+		}
+	}
 
-	if runtime.GOOS == "windows" {
-		utilName = "powershell.exe"
-		// Windows does not have grep, so we use PowerShell.exe's Select-String instead
-		// This is a workaround until we can find a better solution
-		psScript := `
-		$pattern = $env:PATTERN
-		$locations = $env:FILEPATHS -split ','
-		%s
-		foreach ($location in $locations) {
-			Get-ChildItem -Path $location -Recurse -File |
-			%s
-			ForEach-Object {
-				$file = $_    
-				# Search for the pattern in the file
-				Select-String -Path $file.FullName -Pattern $pattern -AllMatches | ForEach-Object { 
-					foreach ($match in $_.Matches) { 
-						"{0}:{1}:{2}" -f $file.FullName, $_.LineNumber, $match.Value
-					} 
+	err := filepath.WalkDir(location, func(path string, f fs.DirEntry, err error) error {
+		if len(filePaths) != 0 {
+			found := false
+			for _, p := range filePaths {
+				if p == path {
+					found = true
+					break
 				}
 			}
-		}`
-		exclusionScript := ""
-		exclusionEnvVar := ""
-		locations := []string{location}
-		if ok, paths := providerContext.GetScopedFilepaths(); ok {
-			locations = paths
-		} else if len(excludePatterns) > 0 {
-			exclusionScript = `Where-Object {
-				$filePath = $_.FullName
-				-not ($excluded_paths | Where-Object { $filePath -like $_ })
-		    } |`
-
-			exclusionEnvVar = `$excluded_paths = $env:EXCLUDEDPATHS -split ','`
-		}
-		psScript = fmt.Sprintf(psScript, exclusionEnvVar, exclusionScript)
-		findstr := exec.Command(utilName, "-Command", psScript)
-		findstr.Env = append(os.Environ(),
-			"PATTERN="+pattern,
-			"FILEPATHS="+strings.Join(locations, ","),
-			"EXCLUDEDPATHS="+strings.Join(excludePatterns, ","),
-		)
-		outputBytes, err = findstr.Output()
-		// TODO eventually replace with platform agnostic solution
-	} else if runtime.GOOS == "darwin" {
-		isEscaped := isSlashEscaped(pattern)
-		escapedPattern := pattern
-		// some rules already escape '/' while others do not
-		if !isEscaped {
-			escapedPattern = strings.ReplaceAll(escapedPattern, "/", "\\/")
-		}
-		// escape other chars used in perl pattern
-		escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
-		escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
-		cmd := ""
-		if ok, paths := providerContext.GetScopedFilepaths(); ok {
-			cmd = fmt.Sprintf(
-				`echo '%s' | \
-			xargs perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
-				strings.Join(paths, "\n"), escapedPattern,
-			)
-		} else {
-			cmd = fmt.Sprintf(
-				`find %v %s -type f -print0 | \
-			xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
-				location, "%s", escapedPattern,
-			)
-			if len(excludePatterns) == 0 {
-				cmd = fmt.Sprintf(cmd, "")
-			} else {
-				excludeOpts := ""
-				for _, pattern := range excludePatterns {
-					excludeOpts = fmt.Sprintf("%s ! -path '%s'", excludeOpts, pattern)
+			if !found {
+				return nil
+			}
+		} else if len(excludedFilePathRegexs) != 0 {
+			for _, r := range excludedFilePathRegexs {
+				if match, err := r.MatchString(path); err == nil && match {
+					return nil
 				}
-				cmd = fmt.Sprintf(cmd, excludeOpts)
 			}
 		}
-		findstr := exec.Command("/bin/sh", "-c", cmd)
-		outputBytes, err = findstr.Output()
-	} else {
-		grepArgs := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
-		find := exec.Command("find")
-		findPaths := []string{location}
-		if ok, paths := providerContext.GetScopedFilepaths(); ok {
-			findPaths = paths
+		if !f.Type().IsRegular() {
+			return nil
 		}
-		findArgs := []string{}
-		for _, pattern := range excludePatterns {
-			findArgs = append(findArgs, "!", "-path", pattern)
+
+		if ok, _ := filePatternRegex.MatchString(path); !ok {
+			return nil
 		}
-		findArgs = append(findArgs, "-type", "f")
-		findArgs = append(findArgs, "-exec", "grep")
-		findArgs = append(findArgs, grepArgs...)
-		findArgs = append(findArgs, "{}", ";")
-		find.Args = append(find.Args, findPaths...)
-		find.Args = append(find.Args, findArgs...)
-		log.V(5).Info("running find with args", "args", find.Args)
-		outputBytes, err = find.Output()
-	}
+		eg.Go(func() error {
+			pos, err := b.processFile(path, regex, f, log)
+			if err != nil {
+				return err
+			}
+
+			positionsMu.Lock()
+			defer positionsMu.Unlock()
+			positions = append(positions, pos...)
+			return nil
+		})
+
+		return nil
+	})
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("could not run '%s' with provided pattern %+v", utilName, err)
+		return nil, err
 	}
 
-	return outputBytes, nil
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	return positions, nil
 }
 
-func isSlashEscaped(str string) bool {
-	for i := 0; i < len(str); i++ {
-		if str[i] == '/' && i > 0 && str[i-1] == '\\' {
-			return true
-		}
+func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, dirEntry fs.DirEntry, log logr.Logger) ([]walkResult, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
 	}
-	return false
-}
+	defer f.Close()
 
-// golang patterns don't work the same as glob patterns on shell
-func getGloblikeExcludePatterns(ctx provider.ProviderContext) []string {
-	patterns := []string{}
-	for _, pattern := range ctx.GetExcludePatterns() {
-		// skip err here in case of exclude pattern not an existing dir
-		info, _ := os.Stat(pattern)
-		if info != nil && info.IsDir() {
-			patterns = append(patterns, fmt.Sprintf("%s*", pattern))
-			continue
+	nBytes := int64(0)
+	nCh := int64(0)
+	buffer := make([]byte, 1024*1024) // Create a buffer to hold 1MB
+	foundMatch := false
+	for {
+		n, readErr := io.ReadFull(f, buffer)
+		if readErr != io.ErrUnexpectedEOF && readErr != io.EOF {
+			return nil, err
+		} else if readErr != nil && foundMatch {
+			// This case probably shouldn't happen.
+			break
 		}
-		pattern = strings.ReplaceAll(pattern, ".*", "*")
-		pattern = strings.ReplaceAll(pattern, ".", "?")
-		re := regexp.MustCompile(`\[\^([^\]]+)\]`)
-		pattern = re.ReplaceAllString(pattern, "[!$1]")
-		pattern = strings.TrimPrefix(pattern, "^")
-		pattern = strings.TrimSuffix(pattern, "$")
-		if pattern == "" {
-			continue
+		nBytes += int64(n)
+		nCh++
+		log.V(7).Info("read bytes for processing file", "file", path, "bytes_read", nBytes, "chunk_read", nCh)
+		ok, err := regex.MatchString(string(buffer))
+		log.V(7).Info("finding match regex", "file", path, "ok", ok, "err", err, "regex", regex)
+		if err != nil {
+			return nil, err
 		}
-		if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
-			patterns = append(patterns, fmt.Sprintf("%s*", pattern))
-		} else {
-			patterns = append(patterns, pattern)
+		// If we find a single match we have to go through the file anyway to find the line numbers.
+		if ok {
+			foundMatch = true
+			break
 		}
+		if readErr != nil {
+			// We didn't find a match, we read the full file, return no matches
+			return []walkResult{}, nil
+		}
+		buffer = make([]byte, 1024*1024) // Create a buffer to hold 1MB
 	}
-	return patterns
+	// This shouldn't happen, but lets be safe and not read files more then we have to.
+	if !foundMatch {
+		return []walkResult{}, nil
+	}
+
+	// Now we we need to go line by line to find the line numbers.
+	f.Seek(0, io.SeekStart)
+	var r []walkResult
+
+	scanner := bufio.NewScanner(f)
+	lineNumber := 1
+	for scanner.Scan() {
+		line := scanner.Text()
+		match, err := regex.FindStringMatch(line)
+		if err != nil {
+			return nil, err
+		}
+		for match != nil {
+			absPath, err := filepath.Abs(path)
+			if err != nil {
+				return nil, err
+			}
+
+			r = append(r, walkResult{
+				positionParams: protocol.TextDocumentPositionParams{
+					TextDocument: protocol.TextDocumentIdentifier{
+						URI: protocol.DocumentURI(uri.File(absPath)),
+					},
+					Position: protocol.Position{
+						Line:      uint32(lineNumber),
+						Character: uint32(match.Index),
+					},
+				},
+				match: match.String(),
+			})
+			match, err = regex.FindNextMatch(match)
+			if err != nil {
+				return nil, err
+			}
+		}
+		lineNumber++
+	}
+
+	return r, nil
 }
