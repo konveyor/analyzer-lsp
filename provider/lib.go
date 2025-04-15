@@ -64,7 +64,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 			}
 			walkErrors = append(walkErrors, walkError)
 		}
-		files = f.filterFilesByPathsOrPatterns(statFunc, s.Patterns, files, false)
+		files = f.filterFilesByPathsOrPatterns(statFunc, searchCriteriaPatterns, files, false)
 		searchCriteriaFiles = append(searchCriteriaFiles, files...)
 	}
 
