@@ -143,6 +143,7 @@ func (p *yqServiceClient) GetAllValuesForKey(ctx context.Context, query []string
 
 	fileSearcher := provider.FileSearcher{
 		BasePath: p.config.Location,
+		Log:      p.log,
 	}
 	matchingYAMLFiles, err := fileSearcher.Search(provider.SearchCriteria{
 		Patterns: []string{"*.yaml", "*.yml"},
