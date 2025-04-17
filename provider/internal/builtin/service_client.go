@@ -51,7 +51,7 @@ func (p *builtinServiceClient) Stop() {
 func (p *builtinServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
 	filtered := []provider.FileChange{}
 	for _, change := range changes {
-		if strings.HasSuffix(change.Path, p.config.Location) {
+		if strings.HasPrefix(change.Path, p.config.Location) {
 			filtered = append(filtered, change)
 		}
 	}
@@ -88,6 +88,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			ExcludePathsOrPatterns: excludedPaths,
 		},
 		FailFast: true,
+		Log:      p.log,
 	}
 
 	switch cap {

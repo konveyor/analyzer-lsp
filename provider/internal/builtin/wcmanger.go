@@ -46,6 +46,7 @@ func (t *workingCopyManager) init() error {
 }
 
 func (t *workingCopyManager) stop() {
+	t.log.V(5).Info("stopping working copy manager")
 	os.RemoveAll(t.tempDir)
 	t.cancelFunc()
 	close(t.changesChan)
@@ -63,6 +64,7 @@ func (t *workingCopyManager) getWorkingCopies() []workingCopy {
 
 func (t *workingCopyManager) notifyChanges(changes ...provider.FileChange) {
 	for _, change := range changes {
+		t.log.V(7).Info("processing notified change", "path", change.Path, "saved", change.Saved)
 		t.changesChan <- change
 	}
 }
@@ -72,7 +74,7 @@ func (t *workingCopyManager) reformatIncidents(incidents ...provider.IncidentCon
 	for i := range incidents {
 		inc := &incidents[i]
 		if strings.HasPrefix(string(inc.FileURI), "file://") &&
-			strings.HasPrefix(string(inc.FileURI), t.tempDir) {
+			strings.HasPrefix(inc.FileURI.Filename(), t.tempDir) {
 			inc.FileURI = uri.File(
 				filepath.Clean(strings.Replace(
 					inc.FileURI.Filename(), t.tempDir, "", -1)))
@@ -92,6 +94,7 @@ func (t *workingCopyManager) startWorker() {
 				return
 			}
 			_, wcExists := t.workingCopies[change.Path]
+			wcPath := filepath.Join(t.tempDir, change.Path)
 			// if the change is notifying a file save event
 			// we discard the working copy for it
 			if change.Saved && wcExists {
@@ -99,13 +102,13 @@ func (t *workingCopyManager) startWorker() {
 				delete(t.workingCopies, change.Path)
 				t.wcMutex.Unlock()
 				if _, err := os.Stat(change.Path); err == nil || !os.IsNotExist(err) {
-					err := os.Remove(filepath.Join(t.tempDir, change.Path))
+					err := os.Remove(wcPath)
 					if err != nil {
 						t.log.Error(err, "failed to remove working copy")
 					}
+					t.log.V(7).Info("working copy deleted", "change", change.Path, "wcPath", wcPath)
 				}
 			} else if !change.Saved {
-				wcPath := filepath.Join(t.tempDir, change.Path)
 				err := os.MkdirAll(filepath.Dir(wcPath), 0755)
 				if err != nil {
 					t.log.Error(err, "failed to create dir for working copy", "path", change.Path)
@@ -116,6 +119,7 @@ func (t *workingCopyManager) startWorker() {
 					t.log.Error(err, "failed to create working copy", "path", change.Path)
 					continue
 				}
+				t.log.V(7).Info("working copy created", "change", change.Path, "wcPath", wcPath)
 				t.wcMutex.Lock()
 				t.workingCopies[change.Path] = workingCopy{
 					filePath: change.Path,
