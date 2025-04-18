@@ -1,9 +1,10 @@
 package builtin
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"io/fs"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +18,6 @@ import (
 	"github.com/antchfx/xmlquery"
 	"github.com/antchfx/xpath"
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.lsp.dev/uri"
@@ -34,6 +34,8 @@ type builtinServiceClient struct {
 	locationCache map[string]float64
 	includedPaths []string
 	excludedDirs  []string
+
+	workingCopyMgr *workingCopyManager
 }
 
 type fileTemplateContext struct {
@@ -42,7 +44,20 @@ type fileTemplateContext struct {
 
 var _ provider.ServiceClient = &builtinServiceClient{}
 
-func (p *builtinServiceClient) Stop() {}
+func (p *builtinServiceClient) Stop() {
+	p.workingCopyMgr.stop()
+}
+
+func (p *builtinServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	filtered := []provider.FileChange{}
+	for _, change := range changes {
+		if strings.HasPrefix(change.Path, p.config.Location) {
+			filtered = append(filtered, change)
+		}
+	}
+	p.workingCopyMgr.notifyChanges(filtered...)
+	return nil
+}
 
 func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond builtinCondition
@@ -54,13 +69,26 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	log.V(5).Info("builtin condition context", "condition", cond, "provider context", cond.ProviderContext)
 	response := provider.ProviderEvaluateResponse{Matched: false}
 
-	if currChainTemp, ok := cond.ProviderContext.Template[engine.TemplateContextPathScopeKey]; ok {
-		currChainTemp.ExcludedPaths = append(currChainTemp.ExcludedPaths, p.excludedDirs...)
-		cond.ProviderContext.Template[engine.TemplateContextPathScopeKey] = currChainTemp
-	} else {
-		template := engine.ChainTemplate{}
-		template.ExcludedPaths = p.excludedDirs
-		cond.ProviderContext.Template[engine.TemplateContextPathScopeKey] = template
+	// in addition to base location, we have to look at working copies too
+	wcIncludedPaths, wcExcludedPaths := p.getWorkingCopies()
+	// get paths from providerContext
+	includedPaths, excludedPaths := cond.ProviderContext.GetScopedFilepaths()
+	excludedPaths = append(excludedPaths, wcExcludedPaths...)
+
+	fileSearcher := provider.FileSearcher{
+		BasePath:        p.config.Location,
+		AdditionalPaths: wcIncludedPaths,
+		// get global include / exclude paths from provider config
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: p.includedPaths,
+			ExcludePathsOrPatterns: p.excludedDirs,
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedPaths,
+			ExcludePathsOrPatterns: excludedPaths,
+		},
+		FailFast: true,
+		Log:      p.log,
 	}
 
 	switch cap {
@@ -69,32 +97,12 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if c.Pattern == "" {
 			return response, fmt.Errorf("could not parse provided file pattern as string: %v", conditionInfo)
 		}
-		matchingFiles := []string{}
-		if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
-			regex, _ := regexp.Compile(c.Pattern)
-			for _, path := range paths {
-				matched := false
-				if regex != nil {
-					matched = regex.MatchString(path)
-				} else {
-					// TODO(fabianvf): is a fileglob style pattern sufficient or do we need regexes?
-					matched, err = filepath.Match(c.Pattern, path)
-					if err != nil {
-						continue
-					}
-				}
-				if matched {
-					matchingFiles = append(matchingFiles, path)
-				}
-			}
-		} else {
-			matchingFiles, err = findFilesMatchingPattern(p.config.Location, c.Pattern)
-			if err != nil {
-				return response, fmt.Errorf("unable to find files using pattern `%s`: %v", c.Pattern, err)
-			}
-			_, matchingFiles = cond.ProviderContext.GetScopedFilepaths(matchingFiles...)
+		matchingFiles, err := fileSearcher.Search(provider.SearchCriteria{
+			Patterns: []string{c.Pattern},
+		})
+		if err != nil {
+			return response, fmt.Errorf("failed to search for files - %w", err)
 		}
-
 		response.TemplateContext = map[string]interface{}{"filepaths": matchingFiles}
 		for _, match := range matchingFiles {
 			absPath := match
@@ -105,13 +113,11 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					absPath = match
 				}
 			}
-			if !p.isFileIncluded(absPath) {
-				continue
-			}
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
 				FileURI: uri.File(absPath),
 			})
 		}
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		response.Matched = len(response.Incidents) > 0
 		return response, nil
 	case "filecontent":
@@ -120,14 +126,29 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 
-		var outputBytes []byte
-		//Runs on Windows using PowerShell.exe and Unix based systems using grep
-		outputBytes, err := runOSSpecificGrepCommand(c.Pattern, p.config.Location, cond.ProviderContext, p.log)
+		var outputBytes bytes.Buffer
+
+		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
+			Patterns: []string{c.FilePattern},
+		})
 		if err != nil {
-			return response, err
+			return response, fmt.Errorf("failed to perform search - %w", err)
+		}
+
+		batchSize := 500
+		for start := 0; start < len(filePaths); start += batchSize {
+			end := int(math.Min(float64(start+batchSize), float64(len(filePaths))))
+			currBatch := filePaths[start:end]
+			p.log.V(5).Info("searching for pattern", "pattern", c.Pattern, "batchSize", len(currBatch), "totalFiles", len(filePaths))
+			// Runs on Windows using PowerShell.exe and Unix based systems using grep
+			currOutput, err := runOSSpecificGrepCommand(c.Pattern, currBatch, p.log)
+			if err != nil {
+				return response, err
+			}
+			outputBytes.Write(currOutput)
 		}
 		matches := []string{}
-		outputString := strings.TrimSpace(string(outputBytes))
+		outputString := strings.TrimSpace(outputBytes.String())
 		if outputString != "" {
 			matches = append(matches, strings.Split(outputString, "\n")...)
 		}
@@ -139,21 +160,9 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				return response, fmt.Errorf("could not parse grep output '%s' for the Pattern '%v': %v ", match, c.Pattern, err)
 			}
 
-			containsFile, err := provider.FilterFilePattern(c.FilePattern, pieces[0])
-			if err != nil {
-				return response, err
-			}
-			if !containsFile {
-				continue
-			}
-
 			absPath, err := filepath.Abs(pieces[0])
 			if err != nil {
 				absPath = pieces[0]
-			}
-
-			if !p.isFileIncluded(absPath) {
-				continue
 			}
 
 			lineNumber, err := strconv.Atoi(pieces[1])
@@ -176,45 +185,20 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if len(response.Incidents) != 0 {
 			response.Matched = true
 		}
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		return response, nil
 	case "xml":
 		query, err := xpath.CompileWithNS(cond.XML.XPath, cond.XML.Namespaces)
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
 		}
-		filePaths := []string{}
-		if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
-			if len(cond.XML.Filepaths) > 0 {
-				newPaths := []string{}
-				// Sometimes rules have hardcoded filepaths
-				// Or use other searching to get them. If so, then we
-				// Should respect that added filter on the scoped filepaths
-				for _, p := range cond.XML.Filepaths {
-					for _, path := range paths {
-						if p == path {
-							newPaths = append(newPaths, path)
-						}
-						if filepath.Base(path) == p {
-							newPaths = append(newPaths, path)
-						}
-					}
-				}
-				if len(newPaths) == 0 {
-					// There are no files to search, return.
-					return response, nil
-				}
-				filePaths = newPaths
-			} else {
-				filePaths = paths
-			}
-		} else if len(cond.XML.Filepaths) > 0 {
-			filePaths = cond.XML.Filepaths
-		}
-		xmlFiles, err := findXMLFiles(p.config.Location, filePaths, log)
+		xmlFiles, err := fileSearcher.Search(provider.SearchCriteria{
+			Patterns:           []string{"*.xml", "*.xhtml"},
+			ConditionFilepaths: cond.XML.Filepaths,
+		})
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -227,9 +211,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					absPath, err := filepath.Abs(file)
 					if err != nil {
 						absPath = file
-					}
-					if !p.isFileIncluded(absPath) {
-						continue
 					}
 					incident := provider.IncidentContext{
 						FileURI: uri.File(absPath),
@@ -253,7 +234,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				}
 			}
 		}
-
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		return response, nil
 	case "xmlPublicID":
 		regex, err := regexp.Compile(cond.XMLPublicID.Regex)
@@ -264,36 +245,13 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse public-id xml query '%s': %v", cond.XML.XPath, err)
 		}
-		filePaths := []string{}
-		if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
-			if len(cond.XML.Filepaths) > 0 {
-				newPaths := []string{}
-				// Sometimes rules have hardcoded filepaths
-				// Or use other searching to get them. If so, then we
-				// Should respect that added filter on the scoped filepaths
-				for _, p := range cond.XML.Filepaths {
-					for _, path := range paths {
-						if p == path {
-							newPaths = append(newPaths, path)
-						}
-					}
-				}
-				if len(newPaths) == 0 {
-					// There are no files to search, return.
-					return response, nil
-				}
-				filePaths = newPaths
-			} else {
-				filePaths = paths
-			}
-		} else if len(cond.XML.Filepaths) > 0 {
-			filePaths = cond.XML.Filepaths
-		}
-		xmlFiles, err := findXMLFiles(p.config.Location, filePaths, p.log)
+		xmlFiles, err := fileSearcher.Search(provider.SearchCriteria{
+			Patterns:           []string{"*.xml", "*.xhtml"},
+			ConditionFilepaths: cond.XML.Filepaths,
+		})
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-		_, xmlFiles = cond.ProviderContext.GetScopedFilepaths(xmlFiles...)
 		for _, file := range xmlFiles {
 			nodes, err := queryXMLFile(file, query)
 			if err != nil {
@@ -311,9 +269,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							if err != nil {
 								absPath = file
 							}
-							if !p.isFileIncluded(absPath) {
-								continue
-							}
 							response.Incidents = append(response.Incidents, provider.IncidentContext{
 								FileURI: uri.File(absPath),
 								Variables: map[string]interface{}{
@@ -328,25 +283,20 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				}
 			}
 		}
-
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		return response, nil
 	case "json":
 		query := cond.JSON.XPath
 		if query == "" {
 			return response, fmt.Errorf("could not parse provided xpath query as string: %v", conditionInfo)
 		}
-		pattern := "*.json"
-		filePaths := []string{}
-		if ok, paths := cond.ProviderContext.GetScopedFilepaths(); ok {
-			filePaths = paths
-		} else if len(cond.XML.Filepaths) > 0 {
-			filePaths = cond.JSON.Filepaths
-		}
-		jsonFiles, err := provider.GetFiles(p.config.Location, filePaths, pattern)
+		jsonFiles, err := fileSearcher.Search(provider.SearchCriteria{
+			Patterns:           []string{"*.json"},
+			ConditionFilepaths: cond.XML.Filepaths,
+		})
 		if err != nil {
-			return response, fmt.Errorf("unable to find files using pattern `%s`: %v", pattern, err)
+			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
-		_, jsonFiles = cond.ProviderContext.GetScopedFilepaths(jsonFiles...)
 		for _, file := range jsonFiles {
 			f, err := os.Open(file)
 			if err != nil {
@@ -369,9 +319,6 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					if err != nil {
 						absPath = file
 					}
-					if !p.isFileIncluded(absPath) {
-						continue
-					}
 					incident := provider.IncidentContext{
 						FileURI: uri.File(absPath),
 						Variables: map[string]interface{}{
@@ -389,6 +336,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 				}
 			}
 		}
+		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
 		return response, nil
 	case "hasTags":
 		found := true
@@ -479,40 +427,6 @@ func (b *builtinServiceClient) getLocation(ctx context.Context, path, content st
 	return location, nil
 }
 
-func findFilesMatchingPattern(root, pattern string) ([]string, error) {
-	var regex *regexp.Regexp
-	// if the regex doesn't compile, we'll default to using filepath.Match on the pattern directly
-	regex, _ = regexp.Compile(pattern)
-	matches := []string{}
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		var matched bool
-		if regex != nil {
-			matched = regex.MatchString(d.Name())
-		} else {
-			// TODO(fabianvf): is a fileglob style pattern sufficient or do we need regexes?
-			matched, err = filepath.Match(pattern, d.Name())
-			if err != nil {
-				return err
-			}
-		}
-		if matched {
-			matches = append(matches, path)
-		}
-		return nil
-	})
-	return matches, err
-}
-
-func findXMLFiles(baseLocation string, filePaths []string, log logr.Logger) ([]string, error) {
-	patterns := []string{"*.xml", "*.xhtml"}
-	// TODO(fabianvf): how should we scope the files searched here?
-	xmlFiles, err := provider.GetFiles(baseLocation, filePaths, patterns...)
-	return xmlFiles, err
-}
-
 func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -548,43 +462,14 @@ func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, e
 	return nodes, err
 }
 
-// filterByIncludedPaths given a list of file paths,
-// filters-out the ones not present in includedPaths
-func (b *builtinServiceClient) isFileIncluded(absolutePath string) bool {
-	if b.includedPaths == nil || len(b.includedPaths) == 0 {
-		return true
+func (b *builtinServiceClient) getWorkingCopies() ([]string, []string) {
+	additionalIncludedPaths := []string{}
+	excludedPaths := []string{}
+	for _, wc := range b.workingCopyMgr.getWorkingCopies() {
+		additionalIncludedPaths = append(additionalIncludedPaths, wc.wcPath)
+		excludedPaths = append(excludedPaths, wc.filePath)
 	}
-
-	getSegments := func(path string) []string {
-		segments := []string{}
-		path = filepath.Clean(path)
-		for _, segment := range strings.Split(
-			path, string(os.PathSeparator)) {
-			if segment != "" {
-				segments = append(segments, segment)
-			}
-		}
-		return segments
-	}
-
-	for _, path := range b.includedPaths {
-		includedPath := filepath.Join(b.config.Location, path)
-		if absPath, err := filepath.Abs(includedPath); err == nil {
-			includedPath = absPath
-		}
-		pathSegments := getSegments(absolutePath)
-		if stat, err := os.Stat(includedPath); err == nil && stat.IsDir() {
-			pathSegments = getSegments(filepath.Dir(absolutePath))
-		}
-		includedPathSegments := getSegments(includedPath)
-		if len(pathSegments) >= len(includedPathSegments) &&
-			strings.HasPrefix(strings.Join(pathSegments, ""),
-				strings.Join(includedPathSegments, "")) {
-			return true
-		}
-	}
-	b.log.V(7).Info("excluding file from search", "file", absolutePath)
-	return false
+	return additionalIncludedPaths, excludedPaths
 }
 
 func parseGrepOutputForFileContent(match string) ([]string, error) {
@@ -603,12 +488,10 @@ func parseGrepOutputForFileContent(match string) ([]string, error) {
 	return submatches[1:], nil
 }
 
-func runOSSpecificGrepCommand(pattern string, location string, providerContext provider.ProviderContext, log logr.Logger) ([]byte, error) {
+func runOSSpecificGrepCommand(pattern string, locations []string, log logr.Logger) ([]byte, error) {
 	var outputBytes []byte
 	var err error
 	var utilName string
-
-	excludePatterns := getGloblikeExcludePatterns(providerContext)
 
 	if runtime.GOOS == "windows" {
 		utilName = "powershell.exe"
@@ -617,10 +500,8 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		psScript := `
 		$pattern = $env:PATTERN
 		$locations = $env:FILEPATHS -split ','
-		%s
 		foreach ($location in $locations) {
 			Get-ChildItem -Path $location -Recurse -File |
-			%s
 			ForEach-Object {
 				$file = $_    
 				# Search for the pattern in the file
@@ -631,25 +512,11 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 				}
 			}
 		}`
-		exclusionScript := ""
-		exclusionEnvVar := ""
-		locations := []string{location}
-		if ok, paths := providerContext.GetScopedFilepaths(); ok {
-			locations = paths
-		} else if len(excludePatterns) > 0 {
-			exclusionScript = `Where-Object {
-				$filePath = $_.FullName
-				-not ($excluded_paths | Where-Object { $filePath -like $_ })
-		    } |`
-
-			exclusionEnvVar = `$excluded_paths = $env:EXCLUDEDPATHS -split ','`
-		}
-		psScript = fmt.Sprintf(psScript, exclusionEnvVar, exclusionScript)
+		log.V(7).Info("running perl", "cmd", psScript, "pattern", pattern)
 		findstr := exec.Command(utilName, "-Command", psScript)
 		findstr.Env = append(os.Environ(),
 			"PATTERN="+pattern,
 			"FILEPATHS="+strings.Join(locations, ","),
-			"EXCLUDEDPATHS="+strings.Join(excludePatterns, ","),
 		)
 		outputBytes, err = findstr.Output()
 		// TODO eventually replace with platform agnostic solution
@@ -663,50 +530,25 @@ func runOSSpecificGrepCommand(pattern string, location string, providerContext p
 		// escape other chars used in perl pattern
 		escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
 		escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
-		cmd := ""
-		if ok, paths := providerContext.GetScopedFilepaths(); ok {
-			cmd = fmt.Sprintf(
-				`echo '%s' | \
-			xargs perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
-				strings.Join(paths, "\n"), escapedPattern,
-			)
-		} else {
-			cmd = fmt.Sprintf(
-				`find %v %s -type f -print0 | \
-			xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
-				location, "%s", escapedPattern,
-			)
-			if len(excludePatterns) == 0 {
-				cmd = fmt.Sprintf(cmd, "")
-			} else {
-				excludeOpts := ""
-				for _, pattern := range excludePatterns {
-					excludeOpts = fmt.Sprintf("%s ! -path '%s'", excludeOpts, pattern)
-				}
-				cmd = fmt.Sprintf(cmd, excludeOpts)
-			}
+		var fileList bytes.Buffer
+		for _, f := range locations {
+			fileList.WriteString(f)
+			fileList.WriteByte('\x00')
 		}
-		findstr := exec.Command("/bin/sh", "-c", cmd)
-		outputBytes, err = findstr.Output()
+		cmdStr := fmt.Sprintf(
+			`xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
+			escapedPattern,
+		)
+		log.V(7).Info("running perl", "cmd", cmdStr)
+		cmd := exec.Command("/bin/sh", "-c", cmdStr)
+		cmd.Stdin = &fileList
+		outputBytes, err = cmd.Output()
 	} else {
-		grepArgs := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
-		find := exec.Command("find")
-		findPaths := []string{location}
-		if ok, paths := providerContext.GetScopedFilepaths(); ok {
-			findPaths = paths
-		}
-		findArgs := []string{}
-		for _, pattern := range excludePatterns {
-			findArgs = append(findArgs, "!", "-path", pattern)
-		}
-		findArgs = append(findArgs, "-type", "f")
-		findArgs = append(findArgs, "-exec", "grep")
-		findArgs = append(findArgs, grepArgs...)
-		findArgs = append(findArgs, "{}", ";")
-		find.Args = append(find.Args, findPaths...)
-		find.Args = append(find.Args, findArgs...)
-		log.V(5).Info("running find with args", "args", find.Args)
-		outputBytes, err = find.Output()
+		args := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
+		log.V(7).Info("running grep with args", "args", args)
+		args = append(args, locations...)
+		cmd := exec.Command("grep", args...)
+		outputBytes, err = cmd.Output()
 	}
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
@@ -725,32 +567,4 @@ func isSlashEscaped(str string) bool {
 		}
 	}
 	return false
-}
-
-// golang patterns don't work the same as glob patterns on shell
-func getGloblikeExcludePatterns(ctx provider.ProviderContext) []string {
-	patterns := []string{}
-	for _, pattern := range ctx.GetExcludePatterns() {
-		// skip err here in case of exclude pattern not an existing dir
-		info, _ := os.Stat(pattern)
-		if info != nil && info.IsDir() {
-			patterns = append(patterns, fmt.Sprintf("%s*", pattern))
-			continue
-		}
-		pattern = strings.ReplaceAll(pattern, ".*", "*")
-		pattern = strings.ReplaceAll(pattern, ".", "?")
-		re := regexp.MustCompile(`\[\^([^\]]+)\]`)
-		pattern = re.ReplaceAllString(pattern, "[!$1]")
-		pattern = strings.TrimPrefix(pattern, "^")
-		pattern = strings.TrimSuffix(pattern, "$")
-		if pattern == "" {
-			continue
-		}
-		if stat, err := os.Stat(pattern); err == nil && stat.IsDir() {
-			patterns = append(patterns, fmt.Sprintf("%s*", pattern))
-		} else {
-			patterns = append(patterns, pattern)
-		}
-	}
-	return patterns
 }

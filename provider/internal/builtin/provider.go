@@ -142,11 +142,17 @@ func (p *builtinProvider) ProviderInit(ctx context.Context, additionalInitConfig
 	return nil, nil
 }
 
+func (p *builtinProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return provider.FullNotifyFileChangesResponse(ctx, p.clients, changes...)
+}
+
 // We don't need to init anything
 func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 	if config.AnalysisMode != provider.AnalysisMode("") {
 		p.log.V(5).Info("skipping analysis mode setting for builtin")
 	}
+	wcm := NewTempFileWorkingCopyManger(log)
+	wcm.init()
 	return &builtinServiceClient{
 		config:                             config,
 		tags:                               p.tags,
@@ -155,6 +161,7 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 		log:                                log,
 		includedPaths:                      provider.GetIncludedPathsFromConfig(config, true),
 		excludedDirs:                       provider.GetExcludedDirsFromConfig(config),
+		workingCopyMgr:                     wcm,
 	}, provider.InitConfig{}, nil
 }
 
@@ -189,4 +196,7 @@ func (p *builtinProvider) Evaluate(ctx context.Context, cap string, conditionInf
 }
 
 func (p *builtinProvider) Stop() {
+	for _, c := range p.clients {
+		c.Stop()
+	}
 }
