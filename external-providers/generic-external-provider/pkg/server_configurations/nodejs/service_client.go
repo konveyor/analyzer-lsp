@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -43,10 +45,6 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 		return nil, err
 	}
 
-	// Create the parameters for the `initialize` request
-	//
-	// TODO(jsussman): Support more than one folder. This hack with only taking
-	// the first item in WorkspaceFolders is littered throughout.
 	params := protocol.InitializeParams{}
 
 	if c.Location != "" {
@@ -136,38 +134,99 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return resp{}, fmt.Errorf("unable to get query info")
 	}
 
-	// f, err := os.ReadFile("/path/to/test.ts")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	// get all ts files
+	folder := strings.TrimPrefix(sc.Config.WorkspaceFolders[0], "file://")
+	var nodeFiles []string
+	err = filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 
-	// p := protocol.DidOpenTextDocumentParams{
-	// 	TextDocument: protocol.TextDocumentItem{
-	// 		URI:        "file:///path/to/test.ts",
-	// 		LanguageID: "typescript",
-	// 		Version:    0,
-	// 		Text:       string(f),
-	// 	},
-	// }
-	// err = sc.Conn.Notify(ctx, "textDocument/didOpen", p)
-	// if err != nil {
-	// 	panic(err)
-	// }
+		if !info.IsDir() && filepath.Ext(path) == ".ts" {
+			path = "file://" + path
+			nodeFiles = append(nodeFiles, path)
+		}
 
-	// time.Sleep(2 * time.Second)
+		return nil
+	})
 
-	symbols := sc.GetAllDeclarations(ctx, sc.BaseConfig.WorkspaceFolders, query)
+	if err != nil {
+		return provider.ProviderEvaluateResponse{}, err
+	}
 
-	// fmt.Printf("symbols: %v\n", symbols)
+	didOpen := func(uri string, text []byte) error {
+		params := protocol.DidOpenTextDocumentParams{
+			TextDocument: protocol.TextDocumentItem{
+				URI:        uri,
+				LanguageID: "typescript",
+				Version:    0,
+				Text:       string(text),
+			},
+		}
+		// typescript server seems to throw "No project" error without notification
+		// perhaps there's a better way to do this
+		return sc.Conn.Notify(ctx, "textDocument/didOpen", params)
+	}
+
+	didClose := func(uri string) error {
+		params := protocol.DidCloseTextDocumentParams{
+			TextDocument: protocol.TextDocumentIdentifier{
+				URI: uri,
+			},
+		}
+		return sc.Conn.Notify(ctx, "textDocument/didClose", params)
+	}
+
+	BATCH_SIZE := 32
+	batchRight, batchLeft := 0, 0
+	var symbols []protocol.WorkspaceSymbol
+	for batchRight < len(nodeFiles) {
+		for batchRight-batchLeft < BATCH_SIZE && batchRight < len(nodeFiles) {
+			trimmedURI := strings.TrimPrefix(nodeFiles[batchRight], "file://")
+			text, err := os.ReadFile(trimmedURI)
+			if err != nil {
+				return provider.ProviderEvaluateResponse{}, err
+			}
+			err = didOpen(nodeFiles[batchRight], text)
+			if err != nil {
+				return provider.ProviderEvaluateResponse{}, err
+			}
+
+			batchRight++
+		}
+		symbols = sc.GetAllDeclarations(ctx, sc.BaseConfig.WorkspaceFolders, query)
+	}
+
+	incidentsMap, err := sc.EvaluateSymbols(ctx, symbols)
+	if err != nil {
+		return resp{}, err
+	}
+
+	for batchLeft < batchRight {
+		if err = didClose(nodeFiles[batchLeft]); err != nil {
+			return provider.ProviderEvaluateResponse{}, err
+		}
+		batchLeft++
+	}
 
 	incidents := []provider.IncidentContext{}
-	incidentsMap := make(map[string]provider.IncidentContext) // Remove duplicates
+	for _, incident := range incidentsMap {
+		incidents = append(incidents, incident)
+	}
+	if len(incidents) == 0 {
+		return resp{Matched: false}, nil
+	}
+	return resp{
+		Matched:   true,
+		Incidents: incidents,
+	}, nil
+}
+
+func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []protocol.WorkspaceSymbol) (map[string]provider.IncidentContext, error) {
+	incidentsMap := make(map[string]provider.IncidentContext)
 
 	for _, s := range symbols {
 		references := sc.GetAllReferences(ctx, s.Location.Value.(protocol.Location))
-
-		//fmt.Printf("references: %v\n", references)
-
 		breakEarly := false
 		for _, ref := range references {
 			// Look for things that are in the location loaded,
@@ -186,14 +245,13 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 					break
 				}
 			}
-
 			if breakEarly {
 				break
 			}
 
 			u, err := uri.Parse(ref.URI)
 			if err != nil {
-				return resp{}, err
+				return nil, err
 			}
 			lineNumber := int(ref.Range.Start.Line)
 			incident := provider.IncidentContext{
@@ -202,6 +260,10 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 				Variables: map[string]interface{}{
 					"file": ref.URI,
 				},
+				CodeLocation: &provider.Location{
+					StartPosition: provider.Position{Line: float64(lineNumber)},
+					EndPosition:   provider.Position{Line: float64(lineNumber)},
+				},
 			}
 			b, _ := json.Marshal(incident)
 
@@ -209,16 +271,5 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		}
 	}
 
-	for _, incident := range incidentsMap {
-		incidents = append(incidents, incident)
-	}
-
-	// No results were found.
-	if len(incidents) == 0 {
-		return resp{Matched: false}, nil
-	}
-	return resp{
-		Matched:   true,
-		Incidents: incidents,
-	}, nil
+	return incidentsMap, nil
 }
