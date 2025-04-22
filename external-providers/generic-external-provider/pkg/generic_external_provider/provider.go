@@ -91,6 +91,8 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 			p.serviceClientBuilder = &nodejs.NodeServiceClientBuilder{}
 		case serverconf.YamlClient:
 			p.serviceClientBuilder = &yaml_language_server.YamlServiceClientBuilder{}
+		default:
+			return nil, provider.InitConfig{}, fmt.Errorf("generic client name not found")
 		}
 
 	}

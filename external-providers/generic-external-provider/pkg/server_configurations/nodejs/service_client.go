@@ -182,7 +182,8 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	var symbols []protocol.WorkspaceSymbol
 	for batchRight < len(nodeFiles) {
 		for batchRight-batchLeft < BATCH_SIZE && batchRight < len(nodeFiles) {
-			text, err := os.ReadFile(nodeFiles[batchRight][7:])
+			trimmedURI := strings.TrimPrefix(nodeFiles[batchRight], "file://")
+			text, err := os.ReadFile(trimmedURI)
 			if err != nil {
 				return provider.ProviderEvaluateResponse{}, err
 			}
