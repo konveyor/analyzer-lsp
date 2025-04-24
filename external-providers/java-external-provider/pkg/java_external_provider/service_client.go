@@ -145,8 +145,13 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	}
 
 	var refs []protocol.WorkspaceSymbol
-	// If it takes us 5min to complete a request, then we are in trouble
-	timeOutCtx, _ := context.WithTimeout(ctx, 5*time.Minute)
+	// If it takes us 5 min to complete a request, then we are in trouble
+	timeout := 5 * time.Minute
+	// certain wildcard queries are known to perform worse especially in containers
+	if strings.HasSuffix(c.Referenced.Pattern, "*") {
+		timeout = 10 * time.Minute
+	}
+	timeOutCtx, _ := context.WithTimeout(ctx, timeout)
 	err := p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp, &refs)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
