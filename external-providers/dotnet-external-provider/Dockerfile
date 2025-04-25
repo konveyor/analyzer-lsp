@@ -41,7 +41,7 @@ USER root
 #     elif [[ "$(uname -m)" = "ppc64le" ]]; then \
 #       microdnf -y install dotnet-sdk-7.0; \
 #     fi \
-RUN microdnf -y install dotnet-sdk-7.0 go-toolset \
+RUN microdnf -y install dotnet-sdk-7.0 \
     && microdnf clean all \
     && rm -rf /var/cache/yum
 RUN dotnet tool install --global csharp-ls --version 0.11.0
