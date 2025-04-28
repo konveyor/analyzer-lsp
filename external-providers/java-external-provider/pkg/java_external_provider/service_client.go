@@ -121,7 +121,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		"project":                    "java",
 		"location":                   fmt.Sprintf("%v", locationToCode[strings.ToLower(c.Referenced.Location)]),
 		"analysisMode":               string(p.config.AnalysisMode),
-		"includeOpenSourceLibraries": false,
+		"includeOpenSourceLibraries": true,
 	}
 
 	depLabelSelector, err := labels.NewLabelSelector[*openSourceLabels](condCTX.DepLabelSelector, nil)
@@ -132,8 +132,10 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		m, err := depLabelSelector.Matches(&matcher)
 		if err != nil {
 			p.log.Error(err, "could not construct dep label selector from condition context, search scope will not be limited")
-		} else if m {
-			argumentsMap["includeOpenSourceLibraries"] = true
+		} else if !m {
+			// only set to false, when explicitely set to exclude oss libraries
+			// this makes it backward compatible
+			argumentsMap["includeOpenSourceLibraries"] = false
 		}
 	}
 
