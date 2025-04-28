@@ -337,9 +337,10 @@ type ExternalLinks struct {
 }
 
 type ProviderContext struct {
-	Tags     map[string]interface{}          `yaml:"tags"`
-	Template map[string]engine.ChainTemplate `yaml:"template"`
-	RuleID   string                          `yaml:"ruleID"`
+	Tags             map[string]interface{}          `yaml:"tags"`
+	Template         map[string]engine.ChainTemplate `yaml:"template"`
+	RuleID           string                          `yaml:"ruleID"`
+	DepLabelSelector string                          `yaml:"depLabelSelector,omitempty"`
 }
 
 // GetScopedFilepaths returns a list of filepaths based on either included or excluded paths in context
@@ -535,6 +536,10 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 		Capability: map[string]interface{}{
 			p.Capability: p.ConditionInfo,
 		},
+	}
+
+	if p.DepLabelSelector != nil {
+		providerInfo.ProviderContext.DepLabelSelector = p.DepLabelSelector.Expression()
 	}
 
 	serializedInfo, err := yaml.Marshal(providerInfo)
