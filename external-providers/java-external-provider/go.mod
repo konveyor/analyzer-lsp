@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/go-logr/logr v1.4.2
-	github.com/konveyor/analyzer-lsp v0.6.0-alpha.2.0.20241211222333-1480e154bf3a
+	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250429145255-ccd24834c1dd
 	github.com/swaggest/openapi-go v0.2.50
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel v1.28.0
