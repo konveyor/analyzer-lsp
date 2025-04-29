@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -116,10 +117,26 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
 	argumentsMap := map[string]interface{}{
-		"query":        c.Referenced.Pattern,
-		"project":      "java",
-		"location":     fmt.Sprintf("%v", locationToCode[strings.ToLower(c.Referenced.Location)]),
-		"analysisMode": string(p.config.AnalysisMode),
+		"query":                      c.Referenced.Pattern,
+		"project":                    "java",
+		"location":                   fmt.Sprintf("%v", locationToCode[strings.ToLower(c.Referenced.Location)]),
+		"analysisMode":               string(p.config.AnalysisMode),
+		"includeOpenSourceLibraries": true,
+	}
+
+	depLabelSelector, err := labels.NewLabelSelector[*openSourceLabels](condCTX.DepLabelSelector, nil)
+	if err != nil || depLabelSelector == nil {
+		p.log.Error(err, "could not construct dep label selector from condition context, search scope will not be limited")
+	} else {
+		matcher := openSourceLabels(true)
+		m, err := depLabelSelector.Matches(&matcher)
+		if err != nil {
+			p.log.Error(err, "could not construct dep label selector from condition context, search scope will not be limited")
+		} else if !m {
+			// only set to false, when explicitely set to exclude oss libraries
+			// this makes it backward compatible
+			argumentsMap["includeOpenSourceLibraries"] = false
+		}
 	}
 
 	if !reflect.DeepEqual(c.Referenced.Annotated, annotated{}) {
@@ -148,11 +165,11 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	// If it takes us 5 min to complete a request, then we are in trouble
 	timeout := 5 * time.Minute
 	// certain wildcard queries are known to perform worse especially in containers
-	if strings.HasSuffix(c.Referenced.Pattern, "*") {
+	if strings.HasSuffix(c.Referenced.Pattern, "*") || strings.HasSuffix(c.Referenced.Pattern, "*)") {
 		timeout = 10 * time.Minute
 	}
 	timeOutCtx, _ := context.WithTimeout(ctx, timeout)
-	err := p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp, &refs)
+	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp, &refs)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
 			log.Error(err, "connection to the language server is closed, language server is not running")
@@ -312,4 +329,12 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	}
 	p.log.V(2).Info("java connection initialized")
 
+}
+
+type openSourceLabels bool
+
+func (o openSourceLabels) GetLabels() []string {
+	return []string{
+		labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource),
+	}
 }
