@@ -30,8 +30,8 @@ github.com/hashicorp/go-version v1.6.0 h1:feTTfFNnjP967rlCxM/I9g701jU+RN74YKx2mO
 github.com/hashicorp/go-version v1.6.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
 github.com/iancoleman/orderedmap v0.3.0 h1:5cbR2grmZR/DiVt+VJopEhtVs9YGInGIxAoMJn+Ichc=
 github.com/iancoleman/orderedmap v0.3.0/go.mod h1:XuLcCUkdL5owUCQeF2Ue9uuw1EptkJDkXXS7VoV7XGE=
-github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250429204526-42a42086434d h1:M504NQnmUFJ/zrPz+fXBQg8oJ23SRfKOk3wxl1PIH80=
-github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250429204526-42a42086434d/go.mod h1:nlSmohI+wwPTzvWXAtHI3PXe7B9RRU5NKnqnu222Ia0=
+github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250430114706-8854fd4af817 h1:djFH11gT7o/r396ZUm8vE7PHg/1ZiUI7hqMraEUNzOI=
+github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250430114706-8854fd4af817/go.mod h1:/7nwwqN27iODJy/PBai9W16KH91LrPGx1nwu21+rCOg=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=

@@ -3,7 +3,7 @@ module github.com/konveyor/analyzer-lsp/external-providers/dotnet-external-provi
 go 1.21
 
 require (
-	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250429204526-42a42086434d
+	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250430114706-8854fd4af817
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0
 	go.lsp.dev/uri v0.3.0

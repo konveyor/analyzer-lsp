@@ -7,7 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/go-logr/logr v1.4.2
-	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250429204526-42a42086434d
+	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250430114706-8854fd4af817
 	github.com/sirupsen/logrus v1.9.3
 	github.com/swaggest/openapi-go v0.2.45
 	go.lsp.dev/uri v0.3.0
@@ -22,14 +22,13 @@ require (
 	github.com/swaggest/refl v1.3.0 // indirect
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
-	google.golang.org/grpc v1.62.2 // indirect
+	google.golang.org/grpc v1.64.1 // indirect
 )
 
 require (
 	github.com/PaesslerAG/gval v1.2.2 // indirect
 	github.com/cbroglie/mustache v1.4.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	go.opentelemetry.io/otel v1.28.0 // indirect
