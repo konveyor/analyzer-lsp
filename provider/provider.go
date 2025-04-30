@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -343,44 +344,11 @@ type ProviderContext struct {
 	DepLabelSelector string                          `yaml:"depLabelSelector,omitempty"`
 }
 
-// GetScopedFilepaths returns a list of filepaths based on either included or excluded paths in context
-// in a chaintemplate, Filepaths controls inclusion and ExcludedPaths controls exclusion
-// when both are set, exclusion applies after inclusion
-func (p *ProviderContext) GetScopedFilepaths(paths ...string) (bool, []string) {
+func (p *ProviderContext) GetScopedFilepaths() (included []string, excluded []string) {
 	if value, ok := p.Template[engine.TemplateContextPathScopeKey]; ok {
-		includedPaths := []string{}
-		if (value.Filepaths != nil) && len(value.Filepaths) > 0 {
-			includedPaths = value.Filepaths
-		}
-		includedPaths = append(includedPaths, paths...)
-		if len(includedPaths) == 0 {
-			return false, includedPaths
-		}
-		filtered := []string{}
-		for _, path := range includedPaths {
-			excluded := false
-			for _, excldPattern := range value.ExcludedPaths {
-				// backslashes in windows paths must be escaped
-				excldPattern = strings.ReplaceAll(excldPattern, "\\", "\\\\")
-				if pattern, err := regexp.Compile(excldPattern); err == nil &&
-					pattern.MatchString(path) {
-					excluded = true
-				}
-			}
-			if !excluded {
-				filtered = append(filtered, path)
-			}
-		}
-		return true, filtered
+		return value.Filepaths, value.ExcludedPaths
 	}
-	return false, paths
-}
-
-func (p *ProviderContext) GetExcludePatterns() []string {
-	if value, ok := p.Template[engine.TemplateContextPathScopeKey]; ok {
-		return value.ExcludedPaths
-	}
-	return nil
+	return
 }
 
 func HasCapability(caps []Capability, name string) bool {
@@ -429,6 +397,16 @@ func FullDepsResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI
 	return deps, nil
 }
 
+func FullNotifyFileChangesResponse(ctx context.Context, clients []ServiceClient, changes ...FileChange) error {
+	errs := []error{}
+	for _, c := range clients {
+		if err := c.NotifyFileChanges(ctx, changes...); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
 func FullDepDAGResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI][]DepDAGItem, error) {
 	deps := map[uri.URI][]DepDAGItem{}
 	for _, c := range clients {
@@ -466,6 +444,12 @@ type BaseClient interface {
 	Init(context.Context, logr.Logger, InitConfig) (ServiceClient, InitConfig, error)
 }
 
+type FileChange struct {
+	Path    string
+	Content string
+	Saved   bool
+}
+
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
 type ServiceClient interface {
 	Evaluate(ctx context.Context, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error)
@@ -478,6 +462,8 @@ type ServiceClient interface {
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
 	GetDependenciesDAG(ctx context.Context) (map[uri.URI][]DepDAGItem, error)
+	// Used to notify changes to files in the project
+	NotifyFileChanges(ctx context.Context, changes ...FileChange) error
 }
 
 type DependencyLocationResolver interface {
