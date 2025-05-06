@@ -137,19 +137,31 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	// get all ts files
 	folder := strings.TrimPrefix(sc.Config.WorkspaceFolders[0], "file://")
 	var nodeFiles []string
+	var langID string
 	err = filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !info.IsDir() && filepath.Ext(path) == ".ts" {
-			path = "file://" + path
-			nodeFiles = append(nodeFiles, path)
+		// TODO source-only mode
+		// if info.IsDir() && info.Name() == "node_modules" {
+		// 	return filepath.SkipDir
+		// }
+		if !info.IsDir() {
+			if filepath.Ext(path) == ".ts" {
+				langID = "typescript"
+				path = "file://" + path
+				nodeFiles = append(nodeFiles, path)
+			}
+			if filepath.Ext(path) == ".js" {
+				langID = "javascript"
+				path = "file://" + path
+				nodeFiles = append(nodeFiles, path)
+			}
 		}
 
 		return nil
 	})
-
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, err
 	}
@@ -158,7 +170,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		params := protocol.DidOpenTextDocumentParams{
 			TextDocument: protocol.TextDocumentItem{
 				URI:        uri,
-				LanguageID: "typescript",
+				LanguageID: langID,
 				Version:    0,
 				Text:       string(text),
 			},
@@ -195,6 +207,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 			batchRight++
 		}
 		symbols = sc.GetAllDeclarations(ctx, sc.BaseConfig.WorkspaceFolders, query)
+		batchLeft = batchRight
 	}
 
 	incidentsMap, err := sc.EvaluateSymbols(ctx, symbols)
