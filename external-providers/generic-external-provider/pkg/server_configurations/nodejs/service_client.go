@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
@@ -199,6 +200,12 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 			if err != nil {
 				return provider.ProviderEvaluateResponse{}, err
 			}
+
+			// TODO eemcmullan: look into better solution
+			// didOpen calls conn.Notify, which does not wait for a response
+			// for small apps, this can cause another conn.Notify call before the previous completes
+			// resulting in missing incidents
+			time.Sleep(2 * time.Second)
 			err = didOpen(nodeFiles[batchRight], text)
 			if err != nil {
 				return provider.ProviderEvaluateResponse{}, err
