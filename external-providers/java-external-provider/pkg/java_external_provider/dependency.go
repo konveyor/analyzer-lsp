@@ -98,11 +98,17 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 	var ll map[uri.URI][]konveyor.DepDAGItem
 	m := map[uri.URI][]*provider.Dep{}
 
+	p.depsMutex.Lock()
+	defer p.depsMutex.Unlock()
+
 	getHash := func(path string) (string, error) {
 		hash := sha256.New()
 		var file *os.File
 		file, err := os.Open(path)
 		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return "", nil
+			}
 			return "", fmt.Errorf("unable to open the pom file %s - %w", path, err)
 		}
 		if _, err = io.Copy(hash, file); err != nil {
@@ -117,16 +123,12 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 	case p.GetBuildTool() == gradle:
 		p.log.V(2).Info("gradle found - retrieving dependencies")
 		// TODO (pgaikwad) - we need to create a hash of this too
-		p.depsMutex.RLock()
 		val := p.depsCache
-		p.depsMutex.RUnlock()
 		if val != nil {
 			p.log.V(3).Info("using cached dependencies")
 			return val, nil
 		}
-		p.depsMutex.Lock()
 		deps, err := p.getDependenciesForGradle(ctx)
-		p.depsMutex.Unlock()
 		if err != nil {
 			p.log.Error(err, "failed to get dependencies for gradle")
 			return nil, err
@@ -141,18 +143,14 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 			m[f] = deps
 		}
 	case p.isLocationBinary:
-		p.depsMutex.RLock()
 		val := p.depsCache
-		p.depsMutex.RUnlock()
 		if val != nil {
 			p.log.V(3).Info("using cached dependencies")
 			return val, nil
 		}
 		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
 		// for binaries we only find JARs embedded in archive
-		p.depsMutex.Lock()
 		p.discoverDepsFromJars(p.config.DependencyPath, ll)
-		p.depsMutex.Unlock()
 		if len(ll) == 0 {
 			p.log.Info("unable to get dependencies from jars, looking for pom")
 			pomPaths := p.discoverPoms(p.config.DependencyPath, ll)
@@ -173,18 +171,14 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 			return nil, err
 		}
 		if p.depsFileHash != nil && *p.depsFileHash == hashString {
-			p.depsMutex.RLock()
 			val := p.depsCache
-			p.depsMutex.RUnlock()
 			if val != nil {
 				p.log.Info("using cached dependencies", "pomHash", hashString)
 				return val, nil
 			}
 		}
 		p.depsFileHash = &hashString
-		p.depsMutex.Lock()
 		ll, err = p.GetDependenciesDAG(ctx)
-		p.depsMutex.Unlock()
 		if err != nil {
 			p.log.Info("unable to get dependencies, using fallback", "error", err)
 			fallBackDeps, fallbackErr := p.GetDependenciesFallback(ctx, "")
@@ -206,9 +200,7 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		}
 		m[f] = deps
 	}
-	p.depsMutex.Lock()
 	p.depsCache = m
-	p.depsMutex.Unlock()
 	return m, nil
 }
 
@@ -236,6 +228,13 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 
 	path, err := filepath.Abs(p.findPom())
 	if err != nil {
+		return nil, err
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -347,7 +346,7 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	case gradle:
 		return p.getDependenciesForGradle(ctx)
 	default:
-		return nil, fmt.Errorf("no build tool found")
+		return nil, nil
 	}
 }
 
