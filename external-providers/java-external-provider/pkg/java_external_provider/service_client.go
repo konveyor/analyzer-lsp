@@ -34,6 +34,8 @@ type javaServiceClient struct {
 	isLocationBinary  bool
 	mvnInsecure       bool
 	mvnSettingsFile   string
+	mvnLocalRepo      string
+	mvnIndexPath      string
 	globalSettings    string
 	depsMutex         sync.RWMutex
 	depsFileHash      *string
@@ -122,6 +124,11 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		"location":                   fmt.Sprintf("%v", locationToCode[strings.ToLower(c.Referenced.Location)]),
 		"analysisMode":               string(p.config.AnalysisMode),
 		"includeOpenSourceLibraries": true,
+		"mavenLocalRepo":             p.mvnLocalRepo,
+	}
+
+	if p.mvnIndexPath != "" {
+		argumentsMap["mavenIndexPath"] = p.mvnIndexPath
 	}
 
 	depLabelSelector, err := labels.NewLabelSelector[*openSourceLabels](condCTX.DepLabelSelector, nil)
