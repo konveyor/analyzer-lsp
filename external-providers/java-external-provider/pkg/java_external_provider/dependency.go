@@ -95,12 +95,42 @@ func (p *javaServiceClient) findGradleBuild() string {
 func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	p.log.V(4).Info("running dependency analysis")
 
-	// TODO: shawn-hurley does not appear that this is returning early if there is a cache.
-	// We should add these to a cache with the hash of the gradle build file.
-	if p.GetBuildTool() == gradle {
+	var ll map[uri.URI][]konveyor.DepDAGItem
+	m := map[uri.URI][]*provider.Dep{}
+
+	getHash := func(path string) (string, error) {
+		hash := sha256.New()
+		var file *os.File
+		file, err := os.Open(path)
+		if err != nil {
+			return "", fmt.Errorf("unable to open the pom file %s - %w", path, err)
+		}
+		if _, err = io.Copy(hash, file); err != nil {
+			file.Close()
+			return "", fmt.Errorf("unable to copy file to hash %s - %w", path, err)
+		}
+		file.Close()
+		return string(hash.Sum(nil)), nil
+	}
+
+	switch {
+	case p.GetBuildTool() == gradle:
 		p.log.V(2).Info("gradle found - retrieving dependencies")
-		m := map[uri.URI][]*provider.Dep{}
+		// TODO (pgaikwad) - we need to create a hash of this too
+		p.depsMutex.RLock()
+		val := p.depsCache
+		p.depsMutex.RUnlock()
+		if val != nil {
+			p.log.V(3).Info("using cached dependencies")
+			return val, nil
+		}
+		p.depsMutex.Lock()
 		deps, err := p.getDependenciesForGradle(ctx)
+		p.depsMutex.Unlock()
+		if err != nil {
+			p.log.Error(err, "failed to get dependencies for gradle")
+			return nil, err
+		}
 		for f, ds := range deps {
 			deps := []*provider.Dep{}
 			for _, dep := range ds {
@@ -110,22 +140,19 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 			}
 			m[f] = deps
 		}
-		return m, err
-	}
-
-	var err error
-	var ll map[uri.URI][]konveyor.DepDAGItem
-	m := map[uri.URI][]*provider.Dep{}
-	if p.isLocationBinary {
+	case p.isLocationBinary:
 		p.depsMutex.RLock()
 		val := p.depsCache
 		p.depsMutex.RUnlock()
 		if val != nil {
+			p.log.V(3).Info("using cached dependencies")
 			return val, nil
 		}
 		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
 		// for binaries we only find JARs embedded in archive
+		p.depsMutex.Lock()
 		p.discoverDepsFromJars(p.config.DependencyPath, ll)
+		p.depsMutex.Unlock()
 		if len(ll) == 0 {
 			p.log.Info("unable to get dependencies from jars, looking for pom")
 			pomPaths := p.discoverPoms(p.config.DependencyPath, ll)
@@ -136,42 +163,38 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 				}
 				maps.Copy(m, dep)
 			}
-			return m, nil
 		}
-	} else {
+	default:
 		// Read pom and create a hash.
 		// if pom hash and depCache return cache
-		hash := sha256.New()
-		var file *os.File
-		file, err = os.Open(p.findPom())
+		hashString, err := getHash(p.findPom())
 		if err != nil {
-			p.log.Error(err, "unable to open the pom file", "pom path", file)
+			p.log.Error(err, "unable to generate hash from pom file")
 			return nil, err
 		}
-		if _, err = io.Copy(hash, file); err != nil {
-			file.Close()
-			p.log.Error(err, "unable to copy file to hash", "pom path", file)
-			return nil, err
-		}
-		file.Close()
-		hashString := string(hash.Sum(nil))
-		if p.depsFileHash != nil && *p.depsFileHash == hashString && p.depsCache != nil {
+		if p.depsFileHash != nil && *p.depsFileHash == hashString {
 			p.depsMutex.RLock()
 			val := p.depsCache
 			p.depsMutex.RUnlock()
 			if val != nil {
+				p.log.Info("using cached dependencies", "pomHash", hashString)
 				return val, nil
 			}
 		}
 		p.depsFileHash = &hashString
+		p.depsMutex.Lock()
 		ll, err = p.GetDependenciesDAG(ctx)
+		p.depsMutex.Unlock()
 		if err != nil {
 			p.log.Info("unable to get dependencies, using fallback", "error", err)
-			return p.GetDependenciesFallback(ctx, "")
-		}
-		if len(ll) == 0 {
+			fallBackDeps, fallbackErr := p.GetDependenciesFallback(ctx, "")
+			if fallbackErr != nil {
+				return nil, fmt.Errorf("%w %w", err, fallbackErr)
+			}
+			m = fallBackDeps
+		} else if len(ll) == 0 {
 			p.log.Info("unable to get dependencies (none found), using fallback")
-			return p.GetDependenciesFallback(ctx, "")
+			m, _ = p.GetDependenciesFallback(ctx, "")
 		}
 	}
 	for f, ds := range ll {
@@ -291,10 +314,6 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 
 	m := map[uri.URI][]*provider.Dep{}
 	m[uri.File(path)] = deps
-	p.depsMutex.Lock()
-	p.depsCache = m
-	p.depsMutex.Unlock()
-
 	// recursively find deps in submodules
 	if pom.Modules != nil {
 		for _, mod := range *pom.Modules {
