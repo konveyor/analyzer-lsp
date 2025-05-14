@@ -106,6 +106,9 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		var file *os.File
 		file, err := os.Open(path)
 		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return "", nil
+			}
 			return "", fmt.Errorf("unable to open the pom file %s - %w", path, err)
 		}
 		if _, err = io.Copy(hash, file); err != nil {
@@ -228,6 +231,13 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 		return nil, err
 	}
 
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
 	if location != "" {
 		path = location
 	}
@@ -336,7 +346,7 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	case gradle:
 		return p.getDependenciesForGradle(ctx)
 	default:
-		return nil, fmt.Errorf("no build tool found")
+		return nil, nil
 	}
 }
 
