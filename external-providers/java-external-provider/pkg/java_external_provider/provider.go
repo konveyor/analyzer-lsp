@@ -491,6 +491,15 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 	}()
 
+	m2Repo := getMavenLocalRepoPath(mavenSettingsFile)
+
+	mavenIndexPath := ""
+	if val, ok := config.ProviderSpecificConfig[providerSpecificConfigOpenSourceDepListKey]; ok {
+		if strVal, ok := val.(string); ok {
+			mavenIndexPath = strVal
+		}
+	}
+
 	svcClient := javaServiceClient{
 		rpc:               rpc,
 		cancelFunc:        cancelFunc,
@@ -503,6 +512,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		isLocationBinary:  isBinary,
 		mvnInsecure:       mavenInsecure,
 		mvnSettingsFile:   mavenSettingsFile,
+		mvnLocalRepo:      m2Repo,
+		mvnIndexPath:      mavenIndexPath,
 		globalSettings:    globalSettingsFile,
 		depsLocationCache: make(map[string]int),
 		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
@@ -514,7 +525,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		// we need to do this for jdtls to correctly recognize source attachment for dep
 		switch svcClient.GetBuildTool() {
 		case maven:
-			err := resolveSourcesJarsForMaven(ctx, log, fernflower, config.Location, mavenSettingsFile, mavenInsecure)
+			err := resolveSourcesJarsForMaven(ctx, log, fernflower, config.Location, mavenSettingsFile, m2Repo, mavenInsecure)
 			if err != nil {
 				// TODO (pgaikwad): should we ignore this failure?
 				log.Error(err, "failed to resolve maven sources jar for location", "location", config.Location)
@@ -790,10 +801,15 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 
 // resolveSourcesJarsForMaven for a given source code location, runs maven to find
 // deps that don't have sources attached and decompiles them
-func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower, location, mavenSettings string, mvnInsecure bool) error {
+func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower, location, mavenSettings, mavenLocalRepo string, mvnInsecure bool) error {
 	// TODO (pgaikwad): when we move to external provider, inherit context from parent
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
+
+	if mavenLocalRepo == "" {
+		log.V(5).Info("unable to discover dependency sources as maven local repo path is unknown")
+		return nil
+	}
 
 	decompileJobs := []decompileJob{}
 
@@ -824,10 +840,6 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower
 		return err
 	}
 
-	m2Repo := getMavenLocalRepoPath(mavenSettings)
-	if m2Repo == "" {
-		return nil
-	}
 	for _, artifact := range artifacts {
 		log.WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
 
@@ -837,9 +849,9 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower
 		decompileJobs = append(decompileJobs, decompileJob{
 			artifact: artifact,
 			inputPath: filepath.Join(
-				m2Repo, groupDirs, artifactDirs, artifact.Version, jarName),
+				mavenLocalRepo, groupDirs, artifactDirs, artifact.Version, jarName),
 			outputPath: filepath.Join(
-				m2Repo, groupDirs, artifactDirs, artifact.Version, "decompiled", jarName),
+				mavenLocalRepo, groupDirs, artifactDirs, artifact.Version, "decompiled", jarName),
 		})
 	}
 	err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "")
