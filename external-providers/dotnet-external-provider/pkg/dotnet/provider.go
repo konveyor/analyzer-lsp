@@ -58,7 +58,7 @@ func (p *dotnetProvider) Capabilities() []provider.Capability {
 	caps := []provider.Capability{}
 	refCap, err := provider.ToProviderCap(r, p.Log, dotnetCondition{}, "referenced")
 	if err != nil {
-		p.Log.Error(err, "failed to registery capability")
+		p.Log.Error(err, "failed to register capability")
 	} else {
 		caps = append(caps, refCap)
 	}
