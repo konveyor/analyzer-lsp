@@ -29,8 +29,7 @@ RUN ADD_PLAT=yes OS=windows make build
 #   && tar -xf v1.39.6.tar.gz
 # RUN cd omnisharp-roslyn-1.39.6 && ./build.sh --target Build --use-global-dotnet-sdk
 
-FROM registry.access.redhat.com/ubi8/dotnet-80
-USER root
+FROM registry.access.redhat.com/ubi8/dotnet-90
 # This is because SDKs are not universally available across architectures
 # RUN if [[ "$(uname -m)" = "x86_64" || "$(uname -m)" = "amd64" ]]; then \
 #       microdnf -y install dotnet-sdk-2.1 dotnet-sdk-2.1.5xx dotnet-sdk-3.0 \
@@ -41,12 +40,8 @@ USER root
 #     elif [[ "$(uname -m)" = "ppc64le" ]]; then \
 #       microdnf -y install dotnet-sdk-7.0; \
 #     fi \
-RUN microdnf -y install dotnet-sdk-7.0 \
-    && microdnf clean all \
-    && rm -rf /var/cache/yum
-RUN dotnet tool install --global csharp-ls --version 0.11.0
+RUN dotnet tool install --global csharp-ls --version 0.17.0
 ENV PATH="$PATH:/opt/app-root/.dotnet/tools:/home/go/bin"
-USER default
 EXPOSE 3456
 
 #COPY --from=builder /opt/app-root/src/omnisharp-roslyn-1.39.6/bin/Release/OmniSharp.Stdio.Driver/net6.0/ /opt/app-root/omnisharp

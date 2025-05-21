@@ -14,9 +14,9 @@ RUN go mod tidy
 
 RUN go build -o bin/dotnet-external-provider.exe main.go
 
-FROM mcr.microsoft.com/dotnet/framework/sdk:4.8
+FROM mcr.microsoft.com/dotnet/framework/sdk:9.0
 
-RUN dotnet tool install --global csharp-ls --version 0.11.0
+RUN dotnet tool install --global csharp-ls --version 0.17.0
 
 # Set the working directory inside the container
 WORKDIR C:/app
