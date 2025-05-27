@@ -8,6 +8,7 @@ import (
 	"sort"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
@@ -95,6 +96,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 		excludedPathsFromConfig []string
 		condition               builtinCondition
 		chainTemplate           engine.ChainTemplate
+		notifiedFileChanges     []provider.FileChange
 		wantFilePaths           []string
 		wantErr                 bool
 	}{
@@ -625,6 +627,54 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				filepath.Join("dir_a", "dir_b", "ab.xml"),
 			},
 		},
+		{
+			name:       "(XML) Include files from cond.Filepaths, with include & with notifyFileChanges()",
+			capability: "xml",
+			condition: builtinCondition{
+				XML: xmlCondition{
+					XPath: "//name[text()='Test name']",
+					Filepaths: []string{
+						"b.xml",
+					},
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				Filepaths: []string{
+					filepath.Join("dir_b", "dir_a", "ba.xml"),
+				},
+			},
+			notifiedFileChanges: []provider.FileChange{
+				{
+					Path:    filepath.Join(baseLocation, "dir_b", "dir_a", "ba.xml"),
+					Content: "<data>\n\t<name>Test name</name>\n\t<description>Test description</description>\n</data>",
+				},
+			},
+			wantFilePaths: []string{},
+		},
+		{
+			name:       "(XML) Include files from cond.Filepaths, with include & with notifyFileChanges()",
+			capability: "xml",
+			condition: builtinCondition{
+				XML: xmlCondition{
+					XPath: "//name[text()='Test name']",
+					Filepaths: []string{
+						"b.xml",
+					},
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				Filepaths: []string{
+					filepath.Join("dir_b", "dir_a", "ba.xml"),
+				},
+			},
+			notifiedFileChanges: []provider.FileChange{
+				{
+					Path:    filepath.Join(baseLocation, "dir_b", "b.xml"),
+					Content: "<data>\n\t<name>Test name</name>\n\t<description>Test description</description>\n</data>",
+				},
+			},
+			wantFilePaths: []string{filepath.Join("dir_b", "b.xml")},
+		},
 	}
 
 	getAbsolutePaths := func(baseLocation string, relativePaths []string) []string {
@@ -648,6 +698,8 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				cacheMutex:     sync.RWMutex{},
 				workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
 			}
+			p.workingCopyMgr.init()
+			defer p.workingCopyMgr.stop()
 			chainTemplate := engine.ChainTemplate{
 				Filepaths:     getAbsolutePaths(p.config.Location, tt.chainTemplate.Filepaths),
 				ExcludedPaths: tt.chainTemplate.ExcludedPaths,
@@ -662,6 +714,11 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				t.Errorf("builtinServiceClient.Evaluate() invalid test case, please check if condition is correct")
 				return
 			}
+			for _, change := range tt.notifiedFileChanges {
+				p.NotifyFileChanges(context.TODO(), change)
+			}
+			// working copy manager needs to reconcile the changes
+			time.Sleep(time.Second * 1)
 			got, err := p.Evaluate(context.TODO(), tt.capability, conditionInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("builtinServiceClient.Evaluate() error = %v, wantErr %v", err, tt.wantErr)
