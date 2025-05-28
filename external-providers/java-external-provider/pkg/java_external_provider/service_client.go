@@ -324,6 +324,15 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 		},
 	}
 
+	// when neither pom or gradle build is present, the language server cannot initialize project
+	// we have to trick it into initializing it by creating a .classpath and .project file if one doesn't exist
+	if p.GetBuildTool() == "" {
+		err = createProjectAndClasspathFiles(p.config.Location, filepath.Base(p.config.Location))
+		if err != nil {
+			p.log.Error(err, "unable to create .classpath and .project files, analysis may be degraded")
+		}
+	}
+
 	var result protocol.InitializeResult
 	for i := 0; i < 10; i++ {
 		if err := p.rpc.Call(ctx, "initialize", params, &result); err != nil {
@@ -349,4 +358,38 @@ func (o openSourceLabels) GetLabels() []string {
 	return []string{
 		labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource),
 	}
+}
+
+func createProjectAndClasspathFiles(basePath string, projectName string) error {
+	projectXML := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+    <name>%s</name>
+    <comment></comment>
+    <projects></projects>
+    <buildSpec></buildSpec>
+    <natures>
+        <nature>org.eclipse.jdt.core.javanature</nature>
+    </natures>
+</projectDescription>
+`, projectName)
+
+	if _, err := os.Stat(filepath.Join(basePath, ".project")); err != nil && os.IsNotExist(err) {
+		if err := os.WriteFile(filepath.Join(basePath, ".project"), []byte(projectXML), 0644); err != nil {
+			return fmt.Errorf("failed to write .project: %w", err)
+		}
+	}
+
+	classpathXML := `<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+    <classpathentry kind="src" path="."/>
+    <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+    <classpathentry kind="output" path="bin"/>
+</classpath>
+`
+	if _, err := os.Stat(filepath.Join(basePath, ".classpath")); err != nil && os.IsNotExist(err) {
+		if err := os.WriteFile(filepath.Join(basePath, ".classpath"), []byte(classpathXML), 0644); err != nil {
+			return fmt.Errorf("failed to write .classpath: %w", err)
+		}
+	}
+	return nil
 }
