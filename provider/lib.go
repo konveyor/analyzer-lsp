@@ -177,6 +177,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	finalSearchResult = f.filterFilesByPathsOrPatterns(statFunc, includedPatterns, finalSearchResult, false)
 	// apply patterns from search criteria
 	finalSearchResult = f.filterFilesByPathsOrPatterns(statFunc, s.Patterns, finalSearchResult, false)
+	finalSearchResult = f.filterFilesByPathsOrPatterns(statFunc, searchCriteriaPaths, finalSearchResult, false)
 
 	// finally, apply exclusion, rule scope takes priority over provider config
 	if len(f.RuleScopeConstraints.ExcludePathsOrPatterns) > 0 {
