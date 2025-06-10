@@ -71,7 +71,7 @@ jobs:
             IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
             IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
             build-external
-          podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
+          podman build -t quay.io/konveyor/analyzer-lsp:latest-f Dockerfile .
 
       # run the demo in a podman pod
       - name: run demo image
