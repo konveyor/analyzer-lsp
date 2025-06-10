@@ -293,8 +293,8 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
 				strings.Replace(filePath, destDir, "", -1))
-			destPath = strings.ReplaceAll(destPath, "WEB-INF/classes", "")
-			destPath = strings.ReplaceAll(destPath, "META-INF/classes", "")
+			destPath = strings.ReplaceAll(destPath, filepath.Join("WEB-INF", "classes"), "")
+			destPath = strings.ReplaceAll(destPath, filepath.Join("META-INF", "classes"), "")
 			destPath = strings.TrimSuffix(destPath, ClassFile) + ".java"
 			decompileJobs = append(decompileJobs, decompileJob{
 				inputPath:  filePath,
@@ -332,8 +332,8 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
 				strings.Replace(filePath, destDir, "", -1))
-			destPath = strings.ReplaceAll(destPath, "WEB-INF/classes", "")
-			destPath = strings.ReplaceAll(destPath, "META-INF/classes", "")
+			destPath = strings.ReplaceAll(destPath, filepath.Join("WEB-INF", "classes"), "")
+			destPath = strings.ReplaceAll(destPath, filepath.Join("META-INF", "classes"), "")
 			if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 				log.V(8).Error(err, "error creating directory for java file", "path", destPath)
 				continue
