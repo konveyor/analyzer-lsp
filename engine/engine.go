@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -358,6 +359,10 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 // runTaggingRules filters and runs info rules synchronously
 // returns list of non-info rules, a context to pass to them
 func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*konveyor.RuleSet, context ConditionContext, scope Scope) ConditionContext {
+	//  move all rules that have HasTags to the end of the list as they depend on other tagging rules
+	sort.Slice(infoRules, func(i int, j int) bool {
+		return !infoRules[i].rule.UsesHasTags && infoRules[j].rule.UsesHasTags
+	})
 	// track unique tags per ruleset
 	rulesetTagsCache := map[string]map[string]bool{}
 	for _, ruleMessage := range infoRules {
@@ -370,6 +375,15 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 			}
 		} else if response.Matched && len(response.Incidents) > 0 {
 			r.logger.V(5).Info("info rule was matched", "ruleID", rule.RuleID)
+			// create an insight for this tag
+			violation, err := r.createViolation(ctx, response, rule, scope)
+			if err != nil {
+				r.logger.Error(err, "unable to create violation from response", "ruleID", rule.RuleID)
+			}
+			if len(violation.Incidents) == 0 {
+				r.logger.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched", "ruleID", rule.RuleID)
+				continue
+			}
 			tags := map[string]bool{}
 			for _, tagString := range rule.Perform.Tag {
 				if strings.Contains(tagString, "{{") && strings.Contains(tagString, "}}") {
@@ -417,11 +431,6 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 					}
 				}
 				mapRuleSets[ruleMessage.ruleSetName] = rs
-			}
-			// create an insight for this tag
-			violation, err := r.createViolation(ctx, response, rule, scope)
-			if err != nil {
-				r.logger.Error(err, "unable to create violation from response", "ruleID", rule.RuleID)
 			}
 			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
 				violation.Effort = nil
