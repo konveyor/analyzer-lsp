@@ -27,7 +27,7 @@ type ConditionResponse struct {
 type ConditionContext struct {
 	Tags     map[string]interface{}   `yaml:"tags"`
 	Template map[string]ChainTemplate `yaml:"template"`
-	RuleID   string                   `yaml:"ruleID"`
+	RuleID   string                   `yaml:ruleID`
 }
 
 // This will copy the condition, but this will not copy the ruleID
@@ -112,7 +112,6 @@ type RuleMeta struct {
 	Category    *konveyor.Category `yaml:"category,omitempty" json:"category,omitempty"`
 	Labels      []string           `yaml:"labels,omitempty" json:"labels,omitempty"`
 	Effort      *int               `json:"effort,omitempty"`
-	UsesHasTags bool
 }
 
 func (r *RuleMeta) GetLabels() []string {

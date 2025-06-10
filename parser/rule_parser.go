@@ -418,10 +418,6 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					continue
 				}
 
-				if providerKey == "builtin" && capability == "hasTags" {
-					rule.UsesHasTags = true
-				}
-
 				c := engine.ConditionEntry{
 					From:                   from,
 					As:                     as,
