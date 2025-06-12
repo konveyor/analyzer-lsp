@@ -1,12 +1,19 @@
 name: Demo Testing
 
-on: ["push", "pull_request"]
+on:
+  pull_request:
+  push:
+    branches:
+    - "main"
+    - "release-*"
+    - "v*"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     outputs:
       api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
+      tackle2_hub_tag: ${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}
     steps:
       - name: Extract pull request number from inputs or PR description
         id: extract-info
@@ -25,11 +32,15 @@ jobs:
               echo "API_TESTS_REF=${GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
               echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
               echo "JAVA_BUNDLE_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
+              echo "BUNDLE_IMAGE_TAG=${GITHUB_BASE_REF/main/latest}" >>$GITHUB_OUTPUT
+              echo "TACKLE2_HUB_TAG=${GITHUB_BASE_REF/main/latest}" >> $GITHUB_OUTPUT
           else
               echo "Using ${GITHUB_REF_NAME}"
               echo "API_TESTS_REF=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
               echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
               echo "JAVA_BUNDLE_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
+              echo "BUNDLE_IMAGE_TAG=${GITHUB_REF_NAME/main/latest}" >>$GITHUB_OUTPUT
+              echo "TACKLE2_HUB_TAG=${GITHUB_REF_NAME/main/latest}" >> $GITHUB_OUTPUT
           fi
           
           # override with explicitely set value in PR description
@@ -45,6 +56,7 @@ jobs:
             echo "Using bundle PR pull/${JAVA_BUNDLE_PR_NUMBER}"
             echo "JAVA_BUNDLE_REF=refs/pull/$JAVA_BUNDLE_PR_NUMBER/merge" >> $GITHUB_OUTPUT
             echo "BUILD_BUNDLE=true" >>$GITHUB_OUTPUT
+            echo "BUNDLE_IMAGE_TAG=latest" >>$GITHUB_OUTPUT
           fi
 
       - uses: actions/checkout@v3
@@ -70,8 +82,9 @@ jobs:
             IMG_JAVA_PROVIDER=${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}\
             IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
             IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
+            TAG_JAVA_BUNDLE=${{steps.extract-info.outputs.BUNDLE_IMAGE_TAG}}\
             build-external
-          podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
+          podman build --build-arg JAVA_BUNDLE_TAG=${{steps.extract-info.outputs.BUNDLE_IMAGE_TAG}} -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 
       # run the demo in a podman pod
       - name: run demo image
@@ -127,4 +140,5 @@ jobs:
     uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
       operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
+      tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"
