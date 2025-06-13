@@ -16,7 +16,7 @@ RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mo
 
 RUN go build -a -o java-external-provider main.go
 
-FROM quay.io/konveyor/jdtls-server-base
+FROM quay.io/konveyor/jdtls-server-base:release-0.6
 
 COPY --from=builder /java-provider/java-external-provider /usr/local/bin/java-external-provider
 
