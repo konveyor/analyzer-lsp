@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -168,6 +169,11 @@ func processFile(path string, regex *regexp.Regexp, positionsChan chan<- interfa
 				if err != nil {
 					return
 				}
+
+				if runtime.GOOS == "windows" {
+					absPath = strings.ReplaceAll(absPath, "\\", "/")
+				}
+
 				if strings.Contains(scanner.Text(), "using") {
 					positionsChan <- protocol.ReferenceParams{
 						TextDocumentPositionParams: protocol.TextDocumentPositionParams{
