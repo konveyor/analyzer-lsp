@@ -17,16 +17,25 @@ env:
   tag: ${{ github.ref == 'refs/heads/main' && 'latest' || github.ref_name }}
 
 jobs:
+  compute-deps-refs:
+    runs-on: ubuntu-latest
+    outputs:
+      java-bundle-tag: ${{ steps.dep_tag.outputs.java_bundle_tag }}
+    steps:
+      - name: Determine image tags for dependencies
+        id: dep_tag
+        run: |
+          echo "java_bundle_tag=${GITHUB_REF_NAME/main/latest}" >> $GITHUB_OUTPUT
+
   image-build:
+    needs: compute-deps-refs
     strategy:
       fail-fast: false
       matrix:
         images: 
           - name: analyzer-lsp
             containerfile: "./Dockerfile"
-            pre_build_cmd: |
-              TAG=${GITHUB_REF_NAME/main/latest}
-              sed -i "s,FROM quay.io/konveyor/jdtls-server-base.*,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
+            extra-args: "--build-arg JAVA_BUNDLE_TAG=${{ needs.compute-deps-refs.outputs.java-bundle-tag }}"
             context: "."
             architectures: '[ "amd64", "arm64" ]'
           - name: dotnet-external-provider
@@ -45,9 +54,7 @@ jobs:
             containerfile: "./external-providers/java-external-provider/Dockerfile"
             context: "."
             architectures: '[ "amd64", "arm64" ]'
-            pre_build_cmd: |
-              TAG=${GITHUB_REF_NAME/main/latest}
-              sed -i "s,FROM quay.io/konveyor/jdtls-server-base,FROM quay.io/konveyor/jdtls-server-base:${TAG}," Dockerfile
+            extra-args: "--build-arg JAVA_BUNDLE_TAG=${{ needs.compute-deps-refs.outputs.java-bundle-tag }}"
 
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
