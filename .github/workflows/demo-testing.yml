@@ -130,6 +130,7 @@ jobs:
         with:
           operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
           addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
+          tackle_hub: "quay.io/konveyor/tackle2-hub:${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}"
           provider_generic: ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
           provider_java: ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
       - name: push bundle image 
