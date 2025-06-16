@@ -1,4 +1,5 @@
 DOCKER_IMAGE = test
+TAG_JAVA_BUNDLE ?= latest
 IMG_JAVA_PROVIDER ?= java-provider
 IMG_DOTNET_PROVIDER ?= dotnet-provider
 IMG_GENERIC_PROVIDER ?= generic-provider
@@ -32,7 +33,7 @@ deps:
 	go build -o konveyor-analyzer-dep ./cmd/dep/main.go
 
 image-build:
-	docker build -f Dockerfile . -t $(DOCKER_IMAGE)
+	docker build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f Dockerfile . -t $(DOCKER_IMAGE)
 
 build-external: build-dotnet-provider build-golang-dep-provider build-generic-provider build-java-provider build-yq-provider
 
@@ -47,7 +48,7 @@ build-golang-dep-provider:
 	podman build -f external-providers/golang-dependency-provider/Dockerfile -t $(IMG_GO_DEP_PROVIDER) .
 
 build-java-provider:
-	podman build -f external-providers/java-external-provider/Dockerfile -t $(IMG_JAVA_PROVIDER) .
+	podman build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f external-providers/java-external-provider/Dockerfile -t $(IMG_JAVA_PROVIDER) .
 
 build-yq-provider:
 	podman build -f external-providers/yq-external-provider/Dockerfile -t $(IMG_YQ_PROVIDER) .
