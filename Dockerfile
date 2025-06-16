@@ -1,3 +1,6 @@
+ARG JAVA_BUNDLE_TAG=latest
+FROM quay.io/konveyor/jdtls-server-base:${JAVA_BUNDLE_TAG} as base
+
 FROM golang:1.21 as builder
 WORKDIR /analyzer-lsp
 
@@ -29,7 +32,7 @@ RUN wget "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_B
 
 FROM jaegertracing/all-in-one:latest AS jaeger-builder
 
-FROM quay.io/konveyor/jdtls-server-base:release-0.6
+FROM base
 
 RUN microdnf install gcc-c++ python-devel python3-devel -y
 RUN python3 -m ensurepip --upgrade
