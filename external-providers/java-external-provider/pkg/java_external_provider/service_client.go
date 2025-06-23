@@ -41,6 +41,7 @@ type javaServiceClient struct {
 	depsFileHash      *string
 	depsCache         map[uri.URI][]*provider.Dep
 	depsLocationCache map[string]int
+	depsErrCache      map[string]error
 	includedPaths     []string
 	cleanExplodedBins []string
 }
