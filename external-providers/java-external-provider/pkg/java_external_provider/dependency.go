@@ -204,10 +204,8 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 				return nil, p.depsErrCache[fallbackDepErr]
 			case hasMvnErr:
 				return nil, p.depsErrCache[mavenDepErr]
-
-				// TODO something here
 			default:
-				return nil, fmt.Errorf("errors getting dependencies")
+				return nil, fmt.Errorf("found error(s) getting dependencies")
 			}
 		}
 		p.depsFileHash = &hashString
@@ -447,7 +445,7 @@ func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[ur
 
 // getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
 // TODO: what if no wrapper?
-func (p *javaServiceClient) getDependenciesForGradle(_ context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	subprojects, err := p.getGradleSubprojects()
 	if err != nil {
 		return nil, err
@@ -471,7 +469,9 @@ func (p *javaServiceClient) getDependenciesForGradle(_ context.Context) (map[uri
 	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
 	}
-	cmd := exec.Command(exe, args...)
+	timeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(timeout, exe, args...)
 	cmd.Dir = p.config.Location
 	output, err := cmd.CombinedOutput()
 	if err != nil {
