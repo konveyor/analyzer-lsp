@@ -352,6 +352,14 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 
 }
 
+func (p *javaServiceClient) SetDepLabels(depLabels map[string]*depLabelItem) {
+	p.depToLabels = depLabels
+}
+
+func (p *javaServiceClient) SetExcludeDepLabels(depLabels map[string]*depLabelItem) {
+	p.depToLabels = depLabels
+}
+
 type openSourceLabels bool
 
 func (o openSourceLabels) GetLabels() []string {

@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -437,8 +438,6 @@ func (p *javaServiceClient) getDependenciesForGradle(_ context.Context) (map[uri
 	lines := strings.Split(string(output), "\n")
 	deps := p.parseGradleDependencyOutput(lines)
 
-	// TODO: do we need to separate by submodule somehow?
-
 	path := p.findGradleBuild()
 	file := uri.File(path)
 	m := map[uri.URI][]provider.DepDAGItem{}
@@ -634,6 +633,9 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 	if info == nil {
 		return nil
 	}
+	if info.Name() == "lib" {
+		path = strings.Join([]string{path}, "")
+	}
 	if info.IsDir() {
 		return filepath.WalkDir(filepath.Join(path, info.Name()), w.walkDirForJar)
 	}
@@ -646,7 +648,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		artifact, _ := toDependency(context.TODO(), path)
+		artifact, _ := toDependency(context.TODO(), w.depToLabels, path)
 		if (artifact != javaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version
@@ -880,98 +882,88 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath, po
 	return []provider.DepDAGItem{}, nil
 }
 
-// depInit loads a map of package patterns and their associated labels for easy lookup
-func (p *javaServiceClient) depInit() error {
-	err := p.initOpenSourceDepLabels()
-	if err != nil {
-		p.log.V(5).Error(err, "failed to initialize dep labels lookup for open source packages")
-		return err
-	}
-
-	err = p.initExcludeDepLabels()
-	if err != nil {
-		p.log.V(5).Error(err, "failed to initialize dep labels lookup for excluded packages")
-		return err
-	}
-
-	return nil
-}
-
 // initOpenSourceDepLabels reads user provided file that has a list of open source
 // packages (supports regex) and loads a map of patterns -> labels for easy lookup
-func (p *javaServiceClient) initOpenSourceDepLabels() error {
+func initOpenSourceDepLabels(log logr.Logger, providerSpecificConfig map[string]interface{}) (map[string]*depLabelItem, error) {
 	var ok bool
 	var v interface{}
-	if v, ok = p.config.ProviderSpecificConfig[providerSpecificConfigOpenSourceDepListKey]; !ok {
-		p.log.V(7).Info("Did not find open source dep list.")
-		return nil
+	if v, ok = providerSpecificConfig[providerSpecificConfigOpenSourceDepListKey]; !ok {
+		log.V(7).Info("Did not find open source dep list.")
+		return nil, nil
 	}
 
 	var filePath string
 	if filePath, ok = v.(string); !ok {
-		return fmt.Errorf("unable to determine filePath from open source dep list")
+		return nil, fmt.Errorf("unable to determine filePath from open source dep list")
 	}
 
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		//TODO(shawn-hurley): consider wrapping error with value
-		return err
+		return nil, err
 	}
 
 	if fileInfo.IsDir() {
-		return fmt.Errorf("open source dep list must be a file, not a directory")
+		return nil, fmt.Errorf("open source dep list must be a file, not a directory")
 	}
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer file.Close()
-	return loadDepLabelItems(file, p.depToLabels,
-		labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource))
+	items, err := loadDepLabelItems(file, labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource), nil)
+	return items, nil
 }
 
 // initExcludeDepLabels reads user provided list of excluded packages
 // and initiates label lookup for them
-func (p *javaServiceClient) initExcludeDepLabels() error {
+func initExcludeDepLabels(log logr.Logger, providerSpecificConfig map[string]interface{}, depToLabels map[string]*depLabelItem) (map[string]*depLabelItem, error) {
 	var ok bool
 	var v interface{}
-	if v, ok = p.config.ProviderSpecificConfig[providerSpecificConfigExcludePackagesKey]; !ok {
-		p.log.V(7).Info("did not find exclude packages list")
-		return nil
+	if v, ok = providerSpecificConfig[providerSpecificConfigExcludePackagesKey]; !ok {
+		log.V(7).Info("did not find exclude packages list")
+		return depToLabels, nil
 	}
-	var excludePackages []string
-	if excludePackages, ok = v.([]string); !ok {
-		return fmt.Errorf("%s config must be a list of packages to exclude", providerSpecificConfigExcludePackagesKey)
+	excludePackages, ok := v.([]string)
+	if !ok {
+		return nil, fmt.Errorf("%s config must be a list of packages to exclude", providerSpecificConfigExcludePackagesKey)
 	}
-	return loadDepLabelItems(strings.NewReader(
-		strings.Join(excludePackages, "\n")), p.depToLabels, provider.DepExcludeLabel)
+	items, err := loadDepLabelItems(strings.NewReader(strings.Join(excludePackages, "\n")), provider.DepExcludeLabel, depToLabels)
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 // loadDepLabelItems reads list of patterns from reader and appends given
 // label to the list of labels for the associated pattern
-func loadDepLabelItems(r io.Reader, depToLabels map[string]*depLabelItem, label string) error {
+func loadDepLabelItems(r io.Reader, label string, depToLabels map[string]*depLabelItem) (map[string]*depLabelItem, error) {
+	depToLabelsItems := map[string]*depLabelItem{}
+	if depToLabels != nil {
+		depToLabelsItems = depToLabels
+	}
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		pattern := scanner.Text()
 		r, err := regexp.Compile(pattern)
 		if err != nil {
-			return fmt.Errorf("unable to create regexp for string: %v", pattern)
+			return nil, fmt.Errorf("unable to create regexp for string: %v", pattern)
 		}
 		//Make sure that we are not adding duplicates
-		if _, found := depToLabels[pattern]; !found {
-			depToLabels[pattern] = &depLabelItem{
+		if _, found := depToLabelsItems[pattern]; !found {
+			depToLabelsItems[pattern] = &depLabelItem{
 				r: r,
 				labels: map[string]interface{}{
 					label: nil,
 				},
 			}
 		} else {
-			if depToLabels[pattern].labels == nil {
-				depToLabels[pattern].labels = map[string]interface{}{}
+			if depToLabelsItems[pattern].labels == nil {
+				depToLabelsItems[pattern].labels = map[string]interface{}{}
 			}
-			depToLabels[pattern].labels[label] = nil
+			depToLabelsItems[pattern].labels[label] = nil
 		}
 	}
-	return nil
+	return depToLabelsItems, nil
 }
