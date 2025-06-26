@@ -616,6 +616,7 @@ func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]k
 		m2RepoPath:  p.mvnLocalRepo,
 		seen:        map[string]bool{},
 		initialPath: path,
+		log:         p.log,
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
@@ -627,6 +628,7 @@ type walker struct {
 	initialPath string
 	seen        map[string]bool
 	pomPaths    []string
+	log         logr.Logger
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -648,7 +650,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		artifact, _ := toDependency(context.TODO(), w.depToLabels, path)
+		artifact, _ := toDependency(context.TODO(), w.log, w.depToLabels, path)
 		if (artifact != javaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version
@@ -710,6 +712,7 @@ func (p *javaServiceClient) discoverPoms(pathStart string, ll map[uri.URI][]konv
 		seen:        map[string]bool{},
 		initialPath: pathStart,
 		pomPaths:    []string{},
+		log:         p.log,
 	}
 	filepath.WalkDir(pathStart, w.walkDirForPom)
 	return w.pomPaths
