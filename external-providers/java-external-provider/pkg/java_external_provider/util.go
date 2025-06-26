@@ -4,12 +4,8 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,6 +14,8 @@ import (
 	"time"
 
 	"math/rand"
+
+	"github.com/go-logr/logr"
 )
 
 const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
@@ -154,30 +152,27 @@ func AppendToFile(src string, dst string) error {
 }
 
 // toDependency returns javaArtifact constructed for a jar
-func toDependency(_ context.Context, depToLabels map[string]*depLabelItem, jarFile string) (javaArtifact, error) {
-	// (!) would it be good to keep using SHA lookup and still have the index lookup?
-	// 1. try to find properties from pom
-	// attempt to lookup java artifact in maven
+func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*depLabelItem, jarFile string) (javaArtifact, error) {
 	//dep, err := constructArtifactFromSHA(jarFile)
 	//if err == nil {
 	//	return dep, nil
 	//}
 	// if we fail to lookup on maven, construct it from pom
-	dep, err := constructArtifactFromPom(jarFile)
+	dep, err := constructArtifactFromPom(log, jarFile)
 	if err != nil {
-		return javaArtifact{}, err
+		log.V(10).Info("could not construct artifact object from pom for artifact", "jarFile", jarFile)
 	}
 
-	foundOnline, err := isJarPublic(jarFile, depToLabels)
+	dep, err = constructArtifactFromStructure(log, jarFile, depToLabels)
 	if err != nil {
 		return javaArtifact{}, err
 	}
-	dep.foundOnline = foundOnline
 
 	return dep, err
 }
 
-func constructArtifactFromPom(jarFile string) (javaArtifact, error) {
+func constructArtifactFromPom(log logr.Logger, jarFile string) (javaArtifact, error) {
+	log.V(5).Info("trying to find pom within jar %s to get info", jarFile)
 	dep := javaArtifact{}
 	jar, err := zip.OpenReader(jarFile)
 	if err != nil {
@@ -218,18 +213,32 @@ func constructArtifactFromPom(jarFile string) (javaArtifact, error) {
 	return dep, fmt.Errorf("failed to construct artifact from pom properties")
 }
 
-// isJarPublic tries to infer if a JAR is a public piece of software based on its internal structure
-func isJarPublic(jarFile string, depToLabels map[string]*depLabelItem) (bool, error) {
+// constructArtifactFromStructure tries to infer if a JAR is a public piece of software based on its internal structure
+func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels map[string]*depLabelItem) (javaArtifact, error) {
+	log.V(10).Info("trying to infer if %s is a public dependency", jarFile)
 	groupId, err := inferGroupName(jarFile)
 	if err != nil {
-		return false, err
+		return javaArtifact{}, err
 	}
+	artifact := javaArtifact{GroupId: groupId}
 	// check against depToLabels. add *?
 	groupIdRegex := strings.Join([]string{groupId, "*"}, ".")
+	log.V(10).Info("%s is a public dependency", jarFile)
 	if depToLabels[groupIdRegex] != nil {
-		return true, nil
+		artifact.foundOnline = true
+		return artifact, nil
+	} else {
+		// lets try to remove one segment from the end
+		groupIdSgmts := strings.Split(groupId, ".")
+		groupId = strings.Join(groupIdSgmts[:len(groupIdSgmts)-1], ".")
+		groupIdRegex = strings.Join([]string{groupId, "*"}, ".")
+		if depToLabels[groupIdRegex] != nil {
+			artifact.foundOnline = true
+			return artifact, nil
+		}
 	}
-	return false, nil
+	log.V(10).Info("could not decide whether %s is public, setting as private", jarFile)
+	return artifact, nil
 }
 
 // inferGroupName tries to extract the name of the group based on the directory structure.
@@ -242,27 +251,44 @@ func inferGroupName(jarPath string) (string, error) {
 	}
 	defer r.Close()
 
-	// Store only class file paths that resemble Java packages
 	var classPaths []string
 	for _, file := range r.File {
-		if strings.HasSuffix(file.Name, ".class") && !strings.Contains(file.Name, "META-INF") {
-			classPaths = append(classPaths, file.Name)
+		// Skip entries that aren't .class files
+		if !strings.HasSuffix(file.Name, ".class") {
+			continue
 		}
+
+		// Skip inner or anonymous classes
+		if strings.Contains(path.Base(file.Name), "$") {
+			continue
+		}
+
+		// Skip top-level class files (no package)
+		if !strings.Contains(file.Name, "/") {
+			continue
+		}
+
+		// Skip known metadata paths
+		if strings.HasPrefix(file.Name, "META-INF/") || strings.HasPrefix(file.Name, "BOOT-INF/") {
+			continue
+		}
+
+		classPaths = append(classPaths, file.Name)
 	}
 
 	if len(classPaths) == 0 {
-		return "", fmt.Errorf("no class files found in JAR")
+		return "", fmt.Errorf("no valid class files found in JAR")
 	}
 
-	// Split each path into segments
+	// Convert each path to a list of package segments
 	var allPaths [][]string
 	for _, p := range classPaths {
-		dir := path.Dir(p) // remove the class file name
+		dir := path.Dir(p)
 		parts := strings.Split(dir, "/")
 		allPaths = append(allPaths, parts)
 	}
 
-	// Find common prefix
+	// Find the longest common prefix
 	var groupParts []string
 	for i := 0; ; i++ {
 		var part string
@@ -280,71 +306,71 @@ func inferGroupName(jarPath string) (string, error) {
 	}
 }
 
-func constructArtifactFromSHA(jarFile string) (javaArtifact, error) {
-	dep := javaArtifact{}
-	// we look up the jar in maven
-	file, err := os.Open(jarFile)
-	if err != nil {
-		return dep, err
-	}
-	defer file.Close()
-
-	hash := sha1.New()
-	_, err = io.Copy(hash, file)
-	if err != nil {
-		return dep, err
-	}
-
-	sha1sum := hex.EncodeToString(hash.Sum(nil))
-
-	// Make an HTTPS request to search.maven.org
-	searchURL := fmt.Sprintf("https://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
-	resp, err := http.Get(searchURL)
-	if err != nil {
-		return dep, err
-	}
-	defer resp.Body.Close()
-
-	// Read and parse the JSON response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return dep, err
-	}
-
-	var data map[string]interface{}
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		return dep, err
-	}
-
-	// Check if a single result is found
-	response, ok := data["response"].(map[string]interface{})
-	if !ok {
-		return dep, err
-	}
-
-	numFound, ok := response["numFound"].(float64)
-	if !ok {
-		return dep, err
-	}
-
-	if numFound == 1 {
-		jarInfo := response["docs"].([]interface{})[0].(map[string]interface{})
-		dep.GroupId = jarInfo["g"].(string)
-		dep.ArtifactId = jarInfo["a"].(string)
-		dep.Version = jarInfo["v"].(string)
-		dep.sha1 = sha1sum
-		dep.foundOnline = true
-		return dep, nil
-	} else if numFound > 1 {
-		dep, err = constructArtifactFromPom(jarFile)
-		if err == nil {
-			dep.foundOnline = true
-			return dep, nil
-		}
-	}
-	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
-}
+//func constructArtifactFromSHA(jarFile string) (javaArtifact, error) {
+//	dep := javaArtifact{}
+//	// we look up the jar in maven
+//	file, err := os.Open(jarFile)
+//	if err != nil {
+//		return dep, err
+//	}
+//	defer file.Close()
+//
+//	hash := sha1.New()
+//	_, err = io.Copy(hash, file)
+//	if err != nil {
+//		return dep, err
+//	}
+//
+//	sha1sum := hex.EncodeToString(hash.Sum(nil))
+//
+//	// Make an HTTPS request to search.maven.org
+//	searchURL := fmt.Sprintf("https://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
+//	resp, err := http.Get(searchURL)
+//	if err != nil {
+//		return dep, err
+//	}
+//	defer resp.Body.Close()
+//
+//	// Read and parse the JSON response
+//	body, err := io.ReadAll(resp.Body)
+//	if err != nil {
+//		return dep, err
+//	}
+//
+//	var data map[string]interface{}
+//	err = json.Unmarshal(body, &data)
+//	if err != nil {
+//		return dep, err
+//	}
+//
+//	// Check if a single result is found
+//	response, ok := data["response"].(map[string]interface{})
+//	if !ok {
+//		return dep, err
+//	}
+//
+//	numFound, ok := response["numFound"].(float64)
+//	if !ok {
+//		return dep, err
+//	}
+//
+//	if numFound == 1 {
+//		jarInfo := response["docs"].([]interface{})[0].(map[string]interface{})
+//		dep.GroupId = jarInfo["g"].(string)
+//		dep.ArtifactId = jarInfo["a"].(string)
+//		dep.Version = jarInfo["v"].(string)
+//		dep.sha1 = sha1sum
+//		dep.foundOnline = true
+//		return dep, nil
+//	} else if numFound > 1 {
+//		dep, err = constructArtifactFromPom(jarFile)
+//		if err == nil {
+//			dep.foundOnline = true
+//			return dep, nil
+//		}
+//	}
+//	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
+//}
 
 func toFilePathDependency(_ context.Context, filePath string) (javaArtifact, error) {
 	dep := javaArtifact{}

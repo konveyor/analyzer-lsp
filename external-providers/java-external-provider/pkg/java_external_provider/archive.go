@@ -339,7 +339,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			dependencies = append(dependencies, deps...)
 		// attempt to add nested jars as dependency before decompiling
 		case strings.HasSuffix(f.Name, JavaArchive):
-			dep, err := toDependency(ctx, depLabels, filePath)
+			dep, err := toDependency(ctx, log, depLabels, filePath)
 			if err != nil {
 				log.V(3).Error(err, "failed to add dep", "file", filePath)
 				// when we fail to identify a dep we will fallback to
