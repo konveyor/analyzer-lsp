@@ -213,31 +213,32 @@ func constructArtifactFromPom(log logr.Logger, jarFile string) (javaArtifact, er
 	return dep, fmt.Errorf("failed to construct artifact from pom properties")
 }
 
-// constructArtifactFromStructure tries to infer if a JAR is a public piece of software based on its internal structure
+// constructArtifactFromStructure builds an artifact object out of the JAR internal structure.
 func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels map[string]*depLabelItem) (javaArtifact, error) {
-	log.V(10).Info("trying to infer if %s is a public dependency", jarFile)
+	log.V(10).Info(fmt.Sprintf("trying to infer if %s is a public dependency", jarFile))
 	groupId, err := inferGroupName(jarFile)
 	if err != nil {
 		return javaArtifact{}, err
 	}
 	artifact := javaArtifact{GroupId: groupId}
-	// check against depToLabels. add *?
-	groupIdRegex := strings.Join([]string{groupId, "*"}, ".")
-	log.V(10).Info("%s is a public dependency", jarFile)
-	if depToLabels[groupIdRegex] != nil {
-		artifact.foundOnline = true
-		return artifact, nil
-	} else {
-		// lets try to remove one segment from the end
-		groupIdSgmts := strings.Split(groupId, ".")
-		groupId = strings.Join(groupIdSgmts[:len(groupIdSgmts)-1], ".")
-		groupIdRegex = strings.Join([]string{groupId, "*"}, ".")
+	// check the inferred groupId against list of public groups
+	// if groupId is not found, remove last segment. repeat if not found until no segments are left.
+	sgmts := strings.Split(groupId, ".")
+	for len(sgmts) > 0 {
+		// check against depToLabels. add *
+		groupIdRegex := strings.Join([]string{groupId, "*"}, ".")
 		if depToLabels[groupIdRegex] != nil {
+			log.V(10).Info(fmt.Sprintf("%s is a public dependency", jarFile))
 			artifact.foundOnline = true
 			return artifact, nil
+		} else {
+			// lets try to remove one segment from the end
+			sgmts = sgmts[:len(sgmts)-1]
+			groupId = strings.Join(sgmts, ".")
+			groupIdRegex = strings.Join([]string{groupId, "*"}, ".")
 		}
 	}
-	log.V(10).Info("could not decide whether %s is public, setting as private", jarFile)
+	log.V(10).Info(fmt.Sprintf("could not decide whether %s is public, setting as private", jarFile))
 	return artifact, nil
 }
 
