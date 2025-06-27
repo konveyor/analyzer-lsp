@@ -5,11 +5,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -134,57 +132,21 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if err != nil {
 			return response, fmt.Errorf("could not compile provided regex pattern '%s': %v", c.Pattern, err)
 		}
-		// Have to trim quotes around the pattern to keep backwards compatibility
-		filePatternRegex, err := regexp2.Compile(strings.Trim(c.FilePattern, "\""), regexp2.Multiline)
-		if err != nil {
-			return response, fmt.Errorf("could not compile provided file pattern '%s': %v", c.FilePattern, err)
-		}
 
-		ok, filePaths := cond.ProviderContext.GetScopedFilepaths()
-		if !ok {
-			// filePaths should not be used to filter paths
-			filePaths = nil
-		}
-		exludedFilePaths := cond.ProviderContext.GetExcludePatterns()
-
-		matches, err := p.parallelWalk(p.config.Location, patternRegex, filePatternRegex, filePaths, exludedFilePaths, log)
+		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
+			Patterns: []string{c.FilePattern},
+		})
 		if err != nil {
 			return response, fmt.Errorf("failed to perform search - %w", err)
 		}
 
-		// batchSize := 500
-		// for start := 0; start < len(filePaths); start += batchSize {
-		// 	end := int(math.Min(float64(start+batchSize), float64(len(filePaths))))
-		// 	currBatch := filePaths[start:end]
-		// 	p.log.V(5).Info("searching for pattern", "pattern", c.Pattern, "batchSize", len(currBatch), "totalFiles", len(filePaths))
-		// 	// Runs on Windows using PowerShell.exe and Unix based systems using grep
-		// 	currOutput, err := runOSSpecificGrepCommand(c.Pattern, currBatch, p.log)
-		// 	if err != nil {
-		// 		return response, err
-		// 	}
-		// 	outputBytes.Write(currOutput)
-		// }
+		matches, err := p.parallelWalk(filePaths, patternRegex, log)
+		if err != nil {
+			return response, fmt.Errorf("failed to perform search - %w", err)
+		}
 
 		for _, match := range matches {
 			lineNumber := int(match.positionParams.Position.Line)
-
-			if !containsFile {
-				continue
-			}
-
-			absPath, err := filepath.Abs(pieces[0])
-			if err != nil {
-				absPath = pieces[0]
-			}
-
-			if !p.isFileIncluded(absPath) {
-				continue
-			}
-
-			lineNumber, err := strconv.Atoi(pieces[1])
-			if err != nil {
-				return response, fmt.Errorf("cannot convert line number string to integer")
-			}
 
 			response.Incidents = append(response.Incidents, provider.IncidentContext{
 				FileURI:    uri.URI(match.positionParams.TextDocument.URI),
@@ -488,58 +450,23 @@ func (b *builtinServiceClient) getWorkingCopies() ([]string, []string) {
 	return additionalIncludedPaths, excludedPaths
 }
 
-type walkResult struct {
+type fileSearchResult struct {
 	positionParams protocol.TextDocumentPositionParams
 	match          string
 }
 
-func (b *builtinServiceClient) parallelWalk(location string, regex, filePatternRegex *regexp2.Regexp, filePaths, excludedFilePaths []string, log logr.Logger) ([]walkResult, error) {
-	var positions []walkResult
+func (b *builtinServiceClient) parallelWalk(paths []string, regex *regexp2.Regexp, log logr.Logger) ([]fileSearchResult, error) {
+	var positions []fileSearchResult
 	var positionsMu sync.Mutex
 	var eg errgroup.Group
 
 	// Set a parallelism limit to avoid hitting limits related to opening too many files.
 	// On Windows, this can show up as a runtime failure due to a thread limit.
 	eg.SetLimit(20)
-	excludedFilePathRegexs := []*regexp2.Regexp{}
-	if len(filePaths) == 0 && len(excludedFilePaths) != 0 {
-		for _, p := range excludedFilePaths {
-			r, err := regexp2.Compile(p, regexp2.None)
-			if err != nil {
-				return nil, err
-			}
-			excludedFilePathRegexs = append(excludedFilePathRegexs, r)
-		}
-	}
 
-	err := filepath.WalkDir(location, func(path string, f fs.DirEntry, err error) error {
-		if len(filePaths) != 0 {
-			found := false
-			for _, p := range filePaths {
-				if p == path {
-					found = true
-					break
-				}
-			}
-			if !found {
-				return nil
-			}
-		} else if len(excludedFilePathRegexs) != 0 {
-			for _, r := range excludedFilePathRegexs {
-				if match, err := r.MatchString(path); err == nil && match {
-					return nil
-				}
-			}
-		}
-		if !f.Type().IsRegular() {
-			return nil
-		}
-
-		if ok, _ := filePatternRegex.MatchString(path); !ok {
-			return nil
-		}
+	for _, filePath := range paths {
 		eg.Go(func() error {
-			pos, err := b.processFile(path, regex, f, log)
+			pos, err := b.processFile(filePath, regex, log)
 			if err != nil {
 				return err
 			}
@@ -549,11 +476,6 @@ func (b *builtinServiceClient) parallelWalk(location string, regex, filePatternR
 			positions = append(positions, pos...)
 			return nil
 		})
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	if err := eg.Wait(); err != nil {
@@ -563,7 +485,7 @@ func (b *builtinServiceClient) parallelWalk(location string, regex, filePatternR
 	return positions, nil
 }
 
-func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, dirEntry fs.DirEntry, log logr.Logger) ([]walkResult, error) {
+func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, log logr.Logger) ([]fileSearchResult, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -597,18 +519,18 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, d
 		}
 		if readErr != nil {
 			// We didn't find a match, we read the full file, return no matches
-			return []walkResult{}, nil
+			return []fileSearchResult{}, nil
 		}
 		buffer = make([]byte, 1024*1024) // Create a buffer to hold 1MB
 	}
 	// This shouldn't happen, but lets be safe and not read files more then we have to.
 	if !foundMatch {
-		return []walkResult{}, nil
+		return []fileSearchResult{}, nil
 	}
 
 	// Now we we need to go line by line to find the line numbers.
 	f.Seek(0, io.SeekStart)
-	var r []walkResult
+	var r []fileSearchResult
 
 	scanner := bufio.NewScanner(f)
 	lineNumber := 1
@@ -624,7 +546,7 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp, d
 				return nil, err
 			}
 
-			r = append(r, walkResult{
+			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
 					TextDocument: protocol.TextDocumentIdentifier{
 						URI: protocol.DocumentURI(uri.File(absPath)),

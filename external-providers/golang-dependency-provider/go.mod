@@ -3,7 +3,7 @@ module github.com/konveyor/analyzer-lsp/external-providers/golang-dependency-pro
 go 1.22
 
 require (
-	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250430114706-8854fd4af817
+	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250625194402-05dca9b4ac43
 	go.lsp.dev/uri v0.3.0
 	google.golang.org/grpc v1.67.3 // indirect
 )
