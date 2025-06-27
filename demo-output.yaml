@@ -1298,4 +1298,5 @@
   unmatched:
   - file-002
   - lang-ref-002
+  - node-sample-rule-003
   - python-sample-rule-003
