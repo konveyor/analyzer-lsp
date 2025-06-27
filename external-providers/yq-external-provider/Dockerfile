@@ -1,4 +1,4 @@
-FROM golang:1.24 as go-builder
+FROM golang:1.22 as go-builder
 
 copy / /analyzer-lsp
 
