@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -67,17 +68,35 @@ func Test_builtinServiceClient_getLocation(t *testing.T) {
 	}
 }
 
-// func BenchmarkRunOSSpecificGrepCommand(b *testing.B) {
-// 	for i := 0; i < b.N; i++ {
-// 		path, err := filepath.Abs("../../../external-providers/java-external-provider/examples/customers-tomcat-legacy/")
-// 		if err != nil {
-// 			return
-// 		}
-// 		runOSSpecificGrepCommand("Apache License 1.1",
-// 			[]string{path},
-// 			logr.Discard())
-// 	}
-// }
+func BenchmarkFileSearch(b *testing.B) {
+	baseLocation, err := filepath.Abs("../../../external-providers/java-external-provider/examples/customers-tomcat-legacy/")
+	if err != nil {
+		b.Fatalf("error getting base location for benchmark test")
+	}
+	sc := &builtinServiceClient{
+		config: provider.InitConfig{
+			Location: baseLocation,
+		},
+		log:            logr.Discard(),
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(logr.Discard()),
+	}
+	fileSearcher := provider.FileSearcher{
+		BasePath: baseLocation,
+		FailFast: true,
+		Log:      logr.Discard(),
+	}
+	for i := 0; i < b.N; i++ {
+		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
+			Patterns: []string{},
+		})
+		if err != nil {
+			b.Fatalf("error running file search for benchmark test")
+		}
+		sc.performFileContentSearch("Apache License 1.1", filePaths)
+	}
+}
 
 func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 	baseLocation := filepath.Join(".", "testdata", "search_scopes")
