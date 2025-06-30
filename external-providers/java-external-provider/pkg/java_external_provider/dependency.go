@@ -679,9 +679,6 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 	if info == nil {
 		return nil
 	}
-	if info.Name() == "lib" {
-		path = strings.Join([]string{path}, "")
-	}
 	if info.IsDir() {
 		return filepath.WalkDir(filepath.Join(path, info.Name()), w.walkDirForJar)
 	}
