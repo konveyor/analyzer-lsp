@@ -507,12 +507,12 @@ func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*de
 	// if we fail to lookup on maven, construct it from pom
 	dep, err := constructArtifactFromPom(log, jarFile)
 	if err != nil {
-		log.V(10).Info("could not construct artifact object from pom for artifact", "jarFile", jarFile)
-	}
+		log.V(10).Info("could not construct artifact object from pom for artifact, trying to infer from structure", "jarFile", jarFile, "error", err.Error())
 
-	dep, err = constructArtifactFromStructure(log, jarFile, depToLabels)
-	if err != nil {
-		return javaArtifact{}, err
+		dep, err = constructArtifactFromStructure(log, jarFile, depToLabels)
+		if err != nil {
+			return javaArtifact{}, err
+		}
 	}
 
 	return dep, err
