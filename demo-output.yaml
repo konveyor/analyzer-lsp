@@ -33,8 +33,6 @@
       incidents:
       - uri: file:///examples/builtin/inclusion_tests/dir-0/inclusion-test.json
         message: Only incidents in dir-0/test.json should be found
-      - uri: file:///examples/builtin/inclusion_tests/dir-0/inclusion-test.json
-        message: Only incidents in dir-0/test.json should be found
         codeSnip: |2
            1  {
            2      "description": "Does your JSON search work?",
@@ -45,17 +43,6 @@
         variables:
           data: inclusionTestNode
           matchingJSON: Test this node
-      - uri: file:///examples/builtin/inclusion_tests/dir-0/inclusion-test.xml
-        message: Only incidents in dir-0/test.json should be found
-        codeSnip: |2
-           1  <xmlTest>
-           2      <description>Does your XML search work?</description>
-           3      <name>xml-search</name>
-           4      <inclusionTestNode>Test this node</inclusionTestNode>
-           5  </xmlTest>
-        lineNumber: 4
-        variables:
-          matchingText: inclusionTestNode
       effort: 1
     builtin-inclusion-test-xml:
       description: |

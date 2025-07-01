@@ -17,6 +17,10 @@ jobs:
         os:
         - id: macos-latest
           name: mac
+        - id: windows-latest
+          name: windows
+        - id: ubuntu-latest
+          name: linux
 
     steps:
     - name: Checkout repository
@@ -28,10 +32,15 @@ jobs:
         go-version: '1.21'
 
     - name: Run benchmark tests
+      shell: bash
       run: |
         go install golang.org/x/perf/cmd/benchstat@latest
         go mod tidy
-        go test -run=^$ -bench=. -benchmem -count=6 ./... > benchmark_results
+        GOMAXPROCS=2 go test -run=^$ -bench=. -benchmem -count=6 $(go list ./... | grep -v 'event') |\
+          sed -e 's/cpu:.*/cpu:/g' -e 's/goarch:.*/goarch:/g' > benchmark_results
 
     - name: Display Benchstat results
-      run: benchstat benchmark.${{ matrix.os.name }} benchmark_results
+      shell: bash
+      run: |
+        benchstat ./benchmarks/${{ matrix.os.name }} benchmark_results > benchmark.diff
+        ./benchmarks/compare.sh benchmark.diff

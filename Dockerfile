@@ -1,7 +1,7 @@
 ARG JAVA_BUNDLE_TAG=latest
 FROM quay.io/konveyor/jdtls-server-base:${JAVA_BUNDLE_TAG} as base
 
-FROM golang:1.21 as builder
+FROM golang:1.22 as builder
 WORKDIR /analyzer-lsp
 
 COPY cmd /analyzer-lsp/cmd

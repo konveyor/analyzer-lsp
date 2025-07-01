@@ -1,0 +1,52 @@
+?   	github.com/konveyor/analyzer-lsp/cmd/analyzer	[no test files]
+?   	github.com/konveyor/analyzer-lsp/cmd/dep	[no test files]
+PASS
+ok  	github.com/konveyor/analyzer-lsp/engine	0.774s
+PASS
+ok  	github.com/konveyor/analyzer-lsp/engine/internal	0.630s
+PASS
+ok  	github.com/konveyor/analyzer-lsp/engine/labels	0.619s
+?   	github.com/konveyor/analyzer-lsp/jsonrpc2	[no test files]
+PASS
+ok  	github.com/konveyor/analyzer-lsp/jsonrpc2_v2	0.452s
+?   	github.com/konveyor/analyzer-lsp/lsp/base_service_client	[no test files]
+?   	github.com/konveyor/analyzer-lsp/lsp/protocol	[no test files]
+PASS
+ok  	github.com/konveyor/analyzer-lsp/lsp/protocol/generate	0.535s
+?   	github.com/konveyor/analyzer-lsp/output/v1/konveyor	[no test files]
+PASS
+ok  	github.com/konveyor/analyzer-lsp/parser	2.175s
+goos: windows
+goarch:
+pkg: github.com/konveyor/analyzer-lsp/provider
+cpu:
+BenchmarkMultilineGrepFileSizeSmall-2   	    3348	    362831 ns/op	   55995 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	    3384	    341363 ns/op	   55958 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	    3398	    343591 ns/op	   56001 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	    3213	    324997 ns/op	   55992 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	    3380	    342416 ns/op	   55991 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	    3330	    336671 ns/op	   56017 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	     622	   2047692 ns/op	  200929 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	     592	   1989846 ns/op	  200903 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	     592	   2035683 ns/op	  200966 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	     592	   2052144 ns/op	  200904 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	     601	   1895424 ns/op	  200708 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	     571	   1989849 ns/op	  201122 B/op	    2224 allocs/op
+PASS
+ok  	github.com/konveyor/analyzer-lsp/provider	18.058s
+?   	github.com/konveyor/analyzer-lsp/provider/grpc	[no test files]
+goos: windows
+goarch:
+pkg: github.com/konveyor/analyzer-lsp/provider/internal/builtin
+cpu:
+BenchmarkFileSearch-2   	      19	  61371868 ns/op	100787722 B/op	     488 allocs/op
+BenchmarkFileSearch-2   	      22	  61667359 ns/op	100787209 B/op	     486 allocs/op
+BenchmarkFileSearch-2   	      20	  53543210 ns/op	100787214 B/op	     485 allocs/op
+BenchmarkFileSearch-2   	      19	  56954511 ns/op	100787483 B/op	     486 allocs/op
+BenchmarkFileSearch-2   	      19	  58079805 ns/op	100787316 B/op	     487 allocs/op
+BenchmarkFileSearch-2   	      21	  57784510 ns/op	100790476 B/op	     489 allocs/op
+PASS
+ok  	github.com/konveyor/analyzer-lsp/provider/internal/builtin	9.387s
+?   	github.com/konveyor/analyzer-lsp/provider/internal/grpc	[no test files]
+?   	github.com/konveyor/analyzer-lsp/provider/lib	[no test files]
+?   	github.com/konveyor/analyzer-lsp/tracing	[no test files]

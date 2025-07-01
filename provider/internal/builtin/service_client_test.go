@@ -68,15 +68,33 @@ func Test_builtinServiceClient_getLocation(t *testing.T) {
 	}
 }
 
-func BenchmarkRunOSSpecificGrepCommand(b *testing.B) {
+func BenchmarkFileSearch(b *testing.B) {
+	baseLocation, err := filepath.Abs("../../../external-providers/java-external-provider/examples/customers-tomcat-legacy/")
+	if err != nil {
+		b.Fatalf("error getting base location for benchmark test")
+	}
+	sc := &builtinServiceClient{
+		config: provider.InitConfig{
+			Location: baseLocation,
+		},
+		log:            logr.Discard(),
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(logr.Discard()),
+	}
+	fileSearcher := provider.FileSearcher{
+		BasePath: baseLocation,
+		FailFast: true,
+		Log:      logr.Discard(),
+	}
 	for i := 0; i < b.N; i++ {
-		path, err := filepath.Abs("../../../external-providers/java-external-provider/examples/customers-tomcat-legacy/")
+		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
+			Patterns: []string{},
+		})
 		if err != nil {
-			return
+			b.Fatalf("error running file search for benchmark test")
 		}
-		runOSSpecificGrepCommand("Apache License 1.1",
-			[]string{path},
-			logr.Discard())
+		sc.performFileContentSearch("Apache License 1.1", filePaths)
 	}
 }
 

@@ -367,7 +367,9 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 	rulesetTagsCache := map[string]map[string]bool{}
 	for _, ruleMessage := range infoRules {
 		rule := ruleMessage.rule
-		response, err := processRule(ctx, rule, context, r.logger)
+		ruleCtx := context.Copy()
+		ruleCtx.RuleID = rule.RuleID
+		response, err := processRule(ctx, rule, ruleCtx, r.logger)
 		if err != nil {
 			r.logger.Error(err, "failed to evaluate rule", "ruleID", rule.RuleID)
 			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
