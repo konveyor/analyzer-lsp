@@ -532,7 +532,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 	excludeDepLabels, err := initExcludeDepLabels(svcClient.log, svcClient.config.ProviderSpecificConfig, openSourceDepLabels)
 	if err != nil {
-
+		log.Error(err, "error initializing labels for excluding dependencies")
 	} else {
 		svcClient.SetDepLabels(excludeDepLabels)
 	}
