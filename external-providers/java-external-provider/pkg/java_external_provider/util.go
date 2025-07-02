@@ -178,7 +178,7 @@ func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath
 		return "", "", err
 	}
 
-	err = createJavaProject(ctx, projectPath, deduplicateJavaArtifacts(deps))
+	err = createJavaProject(ctx, projectPath, removeIncompleteDependencies(deduplicateJavaArtifacts(deps)))
 	if err != nil {
 		log.Error(err, "failed to create java project", "path", projectPath)
 		return "", "", err
@@ -206,6 +206,16 @@ func deduplicateJavaArtifacts(artifacts []javaArtifact) []javaArtifact {
 		}
 	}
 	return uniq
+}
+
+func removeIncompleteDependencies(dependencies []javaArtifact) []javaArtifact {
+	complete := []javaArtifact{}
+	for _, dep := range dependencies {
+		if dep.ArtifactId != "" && dep.GroupId == "" && dep.Version == "" {
+			complete = append(complete, dep)
+		}
+	}
+	return complete
 }
 
 // explode explodes the given JAR, WAR or EAR archive, generates javaArtifact struct for given archive
