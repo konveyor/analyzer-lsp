@@ -14,15 +14,20 @@ jobs:
     outputs:
       api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
       tackle2_hub_tag: ${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}
+      timestamp_tag: ${{ steps.extract-info.outputs.TIMESTAMP_TAG }}
     steps:
       - name: Extract pull request number from inputs or PR description
         id: extract-info
         env:
           PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: |
-          echo "IMG_JAVA_PROVIDER=ttl.sh/konveyor-java-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
-          echo "IMG_DOTNET_PROVIDER=ttl.sh/konveyor-dotnet-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
-          echo "IMG_GENERIC_PROVIDER=ttl.sh/konveyor-generic-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
+          # Generate timestamp-based tag for temporary images
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          echo "TIMESTAMP_TAG=ci-${TIMESTAMP}-${GITHUB_SHA:0:7}" >>$GITHUB_OUTPUT
+          
+          echo "IMG_JAVA_PROVIDER=quay.io/konveyor/java-external-provider:ci-${TIMESTAMP}-${GITHUB_SHA:0:7}" >>$GITHUB_OUTPUT
+          echo "IMG_DOTNET_PROVIDER=quay.io/konveyor/dotnet-external-provider:ci-${TIMESTAMP}-${GITHUB_SHA:0:7}" >>$GITHUB_OUTPUT
+          echo "IMG_GENERIC_PROVIDER=quay.io/konveyor/generic-external-provider:ci-${TIMESTAMP}-${GITHUB_SHA:0:7}" >>$GITHUB_OUTPUT
 
           echo "BUILD_BUNDLE=false" >> $GITHUB_OUTPUT
           # if this is a PR, we should use the base branch
@@ -75,6 +80,13 @@ jobs:
 
       - uses: actions/checkout@v3
 
+      - name: Log in to Quay.io
+        uses: redhat-actions/podman-login@v1
+        with:
+          username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
+          password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
+          registry: quay.io
+
       # build all provider images and the analyzer-lsp image
       - name: build images
         run: |
@@ -119,8 +131,8 @@ jobs:
       - name: Build addon and push images
         working-directory: tackle2-addon-analyzer
         run: |
-          IMG=ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h make image-podman
-          podman push ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h
+          IMG=quay.io/konveyor/tackle2-addon-analyzer:${{ steps.extract-info.outputs.TIMESTAMP_TAG }} make image-podman
+          podman push quay.io/konveyor/tackle2-addon-analyzer:${{ steps.extract-info.outputs.TIMESTAMP_TAG }}
           podman push ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
           podman push ${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}
           podman push ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
@@ -128,18 +140,18 @@ jobs:
       - name: Make bundle image
         uses: konveyor/operator/.github/actions/make-bundle@main
         with:
-          operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
-          addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
+          operator_bundle: quay.io/konveyor/tackle2-operator-bundle:${{ steps.extract-info.outputs.TIMESTAMP_TAG }}
+          addon_analyzer: quay.io/konveyor/tackle2-addon-analyzer:${{ steps.extract-info.outputs.TIMESTAMP_TAG }}
           tackle_hub: "quay.io/konveyor/tackle2-hub:${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}"
           provider_generic: ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
           provider_java: ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
-      - name: push bundle image 
+      - name: push bundle image
         run: |
-          docker push ttl.sh/konveyor-operator-bundle-${GITHUB_SHA}:2h
+          podman push quay.io/konveyor/tackle2-operator-bundle:${{ steps.extract-info.outputs.TIMESTAMP_TAG }}
   e2e:
     needs: test
     uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
-      operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
+      operator_bundle: quay.io/konveyor/tackle2-operator-bundle:${{ needs.test.outputs.timestamp_tag }}
       tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"

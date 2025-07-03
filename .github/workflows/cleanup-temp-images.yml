@@ -1,0 +1,98 @@
+name: Cleanup Temporary Images
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run - only list images without deleting'
+        required: false
+        default: 'false'
+        type: boolean
+      max_age_hours:
+        description: 'Maximum age of images to keep (in hours)'
+        required: false
+        # images will be deleted if they are older than 6 hours
+        default: '6'
+        type: string
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repository:
+          - konveyor/java-external-provider
+          - konveyor/dotnet-external-provider
+          - konveyor/generic-external-provider
+          - konveyor/tackle2-addon-analyzer
+          - konveyor/tackle2-operator-bundle
+    steps:
+      - name: Set up environment
+        run: |
+          echo "DRY_RUN=${{ github.event.inputs.dry_run || 'false' }}" >> $GITHUB_ENV
+          echo "MAX_AGE_HOURS=${{ github.event.inputs.max_age_hours || '6' }}" >> $GITHUB_ENV
+          echo "CUTOFF_DATETIME=$(date -d '${{ github.event.inputs.max_age_hours || '6' }} hours ago' +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
+
+      - name: Install skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Log in to Quay.io
+        uses: redhat-actions/podman-login@v1
+        with:
+          username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
+          password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
+          registry: quay.io
+
+      - name: List and cleanup temporary images
+        run: |
+          REPOSITORY="quay.io/${{ matrix.repository }}"
+          echo "Processing repository: $REPOSITORY"
+          
+          # Get all tags for the repository
+          TAGS=$(skopeo list-tags docker://$REPOSITORY | jq -r '.Tags[]' | grep '^ci-' || true)
+          
+          if [ -z "$TAGS" ]; then
+            echo "No temporary tags found for $REPOSITORY"
+            exit 0
+          fi
+          
+          echo "Found temporary tags:"
+          echo "$TAGS"
+          
+          # Process each tag
+          for TAG in $TAGS; do
+            # Extract datetime from tag (format: ci-YYYYMMDD-HHMMSS-sha)
+            TAG_DATETIME=$(echo "$TAG" | sed -n 's/^ci-\([0-9]\{8\}-[0-9]\{6\}\)-.*$/\1/p')
+            
+            if [ -z "$TAG_DATETIME" ]; then
+              echo "Skipping tag $TAG - doesn't match expected format"
+              continue
+            fi
+            
+            # Compare with cutoff datetime
+            if [ "$TAG_DATETIME" \< "$CUTOFF_DATETIME" ]; then
+              echo "Tag $TAG is older than $MAX_AGE_HOURS hours (created: $TAG_DATETIME, cutoff: $CUTOFF_DATETIME)"
+              
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "[DRY RUN] Would delete: $REPOSITORY:$TAG"
+              else
+                echo "Deleting: $REPOSITORY:$TAG"
+                # Use skopeo to delete the image
+                skopeo delete docker://$REPOSITORY:$TAG || echo "Failed to delete $REPOSITORY:$TAG"
+              fi
+            else
+              echo "Tag $TAG is recent (created: $TAG_DATETIME), keeping it"
+            fi
+          done
+
+      - name: Summary
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run completed for ${{ matrix.repository }}. Check logs above for images that would be deleted."
+          else
+            echo "Cleanup completed for ${{ matrix.repository }}."
+          fi 
