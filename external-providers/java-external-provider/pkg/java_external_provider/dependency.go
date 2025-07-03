@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
@@ -43,6 +44,12 @@ const (
 const (
 	maven  = "maven"
 	gradle = "gradle"
+)
+
+const (
+	mavenDepErr    = "mvnErr"
+	gradleDepErr   = "gradleErr"
+	fallbackDepErr = "fallbackDepErr"
 )
 
 func (p *javaServiceClient) GetBuildTool() string {
@@ -97,6 +104,7 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 
 	var ll map[uri.URI][]konveyor.DepDAGItem
 	m := map[uri.URI][]*provider.Dep{}
+	depsErr := map[string]error{}
 
 	p.depsMutex.Lock()
 	defer p.depsMutex.Unlock()
@@ -128,8 +136,13 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 			p.log.V(3).Info("using cached dependencies")
 			return val, nil
 		}
+		if p.depsErrCache != nil && p.depsErrCache[gradleDepErr] != nil {
+			return nil, p.depsErrCache[gradleDepErr]
+		}
 		deps, err := p.getDependenciesForGradle(ctx)
 		if err != nil {
+			depsErr[gradleDepErr] = err
+			p.depsErrCache = depsErr
 			p.log.Error(err, "failed to get dependencies for gradle")
 			return nil, err
 		}
@@ -148,6 +161,9 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 			p.log.V(3).Info("using cached dependencies")
 			return val, nil
 		}
+		if p.depsErrCache != nil && p.depsErrCache[fallbackDepErr] != nil {
+			return nil, p.depsErrCache[fallbackDepErr]
+		}
 		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
 		// for binaries we only find JARs embedded in archive
 		p.discoverDepsFromJars(p.config.DependencyPath, ll)
@@ -157,15 +173,18 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 			for _, path := range pomPaths {
 				dep, err := p.GetDependenciesFallback(ctx, path)
 				if err != nil {
+					depsErr[fallbackDepErr] = err
+					p.depsErrCache = depsErr
 					return m, err
 				}
 				maps.Copy(m, dep)
 			}
 		}
 	default:
+		pom := p.findPom()
 		// Read pom and create a hash.
 		// if pom hash and depCache return cache
-		hashString, err := getHash(p.findPom())
+		hashString, err := getHash(pom)
 		if err != nil {
 			p.log.Error(err, "unable to generate hash from pom file")
 			return nil, err
@@ -177,18 +196,39 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 				return val, nil
 			}
 		}
+		if p.depsErrCache != nil {
+			_, hasMvnErr := p.depsErrCache[mavenDepErr]
+			_, hasFallbackErr := p.depsErrCache[fallbackDepErr]
+			switch {
+			case hasMvnErr, hasFallbackErr:
+				return nil, p.depsErrCache[fallbackDepErr]
+			case hasMvnErr:
+				return nil, p.depsErrCache[mavenDepErr]
+			default:
+				return nil, fmt.Errorf("found error(s) getting dependencies")
+			}
+		}
 		p.depsFileHash = &hashString
 		ll, err = p.GetDependenciesDAG(ctx)
 		if err != nil {
 			p.log.Info("unable to get dependencies, using fallback", "error", err)
+			depsErr[mavenDepErr] = err
+			p.depsErrCache = depsErr
 			fallBackDeps, fallbackErr := p.GetDependenciesFallback(ctx, "")
 			if fallbackErr != nil {
+				depsErr[fallbackDepErr] = fallbackErr
+				p.depsErrCache = depsErr
 				return nil, fmt.Errorf("%w %w", err, fallbackErr)
 			}
 			m = fallBackDeps
 		} else if len(ll) == 0 {
 			p.log.Info("unable to get dependencies (none found), using fallback")
-			m, _ = p.GetDependenciesFallback(ctx, "")
+			var fallBackErr error
+			m, fallBackErr = p.GetDependenciesFallback(ctx, "")
+			if fallBackErr != nil {
+				depsErr[fallbackDepErr] = fallBackErr
+				p.depsErrCache = depsErr
+			}
 		}
 	}
 	for f, ds := range ll {
@@ -350,7 +390,7 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	}
 }
 
-func (p *javaServiceClient) getDependenciesForMaven(_ context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	path := p.findPom()
 	file := uri.File(path)
 
@@ -371,7 +411,9 @@ func (p *javaServiceClient) getDependenciesForMaven(_ context.Context) (map[uri.
 	}
 
 	// get the graph output
-	cmd := exec.Command("mvn", args...)
+	timeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(timeout, "mvn", args...)
 	cmd.Dir = moddir
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
@@ -403,7 +445,7 @@ func (p *javaServiceClient) getDependenciesForMaven(_ context.Context) (map[uri.
 
 // getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
 // TODO: what if no wrapper?
-func (p *javaServiceClient) getDependenciesForGradle(_ context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	subprojects, err := p.getGradleSubprojects()
 	if err != nil {
 		return nil, err
@@ -427,7 +469,9 @@ func (p *javaServiceClient) getDependenciesForGradle(_ context.Context) (map[uri
 	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
 	}
-	cmd := exec.Command(exe, args...)
+	timeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(timeout, exe, args...)
 	cmd.Dir = p.config.Location
 	output, err := cmd.CombinedOutput()
 	if err != nil {
