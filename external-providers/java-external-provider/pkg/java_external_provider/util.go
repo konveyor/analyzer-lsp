@@ -55,6 +55,8 @@ const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
 </project>
 `
 
+const EMBEDDED_KONVEYOR_GROUP = "io.konveyor.embeddedep"
+
 type javaArtifact struct {
 	foundOnline bool
 	packaging   string
@@ -253,28 +255,28 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 		default:
 		}
 
-		filePath := filepath.Join(destDir, f.Name)
+		explodedFilePath := filepath.Join(destDir, f.Name)
 
 		// fernflower already deemed this unparsable, skip...
 		if strings.Contains(f.Name, "unparsable") || strings.Contains(f.Name, "NonParsable") {
-			log.V(8).Info("unable to parse file", "file", filePath)
+			log.V(8).Info("unable to parse file", "file", explodedFilePath)
 			continue
 		}
 
 		if f.FileInfo().IsDir() {
 			// make sure execute bits are set so that fernflower can decompile
-			err := os.MkdirAll(filePath, f.Mode()|0111)
+			err := os.MkdirAll(explodedFilePath, f.Mode()|0111)
 			if err != nil {
-				log.V(5).Error(err, "failed to create directory when exploding the archive", "filePath", filePath)
+				log.V(5).Error(err, "failed to create directory when exploding the archive", "filePath", explodedFilePath)
 			}
 			continue
 		}
 
-		if err = os.MkdirAll(filepath.Dir(filePath), f.Mode()|0111); err != nil {
+		if err = os.MkdirAll(filepath.Dir(explodedFilePath), f.Mode()|0111); err != nil {
 			return "", decompileJobs, dependencies, err
 		}
 
-		dstFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode()|0111)
+		dstFile, err := os.OpenFile(explodedFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode()|0111)
 		if err != nil {
 			return "", decompileJobs, dependencies, err
 		}
@@ -299,12 +301,12 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			// full path in the java project for the decompd file
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
-				strings.Replace(filePath, destDir, "", -1))
+				strings.Replace(explodedFilePath, destDir, "", -1))
 			destPath = strings.ReplaceAll(destPath, filepath.Join("WEB-INF", "classes"), "")
 			destPath = strings.ReplaceAll(destPath, filepath.Join("META-INF", "classes"), "")
 			destPath = strings.TrimSuffix(destPath, ClassFile) + ".java"
 			decompileJobs = append(decompileJobs, decompileJob{
-				inputPath:  filePath,
+				inputPath:  explodedFilePath,
 				outputPath: destPath,
 				artifact: javaArtifact{
 					packaging: ClassFile,
@@ -316,10 +318,10 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			!(strings.Contains(f.Name, "WEB-INF") || strings.Contains(f.Name, "META-INF")):
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
-				strings.Replace(filePath, destDir, "", -1))
+				strings.Replace(explodedFilePath, destDir, "", -1))
 			destPath = strings.TrimSuffix(destPath, ClassFile) + ".java"
 			decompileJobs = append(decompileJobs, decompileJob{
-				inputPath:  filePath,
+				inputPath:  explodedFilePath,
 				outputPath: destPath,
 				artifact: javaArtifact{
 					packaging: ClassFile,
@@ -338,40 +340,40 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 		case strings.HasSuffix(f.Name, JavaFile):
 			destPath := filepath.Join(
 				projectPath, "src", "main", "java",
-				strings.Replace(filePath, destDir, "", -1))
+				strings.Replace(explodedFilePath, destDir, "", -1))
 			destPath = strings.ReplaceAll(destPath, filepath.Join("WEB-INF", "classes"), "")
 			destPath = strings.ReplaceAll(destPath, filepath.Join("META-INF", "classes"), "")
 			if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 				log.V(8).Error(err, "error creating directory for java file", "path", destPath)
 				continue
 			}
-			if err := moveFile(filePath, destPath); err != nil {
+			if err := moveFile(explodedFilePath, destPath); err != nil {
 				log.V(8).Error(err, "error moving decompiled file to project path",
-					"src", filePath, "dest", destPath)
+					"src", explodedFilePath, "dest", destPath)
 				continue
 			}
 		// decompile web archives
 		case strings.HasSuffix(f.Name, WebArchive):
 			// TODO(djzager): Should we add these deps to the pom?
-			_, nestedJobs, deps, err := explode(ctx, log, filePath, projectPath, m2Repo, depLabels)
+			_, nestedJobs, deps, err := explode(ctx, log, explodedFilePath, projectPath, m2Repo, depLabels)
 			if err != nil {
-				log.Error(err, "failed to decompile file", "file", filePath)
+				log.Error(err, "failed to decompile file", "file", explodedFilePath)
 			}
 			decompileJobs = append(decompileJobs, nestedJobs...)
 			dependencies = append(dependencies, deps...)
 		// attempt to add nested jars as dependency before decompiling
 		case strings.HasSuffix(f.Name, JavaArchive):
-			dep, err := toDependency(ctx, log, depLabels, filePath)
+			dep, err := toDependency(ctx, log, depLabels, explodedFilePath)
 			if err != nil {
-				log.V(3).Error(err, "failed to add dep", "file", filePath)
+				log.V(3).Error(err, "failed to add dep", "file", explodedFilePath)
 				// when we fail to identify a dep we will fallback to
 				// decompiling it ourselves and adding as source
 				if (dep != javaArtifact{}) {
 					outputPath := filepath.Join(
-						filepath.Dir(filePath), fmt.Sprintf("%s-decompiled",
+						filepath.Dir(explodedFilePath), fmt.Sprintf("%s-decompiled",
 							strings.TrimSuffix(f.Name, JavaArchive)), filepath.Base(f.Name))
 					decompileJobs = append(decompileJobs, decompileJob{
-						inputPath:  filePath,
+						inputPath:  explodedFilePath,
 						outputPath: outputPath,
 						artifact: javaArtifact{
 							packaging:  JavaArchive,
@@ -382,36 +384,41 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 				}
 			}
 			if (dep != javaArtifact{}) {
-				if dep.foundOnline {
-					dependencies = append(dependencies, dep)
-					// copy this into m2 repo to avoid downloading again
-					groupPath := filepath.Join(strings.Split(dep.GroupId, ".")...)
-					artifactPath := filepath.Join(strings.Split(dep.ArtifactId, ".")...)
-					destPath := filepath.Join(m2Repo, groupPath, artifactPath,
-						dep.Version, filepath.Base(filePath))
-					if err := CopyFile(filePath, destPath); err != nil {
-						log.V(8).Error(err, "failed copying jar to m2 local repo")
-					} else {
-						log.V(8).Info("copied jar file", "src", filePath, "dest", destPath)
-					}
+				dependencies = append(dependencies, dep)
+				// copy this into m2 repo to avoid downloading again
+				groupPath := filepath.Join(strings.Split(dep.GroupId, ".")...)
+				artifactPath := filepath.Join(strings.Split(dep.ArtifactId, ".")...)
+				destPath := filepath.Join(m2Repo, groupPath, artifactPath,
+					dep.Version, filepath.Base(explodedFilePath))
+				if err := CopyFile(explodedFilePath, destPath); err != nil {
+					log.V(8).Error(err, "failed copying jar to m2 local repo")
 				} else {
-					// when it isn't found online, decompile it
-					outputPath := filepath.Join(
-						filepath.Dir(filePath), fmt.Sprintf("%s-decompiled",
-							strings.TrimSuffix(f.Name, JavaArchive)), filepath.Base(f.Name))
-					decompileJobs = append(decompileJobs, decompileJob{
-						inputPath:  filePath,
-						outputPath: outputPath,
-						artifact: javaArtifact{
-							packaging:  JavaArchive,
-							GroupId:    dep.GroupId,
-							ArtifactId: dep.ArtifactId,
-						},
-					})
+					log.V(8).Info("copied jar file", "src", explodedFilePath, "dest", destPath)
+				}
+
+			} else {
+				log.Info("failed to add dependency to list of depdencies - using file to create dummy values", "file", explodedFilePath)
+				name, _ := strings.CutSuffix(filepath.Base(explodedFilePath), ".jar")
+				newDep := javaArtifact{
+					foundOnline: false,
+					packaging:   "",
+					GroupId:     EMBEDDED_KONVEYOR_GROUP,
+					ArtifactId:  name,
+					Version:     "0.0.0-SNAPSHOT",
+					sha1:        "",
+				}
+				dependencies = append(dependencies, newDep)
+				gropupPath := filepath.Join(strings.Split(EMBEDDED_KONVEYOR_GROUP, ".")...)
+				destPath := filepath.Join(m2Repo, gropupPath, name, "0.0.0-SNAPSHOT", fmt.Sprintf("%s-%s.jar", newDep.ArtifactId, newDep.Version))
+				if err := CopyFile(explodedFilePath, destPath); err != nil {
+					log.V(8).Error(err, "failed copying jar to m2 local repo")
+				} else {
+					log.V(8).Info("copied jar file", "src", explodedFilePath, "dest", destPath)
 				}
 			}
 		// any other files, move to java project as-is
 		default:
+			log.Info("default case", "file", explodedFilePath)
 			baseName := strings.ToValidUTF8(f.Name, "_")
 			re := regexp.MustCompile(`[^\w\-\.\\/]+`)
 			baseName = re.ReplaceAllString(baseName, "_")
@@ -421,9 +428,9 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 				log.V(8).Error(err, "error creating directory for java file", "path", destPath)
 				continue
 			}
-			if err := moveFile(filePath, destPath); err != nil {
+			if err := moveFile(explodedFilePath, destPath); err != nil {
 				log.V(8).Error(err, "error moving decompiled file to project path",
-					"src", filePath, "dest", destPath)
+					"src", explodedFilePath, "dest", destPath)
 				continue
 			}
 		}
@@ -510,11 +517,6 @@ func AppendToFile(src string, dst string) error {
 
 // toDependency returns javaArtifact constructed for a jar
 func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*depLabelItem, jarFile string) (javaArtifact, error) {
-	//dep, err := constructArtifactFromSHA(jarFile)
-	//if err == nil {
-	//	return dep, nil
-	//}
-	// if we fail to lookup on maven, construct it from pom
 	dep, err := constructArtifactFromPom(log, jarFile)
 	if err != nil {
 		log.V(10).Info("could not construct artifact object from pom for artifact, trying to infer from structure", "jarFile", jarFile, "error", err.Error())
@@ -663,72 +665,6 @@ func inferGroupName(jarPath string) (string, error) {
 		groupParts = append(groupParts, part)
 	}
 }
-
-//func constructArtifactFromSHA(jarFile string) (javaArtifact, error) {
-//	dep := javaArtifact{}
-//	// we look up the jar in maven
-//	file, err := os.Open(jarFile)
-//	if err != nil {
-//		return dep, err
-//	}
-//	defer file.Close()
-//
-//	hash := sha1.New()
-//	_, err = io.Copy(hash, file)
-//	if err != nil {
-//		return dep, err
-//	}
-//
-//	sha1sum := hex.EncodeToString(hash.Sum(nil))
-//
-//	// Make an HTTPS request to search.maven.org
-//	searchURL := fmt.Sprintf("https://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
-//	resp, err := http.Get(searchURL)
-//	if err != nil {
-//		return dep, err
-//	}
-//	defer resp.Body.Close()
-//
-//	// Read and parse the JSON response
-//	body, err := io.ReadAll(resp.Body)
-//	if err != nil {
-//		return dep, err
-//	}
-//
-//	var data map[string]interface{}
-//	err = json.Unmarshal(body, &data)
-//	if err != nil {
-//		return dep, err
-//	}
-//
-//	// Check if a single result is found
-//	response, ok := data["response"].(map[string]interface{})
-//	if !ok {
-//		return dep, err
-//	}
-//
-//	numFound, ok := response["numFound"].(float64)
-//	if !ok {
-//		return dep, err
-//	}
-//
-//	if numFound == 1 {
-//		jarInfo := response["docs"].([]interface{})[0].(map[string]interface{})
-//		dep.GroupId = jarInfo["g"].(string)
-//		dep.ArtifactId = jarInfo["a"].(string)
-//		dep.Version = jarInfo["v"].(string)
-//		dep.sha1 = sha1sum
-//		dep.foundOnline = true
-//		return dep, nil
-//	} else if numFound > 1 {
-//		dep, err = constructArtifactFromPom(jarFile)
-//		if err == nil {
-//			dep.foundOnline = true
-//			return dep, nil
-//		}
-//	}
-//	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
-//}
 
 func toFilePathDependency(_ context.Context, filePath string) (javaArtifact, error) {
 	dep := javaArtifact{}
