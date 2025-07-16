@@ -44,6 +44,7 @@ type server struct {
 	CertPath            string
 	KeyPath             string
 	SecretKey           string
+	SocketPath          string
 
 	mutex   sync.RWMutex
 	clients map[int64]clientMapItem
@@ -60,7 +61,7 @@ type clientMapItem struct {
 
 // Provider GRPC Service
 // TOOD: HANDLE INIT CONFIG CHANGES
-func NewServer(client BaseClient, port int, certPath string, keyPath string, secretKey string, logger logr.Logger) Server {
+func NewServer(client BaseClient, port int, certPath string, keyPath string, secretKey string, socketPath string, logger logr.Logger) Server {
 	s := rand.NewSource(time.Now().Unix())
 
 	var depLocationResolver DependencyLocationResolver
@@ -87,6 +88,7 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, sec
 		CertPath:                           certPath,
 		KeyPath:                            keyPath,
 		SecretKey:                          secretKey,
+		SocketPath:                         socketPath,
 		UnimplementedProviderServiceServer: libgrpc.UnimplementedProviderServiceServer{},
 		mutex:                              sync.RWMutex{},
 		clients:                            make(map[int64]clientMapItem),
@@ -97,11 +99,20 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, sec
 }
 
 func (s *server) Start(ctx context.Context) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+	var listen net.Listener
+	var err error
+	if s.Port != 0 {
+		listen, err = net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+	} else if s.SocketPath != "" {
+		listen, err = net.Listen("unix", s.SocketPath)
+	} else {
+		return fmt.Errorf("unable to start server no serving information present")
+	}
 	if err != nil {
 		s.Log.Error(err, "failed to listen")
 		return err
 	}
+
 	if s.SecretKey != "" && (s.CertPath == "" || s.KeyPath == "") {
 		return fmt.Errorf("to use JWT authentication you must use TLS")
 	}
@@ -129,8 +140,8 @@ func (s *server) Start(ctx context.Context) error {
 	}
 	libgrpc.RegisterProviderServiceServer(gs, s)
 	reflection.Register(gs)
-	s.Log.Info(fmt.Sprintf("server listening at %v", lis.Addr()))
-	if err := gs.Serve(lis); err != nil {
+	s.Log.Info(fmt.Sprintf("server listening at %v", listen.Addr()))
+	if err := gs.Serve(listen); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 	return nil
