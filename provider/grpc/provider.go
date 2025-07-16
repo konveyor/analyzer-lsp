@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"time"
 
@@ -252,11 +253,6 @@ func (g *grpcProvider) NotifyFileChanges(ctx context.Context, changes ...provide
 func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.ReadCloser, error) {
 	// Here the Provider will start the GRPC Server if a binary is set.
 	if config.BinaryPath != "" {
-		port, err := freeport.GetFreePort()
-		if err != nil {
-			return nil, nil, err
-		}
-
 		ic := config.InitConfig
 		// For the generic external provider
 		name := "generic"
@@ -266,7 +262,25 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 			}
 		}
 
-		cmd := exec.CommandContext(ctx, config.BinaryPath, "--port", fmt.Sprintf("%v", port), "--name", name)
+		var cmd *exec.Cmd
+		var connectionString string
+		if config.UseSocket {
+			f, err := os.CreateTemp("", fmt.Sprintf("provider-%v-*.sock", name))
+			if err != nil {
+				return nil, nil, err
+			}
+			f.Close()
+			os.Remove(f.Name())
+			connectionString = fmt.Sprintf("unix://%v", f.Name())
+			cmd = exec.CommandContext(ctx, config.BinaryPath, "--socket", f.Name(), "--name", name)
+		} else {
+			port, err := freeport.GetFreePort()
+			if err != nil {
+				return nil, nil, err
+			}
+			connectionString = fmt.Sprintf("localhost:%v", port)
+			cmd = exec.CommandContext(ctx, config.BinaryPath, "--port", fmt.Sprintf("%v", port), "--name", name)
+		}
 		// TODO: For each output line, log that line here, allows the server's to output to the main log file. Make sure we name this correctly
 		// cmd will exit with the ending of the ctx.
 		out, err := cmd.StdoutPipe()
@@ -275,12 +289,11 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 		}
 
 		err = cmd.Start()
-		if err != nil {
-			return nil, nil, err
-		}
-		conn, err := grpc.Dial(fmt.Sprintf("localhost:%v", port),
+
+		conn, err := grpc.NewClient(connectionString,
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
 			grpc.WithTransportCredentials(insecure.NewCredentials()))
+
 		if err != nil {
 			log.Fatalf("did not connect: %v", err)
 		}

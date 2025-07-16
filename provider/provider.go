@@ -88,6 +88,7 @@ type Config struct {
 	Name         string       `yaml:"name,omitempty" json:"name,omitempty"`
 	BinaryPath   string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
 	Address      string       `yaml:"address,omitempty" json:"address,omitempty"`
+	UseSocket    bool         `yaml:"useSocket,omitempty" json:"useSocket,omitempty"`
 	CertPath     string       `yaml:"certPath,omitempty" json:"certPath,omitempty"`
 	JWTToken     string       `yaml:"jwtToken,omitempty" json:"jwtToken,omitempty"`
 	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
