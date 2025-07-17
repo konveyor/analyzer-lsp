@@ -2,6 +2,7 @@
     {
         "name": "go",
         "binaryPath": "/usr/local/bin/generic-external-provider",
+        "useSocket": true,
         "initConfig": [
             {
                 "analysisMode": "full",
@@ -83,6 +84,7 @@
     {
         "name": "java",
         "binaryPath": "/usr/local/bin/java-external-provider",
+        "useSocket": true,
         "initConfig": [
             {
                 "location": "/analyzer-lsp/examples/java",
