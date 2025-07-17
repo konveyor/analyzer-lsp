@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp/external-providers/yq-external-provider
 
-go 1.21
+go 1.22.0
 
 toolchain go1.24.2
 
