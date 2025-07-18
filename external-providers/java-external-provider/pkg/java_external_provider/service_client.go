@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -274,7 +275,13 @@ func (p *javaServiceClient) Stop() {
 	p.cancelFunc()
 	err = p.cmd.Wait()
 	if err != nil {
-		p.log.Info("stopping java provider", "error", err)
+		if isErrExpected(err) {
+			p.log.Info("java provider stopped")
+		} else {
+			p.log.Info("java provider stopped with error", "error", err)
+		}
+	} else {
+		p.log.Info("java provider stopped")
 	}
 
 	if len(p.cleanExplodedBins) > 0 {
@@ -314,6 +321,26 @@ func (p *javaServiceClient) shutdown() error {
 		return err
 	}
 	return nil
+}
+func isErrExpected(err error) bool {
+	if errors.Is(err, context.Canceled) {
+		return true
+	}
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
+			if status.Signaled() && (status.Signal() == syscall.SIGTERM || status.Signal() == syscall.SIGKILL) {
+				return true
+			}
+		}
+	}
+	// to prevent log msg="stopping java provider" error="{\"Stderr\":null}" provider=java
+	errStr := err.Error()
+	if errStr == "{\"Stderr\":null}" {
+		return true
+	}
+
+	return false
 }
 
 func (p *javaServiceClient) initialization(ctx context.Context) {
