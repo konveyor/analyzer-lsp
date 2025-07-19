@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"os/exec"
 	"time"
 
 	"github.com/go-logr/logr"
 	reflectClient "github.com/jhump/protoreflect/grpcreflect"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/konveyor/analyzer-lsp/provider/grpc/socket"
 	pb "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"github.com/phayes/freeport"
 	"go.lsp.dev/uri"
@@ -46,6 +46,9 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 	if err != nil {
 		return nil, err
 	}
+	if out != nil {
+		go LogProviderOut(context.Background(), out, log)
+	}
 	refCltCtx, cancel := context.WithCancel(context.Background())
 	refClt := reflectClient.NewClientAuto(refCltCtx, conn)
 	defer cancel()
@@ -76,9 +79,6 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 		config:         config,
 		cancelCmd:      cancelCmd,
 		serviceClients: []provider.ServiceClient{},
-	}
-	if out != nil {
-		go gp.LogProviderOut(context.Background(), out)
 	}
 	if foundCodeSnip && foundDepResolve {
 		// create the clients, create the struct that will have all the methods
@@ -265,14 +265,12 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 		var cmd *exec.Cmd
 		var connectionString string
 		if config.UseSocket {
-			f, err := os.CreateTemp("", fmt.Sprintf("provider-%v-*.sock", name))
+			fileName, err := socket.GetSocketAddress(name)
 			if err != nil {
 				return nil, nil, err
 			}
-			f.Close()
-			os.Remove(f.Name())
-			connectionString = fmt.Sprintf("unix://%v", f.Name())
-			cmd = exec.CommandContext(ctx, config.BinaryPath, "--socket", f.Name(), "--name", name)
+			connectionString = fileName
+			cmd = exec.CommandContext(ctx, config.BinaryPath, "--socket", fileName, "--name", name)
 		} else {
 			port, err := freeport.GetFreePort()
 			if err != nil {
@@ -289,10 +287,11 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 		}
 
 		err = cmd.Start()
+		if err != nil {
+			log.Fatalf("unable to start provider: %v", err)
+		}
 
-		conn, err := grpc.NewClient(connectionString,
-			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
-			grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := socket.ConnectGRPC(connectionString)
 
 		if err != nil {
 			log.Fatalf("did not connect: %v", err)
@@ -302,7 +301,7 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 	if config.Address != "" {
 		if config.CertPath == "" {
 			conn, err := grpc.Dial(fmt.Sprintf(config.Address),
-				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
+				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 				grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				log.Fatalf("did not connect: %v", err)
@@ -315,7 +314,7 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 			}
 			if config.JWTToken == "" {
 				conn, err := grpc.Dial(fmt.Sprintf(config.Address),
-					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
+					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 					grpc.WithTransportCredentials(creds))
 				if err != nil {
 					log.Fatalf("did not connect: %v", err)
@@ -327,7 +326,7 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 					Token: config.JWTToken,
 				}
 				conn, err := grpc.Dial(fmt.Sprintf(config.Address),
-					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
+					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 					grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
 				if err != nil {
 					log.Fatalf("did not connect: %v", err)
@@ -340,11 +339,11 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 	return nil, nil, fmt.Errorf("must set Address or Binary Path for a GRPC provider")
 }
 
-func (g *grpcProvider) LogProviderOut(ctx context.Context, out io.ReadCloser) {
+func LogProviderOut(ctx context.Context, out io.ReadCloser, log logr.Logger) {
 	scan := bufio.NewScanner(out)
 
 	for scan.Scan() {
-		g.log.V(3).Info(scan.Text())
+		log.V(3).Info(scan.Text())
 	}
 }
 
