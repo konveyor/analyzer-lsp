@@ -15,6 +15,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
+	"github.com/konveyor/analyzer-lsp/provider/grpc/socket"
 	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"go.lsp.dev/uri"
 	"google.golang.org/grpc"
@@ -27,7 +28,6 @@ import (
 
 const (
 	JWT_SECRET_ENV_VAR = "JWT_SECRET"
-	MAX_MESSAGE_SIZE   = 1024 * 1024 * 8
 )
 
 type Server interface {
@@ -104,7 +104,7 @@ func (s *server) Start(ctx context.Context) error {
 	if s.Port != 0 {
 		listen, err = net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
 	} else if s.SocketPath != "" {
-		listen, err = net.Listen("unix", s.SocketPath)
+		listen, err = socket.Listen(s.SocketPath)
 	} else {
 		return fmt.Errorf("unable to start server no serving information present")
 	}
@@ -128,7 +128,7 @@ func (s *server) Start(ctx context.Context) error {
 			gs = grpc.NewServer(grpc.Creds(creds))
 		}
 	} else if s.CertPath == "" && s.KeyPath == "" {
-		gs = grpc.NewServer(grpc.MaxRecvMsgSize(MAX_MESSAGE_SIZE), grpc.MaxSendMsgSize(MAX_MESSAGE_SIZE))
+		gs = grpc.NewServer(grpc.MaxRecvMsgSize(socket.MAX_MESSAGE_SIZE), grpc.MaxSendMsgSize(socket.MAX_MESSAGE_SIZE))
 	} else {
 		return fmt.Errorf("cert: %v, and key: %v are invalid", s.CertPath, s.KeyPath)
 	}
@@ -489,7 +489,7 @@ func (s *server) authUnaryInterceptor(ctx context.Context, req any, info *grpc.U
 
 	tokenString := strings.TrimPrefix(tokenRaw[0], "Bearer ")
 
-	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
 		return []byte(s.SecretKey), nil
 	})
 
