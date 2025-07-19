@@ -23,6 +23,7 @@ require (
 	google.golang.org/grpc v1.72.2
 	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v2 v2.4.0
+	github.com/Microsoft/go-winio v0.4.12
 )
 
 require (
