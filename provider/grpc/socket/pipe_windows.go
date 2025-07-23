@@ -3,9 +3,11 @@
 package socket
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"net"
+	"strings"
 
 	"github.com/Microsoft/go-winio"
 	"google.golang.org/grpc"
@@ -26,11 +28,16 @@ func ConnectGRPC(connectionString string) (*grpc.ClientConn, error) {
 	// Note that gRPC by default performs name resolution on the target passed to NewClient.
 	// // To bypass name resolution and cause the target string to be passed directly to the dialer here instead, use the "passthrough" resolver by specifying it in the target string, e.g. "passthrough:target".
 	return grpc.NewClient(fmt.Sprintf("passthrough:%s", connectionString),
-		grpc.WithContextDialer(winio.DialPipeContext),
+		grpc.WithContextDialer(DialWindowsPipePassthrough),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MAX_MESSAGE_SIZE)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 }
 
 func Listen(socketName string) (net.Listener, error) {
 	return winio.ListenPipe(socketName, &winio.PipeConfig{})
+}
+
+func DialWindowsPipePassthrough(ctx context.Context, connectionString string) (net.Conn, error) {
+	strippedConnectionString, _ := strings.CutPrefix(connectionString, "unix://")
+	return winio.DialPipeContext(ctx, strippedConnectionString)
 }
