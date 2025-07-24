@@ -300,7 +300,7 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 	}
 	if config.Address != "" {
 		if config.CertPath == "" {
-			conn, err := grpc.Dial(fmt.Sprintf(config.Address),
+			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
 				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 				grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
@@ -313,7 +313,7 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 				return nil, nil, err
 			}
 			if config.JWTToken == "" {
-				conn, err := grpc.Dial(fmt.Sprintf(config.Address),
+				conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
 					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 					grpc.WithTransportCredentials(creds))
 				if err != nil {
@@ -325,7 +325,7 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 				i := &jwtTokeInterceptor{
 					Token: config.JWTToken,
 				}
-				conn, err := grpc.Dial(fmt.Sprintf(config.Address),
+				conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
 					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 					grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
 				if err != nil {
