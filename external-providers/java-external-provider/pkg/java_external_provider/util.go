@@ -384,16 +384,32 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 				}
 			}
 			if (dep != javaArtifact{}) {
-				dependencies = append(dependencies, dep)
-				// copy this into m2 repo to avoid downloading again
-				groupPath := filepath.Join(strings.Split(dep.GroupId, ".")...)
-				artifactPath := filepath.Join(strings.Split(dep.ArtifactId, ".")...)
-				destPath := filepath.Join(m2Repo, groupPath, artifactPath,
-					dep.Version, filepath.Base(explodedFilePath))
-				if err := CopyFile(explodedFilePath, destPath); err != nil {
-					log.V(8).Error(err, "failed copying jar to m2 local repo")
+				if dep.foundOnline {
+					dependencies = append(dependencies, dep)
+					// copy this into m2 repo to avoid downloading again
+					groupPath := filepath.Join(strings.Split(dep.GroupId, ".")...)
+					artifactPath := filepath.Join(strings.Split(dep.ArtifactId, ".")...)
+					destPath := filepath.Join(m2Repo, groupPath, artifactPath,
+						dep.Version, filepath.Base(explodedFilePath))
+					if err := CopyFile(explodedFilePath, destPath); err != nil {
+						log.V(8).Error(err, "failed copying jar to m2 local repo")
+					} else {
+						log.V(8).Info("copied jar file", "src", explodedFilePath, "dest", destPath)
+					}
 				} else {
-					log.V(8).Info("copied jar file", "src", explodedFilePath, "dest", destPath)
+					// when it isn't found online, decompile it
+					outputPath := filepath.Join(
+						filepath.Dir(explodedFilePath), fmt.Sprintf("%s-decompiled",
+							strings.TrimSuffix(f.Name, JavaArchive)), filepath.Base(f.Name))
+					decompileJobs = append(decompileJobs, decompileJob{
+						inputPath:  explodedFilePath,
+						outputPath: outputPath,
+						artifact: javaArtifact{
+							packaging:  JavaArchive,
+							GroupId:    dep.GroupId,
+							ArtifactId: dep.ArtifactId,
+						},
+					})
 				}
 
 			} else {
@@ -418,7 +434,6 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			}
 		// any other files, move to java project as-is
 		default:
-			log.Info("default case", "file", explodedFilePath)
 			baseName := strings.ToValidUTF8(f.Name, "_")
 			re := regexp.MustCompile(`[^\w\-\.\\/]+`)
 			baseName = re.ReplaceAllString(baseName, "_")
