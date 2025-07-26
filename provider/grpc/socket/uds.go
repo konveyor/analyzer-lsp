@@ -16,9 +16,10 @@ func GetSocketAddress(name string) (string, error) {
 	f.Close()
 	os.Remove(f.Name())
 	return f.Name(), nil
+
 }
 
 func Listen(socket string) (net.Listener, error) {
-	return net.Listen("unix", socket)
+	return net.Listen("unix", fmt.Sprintf("unix://%s", socket))
 
 }

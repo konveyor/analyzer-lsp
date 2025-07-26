@@ -46,6 +46,9 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 	if err != nil {
 		return nil, err
 	}
+	if out != nil {
+		go LogProviderOut(context.Background(), out, log)
+	}
 	refCltCtx, cancel := context.WithCancel(context.Background())
 	refClt := reflectClient.NewClientAuto(refCltCtx, conn)
 	defer cancel()
@@ -76,9 +79,6 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 		config:         config,
 		cancelCmd:      cancelCmd,
 		serviceClients: []provider.ServiceClient{},
-	}
-	if out != nil {
-		go gp.LogProviderOut(context.Background(), out)
 	}
 	if foundCodeSnip && foundDepResolve {
 		// create the clients, create the struct that will have all the methods
@@ -269,7 +269,7 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 			if err != nil {
 				return nil, nil, err
 			}
-			connectionString = fmt.Sprintf("unix://%v", fileName)
+			connectionString = fileName
 			cmd = exec.CommandContext(ctx, config.BinaryPath, "--socket", fileName, "--name", name)
 		} else {
 			port, err := freeport.GetFreePort()
@@ -339,11 +339,11 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 	return nil, nil, fmt.Errorf("must set Address or Binary Path for a GRPC provider")
 }
 
-func (g *grpcProvider) LogProviderOut(ctx context.Context, out io.ReadCloser) {
+func LogProviderOut(ctx context.Context, out io.ReadCloser, log logr.Logger) {
 	scan := bufio.NewScanner(out)
 
 	for scan.Scan() {
-		g.log.V(3).Info(scan.Text())
+		log.V(3).Info(scan.Text())
 	}
 }
 

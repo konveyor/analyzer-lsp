@@ -21,16 +21,19 @@ const (
 
 func GetSocketAddress(name string) (string, error) {
 	randInt := rand.Int()
-	return fmt.Sprintf("\\\\.\\pipe\\%s-%v", name, randInt), nil
+	pipe_name := fmt.Sprintf("\\\\.\\pipe\\%s-%v", name, randInt)
+	return pipe_name, nil
 
 }
 func ConnectGRPC(connectionString string) (*grpc.ClientConn, error) {
 	// Note that gRPC by default performs name resolution on the target passed to NewClient.
 	// // To bypass name resolution and cause the target string to be passed directly to the dialer here instead, use the "passthrough" resolver by specifying it in the target string, e.g. "passthrough:target".
-	return grpc.NewClient(fmt.Sprintf("passthrough:%s", connectionString),
+	return grpc.NewClient(fmt.Sprintf("passthrough:unix://%s", connectionString),
 		grpc.WithContextDialer(DialWindowsPipePassthrough),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MAX_MESSAGE_SIZE)),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithAuthority("localhost"),
+	)
 }
 
 func Listen(socketName string) (net.Listener, error) {
@@ -38,6 +41,11 @@ func Listen(socketName string) (net.Listener, error) {
 }
 
 func DialWindowsPipePassthrough(ctx context.Context, connectionString string) (net.Conn, error) {
-	strippedConnectionString, _ := strings.CutPrefix(connectionString, "unix://")
-	return winio.DialPipeContext(ctx, strippedConnectionString)
+	pipeName, _ := strings.CutPrefix(connectionString, "unix://")
+	pipe, err := winio.DialPipeContext(ctx, pipeName)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("pipe: %#v", pipe)
+	return pipe, nil
 }
