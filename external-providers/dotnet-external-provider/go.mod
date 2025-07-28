@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp/external-providers/dotnet-external-provider
 
-go 1.22.0
+go 1.23.9
 
 require (
 	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250625194402-05dca9b4ac43
