@@ -14,11 +14,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// Need to redefine here for windows versions.
-const (
-	MAX_MESSAGE_SIZE = 1024 * 1024 * 8
-)
-
 func GetSocketAddress(name string) (string, error) {
 	randInt := rand.Int()
 	pipe_name := fmt.Sprintf("\\\\.\\pipe\\%s-%v", name, randInt)
