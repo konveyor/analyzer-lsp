@@ -594,7 +594,8 @@ func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels
 	if err != nil {
 		return javaArtifact{}, err
 	}
-	artifact := javaArtifact{GroupId: groupId}
+	// since the extracted groupId is not reliable, lets just name the dependency after its filename
+	artifact := javaArtifact{ArtifactId: filepath.Base(jarFile)}
 	// check the inferred groupId against list of public groups
 	// if groupId is not found, remove last segment. repeat if not found until no segments are left.
 	sgmts := strings.Split(groupId, ".")
