@@ -213,7 +213,7 @@ func deduplicateJavaArtifacts(artifacts []javaArtifact) []javaArtifact {
 func removeIncompleteDependencies(dependencies []javaArtifact) []javaArtifact {
 	complete := []javaArtifact{}
 	for _, dep := range dependencies {
-		if dep.ArtifactId != "" && dep.GroupId == "" && dep.Version == "" {
+		if dep.ArtifactId != "" && dep.GroupId != "" && dep.Version != "" {
 			complete = append(complete, dep)
 		}
 	}
