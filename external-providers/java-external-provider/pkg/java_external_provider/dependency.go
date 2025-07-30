@@ -695,7 +695,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		if (artifact != javaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version
-			d.Labels = addDepLabels(w.depToLabels, d.Name)
+			d.Labels = addDepLabels(w.depToLabels, d.Name, artifact.foundOnline)
 			d.ResolvedIdentifier = artifact.sha1
 			// when we can successfully get javaArtifact from a jar
 			// we added it to the pom and it should be in m2Repo path
@@ -728,7 +728,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		if (artifact != javaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version
-			d.Labels = addDepLabels(w.depToLabels, d.Name)
+			d.Labels = addDepLabels(w.depToLabels, d.Name, artifact.foundOnline)
 			d.ResolvedIdentifier = artifact.sha1
 			// when we can successfully get javaArtifact from a jar
 			// we added it to the pom and it should be in m2Repo path
@@ -813,7 +813,7 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 	if !strings.HasPrefix(fp, "/") {
 		fp = "/" + fp
 	}
-	d.Labels = addDepLabels(p.depToLabels, d.Name)
+	d.Labels = addDepLabels(p.depToLabels, d.Name, false)
 	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
 
 	if runtime.GOOS == "windows" {
@@ -865,7 +865,9 @@ func resolveDepFilepath(d *provider.Dep, p *javaServiceClient, group string, art
 	return fp
 }
 
-func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string {
+// addDepLabels adds some labels (open-source/internal and java) to the dependencies. The openSource argument can be used
+// in cased it was already determined that the dependency is open source by any other means (ie by inferring the groupId)
+func addDepLabels(depToLabels map[string]*depLabelItem, depName string, openSource bool) []string {
 	m := map[string]interface{}{}
 	for _, d := range depToLabels {
 		if d.r.Match([]byte(depName)) {
@@ -878,11 +880,20 @@ func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string
 	for k := range m {
 		s = append(s, k)
 	}
-	// if open source label is not found, qualify the dep as being internal by default
-	if _, openSourceLabelFound :=
-		m[labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource)]; !openSourceLabelFound {
-		s = append(s,
-			labels.AsString(provider.DepSourceLabel, javaDepSourceInternal))
+	// if open source label is not found and we don't know if it's open source yet, qualify the dep as being internal by default
+	_, openSourceLabelFound := m[labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource)]
+	_, internalSourceLabelFound := m[labels.AsString(provider.DepSourceLabel, javaDepSourceInternal)]
+	if openSourceLabelFound || openSource {
+		if !openSourceLabelFound {
+			s = append(s, labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource))
+		}
+		if internalSourceLabelFound {
+			delete(m, labels.AsString(provider.DepSourceLabel, javaDepSourceInternal))
+		}
+	} else {
+		if !internalSourceLabelFound {
+			s = append(s, labels.AsString(provider.DepSourceLabel, javaDepSourceInternal))
+		}
 	}
 	s = append(s, labels.AsString(provider.DepLanguageLabel, "java"))
 	return s
