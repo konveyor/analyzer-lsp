@@ -206,6 +206,14 @@
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+      - uri: file:///examples/java-project/pom.xml
+        message: <groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>
+        codeSnip: "11    <url>http://www.konveyor.io</url>\n12  \n13    <properties>\n14      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n15    </properties>\n16  \n17    <dependencies>\n18  \n19      <dependency>\n20        <groupId>io.javaoperatorsdk.operator</groupId>\n21        <artifactId>sample</artifactId>\n22        <version>0.0.0</version>\n23      </dependency>\n24  \n25    </dependencies>\n26  \n27    <build>\n28    </build>\n29  </project>\n"
+        lineNumber: 20
+        variables:
+          data: dependency
+          innerText: "\n      io.javaoperatorsdk.operator\n      sample\n      0.0.0\n    "
+          matchingXML: <groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>
       - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/maven/io.javaoperatorsdk/quarkus/pom.xml
         message: <groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-quarkus-extension</artifactId><version>${project.version}</version>
         codeSnip: "30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>"
@@ -856,6 +864,14 @@
           data: dependency
           innerText: "\n\t\t\torg.springframework\n\t\t\tspring-webmvc\n\t\t\t${spring-framework.version}\n\t\t"
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
+      - uri: file:///examples/java-project/pom.xml
+        message: POM XML dependencies - '<groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>'
+        codeSnip: "11    <url>http://www.konveyor.io</url>\n12  \n13    <properties>\n14      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n15    </properties>\n16  \n17    <dependencies>\n18  \n19      <dependency>\n20        <groupId>io.javaoperatorsdk.operator</groupId>\n21        <artifactId>sample</artifactId>\n22        <version>0.0.0</version>\n23      </dependency>\n24  \n25    </dependencies>\n26  \n27    <build>\n28    </build>\n29  </project>\n"
+        lineNumber: 20
+        variables:
+          data: dependency
+          innerText: "\n      io.javaoperatorsdk.operator\n      sample\n      0.0.0\n    "
+          matchingXML: <groupId>io.javaoperatorsdk.operator</groupId><artifactId>sample</artifactId><version>0.0.0</version>
       - uri: file:///examples/java-project/quarkus-1-6-2-jar-exploded/META-INF/maven/io.javaoperatorsdk/quarkus/pom.xml
         message: POM XML dependencies - '<groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-quarkus-extension</artifactId><version>${project.version}</version>'
         codeSnip: "30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>"
