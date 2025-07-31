@@ -167,7 +167,7 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		}
 		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
 		// for binaries we only find JARs embedded in archive
-		p.discoverDepsFromJars(p.config.DependencyPath, ll)
+		p.discoverDepsFromJars(p.config.DependencyPath, ll, p.disableMavenSearch)
 		if len(ll) == 0 {
 			p.log.Info("unable to get dependencies from jars, looking for pom")
 			pomPaths := p.discoverPoms(p.config.DependencyPath, ll)
@@ -438,7 +438,7 @@ func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[ur
 
 	if len(m) == 0 {
 		// grab the embedded deps
-		p.discoverDepsFromJars(moddir, m)
+		p.discoverDepsFromJars(moddir, m, p.disableMavenSearch)
 	}
 
 	return m, nil
@@ -652,27 +652,29 @@ func extractSubmoduleTrees(lines []string) [][]string {
 }
 
 // discoverDepsFromJars walks given path to discover dependencies embedded as JARs
-func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem) {
+func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem, disableMavenSearch bool) {
 	// for binaries we only find JARs embedded in archive
 	w := walker{
-		deps:        ll,
-		depToLabels: p.depToLabels,
-		m2RepoPath:  p.mvnLocalRepo,
-		seen:        map[string]bool{},
-		initialPath: path,
-		log:         p.log,
+		deps:               ll,
+		depToLabels:        p.depToLabels,
+		m2RepoPath:         p.mvnLocalRepo,
+		seen:               map[string]bool{},
+		initialPath:        path,
+		log:                p.log,
+		disableMavenSearch: disableMavenSearch,
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
 
 type walker struct {
-	deps        map[uri.URI][]provider.DepDAGItem
-	depToLabels map[string]*depLabelItem
-	m2RepoPath  string
-	initialPath string
-	seen        map[string]bool
-	pomPaths    []string
-	log         logr.Logger
+	deps               map[uri.URI][]provider.DepDAGItem
+	depToLabels        map[string]*depLabelItem
+	m2RepoPath         string
+	initialPath        string
+	seen               map[string]bool
+	pomPaths           []string
+	log                logr.Logger
+	disableMavenSearch bool
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -691,7 +693,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		artifact, _ := toDependency(context.TODO(), w.log, w.depToLabels, path)
+		artifact, _ := toDependency(context.TODO(), w.log, w.depToLabels, path, w.disableMavenSearch)
 		if (artifact != javaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version

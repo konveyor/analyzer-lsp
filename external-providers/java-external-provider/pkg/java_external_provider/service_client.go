@@ -23,27 +23,28 @@ import (
 )
 
 type javaServiceClient struct {
-	rpc               provider.RPCClient
-	cancelFunc        context.CancelFunc
-	config            provider.InitConfig
-	log               logr.Logger
-	cmd               *exec.Cmd
-	bundles           []string
-	workspace         string
-	depToLabels       map[string]*depLabelItem
-	isLocationBinary  bool
-	mvnInsecure       bool
-	mvnSettingsFile   string
-	mvnLocalRepo      string
-	mvnIndexPath      string
-	globalSettings    string
-	depsMutex         sync.RWMutex
-	depsFileHash      *string
-	depsCache         map[uri.URI][]*provider.Dep
-	depsLocationCache map[string]int
-	depsErrCache      map[string]error
-	includedPaths     []string
-	cleanExplodedBins []string
+	rpc                provider.RPCClient
+	cancelFunc         context.CancelFunc
+	config             provider.InitConfig
+	log                logr.Logger
+	cmd                *exec.Cmd
+	bundles            []string
+	workspace          string
+	depToLabels        map[string]*depLabelItem
+	isLocationBinary   bool
+	mvnInsecure        bool
+	mvnSettingsFile    string
+	mvnLocalRepo       string
+	mvnIndexPath       string
+	globalSettings     string
+	depsMutex          sync.RWMutex
+	depsFileHash       *string
+	depsCache          map[uri.URI][]*provider.Dep
+	depsLocationCache  map[string]int
+	depsErrCache       map[string]error
+	includedPaths      []string
+	cleanExplodedBins  []string
+	disableMavenSearch bool
 }
 
 type depLabelItem struct {

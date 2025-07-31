@@ -4,9 +4,13 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -86,7 +90,7 @@ type decompileJob struct {
 // decompile decompiles files submitted via a list of decompileJob concurrently
 // if a .class file is encountered, it will be decompiled to output path right away
 // if a .jar file is encountered, it will be decompiled as a whole, then exploded to project path
-func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, workerCount int, jobs []decompileJob, fernflower, projectPath string, depLabels map[string]*depLabelItem) error {
+func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, workerCount int, jobs []decompileJob, fernflower, projectPath string, depLabels map[string]*depLabelItem, disableMavenSearch bool) error {
 	wg := &sync.WaitGroup{}
 	jobChan := make(chan decompileJob)
 
@@ -131,7 +135,7 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 				// if we just decompiled a java archive, we need to
 				// explode it further and copy files to project
 				if job.artifact.packaging == JavaArchive && projectPath != "" {
-					_, _, _, err = explode(jobCtx, log, job.outputPath, projectPath, job.m2RepoPath, depLabels)
+					_, _, _, err = explode(jobCtx, log, job.outputPath, projectPath, job.m2RepoPath, depLabels, disableMavenSearch)
 					if err != nil {
 						log.V(5).Error(err, "failed to explode decompiled jar", "path", job.inputPath)
 					}
@@ -161,7 +165,7 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 // decompileJava unpacks archive at archivePath, decompiles all .class files in it
 // creates new java project and puts the java files in the tree of the project
 // returns path to exploded archive, path to java project, and an error when encountered
-func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath string, m2RepoPath string, cleanBin bool, depLabels map[string]*depLabelItem) (explodedPath, projectPath string, err error) {
+func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath string, m2RepoPath string, cleanBin bool, depLabels map[string]*depLabelItem, disableMavenSearch bool) (explodedPath, projectPath string, err error) {
 	ctx, span := tracing.StartNewSpan(ctx, "decompile")
 	defer span.End()
 
@@ -174,7 +178,7 @@ func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath
 
 	decompFilter := alwaysDecompileFilter(true)
 
-	explodedPath, decompJobs, deps, err := explode(ctx, log, archivePath, projectPath, m2RepoPath, depLabels)
+	explodedPath, decompJobs, deps, err := explode(ctx, log, archivePath, projectPath, m2RepoPath, depLabels, disableMavenSearch)
 	if err != nil {
 		log.Error(err, "failed to decompile archive", "path", archivePath)
 		return "", "", err
@@ -187,7 +191,7 @@ func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath
 	}
 	log.V(5).Info("created java project", "path", projectPath)
 
-	err = decompile(ctx, log, decompFilter, 10, decompJobs, fernflower, projectPath, depLabels)
+	err = decompile(ctx, log, decompFilter, 10, decompJobs, fernflower, projectPath, depLabels, disableMavenSearch)
 	if err != nil {
 		log.Error(err, "failed to decompile", "path", archivePath)
 		return "", "", err
@@ -223,7 +227,7 @@ func removeIncompleteDependencies(dependencies []javaArtifact) []javaArtifact {
 // explode explodes the given JAR, WAR or EAR archive, generates javaArtifact struct for given archive
 // and identifies all .class found recursively. returns output path, a list of decompileJob for .class files
 // it also returns a list of any javaArtifact we could interpret from jars
-func explode(ctx context.Context, log logr.Logger, archivePath, projectPath string, m2Repo string, depLabels map[string]*depLabelItem) (string, []decompileJob, []javaArtifact, error) {
+func explode(ctx context.Context, log logr.Logger, archivePath, projectPath string, m2Repo string, depLabels map[string]*depLabelItem, disableMavenSearch bool) (string, []decompileJob, []javaArtifact, error) {
 	var dependencies []javaArtifact
 	fileInfo, err := os.Stat(archivePath)
 	if err != nil {
@@ -355,7 +359,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 		// decompile web archives
 		case strings.HasSuffix(f.Name, WebArchive):
 			// TODO(djzager): Should we add these deps to the pom?
-			_, nestedJobs, deps, err := explode(ctx, log, explodedFilePath, projectPath, m2Repo, depLabels)
+			_, nestedJobs, deps, err := explode(ctx, log, explodedFilePath, projectPath, m2Repo, depLabels, disableMavenSearch)
 			if err != nil {
 				log.Error(err, "failed to decompile file", "file", explodedFilePath)
 			}
@@ -363,7 +367,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			dependencies = append(dependencies, deps...)
 		// attempt to add nested jars as dependency before decompiling
 		case strings.HasSuffix(f.Name, JavaArchive):
-			dep, err := toDependency(ctx, log, depLabels, explodedFilePath)
+			dep, err := toDependency(ctx, log, depLabels, explodedFilePath, disableMavenSearch)
 			if err != nil {
 				log.V(3).Error(err, "failed to add dep", "file", explodedFilePath)
 				// when we fail to identify a dep we will fallback to
@@ -531,7 +535,14 @@ func AppendToFile(src string, dst string) error {
 }
 
 // toDependency returns javaArtifact constructed for a jar
-func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*depLabelItem, jarFile string) (javaArtifact, error) {
+func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*depLabelItem, jarFile string, disableMavenSearch bool) (javaArtifact, error) {
+	if !disableMavenSearch {
+		dep, err := constructArtifactFromSHA(log, jarFile)
+		if err == nil {
+			return dep, nil
+		}
+		log.Error(err, "unable to look up dependency by SHA, falling back to get maven cordinates", "jar", jarFile)
+	}
 	dep, err := constructArtifactFromPom(log, jarFile)
 	if err != nil {
 		log.V(10).Info("could not construct artifact object from pom for artifact, trying to infer from structure", "jarFile", jarFile, "error", err.Error())
@@ -545,6 +556,67 @@ func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*de
 	return dep, err
 }
 
+func constructArtifactFromSHA(log logr.Logger, jarFile string) (javaArtifact, error) {
+	dep := javaArtifact{}
+	// we look up the jar in maven
+	file, err := os.Open(jarFile)
+	if err != nil {
+		return dep, err
+	}
+	defer file.Close()
+
+	hash := sha1.New()
+	_, err = io.Copy(hash, file)
+	if err != nil {
+		return dep, err
+	}
+
+	sha1sum := hex.EncodeToString(hash.Sum(nil))
+
+	// Make an HTTPS request to search.maven.org
+	searchURL := fmt.Sprintf("https://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
+	resp, err := http.Get(searchURL)
+	if err != nil {
+		return dep, err
+	}
+	defer resp.Body.Close()
+
+	// Read and parse the JSON response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return dep, err
+	}
+
+	var data map[string]interface{}
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return dep, err
+	}
+
+	// Check if a single result is found
+	response, ok := data["response"].(map[string]interface{})
+	if !ok {
+		return dep, err
+	}
+
+	numFound, ok := response["numFound"].(float64)
+	if !ok {
+		return dep, err
+	}
+
+	if numFound == 1 {
+		jarInfo := response["docs"].([]interface{})[0].(map[string]interface{})
+		dep.GroupId = jarInfo["g"].(string)
+		dep.ArtifactId = jarInfo["a"].(string)
+		dep.Version = jarInfo["v"].(string)
+		dep.sha1 = sha1sum
+		dep.foundOnline = true
+		return dep, nil
+	} else if numFound > 1 {
+		return dep, fmt.Errorf("unable to determine maven cordinates, got more then one for jar")
+	}
+	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
+}
 func constructArtifactFromPom(log logr.Logger, jarFile string) (javaArtifact, error) {
 	log.V(5).Info("trying to find pom within jar %s to get info", jarFile)
 	dep := javaArtifact{}

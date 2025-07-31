@@ -47,6 +47,7 @@ const (
 	CLEAN_EXPLODED_BIN_OPTION     = "cleanExplodedBin"
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
+	DISABLE_MAVEN_SEARCH          = "disableMavenSearch"
 )
 
 // Rule Location to location that the bundle understands
@@ -282,6 +283,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		fernflower = "/bin/fernflower.jar"
 	}
 
+	disableMavenSearch, ok := config.ProviderSpecificConfig[DISABLE_MAVEN_SEARCH].(bool)
+
 	isBinary := false
 	var returnErr error
 	// each service client should have their own context
@@ -360,7 +363,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		cleanBin, ok := config.ProviderSpecificConfig[CLEAN_EXPLODED_BIN_OPTION].(bool)
 
 		depLocation, sourceLocation, err := decompileJava(ctx, log, fernflower,
-			config.Location, getMavenLocalRepoPath(mavenSettingsFile), ok, openSourceDepLabels)
+			config.Location, getMavenLocalRepoPath(mavenSettingsFile), ok, openSourceDepLabels, disableMavenSearch)
 		if err != nil {
 			cancelFunc()
 			return nil, additionalBuiltinConfig, err
@@ -532,13 +535,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		// we need to do this for jdtls to correctly recognize source attachment for dep
 		switch svcClient.GetBuildTool() {
 		case maven:
-			err := svcClient.resolveSourcesJarsForMaven(ctx, fernflower)
+			err := svcClient.resolveSourcesJarsForMaven(ctx, fernflower, disableMavenSearch)
 			if err != nil {
 				// TODO (pgaikwad): should we ignore this failure?
 				log.Error(err, "failed to resolve maven sources jar for location", "location", config.Location)
 			}
 		case gradle:
-			err = svcClient.resolveSourcesJarsForGradle(ctx, fernflower)
+			err = svcClient.resolveSourcesJarsForGradle(ctx, fernflower, disableMavenSearch)
 			if err != nil {
 				log.Error(err, "failed to resolve gradle sources jar for location", "location", config.Location)
 			}
@@ -582,7 +585,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	return &svcClient, additionalBuiltinConfig, returnErr
 }
 
-func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fernflower string) error {
+func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fernflower string, disableMavenSearch bool) error {
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
 
@@ -681,7 +684,7 @@ func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fer
 				outputPath: filepath.Join(filepath.Dir(artifactPath), "decompiled", jarName),
 			})
 		}
-		err = decompile(ctx, s.log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "", s.depToLabels)
+		err = decompile(ctx, s.log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "", s.depToLabels, disableMavenSearch)
 		if err != nil {
 			return err
 		}
@@ -812,7 +815,7 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 
 // resolveSourcesJarsForMaven for a given source code location, runs maven to find
 // deps that don't have sources attached and decompiles them
-func (s *javaServiceClient) resolveSourcesJarsForMaven(ctx context.Context, fernflower string) error {
+func (s *javaServiceClient) resolveSourcesJarsForMaven(ctx context.Context, fernflower string, disableMavenSearch bool) error {
 	// TODO (pgaikwad): when we move to external provider, inherit context from parent
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
@@ -865,7 +868,7 @@ func (s *javaServiceClient) resolveSourcesJarsForMaven(ctx context.Context, fern
 				s.mvnLocalRepo, groupDirs, artifactDirs, artifact.Version, "decompiled", jarName),
 		})
 	}
-	err = decompile(ctx, s.log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "", s.depToLabels)
+	err = decompile(ctx, s.log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "", s.depToLabels, disableMavenSearch)
 	if err != nil {
 		return err
 	}
