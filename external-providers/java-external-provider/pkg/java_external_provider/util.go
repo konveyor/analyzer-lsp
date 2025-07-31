@@ -603,8 +603,8 @@ func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels
 		// check against depToLabels. add *
 		groupIdRegex := strings.Join([]string{groupId, "*"}, ".")
 		if depToLabels[groupIdRegex] != nil {
-			log.V(10).Info(fmt.Sprintf("%s is a public dependency", jarFile))
-			artifact.foundOnline = true
+			log.V(10).Info(fmt.Sprintf("%s is a public dependency with a group id of: %s", jarFile, groupId))
+			artifact.GroupId = groupId
 			return artifact, nil
 		} else {
 			// lets try to remove one segment from the end
@@ -613,7 +613,7 @@ func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels
 			groupIdRegex = strings.Join([]string{groupId, "*"}, ".")
 		}
 	}
-	log.V(10).Info(fmt.Sprintf("could not decide whether %s is public, setting as private", jarFile))
+	log.V(10).Info(fmt.Sprintf("could not find groupId for in our public listing of group id's", jarFile))
 	return artifact, nil
 }
 
