@@ -527,16 +527,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		cleanExplodedBins: explodedBins,
 	}
 
-	svcClient.initialization(ctx)
-	svcClient.SetDepLabels(openSourceDepLabels)
-
-	excludeDepLabels, err := initExcludeDepLabels(svcClient.log, svcClient.config.ProviderSpecificConfig, openSourceDepLabels)
-	if err != nil {
-		log.Error(err, "error initializing labels for excluding dependencies")
-	} else {
-		svcClient.SetDepLabels(excludeDepLabels)
-	}
-
 	if mode == provider.FullAnalysisMode {
 		// we attempt to decompile JARs of dependencies that don't have a sources JAR attached
 		// we need to do this for jdtls to correctly recognize source attachment for dep
@@ -554,6 +544,16 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			}
 		}
 
+	}
+
+	svcClient.initialization(ctx)
+	svcClient.SetDepLabels(openSourceDepLabels)
+
+	excludeDepLabels, err := initExcludeDepLabels(svcClient.log, svcClient.config.ProviderSpecificConfig, openSourceDepLabels)
+	if err != nil {
+		log.Error(err, "error initializing labels for excluding dependencies")
+	} else {
+		svcClient.SetDepLabels(excludeDepLabels)
 	}
 
 	// Will only set up log follow one time
