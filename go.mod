@@ -3,6 +3,7 @@ module github.com/konveyor/analyzer-lsp
 go 1.23.9
 
 require (
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/PaesslerAG/gval v1.2.2
 	github.com/antchfx/jsonquery v1.3.0
 	github.com/antchfx/xmlquery v1.3.12
