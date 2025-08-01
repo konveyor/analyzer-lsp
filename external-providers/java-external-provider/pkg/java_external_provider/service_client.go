@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -27,7 +26,7 @@ type javaServiceClient struct {
 	cancelFunc         context.CancelFunc
 	config             provider.InitConfig
 	log                logr.Logger
-	cmd                *exec.Cmd
+	waitErrorChannel   chan (error)
 	bundles            []string
 	workspace          string
 	depToLabels        map[string]*depLabelItem
@@ -256,9 +255,11 @@ func (p *javaServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 
 func (p *javaServiceClient) Stop() {
 	p.cancelFunc()
-	err := p.cmd.Wait()
-	if err != nil {
+	select {
+	case err := <-p.waitErrorChannel:
 		p.log.Info("stopping java provider", "error", err)
+	case <-time.After(30 * time.Second):
+
 	}
 	if len(p.cleanExplodedBins) > 0 {
 		for _, explodedPath := range p.cleanExplodedBins {

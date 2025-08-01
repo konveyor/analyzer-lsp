@@ -2,7 +2,6 @@ package java
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -43,62 +42,10 @@ const (
 )
 
 const (
-	maven  = "maven"
-	gradle = "gradle"
-)
-
-const (
 	mavenDepErr    = "mvnErr"
 	gradleDepErr   = "gradleErr"
 	fallbackDepErr = "fallbackDepErr"
 )
-
-func (p *javaServiceClient) GetBuildTool() string {
-	bf := ""
-	if bf = p.findPom(); bf != "" {
-		return maven
-	} else if bf = p.findGradleBuild(); bf != "" {
-		return gradle
-	}
-	return ""
-}
-
-// TODO implement this for real
-func (p *javaServiceClient) findPom() string {
-	var depPath string
-	if p.config.DependencyPath == "" {
-		depPath = "pom.xml"
-	} else {
-		depPath = p.config.DependencyPath
-	}
-	if filepath.IsAbs(depPath) {
-		return depPath
-	}
-	f, err := filepath.Abs(filepath.Join(p.config.Location, depPath))
-	if err != nil {
-		return ""
-	}
-	if _, err := os.Stat(f); errors.Is(err, os.ErrNotExist) {
-		return ""
-	}
-	return f
-}
-
-func (p *javaServiceClient) findGradleBuild() string {
-	if p.config.Location != "" {
-		path := filepath.Join(p.config.Location, "build.gradle")
-		_, err := os.Stat(path)
-		if err != nil {
-			return ""
-		}
-		f, err := filepath.Abs(path)
-		if err != nil {
-			return ""
-		}
-		return f
-	}
-	return ""
-}
 
 func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	p.log.V(4).Info("running dependency analysis")
@@ -243,25 +190,6 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 	}
 	p.depsCache = m
 	return m, nil
-}
-
-func getMavenLocalRepoPath(mvnSettingsFile string) string {
-	args := []string{
-		"help:evaluate", "-Dexpression=settings.localRepository", "-q", "-DforceStdout",
-	}
-	if mvnSettingsFile != "" {
-		args = append(args, "-s", mvnSettingsFile)
-	}
-	cmd := exec.Command("mvn", args...)
-	var outb bytes.Buffer
-	cmd.Stdout = &outb
-	err := cmd.Run()
-	if err != nil {
-		return ""
-	}
-
-	// check errors
-	return outb.String()
 }
 
 func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, location string) (map[uri.URI][]*provider.Dep, error) {
