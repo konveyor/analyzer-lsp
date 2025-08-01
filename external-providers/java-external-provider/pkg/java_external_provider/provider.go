@@ -47,6 +47,7 @@ const (
 	CLEAN_EXPLODED_BIN_OPTION     = "cleanExplodedBin"
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
+	DISABLE_MAVEN_SEARCH          = "disableMavenSearch"
 )
 
 // Rule Location to location that the bundle understands
@@ -282,6 +283,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		fernflower = "/bin/fernflower.jar"
 	}
 
+	disableMavenSearch, ok := config.ProviderSpecificConfig[DISABLE_MAVEN_SEARCH].(bool)
+
 	isBinary := false
 	var returnErr error
 	// each service client should have their own context
@@ -346,6 +349,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		config.Location = downloadedPath
 	}
 
+	openSourceDepLabels, err := initOpenSourceDepLabels(log, config.ProviderSpecificConfig)
+	if err != nil {
+		log.V(5).Error(err, "failed to initialize dep labels lookup for open source packages")
+		cancelFunc()
+		return nil, provider.InitConfig{}, err
+	}
+
 	extension := strings.ToLower(path.Ext(config.Location))
 	explodedBins := []string{}
 	switch extension {
@@ -353,7 +363,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		cleanBin, ok := config.ProviderSpecificConfig[CLEAN_EXPLODED_BIN_OPTION].(bool)
 
 		depLocation, sourceLocation, err := decompileJava(ctx, log, fernflower,
-			config.Location, getMavenLocalRepoPath(mavenSettingsFile), ok)
+			config.Location, getMavenLocalRepoPath(mavenSettingsFile), ok, openSourceDepLabels, disableMavenSearch)
 		if err != nil {
 			cancelFunc()
 			return nil, additionalBuiltinConfig, err
@@ -525,13 +535,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		// we need to do this for jdtls to correctly recognize source attachment for dep
 		switch svcClient.GetBuildTool() {
 		case maven:
-			err := resolveSourcesJarsForMaven(ctx, log, fernflower, config.Location, mavenSettingsFile, m2Repo, mavenInsecure)
+			err := svcClient.resolveSourcesJarsForMaven(ctx, fernflower, disableMavenSearch)
 			if err != nil {
 				// TODO (pgaikwad): should we ignore this failure?
 				log.Error(err, "failed to resolve maven sources jar for location", "location", config.Location)
 			}
 		case gradle:
-			err = resolveSourcesJarsForGradle(ctx, log, fernflower, config.Location, mavenSettingsFile, &svcClient)
+			err = svcClient.resolveSourcesJarsForGradle(ctx, fernflower, disableMavenSearch)
 			if err != nil {
 				log.Error(err, "failed to resolve gradle sources jar for location", "location", config.Location)
 			}
@@ -540,11 +550,15 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	svcClient.initialization(ctx)
-	err = svcClient.depInit()
+	svcClient.SetDepLabels(openSourceDepLabels)
+
+	excludeDepLabels, err := initExcludeDepLabels(svcClient.log, svcClient.config.ProviderSpecificConfig, openSourceDepLabels)
 	if err != nil {
-		cancelFunc()
-		return nil, provider.InitConfig{}, err
+		log.Error(err, "error initializing labels for excluding dependencies")
+	} else {
+		svcClient.SetDepLabels(excludeDepLabels)
 	}
+
 	// Will only set up log follow one time
 	// Will work in container image and hub, will not work
 	// When running for long period of time.
@@ -571,13 +585,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	return &svcClient, additionalBuiltinConfig, returnErr
 }
 
-func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflower, location string, _ string, svc *javaServiceClient) error {
+func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fernflower string, disableMavenSearch bool) error {
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
 
-	log.V(5).Info("resolving dependency sources for gradle")
+	s.log.V(5).Info("resolving dependency sources for gradle")
 
-	gb := svc.findGradleBuild()
+	gb := s.findGradleBuild()
 	if gb == "" {
 		return fmt.Errorf("could not find gradle build file for project")
 	}
@@ -597,7 +611,7 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflowe
 		return fmt.Errorf("error appending file %s to %s", taskfile, taskgb)
 	}
 
-	tmpgbname := filepath.Join(location, "toberenamed.gradle")
+	tmpgbname := filepath.Join(s.config.Location, "toberenamed.gradle")
 	err = os.Rename(gb, tmpgbname)
 	if err != nil {
 		return fmt.Errorf("error renaming file %s to %s", gb, "toberenamed.gradle")
@@ -611,7 +625,7 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflowe
 	defer os.Remove(gb)
 
 	// run gradle wrapper with tmp build file
-	exe, err := filepath.Abs(filepath.Join(svc.config.Location, "gradlew"))
+	exe, err := filepath.Abs(filepath.Join(s.config.Location, "gradlew"))
 	if err != nil {
 		return fmt.Errorf("error calculating gradle wrapper path")
 	}
@@ -630,13 +644,13 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflowe
 	}
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", java8home))
-	cmd.Dir = location
+	cmd.Dir = s.config.Location
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
 	}
 
-	log.V(8).WithValues("output", output).Info("got gradle output")
+	s.log.V(8).WithValues("output", output).Info("got gradle output")
 
 	// TODO: what if all sources available
 	reader := bytes.NewReader(output)
@@ -645,7 +659,7 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflowe
 		return err
 	}
 
-	log.V(5).Info("total unresolved sources", "count", len(unresolvedSources))
+	s.log.V(5).Info("total unresolved sources", "count", len(unresolvedSources))
 
 	decompileJobs := []decompileJob{}
 	if len(unresolvedSources) > 1 {
@@ -656,7 +670,7 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflowe
 		}
 
 		for _, artifact := range unresolvedSources {
-			log.V(5).WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
+			s.log.V(5).WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
 
 			artifactDir := filepath.Join(cache, artifact.GroupId, artifact.ArtifactId)
 			jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
@@ -670,7 +684,7 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflowe
 				outputPath: filepath.Join(filepath.Dir(artifactPath), "decompiled", jarName),
 			})
 		}
-		err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "")
+		err = decompile(ctx, s.log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "", s.depToLabels, disableMavenSearch)
 		if err != nil {
 			return err
 		}
@@ -681,7 +695,7 @@ func resolveSourcesJarsForGradle(ctx context.Context, log logr.Logger, fernflowe
 				filepath.Join(filepath.Dir(decompileJob.inputPath),
 					fmt.Sprintf("%s-sources.jar", jarName)))
 			if err != nil {
-				log.V(5).Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
+				s.log.V(5).Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
 			}
 		}
 
@@ -801,19 +815,19 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 
 // resolveSourcesJarsForMaven for a given source code location, runs maven to find
 // deps that don't have sources attached and decompiles them
-func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower, location, mavenSettings, mavenLocalRepo string, mvnInsecure bool) error {
+func (s *javaServiceClient) resolveSourcesJarsForMaven(ctx context.Context, fernflower string, disableMavenSearch bool) error {
 	// TODO (pgaikwad): when we move to external provider, inherit context from parent
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
 
-	if mavenLocalRepo == "" {
-		log.V(5).Info("unable to discover dependency sources as maven local repo path is unknown")
+	if s.mvnLocalRepo == "" {
+		s.log.V(5).Info("unable to discover dependency sources as maven local repo path is unknown")
 		return nil
 	}
 
 	decompileJobs := []decompileJob{}
 
-	log.Info("resolving dependency sources")
+	s.log.Info("resolving dependency sources")
 
 	args := []string{
 		"-B",
@@ -821,14 +835,14 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower
 		"-DdownloadSources",
 		"-Djava.net.useSystemProxies=true",
 	}
-	if mavenSettings != "" {
-		args = append(args, "-s", mavenSettings)
+	if s.mvnSettingsFile != "" {
+		args = append(args, "-s", s.mvnSettingsFile)
 	}
-	if mvnInsecure {
+	if s.mvnInsecure {
 		args = append(args, "-Dmaven.wagon.http.ssl.insecure=true")
 	}
 	cmd := exec.CommandContext(ctx, "mvn", args...)
-	cmd.Dir = location
+	cmd.Dir = s.config.Location
 	mvnOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("maven downloadSources command failed with error %w, maven output: %s", err, string(mvnOutput))
@@ -841,7 +855,7 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower
 	}
 
 	for _, artifact := range artifacts {
-		log.WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
+		s.log.WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
 
 		groupDirs := filepath.Join(strings.Split(artifact.GroupId, ".")...)
 		artifactDirs := filepath.Join(strings.Split(artifact.ArtifactId, ".")...)
@@ -849,12 +863,12 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower
 		decompileJobs = append(decompileJobs, decompileJob{
 			artifact: artifact,
 			inputPath: filepath.Join(
-				mavenLocalRepo, groupDirs, artifactDirs, artifact.Version, jarName),
+				s.mvnLocalRepo, groupDirs, artifactDirs, artifact.Version, jarName),
 			outputPath: filepath.Join(
-				mavenLocalRepo, groupDirs, artifactDirs, artifact.Version, "decompiled", jarName),
+				s.mvnLocalRepo, groupDirs, artifactDirs, artifact.Version, "decompiled", jarName),
 		})
 	}
-	err = decompile(ctx, log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "")
+	err = decompile(ctx, s.log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "", s.depToLabels, disableMavenSearch)
 	if err != nil {
 		return err
 	}
@@ -865,7 +879,7 @@ func resolveSourcesJarsForMaven(ctx context.Context, log logr.Logger, fernflower
 			filepath.Join(filepath.Dir(decompileJob.inputPath),
 				fmt.Sprintf("%s-sources.jar", jarName)))
 		if err != nil {
-			log.Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
+			s.log.Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
 		}
 	}
 	return nil
