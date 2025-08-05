@@ -14,16 +14,21 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func GetSocketAddress(name string) (string, error) {
+func GetAddress(name string) (string, error) {
 	randInt := rand.Int()
 	pipe_name := fmt.Sprintf("\\\\.\\pipe\\%s-%v", name, randInt)
 	return pipe_name, nil
 
 }
+
+func GetConnectionString(address string) string {
+	return fmt.Sprintf("passthrough:unix://%s", address)
+}
+
 func ConnectGRPC(connectionString string) (*grpc.ClientConn, error) {
 	// Note that gRPC by default performs name resolution on the target passed to NewClient.
 	// // To bypass name resolution and cause the target string to be passed directly to the dialer here instead, use the "passthrough" resolver by specifying it in the target string, e.g. "passthrough:target".
-	return grpc.NewClient(fmt.Sprintf("passthrough:unix://%s", connectionString),
+	return grpc.NewClient(connectionString,
 		grpc.WithContextDialer(DialWindowsPipePassthrough),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MAX_MESSAGE_SIZE)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),

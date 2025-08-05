@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os/exec"
 	"time"
 
@@ -42,12 +41,9 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 	log = log.WithName(config.Name)
 	log = log.WithValues("provider", "grpc")
 	ctxCmd, cancelCmd := context.WithCancel(context.Background())
-	conn, out, err := start(ctxCmd, config)
+	conn, _, err := start(ctxCmd, config, log)
 	if err != nil {
 		return nil, err
-	}
-	if out != nil {
-		go LogProviderOut(context.Background(), out, log)
 	}
 	refCltCtx, cancel := context.WithCancel(context.Background())
 	refClt := reflectClient.NewClientAuto(refCltCtx, conn)
@@ -250,7 +246,7 @@ func (g *grpcProvider) NotifyFileChanges(ctx context.Context, changes ...provide
 	return provider.FullNotifyFileChangesResponse(ctx, g.serviceClients, changes...)
 }
 
-func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.ReadCloser, error) {
+func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.ClientConn, io.ReadCloser, error) {
 	// Here the Provider will start the GRPC Server if a binary is set.
 	if config.BinaryPath != "" {
 		ic := config.InitConfig
@@ -265,12 +261,12 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 		var cmd *exec.Cmd
 		var connectionString string
 		if config.UseSocket {
-			fileName, err := socket.GetSocketAddress(name)
+			fileName, err := socket.GetAddress(name)
 			if err != nil {
 				return nil, nil, err
 			}
-			connectionString = fileName
 			cmd = exec.CommandContext(ctx, config.BinaryPath, "--socket", fileName, "--name", name)
+			connectionString = socket.GetConnectionString(fileName)
 		} else {
 			port, err := freeport.GetFreePort()
 			if err != nil {
@@ -286,15 +282,20 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 			return nil, nil, err
 		}
 
+		fmt.Printf("\ncommand: %v\n", cmd)
+		if out != nil {
+			go LogProviderOut(context.Background(), out, log)
+		}
+
 		err = cmd.Start()
 		if err != nil {
-			log.Fatalf("unable to start provider: %v", err)
+			return nil, nil, err
 		}
 
 		conn, err := socket.ConnectGRPC(connectionString)
 
 		if err != nil {
-			log.Fatalf("did not connect: %v", err)
+			log.Error(err, "did not connect")
 		}
 		return conn, out, nil
 	}
@@ -302,38 +303,39 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 		if config.CertPath == "" {
 			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
 				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
-				grpc.WithTransportCredentials(insecure.NewCredentials()))
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+			)
 			if err != nil {
-				log.Fatalf("did not connect: %v", err)
-			}
-			return conn, nil, nil
-		} else {
-			creds, err := credentials.NewClientTLSFromFile(config.CertPath, "")
-			if err != nil {
+				log.Error(err, "did not connect")
 				return nil, nil, err
 			}
-			if config.JWTToken == "" {
-				conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
-					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
-					grpc.WithTransportCredentials(creds))
-				if err != nil {
-					log.Fatalf("did not connect: %v", err)
-				}
-				return conn, nil, nil
-
-			} else {
-				i := &jwtTokeInterceptor{
-					Token: config.JWTToken,
-				}
-				conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
-					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
-					grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
-				if err != nil {
-					log.Fatalf("did not connect: %v", err)
-				}
-				return conn, nil, nil
-
+			return conn, nil, nil
+		}
+		creds, err := credentials.NewClientTLSFromFile(config.CertPath, "")
+		if err != nil {
+			return nil, nil, err
+		}
+		if config.JWTToken == "" {
+			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
+				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
+				grpc.WithTransportCredentials(creds))
+			if err != nil {
+				log.Error(err, "did not connect")
 			}
+			return conn, nil, nil
+
+		} else {
+			i := &jwtTokeInterceptor{
+				Token: config.JWTToken,
+			}
+			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
+				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
+				grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
+			if err != nil {
+				log.Error(err, "did not connect")
+			}
+			return conn, nil, nil
+
 		}
 	}
 	return nil, nil, fmt.Errorf("must set Address or Binary Path for a GRPC provider")
