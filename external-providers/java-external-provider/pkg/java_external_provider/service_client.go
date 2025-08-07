@@ -3,6 +3,7 @@ package java
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -258,13 +260,40 @@ func (p *javaServiceClient) Stop() {
 	p.cancelFunc()
 	err := p.cmd.Wait()
 	if err != nil {
-		p.log.Info("stopping java provider", "error", err)
+		if isSafeErr(err) {
+			p.log.Info("java provider stopped")
+		} else {
+			p.log.Error(err, "java provider stopped with error")
+		}
+	} else {
+		p.log.Info("java provider stopped")
 	}
 	if len(p.cleanExplodedBins) > 0 {
 		for _, explodedPath := range p.cleanExplodedBins {
 			os.RemoveAll(explodedPath)
 		}
 	}
+}
+
+func isSafeErr(err error) bool {
+	if errors.Is(err, context.Canceled) {
+		return true
+	}
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
+			if status.Signaled() && (status.Signal() == syscall.SIGTERM || status.Signal() == syscall.SIGKILL) {
+				return true
+			}
+		}
+	}
+	// to prevent log msg="stopping java provider" error="{\"Stderr\":null}" provider=java
+	errStr := err.Error()
+	if errStr == "{\"Stderr\":null}" {
+		return true
+	}
+
+	return false
 }
 
 func (p *javaServiceClient) initialization(ctx context.Context) {
