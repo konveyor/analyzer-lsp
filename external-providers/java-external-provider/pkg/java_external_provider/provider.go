@@ -470,7 +470,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			if err != nil && cmd.ProcessState == nil {
 				log.Info("retrying language server start")
 			} else if err != nil {
-				log.Info("language server process terminated", "error", err)
+				log.Error(err, "language server process terminated")
 			}
 			log.Info("language server stopped")
 

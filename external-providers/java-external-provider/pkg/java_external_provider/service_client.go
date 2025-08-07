@@ -275,10 +275,10 @@ func (p *javaServiceClient) Stop() {
 	p.cancelFunc()
 	err = p.cmd.Wait()
 	if err != nil {
-		if isErrExpected(err) {
+		if isSafeErr(err) {
 			p.log.Info("java provider stopped")
 		} else {
-			p.log.Info("java provider stopped with error", "error", err)
+			p.log.Error(err, "java provider stopped with error")
 		}
 	} else {
 		p.log.Info("java provider stopped")
@@ -322,7 +322,8 @@ func (p *javaServiceClient) shutdown() error {
 	}
 	return nil
 }
-func isErrExpected(err error) bool {
+
+func isSafeErr(err error) bool {
 	if errors.Is(err, context.Canceled) {
 		return true
 	}
