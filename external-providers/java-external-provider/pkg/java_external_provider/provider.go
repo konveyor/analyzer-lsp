@@ -48,6 +48,7 @@ const (
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
 	DISABLE_MAVEN_SEARCH          = "disableMavenSearch"
+	GRADLE_SOURCES_TASK_FILE      = "gradleSourcesTaskFile"
 )
 
 // Rule Location to location that the bundle understands
@@ -541,7 +542,11 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 				log.Error(err, "failed to resolve maven sources jar for location", "location", config.Location)
 			}
 		case gradle:
-			err = svcClient.resolveSourcesJarsForGradle(ctx, fernflower, disableMavenSearch)
+			gradleTaskFile, ok := config.ProviderSpecificConfig[GRADLE_SOURCES_TASK_FILE]
+			if !ok {
+				gradleTaskFile = ""
+			}
+			err = svcClient.resolveSourcesJarsForGradle(ctx, fernflower, disableMavenSearch, gradleTaskFile.(string))
 			if err != nil {
 				log.Error(err, "failed to resolve gradle sources jar for location", "location", config.Location)
 			}
@@ -585,7 +590,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	return &svcClient, additionalBuiltinConfig, returnErr
 }
 
-func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fernflower string, disableMavenSearch bool) error {
+func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fernflower string, disableMavenSearch bool, taskFile string) error {
 	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
 	defer span.End()
 
@@ -605,10 +610,13 @@ func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fer
 	defer os.Remove(taskgb)
 
 	// append downloader task
-	taskfile := "/root/.gradle/task.gradle"
-	err = AppendToFile(taskfile, taskgb)
+	if taskFile == "" {
+		// if taskFile is empty, we are in container mode
+		taskFile = "/usr/local/etc/task.gradle"
+	}
+	err = AppendToFile(taskFile, taskgb)
 	if err != nil {
-		return fmt.Errorf("error appending file %s to %s", taskfile, taskgb)
+		return fmt.Errorf("error appending file %s to %s", taskFile, taskgb)
 	}
 
 	tmpgbname := filepath.Join(s.config.Location, "toberenamed.gradle")
@@ -706,8 +714,8 @@ func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fer
 // findGradleCache looks for the folder within the Gradle cache where the actual dependencies are stored
 // by walking the cache directory looking for a directory equal to the given sample group id
 func findGradleCache(sampleGroupId string) (string, error) {
-	// TODO(jmle): atm taking for granted that the cache is going to be here
-	root := "/root/.gradle/caches"
+	gradleHome := findGradleHome()
+	cacheRoot := filepath.Join(gradleHome, "caches")
 	cache := ""
 	walker := func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -719,12 +727,28 @@ func findGradleCache(sampleGroupId string) (string, error) {
 		}
 		return nil
 	}
-	err := filepath.WalkDir(root, walker)
+	err := filepath.WalkDir(cacheRoot, walker)
 	if err != nil {
 		return "", err
 	}
 	cache = filepath.Dir(cache) // return the parent of the found directory
 	return cache, nil
+}
+
+// findGradleHome tries to get the .gradle directory from several places
+// 1. check $GRADLE_HOME
+// 2. check $HOME/.gradle
+// 3. else, set to /root/.gradle
+func findGradleHome() string {
+	gradleHome := os.Getenv("GRADLE_HOME")
+	if gradleHome == "" {
+		home := os.Getenv("HOME")
+		if home == "" {
+			home = "/root"
+		}
+		gradleHome = filepath.Join(home, ".gradle")
+	}
+	return gradleHome
 }
 
 // findGradleArtifact looks for a given artifact jar within the given root dir
