@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -166,7 +167,7 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		}
 		ll = make(map[uri.URI][]konveyor.DepDAGItem, 0)
 		// for binaries we only find JARs embedded in archive
-		p.discoverDepsFromJars(p.config.DependencyPath, ll)
+		p.discoverDepsFromJars(p.config.DependencyPath, ll, p.disableMavenSearch)
 		if len(ll) == 0 {
 			p.log.Info("unable to get dependencies from jars, looking for pom")
 			pomPaths := p.discoverPoms(p.config.DependencyPath, ll)
@@ -437,7 +438,7 @@ func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[ur
 
 	if len(m) == 0 {
 		// grab the embedded deps
-		p.discoverDepsFromJars(moddir, m)
+		p.discoverDepsFromJars(moddir, m, p.disableMavenSearch)
 	}
 
 	return m, nil
@@ -480,8 +481,6 @@ func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[u
 
 	lines := strings.Split(string(output), "\n")
 	deps := p.parseGradleDependencyOutput(lines)
-
-	// TODO: do we need to separate by submodule somehow?
 
 	path := p.findGradleBuild()
 	file := uri.File(path)
@@ -653,25 +652,29 @@ func extractSubmoduleTrees(lines []string) [][]string {
 }
 
 // discoverDepsFromJars walks given path to discover dependencies embedded as JARs
-func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem) {
+func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem, disableMavenSearch bool) {
 	// for binaries we only find JARs embedded in archive
 	w := walker{
-		deps:        ll,
-		depToLabels: p.depToLabels,
-		m2RepoPath:  p.mvnLocalRepo,
-		seen:        map[string]bool{},
-		initialPath: path,
+		deps:               ll,
+		depToLabels:        p.depToLabels,
+		m2RepoPath:         p.mvnLocalRepo,
+		seen:               map[string]bool{},
+		initialPath:        path,
+		log:                p.log,
+		disableMavenSearch: disableMavenSearch,
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
 
 type walker struct {
-	deps        map[uri.URI][]provider.DepDAGItem
-	depToLabels map[string]*depLabelItem
-	m2RepoPath  string
-	initialPath string
-	seen        map[string]bool
-	pomPaths    []string
+	deps               map[uri.URI][]provider.DepDAGItem
+	depToLabels        map[string]*depLabelItem
+	m2RepoPath         string
+	initialPath        string
+	seen               map[string]bool
+	pomPaths           []string
+	log                logr.Logger
+	disableMavenSearch bool
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -690,11 +693,11 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		artifact, _ := toDependency(context.TODO(), path)
+		artifact, _ := toDependency(context.TODO(), w.log, w.depToLabels, path, w.disableMavenSearch)
 		if (artifact != javaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version
-			d.Labels = addDepLabels(w.depToLabels, d.Name)
+			d.Labels = addDepLabels(w.depToLabels, d.Name, artifact.foundOnline)
 			d.ResolvedIdentifier = artifact.sha1
 			// when we can successfully get javaArtifact from a jar
 			// we added it to the pom and it should be in m2Repo path
@@ -727,7 +730,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		if (artifact != javaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version
-			d.Labels = addDepLabels(w.depToLabels, d.Name)
+			d.Labels = addDepLabels(w.depToLabels, d.Name, artifact.foundOnline)
 			d.ResolvedIdentifier = artifact.sha1
 			// when we can successfully get javaArtifact from a jar
 			// we added it to the pom and it should be in m2Repo path
@@ -752,6 +755,7 @@ func (p *javaServiceClient) discoverPoms(pathStart string, ll map[uri.URI][]konv
 		seen:        map[string]bool{},
 		initialPath: pathStart,
 		pomPaths:    []string{},
+		log:         p.log,
 	}
 	filepath.WalkDir(pathStart, w.walkDirForPom)
 	return w.pomPaths
@@ -811,7 +815,7 @@ func (p *javaServiceClient) parseDepString(dep, localRepoPath, pomPath string) (
 	if !strings.HasPrefix(fp, "/") {
 		fp = "/" + fp
 	}
-	d.Labels = addDepLabels(p.depToLabels, d.Name)
+	d.Labels = addDepLabels(p.depToLabels, d.Name, false)
 	d.FileURIPrefix = fmt.Sprintf("file://%v", filepath.Dir(fp))
 
 	if runtime.GOOS == "windows" {
@@ -863,7 +867,9 @@ func resolveDepFilepath(d *provider.Dep, p *javaServiceClient, group string, art
 	return fp
 }
 
-func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string {
+// addDepLabels adds some labels (open-source/internal and java) to the dependencies. The openSource argument can be used
+// in cased it was already determined that the dependency is open source by any other means (ie by inferring the groupId)
+func addDepLabels(depToLabels map[string]*depLabelItem, depName string, openSource bool) []string {
 	m := map[string]interface{}{}
 	for _, d := range depToLabels {
 		if d.r.Match([]byte(depName)) {
@@ -876,11 +882,20 @@ func addDepLabels(depToLabels map[string]*depLabelItem, depName string) []string
 	for k := range m {
 		s = append(s, k)
 	}
-	// if open source label is not found, qualify the dep as being internal by default
-	if _, openSourceLabelFound :=
-		m[labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource)]; !openSourceLabelFound {
-		s = append(s,
-			labels.AsString(provider.DepSourceLabel, javaDepSourceInternal))
+	// if open source label is not found and we don't know if it's open source yet, qualify the dep as being internal by default
+	_, openSourceLabelFound := m[labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource)]
+	_, internalSourceLabelFound := m[labels.AsString(provider.DepSourceLabel, javaDepSourceInternal)]
+	if openSourceLabelFound || openSource {
+		if !openSourceLabelFound {
+			s = append(s, labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource))
+		}
+		if internalSourceLabelFound {
+			delete(m, labels.AsString(provider.DepSourceLabel, javaDepSourceInternal))
+		}
+	} else {
+		if !internalSourceLabelFound {
+			s = append(s, labels.AsString(provider.DepSourceLabel, javaDepSourceInternal))
+		}
 	}
 	s = append(s, labels.AsString(provider.DepLanguageLabel, "java"))
 	return s
@@ -924,98 +939,88 @@ func (p *javaServiceClient) parseMavenDepLines(lines []string, localRepoPath, po
 	return []provider.DepDAGItem{}, nil
 }
 
-// depInit loads a map of package patterns and their associated labels for easy lookup
-func (p *javaServiceClient) depInit() error {
-	err := p.initOpenSourceDepLabels()
-	if err != nil {
-		p.log.V(5).Error(err, "failed to initialize dep labels lookup for open source packages")
-		return err
-	}
-
-	err = p.initExcludeDepLabels()
-	if err != nil {
-		p.log.V(5).Error(err, "failed to initialize dep labels lookup for excluded packages")
-		return err
-	}
-
-	return nil
-}
-
 // initOpenSourceDepLabels reads user provided file that has a list of open source
 // packages (supports regex) and loads a map of patterns -> labels for easy lookup
-func (p *javaServiceClient) initOpenSourceDepLabels() error {
+func initOpenSourceDepLabels(log logr.Logger, providerSpecificConfig map[string]interface{}) (map[string]*depLabelItem, error) {
 	var ok bool
 	var v interface{}
-	if v, ok = p.config.ProviderSpecificConfig[providerSpecificConfigOpenSourceDepListKey]; !ok {
-		p.log.V(7).Info("Did not find open source dep list.")
-		return nil
+	if v, ok = providerSpecificConfig[providerSpecificConfigOpenSourceDepListKey]; !ok {
+		log.V(7).Info("Did not find open source dep list.")
+		return nil, nil
 	}
 
 	var filePath string
 	if filePath, ok = v.(string); !ok {
-		return fmt.Errorf("unable to determine filePath from open source dep list")
+		return nil, fmt.Errorf("unable to determine filePath from open source dep list")
 	}
 
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		//TODO(shawn-hurley): consider wrapping error with value
-		return err
+		return nil, err
 	}
 
 	if fileInfo.IsDir() {
-		return fmt.Errorf("open source dep list must be a file, not a directory")
+		return nil, fmt.Errorf("open source dep list must be a file, not a directory")
 	}
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer file.Close()
-	return loadDepLabelItems(file, p.depToLabels,
-		labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource))
+	items, err := loadDepLabelItems(file, labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource), nil)
+	return items, nil
 }
 
 // initExcludeDepLabels reads user provided list of excluded packages
 // and initiates label lookup for them
-func (p *javaServiceClient) initExcludeDepLabels() error {
+func initExcludeDepLabels(log logr.Logger, providerSpecificConfig map[string]interface{}, depToLabels map[string]*depLabelItem) (map[string]*depLabelItem, error) {
 	var ok bool
 	var v interface{}
-	if v, ok = p.config.ProviderSpecificConfig[providerSpecificConfigExcludePackagesKey]; !ok {
-		p.log.V(7).Info("did not find exclude packages list")
-		return nil
+	if v, ok = providerSpecificConfig[providerSpecificConfigExcludePackagesKey]; !ok {
+		log.V(7).Info("did not find exclude packages list")
+		return depToLabels, nil
 	}
-	var excludePackages []string
-	if excludePackages, ok = v.([]string); !ok {
-		return fmt.Errorf("%s config must be a list of packages to exclude", providerSpecificConfigExcludePackagesKey)
+	excludePackages, ok := v.([]string)
+	if !ok {
+		return nil, fmt.Errorf("%s config must be a list of packages to exclude", providerSpecificConfigExcludePackagesKey)
 	}
-	return loadDepLabelItems(strings.NewReader(
-		strings.Join(excludePackages, "\n")), p.depToLabels, provider.DepExcludeLabel)
+	items, err := loadDepLabelItems(strings.NewReader(strings.Join(excludePackages, "\n")), provider.DepExcludeLabel, depToLabels)
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 // loadDepLabelItems reads list of patterns from reader and appends given
 // label to the list of labels for the associated pattern
-func loadDepLabelItems(r io.Reader, depToLabels map[string]*depLabelItem, label string) error {
+func loadDepLabelItems(r io.Reader, label string, depToLabels map[string]*depLabelItem) (map[string]*depLabelItem, error) {
+	depToLabelsItems := map[string]*depLabelItem{}
+	if depToLabels != nil {
+		depToLabelsItems = depToLabels
+	}
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		pattern := scanner.Text()
 		r, err := regexp.Compile(pattern)
 		if err != nil {
-			return fmt.Errorf("unable to create regexp for string: %v", pattern)
+			return nil, fmt.Errorf("unable to create regexp for string: %v", pattern)
 		}
 		//Make sure that we are not adding duplicates
-		if _, found := depToLabels[pattern]; !found {
-			depToLabels[pattern] = &depLabelItem{
+		if _, found := depToLabelsItems[pattern]; !found {
+			depToLabelsItems[pattern] = &depLabelItem{
 				r: r,
 				labels: map[string]interface{}{
 					label: nil,
 				},
 			}
 		} else {
-			if depToLabels[pattern].labels == nil {
-				depToLabels[pattern].labels = map[string]interface{}{}
+			if depToLabelsItems[pattern].labels == nil {
+				depToLabelsItems[pattern].labels = map[string]interface{}{}
 			}
-			depToLabels[pattern].labels[label] = nil
+			depToLabelsItems[pattern].labels[label] = nil
 		}
 	}
-	return nil
+	return depToLabelsItems, nil
 }
