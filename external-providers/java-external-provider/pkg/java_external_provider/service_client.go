@@ -45,6 +45,7 @@ type javaServiceClient struct {
 	includedPaths      []string
 	cleanExplodedBins  []string
 	disableMavenSearch bool
+	activeRPCCalls     sync.WaitGroup
 }
 
 type depLabelItem struct {
@@ -177,6 +178,9 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	if strings.HasSuffix(c.Referenced.Pattern, "*") || strings.HasSuffix(c.Referenced.Pattern, "*)") {
 		timeout = 10 * time.Minute
 	}
+	p.activeRPCCalls.Add(1)
+	defer p.activeRPCCalls.Done()
+
 	timeOutCtx, _ := context.WithTimeout(ctx, timeout)
 	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp, &refs)
 	if err != nil {
@@ -237,6 +241,9 @@ func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protoco
 		},
 	}
 
+	p.activeRPCCalls.Add(1)
+	defer p.activeRPCCalls.Done()
+
 	res := []protocol.Location{}
 	err := p.rpc.Call(ctx, "textDocument/references", params, &res)
 	if err != nil {
@@ -255,16 +262,53 @@ func (p *javaServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 }
 
 func (p *javaServiceClient) Stop() {
+	err := p.shutdown()
+	if err != nil {
+		p.log.Error(err, "failed to gracefully shutdown java provider")
+	}
 	p.cancelFunc()
-	err := p.cmd.Wait()
+	err = p.cmd.Wait()
 	if err != nil {
 		p.log.Info("stopping java provider", "error", err)
 	}
+
 	if len(p.cleanExplodedBins) > 0 {
 		for _, explodedPath := range p.cleanExplodedBins {
 			os.RemoveAll(explodedPath)
 		}
 	}
+}
+
+func (p *javaServiceClient) shutdown() error {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	p.log.Info("waiting for active RPC calls to complete")
+	done := make(chan struct{})
+	go func() {
+		p.activeRPCCalls.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		p.log.V(7).Info("all active RPC calls completed")
+	case <-time.After(10 * time.Second):
+		p.log.Info("timeout waiting for active RPC calls to complete, proceeding with shutdown")
+	}
+
+	var shutdownResult interface{}
+	err := p.rpc.Call(shutdownCtx, "shutdown", nil, &shutdownResult)
+	if err != nil {
+		p.log.Error(err, "failed to send shutdown request to language server")
+		return err
+	}
+	err = p.rpc.Notify(shutdownCtx, "exit", nil)
+	if err != nil {
+		p.log.Error(err, "failed to send exit notification to language server")
+		return err
+	}
+	return nil
 }
 
 func (p *javaServiceClient) initialization(ctx context.Context) {
