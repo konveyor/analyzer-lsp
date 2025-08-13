@@ -361,7 +361,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			}
 			decompileJobs = append(decompileJobs, nestedJobs...)
 			dependencies = append(dependencies, deps...)
-		// attempt to add nested jars as dependency before decompiling
+		// attempt to add nested jars as dependency before decompiling.
 		case strings.HasSuffix(f.Name, JavaArchive):
 			dep, err := toDependency(ctx, log, depLabels, explodedFilePath)
 			if err != nil {
