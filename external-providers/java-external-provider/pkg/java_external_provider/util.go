@@ -651,7 +651,10 @@ func constructArtifactFromPom(log logr.Logger, jarFile string, depToLabels map[s
 			}
 			// Setting false here because we don't know if it is opensource or not.
 			depName := fmt.Sprintf("%s.%s", dep.GroupId, dep.ArtifactId)
-			l := addDepLabels(depToLabels, depName, false)
+			if depToLabels[dep.GroupId] != nil {
+				dep.foundOnline = true
+			}
+			l := addDepLabels(depToLabels, depName, dep.foundOnline)
 			for _, l := range l {
 				if l == labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource) {
 					// Setting here to make things easier.
