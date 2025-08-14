@@ -537,6 +537,8 @@ func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*de
 			return dep, nil
 		}
 		log.V(3).Error(err, "unable to look up dependency by SHA, falling back to get maven cordinates", "jar", jarFile)
+	} else {
+		log.Info("maven search disabled - looking for dependencies from poms and jar structure")
 	}
 	dep, err := constructArtifactFromPom(log, jarFile, depToLabels)
 	if err == nil {
