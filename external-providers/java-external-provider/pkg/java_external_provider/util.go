@@ -537,6 +537,8 @@ func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*de
 			return dep, nil
 		}
 		log.V(3).Error(err, "unable to look up dependency by SHA, falling back to get maven cordinates", "jar", jarFile)
+	} else {
+		log.Info("maven search disabled - looking for dependencies from poms and jar structure")
 	}
 	dep, err := constructArtifactFromPom(log, jarFile, depToLabels)
 	if err == nil {
@@ -651,7 +653,11 @@ func constructArtifactFromPom(log logr.Logger, jarFile string, depToLabels map[s
 			}
 			// Setting false here because we don't know if it is opensource or not.
 			depName := fmt.Sprintf("%s.%s", dep.GroupId, dep.ArtifactId)
-			l := addDepLabels(depToLabels, depName, false)
+			groupIdRegex := strings.Join([]string{dep.GroupId, "*"}, ".")
+			if depToLabels[groupIdRegex] != nil {
+				dep.foundOnline = true
+			}
+			l := addDepLabels(depToLabels, depName, dep.foundOnline)
 			for _, l := range l {
 				if l == labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource) {
 					// Setting here to make things easier.
@@ -685,7 +691,10 @@ func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels
 		groupIdRegex := strings.Join([]string{groupId, "*"}, ".")
 		if depToLabels[groupIdRegex] != nil {
 			log.V(10).Info(fmt.Sprintf("%s is a public dependency with a group id of: %s", jarFile, groupId))
+			// do a best effort to set some dependency data
 			artifact.GroupId = groupId
+			artifact.ArtifactId = strings.TrimSuffix(filepath.Base(jarFile), ".jar")
+			artifact.Version = "Unknown"
 			// Adding this back to make some things easier.
 			artifact.foundOnline = true
 			return artifact, nil
@@ -693,7 +702,6 @@ func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels
 			// lets try to remove one segment from the end
 			sgmts = sgmts[:len(sgmts)-1]
 			groupId = strings.Join(sgmts, ".")
-			groupIdRegex = strings.Join([]string{groupId, "*"}, ".")
 		}
 	}
 	log.V(10).Info(fmt.Sprintf("could not find groupId for in our public listing of group id's", jarFile))
