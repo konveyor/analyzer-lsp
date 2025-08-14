@@ -692,6 +692,7 @@ func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels
 			// do a best effort to set some dependency data
 			artifact.GroupId = groupId
 			artifact.ArtifactId = strings.TrimSuffix(filepath.Base(jarFile), ".jar")
+			artifact.Version = "Unknown"
 			// Adding this back to make some things easier.
 			artifact.foundOnline = true
 			return artifact, nil
@@ -699,7 +700,6 @@ func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels
 			// lets try to remove one segment from the end
 			sgmts = sgmts[:len(sgmts)-1]
 			groupId = strings.Join(sgmts, ".")
-			groupIdRegex = strings.Join([]string{groupId, "*"}, ".")
 		}
 	}
 	log.V(10).Info(fmt.Sprintf("could not find groupId for in our public listing of group id's", jarFile))
