@@ -689,7 +689,9 @@ func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels
 		groupIdRegex := strings.Join([]string{groupId, "*"}, ".")
 		if depToLabels[groupIdRegex] != nil {
 			log.V(10).Info(fmt.Sprintf("%s is a public dependency with a group id of: %s", jarFile, groupId))
+			// do a best effort to set some dependency data
 			artifact.GroupId = groupId
+			artifact.ArtifactId = strings.TrimSuffix(filepath.Base(jarFile), ".jar")
 			// Adding this back to make some things easier.
 			artifact.foundOnline = true
 			return artifact, nil
