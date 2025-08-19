@@ -39,7 +39,7 @@ require (
 )
 
 require (
-	github.com/antchfx/xpath v1.2.4
+	github.com/antchfx/xpath v1.3.3
 	github.com/cbroglie/mustache v1.4.0
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -55,3 +55,5 @@ require (
 )
 
 replace github.com/spf13/cobra v1.3.0 => github.com/spf13/cobra v1.9.1
+
+replace github.com/antchfx/xmlquery => github.com/aufi/xmlquery v0.0.0-20250819124127-bd4beb3bd7a5
