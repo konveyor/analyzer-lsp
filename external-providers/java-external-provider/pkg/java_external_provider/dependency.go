@@ -445,9 +445,8 @@ func (p *javaServiceClient) getDependenciesForMaven(ctx context.Context) (map[ur
 }
 
 // getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
-// TODO: what if no wrapper?
 func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
-	subprojects, err := p.getGradleSubprojects()
+	subprojects, err := p.getGradleSubprojects(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -470,10 +469,17 @@ func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[u
 	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
 	}
+
 	timeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
+
+	javaHome, err := p.GetJavaHomeForGradle(ctx)
+	if err != nil {
+		return nil, err
+	}
 	cmd := exec.CommandContext(timeout, exe, args...)
 	cmd.Dir = p.config.Location
+	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
@@ -491,19 +497,14 @@ func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[u
 	return m, nil
 }
 
-func (p *javaServiceClient) getGradleSubprojects() ([]string, error) {
+func (c *javaServiceClient) getGradleSubprojects(ctx context.Context) ([]string, error) {
 	args := []string{
 		"projects",
 	}
 
-	// Ideally we'd want to set this in gradle.properties, or as a -Dorg.gradle.java.home arg,
-	// but it doesn't seem to work in older Gradle versions. This should only affect child processes in any case.
-	err := os.Setenv("JAVA_HOME", os.Getenv("JAVA8_HOME"))
-	if err != nil {
-		return nil, err
-	}
+	javaHome, err := c.GetJavaHomeForGradle(ctx)
 
-	exe, err := filepath.Abs(filepath.Join(p.config.Location, "gradlew"))
+	exe, err := filepath.Abs(filepath.Join(c.config.Location, "gradlew"))
 	if err != nil {
 		return nil, fmt.Errorf("error calculating gradle wrapper path")
 	}
@@ -511,7 +512,8 @@ func (p *javaServiceClient) getGradleSubprojects() ([]string, error) {
 		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
 	}
 	cmd := exec.Command(exe, args...)
-	cmd.Dir = p.config.Location
+	cmd.Dir = c.config.Location
+	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
@@ -583,25 +585,26 @@ func (p *javaServiceClient) parseGradleDependencyOutput(lines []string) []provid
 }
 
 // parseGradleDependencyString parses the lines of the gradle dependency output, for instance:
-// org.codehaus.groovy:groovy:3.0.21
+// org.codehaus.groovy:groovy:3.0.21 (c)
 // org.codehaus.groovy:groovy:3.+ -> 3.0.21
 // com.codevineyard:hello-world:{strictly 1.0.1} -> 1.0.1
 // :simple-jar (n)
 func parseGradleDependencyString(s string) provider.DepDAGItem {
 	// (*) - dependencies omitted (listed previously)
 	// (n) - Not resolved (configuration is not meant to be resolved)
-	if strings.HasSuffix(s, "(n)") || strings.HasSuffix(s, "(*)") {
+	// (c) - A dependency constraint (not a dependency, to be ignored)
+	if strings.HasSuffix(s, "(n)") || strings.HasSuffix(s, "(*)") || strings.HasSuffix(s, "(c)") {
 		return provider.DepDAGItem{}
 	}
 
-	depRegex := regexp.MustCompile(`(.+):(.+):((.*) -> )?(.*)`)
+	depRegex := regexp.MustCompile(`(.+):(.+)(:| -> )((.*) -> )?(.*)`)
 	libRegex := regexp.MustCompile(`:(.*)`)
 
 	dep := provider.Dep{}
 	match := depRegex.FindStringSubmatch(s)
 	if match != nil {
 		dep.Name = match[1] + "." + match[2]
-		dep.Version = match[5]
+		dep.Version = match[6]
 	} else if match = libRegex.FindStringSubmatch(s); match != nil {
 		dep.Name = match[1]
 	}
