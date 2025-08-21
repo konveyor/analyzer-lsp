@@ -471,14 +471,22 @@ func (s *javaServiceClient) GetGradleVersion(ctx context.Context) (version.Versi
 		return version.Version{}, err
 	}
 
+	// getting the Gradle version is the first step for guessing compatibility
+	// up to 8.14 is compatible with Java 8, so let's first try to run with that
 	args := []string{
 		"--version",
 	}
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Dir = s.config.Location
+	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA8_HOME")))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return version.Version{}, err
+		// if executing with 8 we get an error, try with 17
+		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA_HOME")))
+		output, err = cmd.CombinedOutput()
+		if err != nil {
+			return version.Version{}, err
+		}
 	}
 
 	vRegex := regexp.MustCompile(`Gradle (\d+(\.\d+)*)`)
