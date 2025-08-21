@@ -435,13 +435,23 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 				mapRuleSets[ruleMessage.ruleSetName] = rs
 			}
 			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
-				violation.Effort = nil
 				violation.Category = nil
-				// we need to tie these incidents back to tags that created them
-				for tag := range tags {
-					violation.Labels = append(violation.Labels, fmt.Sprintf("tag=%s", tag))
+				if violation.Effort != nil && *violation.Effort > 0 {
+					// we need to tie these incidents back to tags that created them
+					for tag := range tags {
+						violation.Labels = append(violation.Labels, fmt.Sprintf("tag=%s", tag))
+					}
+					// don't create insight for effort > 0
+					rs.Violations[rule.RuleID] = violation
+				} else {
+					violation.Effort = nil
+					// we need to tie these incidents back to tags that created them
+					for tag := range tags {
+						violation.Labels = append(violation.Labels, fmt.Sprintf("tag=%s", tag))
+					}
+					rs.Insights[rule.RuleID] = violation
 				}
-				rs.Insights[rule.RuleID] = violation
+
 			}
 		} else {
 			r.logger.Info("info rule not matched", "rule", rule.RuleID)
