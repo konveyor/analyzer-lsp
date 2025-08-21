@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -455,7 +456,11 @@ func createProjectAndClasspathFiles(basePath string, projectName string) error {
 }
 
 func (s *javaServiceClient) GetGradleWrapper() (string, error) {
-	exe, err := filepath.Abs(filepath.Join(s.config.Location, "gradlew"))
+	wrapper := "gradlew"
+	if runtime.GOOS == "windows" {
+		wrapper = "gradlew.bat"
+	}
+	exe, err := filepath.Abs(filepath.Join(s.config.Location, wrapper))
 	if err != nil {
 		return "", fmt.Errorf("error calculating gradle wrapper path")
 	}
