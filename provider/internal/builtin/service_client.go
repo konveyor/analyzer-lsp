@@ -196,16 +196,20 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							"data":        node.Data,
 						},
 					}
-					content := strings.TrimSpace(node.InnerText())
-					if content == "" {
-						content = node.Data
-					}
-					location, err := p.getLocation(ctx, absPath, content)
-					if err == nil {
-						incident.CodeLocation = &location
-						lineNo := int(location.StartPosition.Line)
-						incident.LineNumber = &lineNo
-					}
+					//content := strings.TrimSpace(node.OutputXML(true))	// Better, but need attrs too and single element could span over multiple lines
+					//content := strings.TrimSpace(node.InnerText())
+					log.V(7).Info("######", "Node line", node.LineNumber)
+					lineNum := node.LineNumber
+					incident.LineNumber = &lineNum
+					//if content == "" {
+					//	content = node.Data
+					//}
+					//location, err := p.getLocation(ctx, absPath, content)
+					//if err == nil {
+					//	incident.CodeLocation = &location
+					//	lineNo := int(location.StartPosition.Line)
+					//	incident.LineNumber = &lineNo
+					//}
 					response.Incidents = append(response.Incidents, incident)
 				}
 			}
@@ -411,7 +415,7 @@ func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, e
 	defer f.Close()
 	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
 	var doc *xmlquery.Node
-	doc, err = xmlquery.ParseWithOptions(f, xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
+	doc, err = xmlquery.ParseWithLineNumbersAndOptions(f, xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
 	if err != nil {
 		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
 			// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
