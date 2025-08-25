@@ -1,19 +1,24 @@
 package java
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
@@ -448,4 +453,74 @@ func createProjectAndClasspathFiles(basePath string, projectName string) error {
 		}
 	}
 	return nil
+}
+
+func (s *javaServiceClient) GetGradleWrapper() (string, error) {
+	wrapper := "gradlew"
+	if runtime.GOOS == "windows" {
+		wrapper = "gradlew.bat"
+	}
+	exe, err := filepath.Abs(filepath.Join(s.config.Location, wrapper))
+	if err != nil {
+		return "", fmt.Errorf("error calculating gradle wrapper path")
+	}
+	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("a gradle wrapper is not present in the project")
+	}
+	return exe, err
+}
+
+func (s *javaServiceClient) GetGradleVersion(ctx context.Context) (version.Version, error) {
+	exe, err := s.GetGradleWrapper()
+	if err != nil {
+		return version.Version{}, err
+	}
+
+	// getting the Gradle version is the first step for guessing compatibility
+	// up to 8.14 is compatible with Java 8, so let's first try to run with that
+	args := []string{
+		"--version",
+	}
+	cmd := exec.CommandContext(ctx, exe, args...)
+	cmd.Dir = s.config.Location
+	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA8_HOME")))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// if executing with 8 we get an error, try with 17
+		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA_HOME")))
+		output, err = cmd.CombinedOutput()
+		if err != nil {
+			return version.Version{}, err
+		}
+	}
+
+	vRegex := regexp.MustCompile(`Gradle (\d+(\.\d+)*)`)
+	scanner := bufio.NewScanner(bytes.NewReader(output))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if match := vRegex.FindStringSubmatch(line); len(match) != 0 {
+			v, err := version.NewVersion(match[1])
+			if err != nil {
+				return version.Version{}, err
+			}
+			return *v, err
+		}
+	}
+	return version.Version{}, nil
+}
+
+func (s *javaServiceClient) GetJavaHomeForGradle(ctx context.Context) (string, error) {
+	v, err := s.GetGradleVersion(ctx)
+	if err != nil {
+		return "", err
+	}
+	lastVersionForJava8, _ := version.NewVersion("8.14")
+	if v.LessThanOrEqual(lastVersionForJava8) {
+		java8home := os.Getenv("JAVA8_HOME")
+		if java8home == "" {
+			return "", fmt.Errorf("couldn't get JAVA8_HOME environment variable")
+		}
+		return java8home, nil
+	}
+	return os.Getenv("JAVA_HOME"), nil
 }

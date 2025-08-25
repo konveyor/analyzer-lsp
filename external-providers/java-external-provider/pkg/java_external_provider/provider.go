@@ -17,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
@@ -609,11 +610,23 @@ func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fer
 	}
 	defer os.Remove(taskgb)
 
+	// obtain Gradle version, needed for compatibility checks
+	gradleVersion, err := s.GetGradleVersion(ctx)
+	if err != nil {
+		gradleVersion = version.Version{}
+	}
+
 	// append downloader task
 	if taskFile == "" {
 		// if taskFile is empty, we are in container mode
 		taskFile = "/usr/local/etc/task.gradle"
 	}
+	// if Gradle >= 9.0, use a newer script for downloading sources
+	gradle9version, _ := version.NewVersion("9.0")
+	if gradleVersion.GreaterThanOrEqual(gradle9version) {
+		taskFile = filepath.Join(filepath.Dir(taskFile), "task-v9.gradle")
+	}
+
 	err = AppendToFile(taskFile, taskgb)
 	if err != nil {
 		return fmt.Errorf("error appending file %s to %s", taskFile, taskgb)
@@ -632,26 +645,21 @@ func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fer
 	}
 	defer os.Remove(gb)
 
-	// run gradle wrapper with tmp build file
-	exe, err := filepath.Abs(filepath.Join(s.config.Location, "gradlew"))
+	exe, err := s.GetGradleWrapper()
 	if err != nil {
-		return fmt.Errorf("error calculating gradle wrapper path")
-	}
-	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("a gradle wrapper must be present in the project")
+		return err
 	}
 
-	// gradle must run with java 8 (see compatibility matrix)
-	java8home := os.Getenv("JAVA8_HOME")
-	if java8home == "" {
-		return fmt.Errorf("")
+	javaHome, err := s.GetJavaHomeForGradle(ctx)
+	if err != nil {
+		return err
 	}
 
 	args := []string{
 		"konveyorDownloadSources",
 	}
 	cmd := exec.CommandContext(ctx, exe, args...)
-	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", java8home))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 	cmd.Dir = s.config.Location
 	output, err := cmd.CombinedOutput()
 	if err != nil {
