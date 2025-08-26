@@ -46,7 +46,7 @@ jobs:
 
       - name: Build kantra with custom analyzer-lsp
         run: |
-          run: tree -L 3 $GITHUB_WORKSPACE
+          tree -L 3 $GITHUB_WORKSPACE
           cd kantra
           # Replace analyzer-lsp dependency with local path
           go mod edit -replace=github.com/konveyor/analyzer-lsp=../analyzer-lsp
