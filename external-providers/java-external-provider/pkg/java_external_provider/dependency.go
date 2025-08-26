@@ -309,7 +309,7 @@ func (p *javaServiceClient) GetDependenciesFallback(ctx context.Context, locatio
 
 	// add each dependency found
 	for _, d := range pomDeps {
-		if d.GroupID == nil || d.Version == nil || d.ArtifactID == nil {
+		if d.GroupID == nil || d.ArtifactID == nil {
 			continue
 		}
 		dep := provider.Dep{}
