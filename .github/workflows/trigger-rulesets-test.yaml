@@ -25,6 +25,7 @@ jobs:
           java-version: 17
           java-distribution: temurin
           maven-version: 3.9.0
+          checkout-enabled: false
 
       - name: Checkout analyzer-lsp
         uses: actions/checkout@v3
@@ -78,7 +79,6 @@ jobs:
 
       - name: Run rule tests
         id: kantra-test
-        working-directory: rulesets
         run: |
           pwd
           ls -la
