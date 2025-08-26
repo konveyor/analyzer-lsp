@@ -47,10 +47,8 @@ jobs:
 
       - name: Build kantra with custom analyzer-lsp
         run: |
-          pwd
-          ls -la
-          ls -la ..
-          
+          mkdir kantra-dist
+
           cd kantra
           # Replace analyzer-lsp dependency with local path
           go mod edit -replace=github.com/konveyor/analyzer-lsp=../analyzer-lsp
@@ -61,12 +59,13 @@ jobs:
           go build -o kantra main.go
           
           # Copy kantra binary to working directory
-          cp kantra ../
+          cp kantra ../kantra-dist
 
       - name: Download required tools from official image
         run: |
           # We still need some tools from the official kantra image
           ID=$(podman create --name kantra-download quay.io/konveyor/kantra:latest)
+          cd kantra-dist
           podman cp ${ID}:/usr/local/etc/maven.default.index .
           podman cp ${ID}:/usr/bin/fernflower.jar .
           podman cp ${ID}:/jdtls .
@@ -77,7 +76,8 @@ jobs:
         id: kantra-test
         working-directory: rulesets
         run: |
-          RUN_LOCAL=1 ./kantra test ./rulesets/default/generated --log-level 50 | tee output.log || true
+          cd kantra-dist
+          RUN_LOCAL=1 ./kantra test ../rulesets/default/generated --log-level 50 | tee output.log || true
           tail -n5 output.log > message.md
           msg=$(grep -E '.*Rules Summary:' message.md -A1)
           tests_pass_rate=$(grep -E '.*Rules Summary:' message.md | sed -E 's| *Rules Summary: *(.*)|\1|' | sed -E 's|.*?:||')
