@@ -28,7 +28,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: konveyor/kantra
-          ref: main
           path: kantra
 
       - name: Set up Go
@@ -45,6 +44,9 @@ jobs:
 
       - name: Build kantra with custom analyzer-lsp
         run: |
+          pwd
+          ls -la
+          ls -la ..
           cd kantra
           # Replace analyzer-lsp dependency with local path
           go mod edit -replace=github.com/konveyor/analyzer-lsp=../analyzer-lsp
