@@ -1,4 +1,4 @@
-name: Local CI
+name: Trigger ruleset tests
 
 on: 
   push:
@@ -46,9 +46,7 @@ jobs:
 
       - name: Build kantra with custom analyzer-lsp
         run: |
-          pwd
-          ls -la
-          ls -la ../..
+          run: tree -L 3 $GITHUB_WORKSPACE
           cd kantra
           # Replace analyzer-lsp dependency with local path
           go mod edit -replace=github.com/konveyor/analyzer-lsp=../analyzer-lsp
