@@ -74,7 +74,7 @@ jobs:
           podman cp ${ID}:/usr/local/etc/maven.default.index .
           podman cp ${ID}:/usr/bin/fernflower.jar .
           podman cp ${ID}:/jdtls .
-          mkdir -p static-report
+          mkdir -p static-report rulesets
           podman rm kantra-download
 
       - name: Run rule tests
