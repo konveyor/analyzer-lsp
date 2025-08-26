@@ -14,19 +14,19 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           path: analyzer-lsp
 
       - name: Checkout rulesets
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           repository: konveyor/rulesets
           path: rulesets
           ref: main
 
       - name: Checkout kantra  
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           repository: konveyor/kantra
           path: kantra
