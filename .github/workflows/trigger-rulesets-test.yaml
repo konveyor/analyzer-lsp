@@ -14,6 +14,10 @@ jobs:
       issues: write
       pull-requests: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          path: analyzer-lsp
+
       - name: Checkout rulesets
         uses: actions/checkout@v4
         with:
@@ -42,8 +46,8 @@ jobs:
         run: |
           cd kantra
           # Replace analyzer-lsp dependency with local path
-          go mod edit -replace=github.com/konveyor/analyzer-lsp=../
-          go mod edit -replace=github.com/konveyor/analyzer-lsp/external-providers/java-external-provider=../external-providers/java-external-provider
+          go mod edit -replace=github.com/konveyor/analyzer-lsp=../analyzer-lsp
+          go mod edit -replace=github.com/konveyor/analyzer-lsp/external-providers/java-external-provider=../analyzer-lsp/external-providers/java-external-provider
           go mod tidy
           
           # Build kantra with local analyzer-lsp changes
