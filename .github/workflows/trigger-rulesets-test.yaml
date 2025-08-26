@@ -1,0 +1,159 @@
+name: Local CI
+
+on: 
+  push:
+  pull_request:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout rulesets
+        uses: actions/checkout@v4
+        with:
+          path: rulesets
+
+      - name: Checkout kantra  
+        uses: actions/checkout@v4
+        with:
+          repository: konveyor/kantra
+          ref: ${{ inputs.kantra_ref }}
+          path: kantra
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Install Java and Maven
+        uses: s4u/setup-maven-action@v1.18.0
+        with:
+          java-version: 17
+          java-distribution: temurin
+          maven-version: 3.9.0
+
+      - name: Build kantra with custom analyzer-lsp
+        run: |
+          cd kantra
+          # Replace analyzer-lsp dependency with local path
+          go mod edit -replace=github.com/konveyor/analyzer-lsp=../
+          go mod edit -replace=github.com/konveyor/analyzer-lsp/external-providers/java-external-provider=../external-providers/java-external-provider
+          go mod tidy
+          
+          # Build kantra with local analyzer-lsp changes
+          go build -o kantra main.go
+          
+          # Copy kantra binary to working directory
+          cp kantra ../
+
+      - name: Download required tools from official image
+        run: |
+          # We still need some tools from the official kantra image
+          ID=$(podman create --name kantra-download quay.io/konveyor/kantra:latest)
+          podman cp ${ID}:/usr/local/etc/maven.default.index .
+          podman cp ${ID}:/usr/bin/fernflower.jar .
+          podman cp ${ID}:/jdtls .
+          mkdir rulesets static-report
+          podman rm kantra-download
+
+      - name: Run rule tests
+        id: kantra-test
+        working-directory: rulesets
+        run: |
+          RUN_LOCAL=1 ./kantra test ./rulesets/default/generated --log-level 50 | tee output.log || true
+          tail -n5 output.log > message.md
+          msg=$(grep -E '.*Rules Summary:' message.md -A1)
+          tests_pass_rate=$(grep -E '.*Rules Summary:' message.md | sed -E 's| *Rules Summary: *(.*)|\1|' | sed -E 's|.*?:||')
+          tcs_pass_rate=$(grep -E '.*Test Cases Summary:' message.md | sed -E 's| *Test Cases Summary: *(.*)|\1|' | sed -E 's|.*?:||')
+          some_test_failed=$(echo ${tests_pass_rate} | awk -F' ' '{print$1}' | awk -F'/' '{print ($1 == $2) ? 0 : 1}')
+          some_tcs_failed=$(echo ${tcs_pass_rate} | awk -F' ' '{print$1}' | awk -F'/' '{print ($1 == $2) ? 0 : 1}')
+          
+          echo 'msg<<EOF' >> $GITHUB_OUTPUT
+          echo ${msg} >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+          echo 'tcs_pass_rate<<EOF' >> $GITHUB_OUTPUT
+          echo ${tcs_pass_rate} >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+          echo 'tests_pass_rate<<EOF' >> $GITHUB_OUTPUT
+          echo ${tests_pass_rate} >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+          if [[ ${some_test_failed} -eq 1 ]] || [[ ${some_tcs_failed} -eq 1 ]]; then
+            exit 1
+          else
+            exit 0
+          fi
+
+#      - name: Comment on the PR
+#        if: ${{ github.event_name == 'pull_request' }}
+#        uses: actions/github-script@v6
+#        with:
+#          script: |
+#            const issue_number = context.payload.pull_request.number;
+#            const owner = context.repo.owner;
+#            const repo = context.repo.repo;
+#            const body = `${{ steps.kantra-test.outputs.msg }}`;
+#
+#            const comments = await github.rest.issues.listComments({
+#              owner,
+#              repo,
+#              issue_number
+#            });
+#
+#            const botComment = comments.data.find(comment =>
+#              comment.user.login === 'github-actions[bot]');
+#
+#            if (botComment) {
+#              await github.rest.issues.updateComment({
+#                owner,
+#                repo,
+#                comment_id: botComment.id,
+#                body
+#              });
+#            } else {
+#              await github.rest.issues.createComment({
+#                owner,
+#                repo,
+#                issue_number,
+#                body
+#              });
+#            }
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#          debug: true
+
+      - name: Upload matching folders
+        uses: actions/upload-artifact@v4
+        with:
+          name: rules-test-folders
+          path: /tmp/rules-test-*
+          compression-level: 9
+
+      - name: Update tests badge
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'konveyor/rulesets' }}
+        uses: RubbaBoy/BYOB@v1.3.0
+        with:
+          NAME: konveyor-rulesets-tests-rate
+          LABEL: Test Status
+          STATUS: ${{ steps.kantra-test.outputs.tests_pass_rate }}
+          COLOR: blue
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update test case badge
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'konveyor/rulesets' }}
+        uses: RubbaBoy/BYOB@v1.3.0
+        with:
+          NAME: konveyor-rulesets-tcs-rate
+          LABEL: Test Case Status
+          STATUS: ${{ steps.kantra-test.outputs.tcs_pass_rate }}
+          COLOR: blue
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            
+        
