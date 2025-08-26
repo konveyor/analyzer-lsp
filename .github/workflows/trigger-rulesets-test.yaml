@@ -46,7 +46,7 @@ jobs:
         run: |
           pwd
           ls -la
-          ls -la ..
+          ls -la ../..
           cd kantra
           # Replace analyzer-lsp dependency with local path
           go mod edit -replace=github.com/konveyor/analyzer-lsp=../analyzer-lsp
