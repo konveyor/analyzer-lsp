@@ -21,13 +21,14 @@ jobs:
       - name: Checkout rulesets
         uses: actions/checkout@v4
         with:
+          repository: konveyor/rulesets
           path: rulesets
 
       - name: Checkout kantra  
         uses: actions/checkout@v4
         with:
           repository: konveyor/kantra
-          ref: ${{ inputs.kantra_ref }}
+          ref: main
           path: kantra
 
       - name: Set up Go
@@ -63,7 +64,7 @@ jobs:
           podman cp ${ID}:/usr/local/etc/maven.default.index .
           podman cp ${ID}:/usr/bin/fernflower.jar .
           podman cp ${ID}:/jdtls .
-          mkdir rulesets static-report
+          mkdir -p static-report
           podman rm kantra-download
 
       - name: Run rule tests
