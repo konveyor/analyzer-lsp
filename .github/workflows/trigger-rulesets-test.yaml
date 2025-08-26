@@ -23,12 +23,14 @@ jobs:
         with:
           repository: konveyor/rulesets
           path: rulesets
+          ref: main
 
       - name: Checkout kantra  
         uses: actions/checkout@v4
         with:
           repository: konveyor/kantra
           path: kantra
+          ref: main
 
       - name: Set up Go
         uses: actions/setup-go@v4
