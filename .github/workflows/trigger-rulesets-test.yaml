@@ -48,6 +48,8 @@ jobs:
       - name: Build kantra with custom analyzer-lsp
         run: |
           mkdir kantra-dist
+          pwd
+          ls -la
 
           cd kantra
           # Replace analyzer-lsp dependency with local path
@@ -63,6 +65,8 @@ jobs:
 
       - name: Download required tools from official image
         run: |
+          pwd
+          ls -la
           # We still need some tools from the official kantra image
           ID=$(podman create --name kantra-download quay.io/konveyor/kantra:latest)
           cd kantra-dist
@@ -76,6 +80,8 @@ jobs:
         id: kantra-test
         working-directory: rulesets
         run: |
+          pwd
+          ls -la
           cd kantra-dist
           RUN_LOCAL=1 ./kantra test ../rulesets/default/generated --log-level 50 | tee output.log || true
           tail -n5 output.log > message.md
