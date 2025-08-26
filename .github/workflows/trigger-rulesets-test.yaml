@@ -14,9 +14,15 @@ jobs:
       issues: write
       pull-requests: write
     steps:
+      - run: |
+          ls -la
+
       - uses: actions/checkout@v3
         with:
           path: analyzer-lsp
+
+      - run: |
+          ls -la
 
       - name: Checkout rulesets
         uses: actions/checkout@v3
@@ -25,12 +31,18 @@ jobs:
           path: rulesets
           ref: main
 
+      - run: |
+          ls -la
+
       - name: Checkout kantra  
         uses: actions/checkout@v3
         with:
           repository: konveyor/kantra
           path: kantra
           ref: main
+
+      - run: |
+          ls -la
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -46,7 +58,10 @@ jobs:
 
       - name: Build kantra with custom analyzer-lsp
         run: |
-          tree -L 3 $GITHUB_WORKSPACE
+          pwd
+          ls -la
+          ls -la ..
+          
           cd kantra
           # Replace analyzer-lsp dependency with local path
           go mod edit -replace=github.com/konveyor/analyzer-lsp=../analyzer-lsp
