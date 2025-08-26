@@ -14,36 +14,6 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - run: |
-          ls -la
-
-      - uses: actions/checkout@v3
-        with:
-          path: analyzer-lsp
-
-      - run: |
-          ls -la
-
-      - name: Checkout rulesets
-        uses: actions/checkout@v3
-        with:
-          repository: konveyor/rulesets
-          path: rulesets
-          ref: main
-
-      - run: |
-          ls -la
-
-      - name: Checkout kantra  
-        uses: actions/checkout@v3
-        with:
-          repository: konveyor/kantra
-          path: kantra
-          ref: main
-
-      - run: |
-          ls -la
-
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -55,6 +25,25 @@ jobs:
           java-version: 17
           java-distribution: temurin
           maven-version: 3.9.0
+
+      - name: Checkout analyzer-lsp
+        uses: actions/checkout@v3
+        with:
+          path: analyzer-lsp
+
+      - name: Checkout rulesets
+        uses: actions/checkout@v3
+        with:
+          repository: konveyor/rulesets
+          path: rulesets
+          ref: main
+
+      - name: Checkout kantra
+        uses: actions/checkout@v3
+        with:
+          repository: konveyor/kantra
+          path: kantra
+          ref: main
 
       - name: Build kantra with custom analyzer-lsp
         run: |
