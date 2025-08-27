@@ -407,7 +407,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 				dependencies = append(dependencies, dep)
 				// copy this into m2 repo to avoid downloading again
 				groupPath := filepath.Join(strings.Split(dep.GroupId, ".")...)
-				artifactPath := filepath.Join(strings.Split(dep.ArtifactId, ".")...)
+				artifactPath, _ := strings.CutSuffix(filepath.Base(explodedFilePath), ".jar")
 				destPath := filepath.Join(m2Repo, groupPath, artifactPath,
 					dep.Version, filepath.Base(explodedFilePath))
 				if err := CopyFile(explodedFilePath, destPath); err != nil {
@@ -555,6 +555,8 @@ func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*de
 	return dep, err
 }
 
+var mavenSearchErrorCache error
+
 func constructArtifactFromSHA(log logr.Logger, jarFile string) (javaArtifact, error) {
 	dep := javaArtifact{}
 	// we look up the jar in maven
@@ -572,6 +574,12 @@ func constructArtifactFromSHA(log logr.Logger, jarFile string) (javaArtifact, er
 
 	sha1sum := hex.EncodeToString(hash.Sum(nil))
 
+	// if maven search is down, we do not want to keep trying on each dep
+	if mavenSearchErrorCache != nil {
+		log.Info("maven search is down, returning cached error", "error", mavenSearchErrorCache)
+		return dep, mavenSearchErrorCache
+	}
+
 	// Make an HTTPS request to search.maven.org
 	searchURL := fmt.Sprintf("https://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
 	resp, err := http.Get(searchURL)
@@ -579,6 +587,15 @@ func constructArtifactFromSHA(log logr.Logger, jarFile string) (javaArtifact, er
 		return dep, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		statusErr := fmt.Errorf("Maven search is unavailable: %s", resp.Status)
+		// cache the server errors
+		if resp.StatusCode >= 500 {
+			mavenSearchErrorCache = statusErr
+		}
+		return dep, statusErr
+	}
 
 	// Read and parse the JSON response
 	body, err := io.ReadAll(resp.Body)
