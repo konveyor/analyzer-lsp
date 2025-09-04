@@ -482,7 +482,7 @@ func (p *javaServiceClient) getDependenciesForGradle(ctx context.Context) (map[u
 	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error trying to get Gradle dependencies: %w - Gradle output: %s", err, string(output))
 	}
 
 	lines := strings.Split(string(output), "\n")
@@ -503,6 +503,9 @@ func (c *javaServiceClient) getGradleSubprojects(ctx context.Context) ([]string,
 	}
 
 	javaHome, err := c.GetJavaHomeForGradle(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	exe, err := filepath.Abs(filepath.Join(c.config.Location, "gradlew"))
 	if err != nil {
@@ -516,7 +519,7 @@ func (c *javaServiceClient) getGradleSubprojects(ctx context.Context) ([]string,
 	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting gradle subprojects: %w - Gradle output: %s", err, string(output))
 	}
 
 	beginRegex := regexp.MustCompile(`Root project`)

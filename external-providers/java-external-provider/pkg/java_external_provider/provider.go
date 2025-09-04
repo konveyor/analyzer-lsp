@@ -614,7 +614,7 @@ func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fer
 	// obtain Gradle version, needed for compatibility checks
 	gradleVersion, err := s.GetGradleVersion(ctx)
 	if err != nil {
-		gradleVersion = version.Version{}
+		return err
 	}
 
 	// append downloader task
@@ -664,7 +664,7 @@ func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fer
 	cmd.Dir = s.config.Location
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("error trying to get sources for Gradle: %w - Gradle output: %s", err, output)
 	}
 
 	s.log.V(8).WithValues("output", output).Info("got gradle output")

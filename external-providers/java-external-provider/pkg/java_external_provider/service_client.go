@@ -490,7 +490,7 @@ func (s *javaServiceClient) GetGradleVersion(ctx context.Context) (version.Versi
 		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA_HOME")))
 		output, err = cmd.CombinedOutput()
 		if err != nil {
-			return version.Version{}, err
+			return version.Version{}, fmt.Errorf("error trying to get Gradle version: %w - Gradle output: %s", err, string(output))
 		}
 	}
 
