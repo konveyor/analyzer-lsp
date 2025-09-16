@@ -489,12 +489,12 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 			escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
 			escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
 			var fileList bytes.Buffer
-			for _, f := range locations {
+			for _, f := range currBatch {
 				fileList.WriteString(f)
 				fileList.WriteByte('\x00')
 			}
 			cmdStr := fmt.Sprintf(
-				`xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
+				`xargs -0 perl -ne 'if (/%v/) { print "$ARGV:$.:$1\n" } close ARGV if eof;'`,
 				escapedPattern,
 			)
 			b.log.V(7).Info("running perl", "cmd", cmdStr)
