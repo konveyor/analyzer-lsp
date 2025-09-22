@@ -218,6 +218,11 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 		// attempt to decompile when directory for the expected java file doesn't exist
 		// if directory exists, assume .java file is present within, this avoids decompiling every Jar
 		if _, err := os.Stat(filepath.Dir(javaFileAbsolutePath)); err != nil {
+			jarFilePath := filepath.Join(filepath.Dir(jarPath), filepath.Base(jarPath))
+			if _, err := os.Stat(jarFilePath); os.IsNotExist(err) {
+				p.log.V(7).Info("jar not found", "jarPath", jarPath)
+				return "", "", nil
+			}
 			cmd := exec.Command("jar", "xf", filepath.Base(jarPath))
 			cmd.Dir = filepath.Dir(jarPath)
 			err := cmd.Run()
@@ -247,6 +252,11 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 		javaFileAbsolutePath = filepath.Join(filepath.Dir(sourcesFile), filepath.Dir(path), javaFileName)
 
 		if _, err := os.Stat(filepath.Dir(javaFileAbsolutePath)); err != nil {
+			jarFilePath := filepath.Join(filepath.Dir(jarPath), filepath.Base(jarPath))
+			if _, err := os.Stat(jarFilePath); os.IsNotExist(err) {
+				p.log.V(7).Info("jar not found", "jarPath", jarPath)
+				return "", "", nil
+			}
 			cmd := exec.Command("jar", "xf", filepath.Base(sourcesFile))
 			cmd.Dir = filepath.Dir(sourcesFile)
 			err = cmd.Run()
