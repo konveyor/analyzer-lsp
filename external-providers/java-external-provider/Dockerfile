@@ -1,4 +1,4 @@
-ARG JAVA_BUNDLE_TAG=latest
+ARG JAVA_BUNDLE_TAG=release-0.8
 FROM quay.io/konveyor/jdtls-server-base:${JAVA_BUNDLE_TAG} as base
 
 # Build the manager binary
