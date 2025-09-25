@@ -487,6 +487,8 @@ func (s *javaServiceClient) GetGradleVersion(ctx context.Context) (version.Versi
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		// if executing with 8 we get an error, try with 17
+		cmd = exec.CommandContext(ctx, exe, args...)
+		cmd.Dir = s.config.Location
 		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA_HOME")))
 		output, err = cmd.CombinedOutput()
 		if err != nil {
