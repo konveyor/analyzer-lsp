@@ -272,7 +272,6 @@ func (p *javaServiceClient) Stop() {
 	if err != nil {
 		p.log.Error(err, "failed to gracefully shutdown java provider")
 	}
-	p.cancelFunc()
 	err = p.cmd.Wait()
 	if err != nil {
 		if isSafeErr(err) {
@@ -334,11 +333,6 @@ func isSafeErr(err error) bool {
 				return true
 			}
 		}
-	}
-	// to prevent log msg="stopping java provider" error="{\"Stderr\":null}" provider=java
-	errStr := err.Error()
-	if errStr == "{\"Stderr\":null}" {
-		return true
 	}
 
 	return false
