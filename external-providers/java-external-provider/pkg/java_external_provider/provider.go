@@ -469,12 +469,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			// language server has not started - don't error yet
 			if err != nil && cmd.ProcessState == nil {
 				log.Info("retrying language server start")
-			} else {
-				log.Error(err, "language server stopped with error")
+			} else if err != nil {
+				log.Error(err, "language server process terminated")
 			}
-			log.V(5).Info("language server stopped")
+			log.Info("language server stopped")
+
 		case <-ctx.Done():
-			log.Info("language server context cancelled closing pipes")
+			log.Info("language server context cancelled, closing pipes")
 			stdin.Close()
 			stdout.Close()
 		}
