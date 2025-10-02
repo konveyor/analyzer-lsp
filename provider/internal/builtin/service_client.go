@@ -196,20 +196,8 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							"data":        node.Data,
 						},
 					}
-					//content := strings.TrimSpace(node.OutputXML(true))	// Better, but need attrs too and single element could span over multiple lines
-					//content := strings.TrimSpace(node.InnerText())
-					log.V(7).Info("######", "Node line", node.LineNumber)
 					lineNum := node.LineNumber
 					incident.LineNumber = &lineNum
-					//if content == "" {
-					//	content = node.Data
-					//}
-					//location, err := p.getLocation(ctx, absPath, content)
-					//if err == nil {
-					//	incident.CodeLocation = &location
-					//	lineNo := int(location.StartPosition.Line)
-					//	incident.LineNumber = &lineNo
-					//}
 					response.Incidents = append(response.Incidents, incident)
 				}
 			}
