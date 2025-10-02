@@ -5,7 +5,7 @@ go 1.23.9
 require (
 	github.com/PaesslerAG/gval v1.2.2
 	github.com/antchfx/jsonquery v1.3.0
-	github.com/antchfx/xmlquery v1.4.5-0.20250831140246-deb27cf40c3b
+	github.com/antchfx/xmlquery v1.4.5-0.20250930041715-a4181c99a362
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/dlclark/regexp2 v1.11.4
 	github.com/go-logr/logr v1.4.2
@@ -19,7 +19,7 @@ require (
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel/trace v1.34.0
 	golang.org/x/oauth2 v0.26.0
-	golang.org/x/sync v0.17.0
+	golang.org/x/sync v0.11.0
 	google.golang.org/grpc v1.72.2
 	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v2 v2.4.0
@@ -42,16 +42,16 @@ require (
 	github.com/antchfx/xpath v1.3.5
 	github.com/cbroglie/mustache v1.4.0
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/hashicorp/go-version v1.6.0
 	github.com/shopspring/decimal v1.3.1 // indirect
 	go.opentelemetry.io/otel v1.34.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
 	go.opentelemetry.io/otel/sdk v1.34.0
-	golang.org/x/net v0.43.0
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/net v0.35.0
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 )
 
 replace github.com/spf13/cobra v1.3.0 => github.com/spf13/cobra v1.9.1
