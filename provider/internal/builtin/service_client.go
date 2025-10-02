@@ -39,6 +39,7 @@ type builtinServiceClient struct {
 	locationCache map[string]float64
 	includedPaths []string
 	excludedDirs  []string
+	encoding      string
 
 	workingCopyMgr *workingCopyManager
 }
@@ -48,6 +49,30 @@ type fileTemplateContext struct {
 }
 
 var _ provider.ServiceClient = &builtinServiceClient{}
+
+func (b *builtinServiceClient) openFileWithEncoding(filePath string) (io.Reader, error) {
+	var content []byte
+	var err error
+	if b.encoding != "" {
+		content, err = provider.OpenFileWithEncoding(filePath, b.encoding)
+
+		if err != nil {
+			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", filePath)
+			content, readErr := os.ReadFile(filePath)
+			if readErr != nil {
+				return nil, readErr
+			}
+			return bytes.NewReader(content), nil
+		}
+	} else {
+		content, err = os.ReadFile(filePath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return bytes.NewReader(content), nil
+}
 
 func (p *builtinServiceClient) Stop() {
 	p.workingCopyMgr.stop()
@@ -176,7 +201,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 		for _, file := range xmlFiles {
-			nodes, err := queryXMLFile(file, query)
+			nodes, err := p.queryXMLFile(file, query)
 			if err != nil {
 				log.V(5).Error(err, "failed to query xml file", "file", file)
 				continue
@@ -229,7 +254,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 		for _, file := range xmlFiles {
-			nodes, err := queryXMLFile(file, query)
+			nodes, err := p.queryXMLFile(file, query)
 			if err != nil {
 				log.Error(err, "failed to query xml file", "file", file)
 				continue
@@ -274,12 +299,12 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 		for _, file := range jsonFiles {
-			f, err := os.Open(file)
+			reader, err := p.openFileWithEncoding(file)
 			if err != nil {
 				log.V(5).Error(err, "error opening json file", "file", file)
 				continue
 			}
-			doc, err := jsonquery.Parse(f)
+			doc, err := jsonquery.Parse(reader)
 			if err != nil {
 				log.V(5).Error(err, "error parsing json file", "file", file)
 				continue
@@ -403,24 +428,31 @@ func (b *builtinServiceClient) getLocation(ctx context.Context, path, content st
 	return location, nil
 }
 
-func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open file '%s': %w", filePath, err)
+func (b *builtinServiceClient) queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
+	var content []byte
+	if b.encoding != "" {
+		content, err = provider.OpenFileWithEncoding(filePath, b.encoding)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to convert file encoding for XML, using original file", "file", filePath)
+			content, err = os.ReadFile(filePath)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		content, err = os.ReadFile(filePath)
+		if err != nil {
+			return nil, err
+		}
 	}
-	defer f.Close()
+
 	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
 	var doc *xmlquery.Node
-	doc, err = xmlquery.ParseWithOptions(f, xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
+	doc, err = xmlquery.ParseWithOptions(strings.NewReader(string(content)), xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
 	if err != nil {
 		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
 			// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
-			var b []byte
-			b, err = os.ReadFile(filePath)
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
-			}
-			docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
+			docString := strings.Replace(string(content), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
 			doc, err = xmlquery.Parse(strings.NewReader(docString))
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
