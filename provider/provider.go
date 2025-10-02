@@ -36,6 +36,7 @@ const (
 	LspServerPathConfigKey = "lspServerPath"
 	IncludedPathsConfigKey = "includedPaths"
 	ExcludedDirsConfigKey  = "excludedDirs"
+	EncodingConfigKey      = "encoding"
 )
 
 // We need to make these Vars, because you can not take a pointer of the constant.
