@@ -6,10 +6,35 @@ import (
 	"os"
 	"os/exec"
 
+	"io"
+
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/swaggest/openapi-go/openapi3"
 )
+
+type readWriteCloser struct {
+	io.Reader
+	io.Writer
+	io.Closer
+}
+
+func (rwc readWriteCloser) Close() error {
+	return nil
+}
+
+type stdioDialer struct {
+	stdin  io.WriteCloser
+	stdout io.ReadCloser
+}
+
+func (d stdioDialer) Dial(ctx context.Context) (io.ReadWriteCloser, error) {
+	return readWriteCloser{
+		Reader: d.stdout,
+		Writer: d.stdin,
+		Closer: d.stdin,
+	}, nil
+}
 
 // TODO(shawn-hurley): Pipe the logger through
 // Determine how and where external providers will add the logs to make the logs viewable in a single location.
