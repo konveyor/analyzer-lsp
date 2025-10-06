@@ -19,7 +19,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/jsonrpc2"
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -28,6 +28,45 @@ import (
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 )
+
+type readWriteCloser struct {
+	io.Reader
+	io.Writer
+	io.Closer
+}
+
+func (rwc readWriteCloser) Close() error {
+	return nil
+}
+
+type stdioDialer struct {
+	stdin  io.WriteCloser
+	stdout io.ReadCloser
+}
+
+func (d stdioDialer) Dial(ctx context.Context) (io.ReadWriteCloser, error) {
+	return readWriteCloser{
+		Reader: d.stdout,
+		Writer: d.stdin,
+		Closer: d.stdin,
+	}, nil
+}
+
+type rpcClientWrapper struct {
+	conn *jsonrpc2.Connection
+}
+
+func (r *rpcClientWrapper) Call(ctx context.Context, method string, params, result interface{}) error {
+	return r.conn.Call(ctx, method, params).Await(ctx, result)
+}
+
+func (r *rpcClientWrapper) Notify(ctx context.Context, method string, params interface{}) error {
+	return r.conn.Notify(ctx, method, params)
+}
+
+func (r *rpcClientWrapper) Close() error {
+	return r.conn.Close()
+}
 
 const (
 	JavaFile          = ".java"
@@ -488,21 +527,17 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 	wg.Wait()
 
-	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
+	dialer := stdioDialer{
+		stdin:  stdin,
+		stdout: stdout,
+	}
 
-	rpc.AddHandler(jsonrpc2.NewBackoffHandler(log))
-
-	go func() {
-		err := rpc.Run(ctx)
-		if err != nil {
-			//TODO: we need to pipe the ctx further into the stream header and run.
-			// basically it is checking if done, then reading. When it gets EOF it errors.
-			// We need the read to be at the same level of selection to fully implment graceful shutdown
-			cancelFunc()
-			returnErr = err
-			return
-		}
-	}()
+	conn, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{})
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, err
+	}
+	rpc := &rpcClientWrapper{conn: conn}
 
 	m2Repo := getMavenLocalRepoPath(mavenSettingsFile)
 
