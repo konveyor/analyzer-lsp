@@ -6,13 +6,9 @@ github.com/PaesslerAG/jsonpath v0.1.0 h1:gADYeifvlqK3R3i2cR5B4DGgxLXIPb3TRTH1mGi
 github.com/PaesslerAG/jsonpath v0.1.0/go.mod h1:4BzmtoM/PI8fPO4aQGIusjGxGir2BzcV0grWtFzq1Y8=
 github.com/antchfx/jsonquery v1.3.0 h1:rftVBKEXpj8C9WVu+4mbqL5hd6nLz7/AbIvAQlq3D7o=
 github.com/antchfx/jsonquery v1.3.0/go.mod h1:fZ88NWso7HlXESJ2hrNKnYx+xyT6pmvV1N6KMIg7FHo=
-github.com/antchfx/xmlquery v1.4.5-0.20250831140246-deb27cf40c3b h1:RmxwWMDe/ari76pTotLfU03rOXkdQPBc79tKLIno+IQ=
-github.com/antchfx/xmlquery v1.4.5-0.20250831140246-deb27cf40c3b/go.mod h1:AEPEEPYE9GnA2mj5Ur2L5Q5/2PycJ0N9Fusrx9b12fc=
 github.com/antchfx/xmlquery v1.4.5-0.20250930041715-a4181c99a362 h1:VKYbL98QxrBm6VRN1v4mJM5fwdZWvVHy57cSTzP38c8=
 github.com/antchfx/xmlquery v1.4.5-0.20250930041715-a4181c99a362/go.mod h1:lJfWRXzYMK1ss32zm1GQV3gMIW/HFey3xDZmkP1SuNc=
 github.com/antchfx/xpath v1.2.1/go.mod h1:i54GszH55fYfBmoZXapTHN8T8tkcHfRgLyVwwqzXNcs=
-github.com/antchfx/xpath v1.3.3 h1:tmuPQa1Uye0Ym1Zn65vxPgfltWb/Lxu2jeqIGteJSRs=
-github.com/antchfx/xpath v1.3.3/go.mod h1:i54GszH55fYfBmoZXapTHN8T8tkcHfRgLyVwwqzXNcs=
 github.com/antchfx/xpath v1.3.5 h1:PqbXLC3TkfeZyakF5eeh3NTWEbYl4VHNVeufANzDbKQ=
 github.com/antchfx/xpath v1.3.5/go.mod h1:i54GszH55fYfBmoZXapTHN8T8tkcHfRgLyVwwqzXNcs=
 github.com/bombsimon/logrusr/v3 v3.1.0 h1:zORbLM943D+hDMGgyjMhSAz/iDz86ZV72qaak/CA0zQ=
