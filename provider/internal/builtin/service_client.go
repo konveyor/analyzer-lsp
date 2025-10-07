@@ -196,8 +196,19 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							"data":        node.Data,
 						},
 					}
-					lineNum := node.LineNumber
-					incident.LineNumber = &lineNum
+					content := strings.TrimSpace(node.InnerText())
+					if content == "" {
+						content = node.Data
+					}
+					location, err := p.getLocation(ctx, absPath, content)
+					if err == nil {
+						incident.CodeLocation = &location
+						lineNo := int(location.StartPosition.Line)
+						incident.LineNumber = &lineNo
+					} else {
+						lineNum := node.LineNumber
+						incident.LineNumber = &lineNum
+					}
 					response.Incidents = append(response.Incidents, incident)
 				}
 			}
