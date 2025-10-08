@@ -341,14 +341,15 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 				// if both message and tag are set, split message part into a new rule if effort is non-zero
 				// if effort is zero, we do not want to create a violation but only tag and an insight
 				if rule.Perform.Message.Text != nil && rule.Effort != nil && *rule.Effort != 0 {
+					// because split rules will share ruleID, we need to add the tags to the labels here
+					for _, tag := range rule.Perform.Tag {
+						rule.Labels = append(rule.Labels, fmt.Sprintf("tag=%s", tag))
+					}
 					rule.Perform.Tag = nil
-					otherRules = append(
-						otherRules,
-						ruleMessage{
-							rule:        rule,
-							ruleSetName: ruleSet.Name,
-						},
-					)
+					otherRules = append(otherRules, ruleMessage{
+						rule:        rule,
+						ruleSetName: ruleSet.Name,
+					})
 				}
 			}
 		}
@@ -435,13 +436,18 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 				mapRuleSets[ruleMessage.ruleSetName] = rs
 			}
 			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {
-				violation.Effort = nil
 				violation.Category = nil
-				// we need to tie these incidents back to tags that created them
+				// Add all tags to violation labels
 				for tag := range tags {
 					violation.Labels = append(violation.Labels, fmt.Sprintf("tag=%s", tag))
 				}
-				rs.Insights[rule.RuleID] = violation
+				if violation.Effort != nil && *violation.Effort > 0 {
+					// we need to tie these incidents back to tags that created them
+					// don't create insight for effort > 0
+					rs.Violations[rule.RuleID] = violation
+				} else {
+					rs.Insights[rule.RuleID] = violation
+				}
 			}
 		} else {
 			r.logger.Info("info rule not matched", "rule", rule.RuleID)
