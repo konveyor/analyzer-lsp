@@ -19,7 +19,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/jsonrpc2"
+	"github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
+	"github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -28,6 +29,22 @@ import (
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 )
+
+type rpcClientWrapper struct {
+	conn *jsonrpc2.Connection
+}
+
+func (r *rpcClientWrapper) Call(ctx context.Context, method string, params, result interface{}) error {
+	return r.conn.Call(ctx, method, params).Await(ctx, result)
+}
+
+func (r *rpcClientWrapper) Notify(ctx context.Context, method string, params interface{}) error {
+	return r.conn.Notify(ctx, method, params)
+}
+
+func (r *rpcClientWrapper) Close() error {
+	return r.conn.Close()
+}
 
 const (
 	JavaFile          = ".java"
@@ -438,71 +455,18 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
 		jdtlsArgs = append(jdtlsArgs, fmt.Sprintf("-Xmx%s", val))
 	}
-	cmd := exec.CommandContext(ctx, javaExec, jdtlsArgs...)
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		cancelFunc()
-		return nil, additionalBuiltinConfig, err
-	}
-	stdout, err := cmd.StdoutPipe()
+	dialer, err := base.NewCmdDialer(ctx, javaExec, jdtlsArgs...)
 	if err != nil {
 		cancelFunc()
 		return nil, additionalBuiltinConfig, err
 	}
 
-	waitErrorChannel := make(chan error)
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		err := cmd.Start()
-		wg.Done()
-		if err != nil {
-			cancelFunc()
-			returnErr = err
-			log.Error(err, "unable to  start lsp command")
-			return
-		}
-		// Here we need to wait for the command to finish or if the ctx is cancelled,
-		// To close the pipes.
-		select {
-		case err := <-waitErrorChannel:
-			// language server has not started - don't error yet
-			if err != nil && cmd.ProcessState == nil {
-				log.Info("retrying language server start")
-			} else if err != nil {
-				log.Error(err, "language server process terminated")
-			}
-			log.Info("language server stopped")
-
-		case <-ctx.Done():
-			log.Info("language server context cancelled, closing pipes")
-			stdin.Close()
-			stdout.Close()
-		}
-	}()
-
-	// This will close the go routine above when wait has completed.
-	go func() {
-		waitErrorChannel <- cmd.Wait()
-	}()
-
-	wg.Wait()
-
-	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
-
-	rpc.AddHandler(jsonrpc2.NewBackoffHandler(log))
-
-	go func() {
-		err := rpc.Run(ctx)
-		if err != nil {
-			//TODO: we need to pipe the ctx further into the stream header and run.
-			// basically it is checking if done, then reading. When it gets EOF it errors.
-			// We need the read to be at the same level of selection to fully implment graceful shutdown
-			cancelFunc()
-			returnErr = err
-			return
-		}
-	}()
+	conn, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{})
+	if err != nil {
+		cancelFunc()
+		return nil, additionalBuiltinConfig, err
+	}
+	rpc := &rpcClientWrapper{conn: conn}
 
 	m2Repo := getMavenLocalRepoPath(mavenSettingsFile)
 
@@ -517,7 +481,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		rpc:                rpc,
 		cancelFunc:         cancelFunc,
 		config:             config,
-		cmd:                cmd,
 		bundles:            bundles,
 		workspace:          workspace,
 		log:                log,
