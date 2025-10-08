@@ -334,6 +334,10 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 					ruleSetName: ruleSet.Name,
 				})
 			} else {
+				taggingRules = append(taggingRules, ruleMessage{
+					rule:        rule,
+					ruleSetName: ruleSet.Name,
+				})
 				// if both message and tag are set, split message part into a new rule if effort is non-zero
 				// if effort is zero, we do not want to create a violation but only tag and an insight
 				if rule.Perform.Message.Text != nil && rule.Effort != nil && *rule.Effort != 0 {
@@ -341,12 +345,8 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 					for _, tag := range rule.Perform.Tag {
 						rule.Labels = append(rule.Labels, fmt.Sprintf("tag=%s", tag))
 					}
+					rule.Perform.Tag = nil
 					otherRules = append(otherRules, ruleMessage{
-						rule:        rule,
-						ruleSetName: ruleSet.Name,
-					})
-				} else {
-					taggingRules = append(taggingRules, ruleMessage{
 						rule:        rule,
 						ruleSetName: ruleSet.Name,
 					})
