@@ -19,7 +19,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
-	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
+	"github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
+	"github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -28,29 +29,6 @@ import (
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 )
-
-type readWriteCloser struct {
-	io.Reader
-	io.Writer
-	io.Closer
-}
-
-func (rwc readWriteCloser) Close() error {
-	return nil
-}
-
-type stdioDialer struct {
-	stdin  io.WriteCloser
-	stdout io.ReadCloser
-}
-
-func (d stdioDialer) Dial(ctx context.Context) (io.ReadWriteCloser, error) {
-	return readWriteCloser{
-		Reader: d.stdout,
-		Writer: d.stdin,
-		Closer: d.stdin,
-	}, nil
-}
 
 type rpcClientWrapper struct {
 	conn *jsonrpc2.Connection
@@ -477,59 +455,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	if val, ok := config.ProviderSpecificConfig[JVM_MAX_MEM_INIT_OPTION].(string); ok && val != "" {
 		jdtlsArgs = append(jdtlsArgs, fmt.Sprintf("-Xmx%s", val))
 	}
-	cmd := exec.CommandContext(ctx, javaExec, jdtlsArgs...)
-	stdin, err := cmd.StdinPipe()
+	dialer, err := base.NewCmdDialer(ctx, javaExec, jdtlsArgs...)
 	if err != nil {
 		cancelFunc()
 		return nil, additionalBuiltinConfig, err
-	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		cancelFunc()
-		return nil, additionalBuiltinConfig, err
-	}
-
-	waitErrorChannel := make(chan error)
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		err := cmd.Start()
-		wg.Done()
-		if err != nil {
-			cancelFunc()
-			returnErr = err
-			log.Error(err, "unable to  start lsp command")
-			return
-		}
-		// Here we need to wait for the command to finish or if the ctx is cancelled,
-		// To close the pipes.
-		select {
-		case err := <-waitErrorChannel:
-			// language server has not started - don't error yet
-			if err != nil && cmd.ProcessState == nil {
-				log.Info("retrying language server start")
-			} else if err != nil {
-				log.Error(err, "language server process terminated")
-			}
-			log.Info("language server stopped")
-
-		case <-ctx.Done():
-			log.Info("language server context cancelled, closing pipes")
-			stdin.Close()
-			stdout.Close()
-		}
-	}()
-
-	// This will close the go routine above when wait has completed.
-	go func() {
-		waitErrorChannel <- cmd.Wait()
-	}()
-
-	wg.Wait()
-
-	dialer := stdioDialer{
-		stdin:  stdin,
-		stdout: stdout,
 	}
 
 	conn, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{})
@@ -552,7 +481,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		rpc:                rpc,
 		cancelFunc:         cancelFunc,
 		config:             config,
-		cmd:                cmd,
 		bundles:            bundles,
 		workspace:          workspace,
 		log:                log,

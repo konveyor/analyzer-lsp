@@ -33,7 +33,6 @@ type javaServiceClient struct {
 	cancelFunc         context.CancelFunc
 	config             provider.InitConfig
 	log                logr.Logger
-	cmd                *exec.Cmd
 	bundles            []string
 	workspace          string
 	depToLabels        map[string]*depLabelItem
@@ -271,16 +270,6 @@ func (p *javaServiceClient) Stop() {
 	err := p.shutdown()
 	if err != nil {
 		p.log.Error(err, "failed to gracefully shutdown java provider")
-	}
-	err = p.cmd.Wait()
-	if err != nil {
-		if isSafeErr(err) {
-			p.log.Info("java provider stopped")
-		} else {
-			p.log.Error(err, "java provider stopped with error")
-		}
-	} else {
-		p.log.Info("java provider stopped")
 	}
 
 	if len(p.cleanExplodedBins) > 0 {
