@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 )
 
@@ -33,7 +32,7 @@ func (p *javaProvider) scanFile(path string, loc engine.Location) (string, error
 	var content []byte
 	var err error
 	if p.encoding != "" {
-		content, err = provider.OpenFileWithEncoding(path, p.encoding)
+		content, err = engine.OpenFileWithEncoding(path, p.encoding)
 		if err != nil {
 			p.Log.Error(err, "failed to convert file encoding, using original content", "file", path)
 			content, err = os.ReadFile(path)

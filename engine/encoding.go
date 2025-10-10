@@ -1,4 +1,4 @@
-package provider
+package engine
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"golang.org/x/text/transform"
 )
 
-// TODO: support more encodings
+// TODO: add more encodings
 func GetEncodingFromName(encodingName string) (encoding.Encoding, error) {
 	switch strings.ToLower(strings.ReplaceAll(encodingName, "-", "")) {
 	case "shiftjis", "shift_jis", "sjis":

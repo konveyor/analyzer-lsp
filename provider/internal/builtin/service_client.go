@@ -21,6 +21,7 @@ import (
 	"github.com/antchfx/xpath"
 	"github.com/dlclark/regexp2"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
@@ -54,8 +55,7 @@ func (b *builtinServiceClient) openFileWithEncoding(filePath string) (io.Reader,
 	var content []byte
 	var err error
 	if b.encoding != "" {
-		content, err = provider.OpenFileWithEncoding(filePath, b.encoding)
-
+		content, err = engine.OpenFileWithEncoding(filePath, b.encoding)
 		if err != nil {
 			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", filePath)
 			content, readErr := os.ReadFile(filePath)
@@ -431,7 +431,7 @@ func (b *builtinServiceClient) getLocation(ctx context.Context, path, content st
 func (b *builtinServiceClient) queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
 	var content []byte
 	if b.encoding != "" {
-		content, err = provider.OpenFileWithEncoding(filePath, b.encoding)
+		content, err = engine.OpenFileWithEncoding(filePath, b.encoding)
 		if err != nil {
 			b.log.V(5).Error(err, "failed to convert file encoding for XML, using original file", "file", filePath)
 			content, err = os.ReadFile(filePath)
@@ -620,20 +620,33 @@ func (b *builtinServiceClient) parallelWalk(paths []string, regex *regexp2.Regex
 }
 
 func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp) ([]fileSearchResult, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
+	var content []byte
+	var err error
+	if b.encoding != "" {
+		content, err = engine.OpenFileWithEncoding(path, b.encoding)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", path)
+			content, err = os.ReadFile(path)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		content, err = os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
 	}
-	defer f.Close()
 
+	reader := bytes.NewReader(content)
 	nBytes := int64(0)
 	nCh := int64(0)
 	buffer := make([]byte, 1024*1024) // Create a buffer to hold 1MB
 	foundMatch := false
 	for {
-		n, readErr := io.ReadFull(f, buffer)
+		n, readErr := io.ReadFull(reader, buffer)
 		if readErr != io.ErrUnexpectedEOF && readErr != io.EOF {
-			return nil, err
+			return nil, readErr
 		} else if readErr != nil && foundMatch {
 			// This case probably shouldn't happen.
 			break
@@ -663,10 +676,10 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp) (
 	}
 
 	// Now we we need to go line by line to find the line numbers.
-	f.Seek(0, io.SeekStart)
+	reader = bytes.NewReader(content)
 	var r []fileSearchResult
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(reader)
 	lineNumber := 1
 	for scanner.Scan() {
 		line := scanner.Text()
