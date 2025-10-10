@@ -29,14 +29,25 @@ func (p *javaProvider) GetCodeSnip(u uri.URI, loc engine.Location) (string, erro
 }
 
 func (p *javaProvider) scanFile(path string, loc engine.Location) (string, error) {
-	readFile, err := os.Open(path)
-	if err != nil {
-		p.Log.V(5).Error(err, "Unable to read file")
-		return "", err
+	var content []byte
+	var err error
+	if p.encoding != "" {
+		content, err = engine.OpenFileWithEncoding(path, p.encoding)
+		if err != nil {
+			p.Log.Error(err, "failed to convert file encoding, using original content", "file", path)
+			content, err = os.ReadFile(path)
+			if err != nil {
+				return "", err
+			}
+		}
+	} else {
+		content, err = os.ReadFile(path)
+		if err != nil {
+			return "", err
+		}
 	}
-	defer readFile.Close()
 
-	scanner := bufio.NewScanner(readFile)
+	scanner := bufio.NewScanner(strings.NewReader(string(content)))
 	lineNumber := 0
 	codeSnip := ""
 	paddingSize := len(strconv.Itoa(loc.EndPosition.Line + p.contextLines))

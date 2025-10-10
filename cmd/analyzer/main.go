@@ -174,11 +174,20 @@ func AnalysisCmd() *cobra.Command {
 
 			providers := map[string]provider.InternalProviderClient{}
 			providerLocations := []string{}
+			var encoding string
 			for _, config := range finalConfigs {
 				config.ContextLines = contextLines
 				for _, ind := range config.InitConfig {
 					providerLocations = append(providerLocations, ind.Location)
 				}
+
+				for _, initConfig := range config.InitConfig {
+					if encodingVal, ok := initConfig.ProviderSpecificConfig["encoding"]; ok {
+						encoding = encodingVal.(string)
+						break
+					}
+				}
+
 				// IF analsyis mode is set from the CLI, then we will override this for each init config
 				if analysisMode != "" {
 					inits := []provider.InitConfig{}
@@ -203,6 +212,7 @@ func AnalysisCmd() *cobra.Command {
 			}
 
 			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
+
 			//start up the rule eng
 			eng := engine.CreateRuleEngine(engineCtx,
 				10,
@@ -212,6 +222,7 @@ func AnalysisCmd() *cobra.Command {
 				engine.WithContextLines(contextLines),
 				engine.WithIncidentSelector(incidentSelector),
 				engine.WithLocationPrefixes(providerLocations),
+				engine.WithEncoding(encoding),
 			)
 
 			if getOpenAPISpec != "" {
