@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
@@ -26,7 +25,7 @@ import (
 )
 
 type yqServiceClient struct {
-	rpc        *jsonrpc2.Conn
+	rpc        provider.RPCClient
 	cancelFunc context.CancelFunc
 	log        logr.Logger
 	cmd        *exec.Cmd
@@ -50,6 +49,7 @@ var default_k8s_version = "v1.28.4"
 var _ provider.ServiceClient = &yqServiceClient{}
 
 func (p *yqServiceClient) Stop() {
+	p.rpc.Close()
 	p.cancelFunc()
 	p.cmd.Wait()
 }

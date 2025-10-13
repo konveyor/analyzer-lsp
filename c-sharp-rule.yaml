@@ -1,0 +1,6 @@
+- message: HttpNotFound was replaced with NotFound in .NET Core
+  ruleID: lang-ref-example-001
+  when:
+    or:
+    - c-sharp.referenced:
+        pattern: "System.Web.Mvc.*"

@@ -21,7 +21,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
-	"github.com/konveyor/analyzer-lsp/jsonrpc2"
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
@@ -33,7 +33,6 @@ type javaServiceClient struct {
 	cancelFunc         context.CancelFunc
 	config             provider.InitConfig
 	log                logr.Logger
-	cmd                *exec.Cmd
 	bundles            []string
 	workspace          string
 	depToLabels        map[string]*depLabelItem
@@ -190,7 +189,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	timeOutCtx, _ := context.WithTimeout(ctx, timeout)
 	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp, &refs)
 	if err != nil {
-		if jsonrpc2.IsRPCClosed(err) {
+		if errors.Is(err, jsonrpc2.ErrClientClosing) || errors.Is(err, jsonrpc2.ErrServerClosing) {
 			log.Error(err, "connection to the language server is closed, language server is not running")
 			return refs, fmt.Errorf("connection to the language server is closed, language server is not running")
 		} else {
@@ -253,7 +252,7 @@ func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protoco
 	res := []protocol.Location{}
 	err := p.rpc.Call(ctx, "textDocument/references", params, &res)
 	if err != nil {
-		if jsonrpc2.IsRPCClosed(err) {
+		if errors.Is(err, jsonrpc2.ErrClientClosing) || errors.Is(err, jsonrpc2.ErrServerClosing) {
 			p.log.Error(err, "connection to the language server is closed, language server is not running")
 		} else {
 			p.log.Error(err, "unknown error in RPC connection")
@@ -271,16 +270,6 @@ func (p *javaServiceClient) Stop() {
 	err := p.shutdown()
 	if err != nil {
 		p.log.Error(err, "failed to gracefully shutdown java provider")
-	}
-	err = p.cmd.Wait()
-	if err != nil {
-		if isSafeErr(err) {
-			p.log.Info("java provider stopped")
-		} else {
-			p.log.Error(err, "java provider stopped with error")
-		}
-	} else {
-		p.log.Info("java provider stopped")
 	}
 
 	if len(p.cleanExplodedBins) > 0 {
@@ -319,7 +308,7 @@ func (p *javaServiceClient) shutdown() error {
 		p.log.Error(err, "failed to send exit notification to language server")
 		return err
 	}
-	return nil
+	return p.rpc.Close()
 }
 
 func isSafeErr(err error) bool {
@@ -409,7 +398,7 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	var result protocol.InitializeResult
 	for i := 0; i < 10; i++ {
 		if err := p.rpc.Call(ctx, "initialize", params, &result); err != nil {
-			if jsonrpc2.IsRPCClosed(err) {
+			if errors.Is(err, jsonrpc2.ErrClientClosing) || errors.Is(err, jsonrpc2.ErrServerClosing) {
 				p.log.Error(err, "connection to the language server is closed, language server is not running")
 			} else {
 				p.log.Error(err, "initialize failed")
