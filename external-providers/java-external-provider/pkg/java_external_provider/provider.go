@@ -96,7 +96,7 @@ func GetLocationTypeFromString(location string) LocationType {
 		return LocationTypeKeyword
 	case "package":
 		return LocationPackage
-	case "field":
+	case "field", "field_declaration":
 		return LocationField
 	case "method":
 		return LocationMethod
