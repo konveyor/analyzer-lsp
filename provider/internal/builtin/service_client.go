@@ -191,7 +191,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					incident := provider.IncidentContext{
 						FileURI: uri.File(absPath),
 						Variables: map[string]interface{}{
-							"matchingXML": node.OutputXML(false),
+							"matchingXML": compactXML(node.OutputXML(false)),
 							"innerText":   node.InnerText(),
 							"data":        node.Data,
 						},
@@ -251,7 +251,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							response.Incidents = append(response.Incidents, provider.IncidentContext{
 								FileURI: uri.File(absPath),
 								Variables: map[string]interface{}{
-									"matchingXML": node.OutputXML(false),
+									"matchingXML": compactXML(node.OutputXML(false)),
 									"innerText":   node.InnerText(),
 									"data":        node.Data,
 								},
@@ -404,6 +404,19 @@ func (b *builtinServiceClient) getLocation(ctx context.Context, path, content st
 	location.StartPosition.Line = float64(lineNumber)
 	location.EndPosition.Line = float64(lineNumber)
 	return location, nil
+}
+
+// compactXML strips formatting from XML output to produce single-line compact
+// format to match to previous behavior of xmlquery (pre-1.4 release)
+func compactXML(xml string) string {
+	// Use regex to remove whitespace between XML tags
+	re := regexp.MustCompile(`>\s+<`)
+	compacted := re.ReplaceAllString(xml, "><")
+
+	// Remove leading/trailing whitespace
+	compacted = strings.TrimSpace(compacted)
+
+	return compacted
 }
 
 func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
