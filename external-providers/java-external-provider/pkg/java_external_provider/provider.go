@@ -19,7 +19,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/jsonrpc2"
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
+	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -473,6 +474,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			// language server has not started - don't error yet
 			if err != nil && cmd.ProcessState == nil {
 				log.Info("retrying language server start")
+				log.Error(err, "language server error")
 			} else if err != nil {
 				log.Error(err, "language server process terminated")
 			}
@@ -492,21 +494,19 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 	wg.Wait()
 
-	rpc := jsonrpc2.NewConn(jsonrpc2.NewHeaderStream(stdout, stdin), log)
+	// Create a shared input,ouput dialer
+	dialer, err := base.NewStdDialer(ctx, "java", stdin, stdout)
+	if err != nil {
+		return nil, additionalBuiltinConfig, err
+	}
 
-	rpc.AddHandler(jsonrpc2.NewBackoffHandler(log))
-
-	go func() {
-		err := rpc.Run(ctx)
-		if err != nil {
-			//TODO: we need to pipe the ctx further into the stream header and run.
-			// basically it is checking if done, then reading. When it gets EOF it errors.
-			// We need the read to be at the same level of selection to fully implment graceful shutdown
-			cancelFunc()
-			returnErr = err
-			return
-		}
-	}()
+	rpc, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{
+		Handler: base.NewChainHandler(base.LogHandler(log)),
+	})
+	if err != nil {
+		log.Error(err, "unable to connect over new package")
+		return nil, additionalBuiltinConfig, err
+	}
 
 	m2Repo := getMavenLocalRepoPath(mavenSettingsFile)
 

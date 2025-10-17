@@ -1,4 +1,5 @@
-FROM quay.io/konveyor/analyzer-lsp
+#FROM quay.io/konveyor/analyzer-lsp
+FROM localhost/testing/analyzer-lsp:testing-socket
 
 WORKDIR /analyzer-lsp
 
@@ -11,7 +12,7 @@ COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
 RUN python3 -m venv /analyzer-lsp/examples/python/.venv
 RUN yes | python3 -m pip install -r /analyzer-lsp/examples/python/requirements.txt
 
-RUN microdnf install go-toolset -y
+RUN microdnf install go-toolset vim procps -y
 RUN go install golang.org/x/tools/gopls@v0.16.2
 
 EXPOSE 16686
