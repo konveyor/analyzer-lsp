@@ -1,15 +1,11 @@
 package java
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -17,26 +13,17 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/bldtool"
+	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
 	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/nxadm/tail"
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
-)
-
-const (
-	JavaFile          = ".java"
-	JavaArchive       = ".jar"
-	WebArchive        = ".war"
-	EnterpriseArchive = ".ear"
-	ClassFile         = ".class"
-	MvnURIPrefix      = "mvn://"
 )
 
 // provider specific config keys
@@ -51,6 +38,13 @@ const (
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
 	DISABLE_MAVEN_SEARCH          = "disableMavenSearch"
 	GRADLE_SOURCES_TASK_FILE      = "gradleSourcesTaskFile"
+)
+
+const (
+	artifactIdKey = "artifactId"
+	groupIdKey    = "groupId"
+	pomPathKey    = "pomPath"
+	baseDepKey    = "baseDep"
 )
 
 // Rule Location to location that the bundle understands
@@ -234,7 +228,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	p.encoding = provider.GetEncodingFromConfig(config)
-	log = log.WithValues("provider", "java")
+	log = log.WithValues("provider", "java").WithValues("analysis-mode", mode).WithValues("project", config.Location)
 
 	if config.RPC != nil {
 		return &javaServiceClient{
@@ -293,98 +287,56 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	disableMavenSearch, ok := config.ProviderSpecificConfig[DISABLE_MAVEN_SEARCH].(bool)
 	mavenIndexPath, ok := config.ProviderSpecificConfig[providerSpecificConfigMavenIndexPath].(string)
 
-	isBinary := false
-	var returnErr error
+	gradleTaskFile, ok := config.ProviderSpecificConfig[GRADLE_SOURCES_TASK_FILE].(string)
+	if !ok {
+		gradleTaskFile = ""
+	}
+
 	// each service client should have their own context
 	ctx, cancelFunc := context.WithCancel(ctx)
 	// location can be a coordinate to a remote mvn artifact
-	if strings.HasPrefix(config.Location, MvnURIPrefix) {
-		mvnUri := strings.Replace(config.Location, MvnURIPrefix, "", 1)
-		// URI format is <group>:<artifact>:<version>:<classifier>@<path>
-		// <path> is optional & points to a local path where it will be downloaded
-		mvnCoordinates, destPath, _ := strings.Cut(mvnUri, "@")
-		mvnCoordinatesParts := strings.Split(mvnCoordinates, ":")
-		if mvnCoordinates == "" || len(mvnCoordinatesParts) < 3 {
-			cancelFunc()
-			return nil, additionalBuiltinConfig, fmt.Errorf("invalid maven coordinates in location %s, must be in format mvn://<group>:<artifact>:<version>:<classifier>@<path>", config.Location)
-		}
-		outputDir := "."
-		if destPath != "" {
-			if stat, err := os.Stat(destPath); err != nil || !stat.IsDir() {
-				cancelFunc()
-				return nil, additionalBuiltinConfig, fmt.Errorf("output path does not exist or not a directory")
-			}
-			outputDir = destPath
-		}
-		mvnOptions := []string{
-			"dependency:copy",
-			fmt.Sprintf("-Dartifact=%s", mvnCoordinates),
-			fmt.Sprintf("-DoutputDirectory=%s", outputDir),
-		}
-		if mavenSettingsFile != "" {
-			mvnOptions = append(mvnOptions, "-s", mavenSettingsFile)
-		}
-		if mavenInsecure {
-			mvnOptions = append(mvnOptions, "-Dmaven.wagon.http.ssl.insecure=true")
-		}
-		log.Info("downloading maven artifact", "artifact", mvnCoordinates, "options", mvnOptions)
-		cmd := exec.CommandContext(ctx, "mvn", mvnOptions...)
-		cmd.Dir = outputDir
-		mvnOutput, err := cmd.CombinedOutput()
+	if downloader, ok := bldtool.GetDownloader(config.Location, mavenSettingsFile, mavenInsecure, log); ok {
+		downloadPath, err := downloader.Download(ctx)
 		if err != nil {
 			cancelFunc()
-			return nil, additionalBuiltinConfig, fmt.Errorf("error downloading java artifact %s - maven output: %s - with error %w", mvnUri, string(mvnOutput), err)
+			return nil, additionalBuiltinConfig, err
 		}
-		downloadedPath := filepath.Join(outputDir,
-			fmt.Sprintf("%s.jar", strings.Join(mvnCoordinatesParts[1:3], "-")))
-		if len(mvnCoordinatesParts) == 4 {
-			downloadedPath = filepath.Join(outputDir,
-				fmt.Sprintf("%s.%s", strings.Join(mvnCoordinatesParts[1:3], "-"), strings.ToLower(mvnCoordinatesParts[3])))
-		}
-		outputLinePattern := regexp.MustCompile(`.*?Copying.*?to (.*)`)
-		for _, line := range strings.Split(string(mvnOutput), "\n") {
-			if outputLinePattern.MatchString(line) {
-				match := outputLinePattern.FindStringSubmatch(line)
-				if match != nil {
-					downloadedPath = match[1]
-				}
-			}
-		}
-		if _, err := os.Stat(downloadedPath); err != nil {
-			cancelFunc()
-			return nil, additionalBuiltinConfig, fmt.Errorf("failed to download maven artifact to path %s - %w", downloadedPath, err)
-		}
-		config.Location = downloadedPath
+		config.Location = downloadPath
 	}
 
-	openSourceDepLabels, err := initOpenSourceDepLabels(log, config.ProviderSpecificConfig)
+	openSourceLabeler, err := labels.GetOpenSourceLabeler(config.ProviderSpecificConfig, log)
 	if err != nil {
 		log.V(5).Error(err, "failed to initialize dep labels lookup for open source packages")
 		cancelFunc()
 		return nil, provider.InitConfig{}, err
 	}
 
-	extension := strings.ToLower(path.Ext(config.Location))
-	explodedBins := []string{}
-	switch extension {
-	case JavaArchive, WebArchive, EnterpriseArchive:
-		cleanBin, ok := config.ProviderSpecificConfig[CLEAN_EXPLODED_BIN_OPTION].(bool)
+	/// Full Analysis Mode OR binary analysis should kick of the resolve sources.
+	// TODO: handle Continue Errors vs Non Continue Errors in bldtool
+	buildTool := bldtool.GetBuildTool(bldtool.BuildToolOptions{
+		Config:             config,
+		MvnSettingsFile:    mavenSettingsFile,
+		MvnInsecure:        mavenInsecure,
+		MvnIndexPath:       mavenIndexPath,
+		DisableMavenSearch: disableMavenSearch,
+		Labeler:            openSourceLabeler,
+		GradleTaskFile:     gradleTaskFile,
+	}, log)
 
-		depLocation, sourceLocation, err := decompileJava(ctx, log, fernflower,
-			config.Location, getMavenLocalRepoPath(mavenSettingsFile), ok, mavenIndexPath)
+	if buildTool.ShouldResolve() || mode == provider.FullAnalysisMode {
+		log.Info("Resolving project", "location", config.Location)
+		resolver, err := buildTool.GetResolver(fernflower)
 		if err != nil {
-			cancelFunc()
+			log.Error(err, "unable to resolve")
 			return nil, additionalBuiltinConfig, err
 		}
-		config.Location = sourceLocation
-		// for binaries, we fallback to looking at .jar files only for deps
-		config.DependencyPath = depLocation
-		isBinary = true
-
-		if ok && cleanBin {
-			log.Info("removing exploded binaries after analysis")
-			explodedBins = append(explodedBins, depLocation, sourceLocation)
+		location, depLocation, err := resolver.ResolveSources(ctx)
+		if err != nil {
+			log.Error(err, "unable to resolve")
+			return nil, additionalBuiltinConfig, err
 		}
+		config.Location = location
+		config.DependencyPath = depLocation
 	}
 
 	additionalBuiltinConfig.Location = config.Location
@@ -456,6 +408,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, additionalBuiltinConfig, err
 	}
 
+	var returnErr error
 	waitErrorChannel := make(chan error)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -507,61 +460,23 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, additionalBuiltinConfig, err
 	}
 
-	m2Repo := getMavenLocalRepoPath(mavenSettingsFile)
-
 	svcClient := javaServiceClient{
-		rpc:                rpc,
-		cancelFunc:         cancelFunc,
-		config:             config,
-		cmd:                cmd,
-		bundles:            bundles,
-		workspace:          workspace,
-		log:                log,
-		depToLabels:        map[string]*depLabelItem{},
-		isLocationBinary:   isBinary,
-		mvnInsecure:        mavenInsecure,
-		mvnSettingsFile:    mavenSettingsFile,
-		mvnLocalRepo:       m2Repo,
-		mvnIndexPath:       mavenIndexPath,
-		globalSettings:     globalSettingsFile,
-		depsLocationCache:  make(map[string]int),
-		includedPaths:      provider.GetIncludedPathsFromConfig(config, false),
-		cleanExplodedBins:  explodedBins,
-		disableMavenSearch: disableMavenSearch,
-	}
-
-	if mode == provider.FullAnalysisMode {
-		// we attempt to decompile JARs of dependencies that don't have a sources JAR attached
-		// we need to do this for jdtls to correctly recognize source attachment for dep
-		switch svcClient.GetBuildTool() {
-		case maven:
-			err := svcClient.resolveSourcesJarsForMaven(ctx, fernflower, mavenIndexPath)
-			if err != nil {
-				// TODO (pgaikwad): should we ignore this failure?
-				log.Error(err, "failed to resolve maven sources jar for location", "location", config.Location)
-			}
-		case gradle:
-			gradleTaskFile, ok := config.ProviderSpecificConfig[GRADLE_SOURCES_TASK_FILE]
-			if !ok {
-				gradleTaskFile = ""
-			}
-			err = svcClient.resolveSourcesJarsForGradle(ctx, fernflower, disableMavenSearch, gradleTaskFile.(string), mavenIndexPath)
-			if err != nil {
-				log.Error(err, "failed to resolve gradle sources jar for location", "location", config.Location)
-			}
-		}
-
+		rpc:               rpc,
+		cancelFunc:        cancelFunc,
+		config:            config,
+		cmd:               cmd,
+		bundles:           bundles,
+		workspace:         workspace,
+		log:               log,
+		globalSettings:    globalSettingsFile,
+		depsLocationCache: make(map[string]int),
+		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
+		buildTool:         buildTool,
+		mvnIndexPath:      mavenIndexPath,
+		mvnSettingsFile:   mavenSettingsFile,
 	}
 
 	svcClient.initialization(ctx)
-	svcClient.SetDepLabels(openSourceDepLabels)
-
-	excludeDepLabels, err := initExcludeDepLabels(svcClient.log, svcClient.config.ProviderSpecificConfig, openSourceDepLabels)
-	if err != nil {
-		log.Error(err, "error initializing labels for excluding dependencies")
-	} else {
-		svcClient.SetDepLabels(excludeDepLabels)
-	}
 
 	// Will only set up log follow one time
 	// Will work in container image and hub, will not work
@@ -586,199 +501,15 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			}
 		}()
 	})
-	return &svcClient, additionalBuiltinConfig, returnErr
-}
-
-func (s *javaServiceClient) resolveSourcesJarsForGradle(ctx context.Context, fernflower string, disableMavenSearch bool, taskFile string, mavenIndexPath string) error {
-	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
-	defer span.End()
-
-	s.log.V(5).Info("resolving dependency sources for gradle")
-
-	gb := s.findGradleBuild()
-	if gb == "" {
-		return fmt.Errorf("could not find gradle build file for project")
+	if returnErr != nil {
+		return nil, additionalBuiltinConfig, err
 	}
-
-	// create a temporary build file to append the task for downloading sources
-	taskgb := filepath.Join(filepath.Dir(gb), "tmp.gradle")
-	err := CopyFile(gb, taskgb)
-	if err != nil {
-		return fmt.Errorf("error copying file %s to %s", gb, taskgb)
-	}
-	defer os.Remove(taskgb)
-
-	// obtain Gradle version, needed for compatibility checks
-	gradleVersion, err := s.GetGradleVersion(ctx)
-	if err != nil {
-		return err
-	}
-
-	// append downloader task
-	if taskFile == "" {
-		// if taskFile is empty, we are in container mode
-		taskFile = "/usr/local/etc/task.gradle"
-	}
-	// if Gradle >= 9.0, use a newer script for downloading sources
-	gradle9version, _ := version.NewVersion("9.0")
-	if gradleVersion.GreaterThanOrEqual(gradle9version) {
-		taskFile = filepath.Join(filepath.Dir(taskFile), "task-v9.gradle")
-	}
-
-	err = AppendToFile(taskFile, taskgb)
-	if err != nil {
-		return fmt.Errorf("error appending file %s to %s", taskFile, taskgb)
-	}
-
-	tmpgbname := filepath.Join(s.config.Location, "toberenamed.gradle")
-	err = os.Rename(gb, tmpgbname)
-	if err != nil {
-		return fmt.Errorf("error renaming file %s to %s", gb, "toberenamed.gradle")
-	}
-	defer os.Rename(tmpgbname, gb)
-
-	err = os.Rename(taskgb, gb)
-	if err != nil {
-		return fmt.Errorf("error renaming file %s to %s", gb, "toberenamed.gradle")
-	}
-	defer os.Remove(gb)
-
-	exe, err := s.GetGradleWrapper()
-	if err != nil {
-		return err
-	}
-
-	javaHome, err := s.GetJavaHomeForGradle(ctx)
-	if err != nil {
-		return err
-	}
-
-	args := []string{
-		"konveyorDownloadSources",
-	}
-	cmd := exec.CommandContext(ctx, exe, args...)
-	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
-	cmd.Dir = s.config.Location
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("error trying to get sources for Gradle: %w - Gradle output: %s", err, output)
-	}
-
-	s.log.V(8).WithValues("output", output).Info("got gradle output")
-
-	// TODO: what if all sources available
-	reader := bytes.NewReader(output)
-	unresolvedSources, err := parseUnresolvedSourcesForGradle(reader)
-	if err != nil {
-		return err
-	}
-
-	s.log.V(5).Info("total unresolved sources", "count", len(unresolvedSources))
-
-	decompileJobs := []decompileJob{}
-	if len(unresolvedSources) > 1 {
-		// Gradle cache dir structure changes over time - we need to find where the actual dependencies are stored
-		cache, err := findGradleCache(unresolvedSources[0].GroupId)
-		if err != nil {
-			return err
-		}
-
-		for _, artifact := range unresolvedSources {
-			s.log.V(5).WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
-
-			artifactDir := filepath.Join(cache, artifact.GroupId, artifact.ArtifactId)
-			jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
-			artifactPath, err := findGradleArtifact(artifactDir, jarName)
-			if err != nil {
-				return err
-			}
-			decompileJobs = append(decompileJobs, decompileJob{
-				artifact:   artifact,
-				inputPath:  artifactPath,
-				outputPath: filepath.Join(filepath.Dir(artifactPath), "decompiled", jarName),
-			})
-		}
-		err = decompile(ctx, s.log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "", mavenIndexPath)
-		if err != nil {
-			return err
-		}
-		// move decompiled files to base location of the jar
-		for _, decompileJob := range decompileJobs {
-			jarName := strings.TrimSuffix(filepath.Base(decompileJob.inputPath), ".jar")
-			err = moveFile(decompileJob.outputPath,
-				filepath.Join(filepath.Dir(decompileJob.inputPath),
-					fmt.Sprintf("%s-sources.jar", jarName)))
-			if err != nil {
-				s.log.V(5).Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
-			}
-		}
-
-	}
-	return nil
-}
-
-// findGradleCache looks for the folder within the Gradle cache where the actual dependencies are stored
-// by walking the cache directory looking for a directory equal to the given sample group id
-func findGradleCache(sampleGroupId string) (string, error) {
-	gradleHome := findGradleHome()
-	cacheRoot := filepath.Join(gradleHome, "caches")
-	cache := ""
-	walker := func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return fmt.Errorf("found error looking for cache directory: %w", err)
-		}
-		if d.IsDir() && d.Name() == sampleGroupId {
-			cache = path
-			return filepath.SkipAll
-		}
-		return nil
-	}
-	err := filepath.WalkDir(cacheRoot, walker)
-	if err != nil {
-		return "", err
-	}
-	cache = filepath.Dir(cache) // return the parent of the found directory
-	return cache, nil
-}
-
-// findGradleHome tries to get the .gradle directory from several places
-// 1. check $GRADLE_HOME
-// 2. check $HOME/.gradle
-// 3. else, set to /root/.gradle
-func findGradleHome() string {
-	gradleHome := os.Getenv("GRADLE_HOME")
-	if gradleHome == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			home = "/root"
-		}
-		gradleHome = filepath.Join(home, ".gradle")
-	}
-	return gradleHome
-}
-
-// findGradleArtifact looks for a given artifact jar within the given root dir
-func findGradleArtifact(root string, artifactId string) (string, error) {
-	artifactPath := ""
-	walker := func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return fmt.Errorf("found error looking for artifact: %w", err)
-		}
-		if !d.IsDir() && d.Name() == artifactId {
-			artifactPath = path
-			return filepath.SkipAll
-		}
-		return nil
-	}
-	err := filepath.WalkDir(root, walker)
-	if err != nil {
-		return "", err
-	}
-	return artifactPath, nil
+	return &svcClient, additionalBuiltinConfig, nil
 }
 
 // GetLocation given a dep, attempts to find line number, caches the line number for a given dep
 func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file string) (engine.Location, error) {
+	j.Log.Info("getting dep location", "dep", dep, "file", file)
 	location := engine.Location{StartPosition: engine.Position{}, EndPosition: engine.Position{}}
 
 	cacheKey := fmt.Sprintf("%s-%s-%s-%v",
@@ -812,7 +543,7 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 	if dep.Extras == nil {
 		return location, fmt.Errorf("unable to get location for dep %s, dep.Extras not set", dep.Name)
 	}
-	extrasKeys := []string{artifactIdKey, groupIdKey, pomPathKey}
+	extrasKeys := []string{artifactIdKey, groupIdKey}
 	for _, key := range extrasKeys {
 		if val, ok := dep.Extras[key]; !ok {
 			return location,
@@ -841,195 +572,6 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 	location.StartPosition.Line = lineNumber
 	location.EndPosition.Line = lineNumber
 	return location, nil
-}
-
-// resolveSourcesJarsForMaven for a given source code location, runs maven to find
-// deps that don't have sources attached and decompiles them
-func (s *javaServiceClient) resolveSourcesJarsForMaven(ctx context.Context, fernflower string, mavenIndexPath string) error {
-	// TODO (pgaikwad): when we move to external provider, inherit context from parent
-	ctx, span := tracing.StartNewSpan(ctx, "resolve-sources")
-	defer span.End()
-
-	if s.mvnLocalRepo == "" {
-		s.log.V(5).Info("unable to discover dependency sources as maven local repo path is unknown")
-		return nil
-	}
-
-	decompileJobs := []decompileJob{}
-
-	s.log.Info("resolving dependency sources")
-
-	args := []string{
-		"-B",
-		"de.qaware.maven:go-offline-maven-plugin:resolve-dependencies",
-		"-DdownloadSources",
-		"-Djava.net.useSystemProxies=true",
-	}
-	if s.mvnSettingsFile != "" {
-		args = append(args, "-s", s.mvnSettingsFile)
-	}
-	if s.mvnInsecure {
-		args = append(args, "-Dmaven.wagon.http.ssl.insecure=true")
-	}
-	cmd := exec.CommandContext(ctx, "mvn", args...)
-	cmd.Dir = s.config.Location
-	mvnOutput, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("maven downloadSources command failed with error %w, maven output: %s", err, string(mvnOutput))
-	}
-
-	reader := bytes.NewReader(mvnOutput)
-	artifacts, err := parseUnresolvedSources(reader)
-	if err != nil {
-		return err
-	}
-
-	for _, artifact := range artifacts {
-		s.log.WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
-
-		groupDirs := filepath.Join(strings.Split(artifact.GroupId, ".")...)
-		artifactDirs := filepath.Join(strings.Split(artifact.ArtifactId, ".")...)
-		jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
-		decompileJobs = append(decompileJobs, decompileJob{
-			artifact: artifact,
-			inputPath: filepath.Join(
-				s.mvnLocalRepo, groupDirs, artifactDirs, artifact.Version, jarName),
-			outputPath: filepath.Join(
-				s.mvnLocalRepo, groupDirs, artifactDirs, artifact.Version, "decompiled", jarName),
-		})
-	}
-	err = decompile(ctx, s.log, alwaysDecompileFilter(true), 10, decompileJobs, fernflower, "", mavenIndexPath)
-	if err != nil {
-		return err
-	}
-	// move decompiled files to base location of the jar
-	for _, decompileJob := range decompileJobs {
-		jarName := strings.TrimSuffix(filepath.Base(decompileJob.inputPath), ".jar")
-		err = moveFile(decompileJob.outputPath,
-			filepath.Join(filepath.Dir(decompileJob.inputPath),
-				fmt.Sprintf("%s-sources.jar", jarName)))
-		if err != nil {
-			s.log.Error(err, "failed to move decompiled file", "file", decompileJob.outputPath)
-		}
-	}
-	return nil
-}
-
-// parseUnresolvedSources takes the output from the download sources gradle task and returns the artifacts whose sources
-// could not be found. Sample gradle output:
-// Found 0 sources for :simple-jar:
-// Found 1 sources for com.codevineyard:hello-world:1.0.1
-// Found 1 sources for org.codehaus.groovy:groovy:3.0.21
-func parseUnresolvedSourcesForGradle(output io.Reader) ([]javaArtifact, error) {
-	unresolvedSources := []javaArtifact{}
-	unresolvedRegex := regexp.MustCompile(`Found 0 sources for (.*)`)
-	artifactRegex := regexp.MustCompile(`(.+):(.+):(.+)|:(.+):`)
-
-	scanner := bufio.NewScanner(output)
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if match := unresolvedRegex.FindStringSubmatch(line); len(match) != 0 {
-			gav := artifactRegex.FindStringSubmatch(match[1])
-			if gav[4] != "" { // internal library, unknown group/version
-				artifact := javaArtifact{
-					ArtifactId: match[4],
-				}
-				unresolvedSources = append(unresolvedSources, artifact)
-			} else { // external dependency
-				artifact := javaArtifact{
-					GroupId:    gav[1],
-					ArtifactId: gav[2],
-					Version:    gav[3],
-				}
-				unresolvedSources = append(unresolvedSources, artifact)
-			}
-		}
-	}
-
-	// dedup artifacts
-	result := []javaArtifact{}
-	for _, artifact := range unresolvedSources {
-		if contains(result, artifact) {
-			continue
-		}
-		result = append(result, artifact)
-	}
-
-	return result, scanner.Err()
-}
-
-// parseUnresolvedSources takes the output from the go-offline maven plugin and returns the artifacts whose sources
-// could not be found.
-func parseUnresolvedSources(output io.Reader) ([]javaArtifact, error) {
-	unresolvedSources := []javaArtifact{}
-	unresolvedArtifacts := []javaArtifact{}
-
-	scanner := bufio.NewScanner(output)
-
-	unresolvedRegex := regexp.MustCompile(`\[WARNING] The following artifacts could not be resolved`)
-	artifactRegex := regexp.MustCompile(`([\w\.]+):([\w\-]+):\w+:([\w\.]+):?([\w\.]+)?`)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if unresolvedRegex.Find([]byte(line)) != nil {
-			gavs := artifactRegex.FindAllStringSubmatch(line, -1)
-			for _, gav := range gavs {
-				// dependency jar (not sources) also not found
-				if len(gav) == 5 && gav[3] != "sources" {
-					artifact := javaArtifact{
-						packaging:  JavaArchive,
-						GroupId:    gav[1],
-						ArtifactId: gav[2],
-						Version:    gav[3],
-					}
-					unresolvedArtifacts = append(unresolvedArtifacts, artifact)
-					continue
-				}
-
-				var v string
-				if len(gav) == 4 {
-					v = gav[3]
-				} else {
-					v = gav[4]
-				}
-				artifact := javaArtifact{
-					packaging:  JavaArchive,
-					GroupId:    gav[1],
-					ArtifactId: gav[2],
-					Version:    v,
-				}
-
-				unresolvedSources = append(unresolvedSources, artifact)
-			}
-		}
-	}
-
-	// if we don't have the dependency itself available, we can't even decompile
-	result := []javaArtifact{}
-	for _, artifact := range unresolvedSources {
-		if contains(unresolvedArtifacts, artifact) || contains(result, artifact) {
-			continue
-		}
-		result = append(result, artifact)
-	}
-
-	return result, scanner.Err()
-}
-
-func contains(artifacts []javaArtifact, artifactToFind javaArtifact) bool {
-	if len(artifacts) == 0 {
-		return false
-	}
-
-	for _, artifact := range artifacts {
-		if artifact == artifactToFind {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (p *javaProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {

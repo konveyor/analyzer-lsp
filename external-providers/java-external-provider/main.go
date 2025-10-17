@@ -29,8 +29,9 @@ func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
-	logrusLog.SetLevel(logrus.Level(5))
+	logrusLog.SetLevel(logrus.Level(30))
 	log := logrusr.New(logrusLog)
+	log = log.WithName("java-provider")
 
 	// must use lspServerName for use of multiple grpc providers
 	client := java.NewJavaProvider(log, *lspServerName, *contextLines, provider.Config{})

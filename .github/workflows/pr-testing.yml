@@ -30,38 +30,11 @@ jobs:
         with:
           go-version: '1.23.9'
 
-      - name: Test
+      - name: Test Main
         run: go test -v ./...
 
-      - name: Build binaries
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: make build
-
-      - name: Archive binaries (linux & mac)
-        if: ${{ !startsWith(matrix.goos, 'windows') }}
-        env:
-          OS: ${{ matrix.goos }}
-          OS_ARCH: ${{ matrix.goarch }}
+      - name: Test Java External Provider
         run: |
-          zip -j analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip build/*
-
-      - name: Archive binaries (windows)
-        if: ${{ startsWith(matrix.goos, 'windows') }}
-        env:
-          OS: ${{ matrix.goos }}
-          OS_ARCH: ${{ matrix.goarch }}
-        run: |
-          Compress-Archive -Path build/* -DestinationPath analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip
-
-      - name: Upload binary archive
-        uses: actions/upload-artifact@v4
-        env:
-          OS: ${{ matrix.goos }}
-          OS_ARCH: ${{ matrix.goarch }}
-        with:
-          name: analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip
-          path: analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip
-          retention-days: 30
+          cd external-providers/java-external-provider/
+          go test -v ./...
 

@@ -645,8 +645,10 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 		limitSnip := (r.codeSnipLimit != 0 && fileCodeSnipCount[string(m.FileURI)] == r.codeSnipLimit)
 		if !limitSnip {
 			codeSnip, err := r.getCodeLocation(ctx, m, rule)
-			if err != nil || codeSnip == "" {
+			if err != nil {
 				r.logger.V(6).Error(err, "unable to get code location")
+			} else if codeSnip == "" {
+				r.logger.V(3).Info("no code snippet returned", "rule", rule)
 			} else {
 				incident.CodeSnip = codeSnip
 			}
