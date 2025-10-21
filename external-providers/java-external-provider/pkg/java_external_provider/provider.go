@@ -77,7 +77,6 @@ type javaProvider struct {
 	config       provider.Config
 	Log          logr.Logger
 	contextLines int
-	encoding     string
 
 	clients []provider.ServiceClient
 
@@ -129,7 +128,6 @@ func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int, co
 		lspServerName:     lspServerName,
 		depsLocationCache: make(map[string]int),
 		contextLines:      contextLines,
-		encoding:          "",
 		logFollow:         sync.Once{},
 	}
 }
@@ -231,8 +229,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	} else if !(mode == provider.FullAnalysisMode || mode == provider.SourceOnlyAnalysisMode) {
 		return nil, additionalBuiltinConfig, fmt.Errorf("invalid Analysis Mode")
 	}
-
-	p.encoding = provider.GetEncodingFromConfig(config)
 	log = log.WithValues("provider", "java")
 
 	if config.RPC != nil {

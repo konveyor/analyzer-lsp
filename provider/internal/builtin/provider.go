@@ -161,7 +161,6 @@ func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config prov
 		log:                                log,
 		includedPaths:                      provider.GetIncludedPathsFromConfig(config, true),
 		excludedDirs:                       provider.GetExcludedDirsFromConfig(config),
-		encoding:                           provider.GetEncodingFromConfig(config),
 		workingCopyMgr:                     wcm,
 	}, provider.InitConfig{}, nil
 }

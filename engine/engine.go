@@ -62,7 +62,6 @@ type ruleEngine struct {
 	contextLines     int
 	incidentSelector string
 	locationPrefixes []string
-	encoding         string
 }
 
 type Option func(engine *ruleEngine)
@@ -94,12 +93,6 @@ func WithIncidentSelector(selector string) Option {
 func WithLocationPrefixes(location []string) Option {
 	return func(engine *ruleEngine) {
 		engine.locationPrefixes = location
-	}
-}
-
-func WithEncoding(encoding string) Option {
-	return func(engine *ruleEngine) {
-		engine.encoding = encoding
 	}
 }
 
@@ -683,25 +676,14 @@ func (r *ruleEngine) getCodeLocation(_ context.Context, m IncidentContext, rule 
 
 	if strings.HasPrefix(string(m.FileURI), uri.FileScheme) {
 		//Find the file, open it in a buffer.
-		var content []byte
-		var err error
-		if r.encoding != "" {
-			content, err = OpenFileWithEncoding(m.FileURI.Filename(), r.encoding)
-			if err != nil {
-				r.logger.V(5).Error(err, "failed to convert file encoding, using original content", "file", m.FileURI.Filename())
-				content, err = os.ReadFile(m.FileURI.Filename())
-				if err != nil {
-					return "", err
-				}
-			}
-		} else {
-			content, err = os.ReadFile(m.FileURI.Filename())
-			if err != nil {
-				return "", err
-			}
+		readFile, err := os.Open(m.FileURI.Filename())
+		if err != nil {
+			r.logger.V(5).Error(err, "Unable to read file")
+			return "", err
 		}
+		defer readFile.Close()
 
-		scanner := bufio.NewScanner(strings.NewReader(string(content)))
+		scanner := bufio.NewScanner(readFile)
 		lineNumber := 0
 		codeSnip := ""
 		paddingSize := len(strconv.Itoa(m.CodeLocation.EndPosition.Line + r.contextLines))

@@ -419,12 +419,3 @@ func GetExcludedDirsFromConfig(i InitConfig) []string {
 	}
 	return validatedPaths
 }
-
-func GetEncodingFromConfig(i InitConfig) string {
-	if encodingValue, ok := i.ProviderSpecificConfig[EncodingConfigKey]; ok {
-		if encoding, ok := encodingValue.(string); ok {
-			return encoding
-		}
-	}
-	return ""
-}
