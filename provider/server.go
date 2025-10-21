@@ -14,6 +14,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/konveyor/analyzer-lsp/engine"
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider/grpc/socket"
 	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
@@ -247,13 +248,22 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 		},
 	}
 
+	newCtx := context.Background()
+
+	if config.LanguageServerPipe != "" {
+		rpc, err := GetProviderRPCClient(newCtx, config.LanguageServerPipe, s.Log)
+		if err != nil {
+			return nil, err
+		}
+		c.RPC = rpc
+	}
+
 	if config.ProviderSpecificConfig != nil {
 		c.ProviderSpecificConfig = config.ProviderSpecificConfig.AsMap()
 	}
 
 	id := rand.Int63()
 	log := s.Log.WithValues("client", id)
-	newCtx := context.Background()
 
 	client, builtinConf, err := s.Client.Init(newCtx, log, c)
 	if err != nil {
@@ -510,4 +520,14 @@ func (s *server) authUnaryInterceptor(ctx context.Context, req any, info *grpc.U
 	s.Log.Info("user making request", "audience", a, "issuer", i, "subject", sub, "name", name)
 
 	return handler(ctx, req)
+}
+
+// Get Provider RPCClient
+func GetProviderRPCClient(ctx context.Context, pipeName string, log logr.Logger) (*jsonrpc2.Connection, error) {
+	fileName, err := socket.GetAddress(pipeName)
+	if err != nil {
+		return nil, err
+	}
+	return socket.ConnectRPC(ctx, fileName)
+
 }

@@ -5,11 +5,13 @@ package socket
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"strings"
 
 	"github.com/Microsoft/go-winio"
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -48,4 +50,25 @@ func DialWindowsPipePassthrough(ctx context.Context, connectionString string) (n
 	}
 	fmt.Printf("pipe: %#v", pipe)
 	return pipe, nil
+}
+
+func ConnectRPC(ctx context.Context, address string) (*jsonrpc2.Connection, error) {
+	wrapper := jsonrpc2WindowsWrapper{address}
+	conn, err := jsonrpc2.Dial(ctx, &wrapper, jsonrpc2.ConnectionOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
+}
+
+type jsonrpc2WindowsWrapper struct {
+	address string
+}
+
+func (j *jsonrpc2WindowsWrapper) Dial(ctx context.Context) (io.ReadWriteCloser, error) {
+	conn, err := winio.DialPipeContext(ctx, j.address)
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }

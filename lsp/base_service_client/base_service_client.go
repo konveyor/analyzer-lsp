@@ -126,8 +126,7 @@ type LSPServiceClientBase struct {
 	BaseConfig LSPServiceClientConfig
 
 	Dialer *CmdDialer
-	Conn   *jsonrpc2.Connection
-
+	Conn   provider.RPCClient
 	// Will call this handler's Handle function first. If it returns an
 	// ErrMethodNotFound or ErrNotHandled we use the LSPServiceClientBase's Handle
 	// method.
@@ -192,29 +191,31 @@ func NewLSPServiceClientBase(
 	sc.Ctx, sc.CancelFunc = context.WithCancel(ctx)
 	sc.Log = log.WithValues("provider", sc.BaseConfig.LspServerName)
 
-	// launch the lsp command
-	sc.Dialer, err = NewCmdDialer(
-		sc.Ctx, sc.BaseConfig.LspServerPath, sc.BaseConfig.LspServerArgs...,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("new cmd dialer error: %w", err)
+	if c.RPC == nil {
+		// launch the lsp command
+		sc.Dialer, err = NewCmdDialer(
+			sc.Ctx, sc.BaseConfig.LspServerPath, sc.BaseConfig.LspServerArgs...,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("new cmd dialer error: %w", err)
+		}
+		sc.Conn, err = jsonrpc2.Dial(
+			sc.Ctx, sc.Dialer, jsonrpc2.ConnectionOptions{
+				Handler: NewChainHandler(&sc, initializeHandler),
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("jsonrpc2.Dial error: %w", err)
+		}
+		time.Sleep(5 * time.Second)
+
+	} else {
+		sc.Conn = c.RPC
 	}
-
-	time.Sleep(5 * time.Second)
-
 	// Create the caches for the various handler stuffs
 	sc.PublishDiagnosticsCache = NewAwaitCache[string, []protocol.Diagnostic]()
 
 	// Create a connection to the lsp server
-	sc.Conn, err = jsonrpc2.Dial(
-		sc.Ctx, sc.Dialer, jsonrpc2.ConnectionOptions{
-			Handler: NewChainHandler(&sc, initializeHandler),
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("jsonrpc2.Dial error: %w", err)
-	}
-
 	var result json.RawMessage
 	err = sc.Conn.Call(sc.Ctx, "initialize", initializeParams).Await(sc.Ctx, &result)
 	if err != nil {

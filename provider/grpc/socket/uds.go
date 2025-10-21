@@ -3,10 +3,12 @@
 package socket
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -37,4 +39,13 @@ func ConnectGRPC(connectionString string) (*grpc.ClientConn, error) {
 		),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
+}
+
+func ConnectRPC(ctx context.Context, address string) (*jsonrpc2.Connection, error) {
+	dialer := jsonrpc2.NetDialer("unix", address, net.Dialer{})
+	conn, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
