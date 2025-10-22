@@ -1,0 +1,19 @@
+- ruleID: test-brace-expansion-00000
+  description: Test brace expansion with *.{ts,tsx,js,jsx}
+  when:
+    builtin.filecontent:
+      pattern: "React"
+      filePattern: "*.{ts,tsx,js,jsx}"
+  message: Found React reference using brace expansion pattern
+  effort: 1
+  category: potential
+
+- ruleID: test-brace-expansion-00010
+  description: Test brace expansion with *.{css,scss}
+  when:
+    builtin.filecontent:
+      pattern: "--pf-"
+      filePattern: "*.{css,scss}"
+  message: Found PatternFly CSS variable using brace expansion
+  effort: 1
+  category: potential
