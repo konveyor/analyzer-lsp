@@ -15,7 +15,7 @@ awk '
       if ($i ~ /^+[0-9.]+%$/) {
         delta = $i + 0.0
         if ((section == "time" || section == "memory") && delta > 10.0) {
-          printf "❌ Benchmark test `%s` failed, `%s` is %s% worse\n", $1, section, delta
+          printf "❌ Benchmark test `%s` failed, `%s` is %s%% worse\n", $1, section, delta
           exit_code = 1
         }
         break
