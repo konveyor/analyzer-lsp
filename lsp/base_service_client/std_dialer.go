@@ -3,44 +3,34 @@ package base
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
+
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 )
 
 // Dialers in jsonrpc2_v2 return a ReadWriteCloser that sends and receives
-// information from the server. CmdDialer functions as a both a ReadWriteCloser
-// to the spawned process and as a Dialer that returns itself.
-//
-// NOTE: Dial should only be called once. This is because closing CmdDialer also
-// kills the underlying process
+// information from the server. StdDialer functions as a proxy for the input and output
+// from the given reader and writer.
 type StdDialer struct {
 	Stdin  io.WriteCloser
 	Stdout io.ReadCloser
-
-	err error
 }
 
 // Create a new CmdDialer
-func NewStdDialer(ctx context.Context, name string, stdin io.WriteCloser, stdout io.ReadCloser) (*StdDialer, error) {
+func NewStdDialer(stdin io.WriteCloser, stdout io.ReadCloser) jsonrpc2.Dialer {
 	stdDialer := StdDialer{}
 
 	stdDialer.Stdin = stdin
 	stdDialer.Stdout = stdout
 
-	return &stdDialer, nil
+	return &stdDialer
 }
 
 func (rwc *StdDialer) Read(p []byte) (int, error) {
-	if rwc.err != nil {
-		return 0, fmt.Errorf("cannot read: %w", rwc.err)
-	}
 	return rwc.Stdout.Read(p)
 }
 
 func (rwc *StdDialer) Write(p []byte) (int, error) {
-	if rwc.err != nil {
-		return 0, fmt.Errorf("cannot write: %w", rwc.err)
-	}
 	return rwc.Stdin.Write(p)
 }
 
@@ -53,11 +43,7 @@ func (rwc *StdDialer) Close() error {
 	return nil
 }
 
-// CmdDialer.Dial returns itself as a CmdDialer is a ReadWriteCloser.
+// StdDialer.Dial returns itself as a ReadWriteCloser.
 func (rwc *StdDialer) Dial(ctx context.Context) (io.ReadWriteCloser, error) {
-	// TODO(jsussman): Check if already closed
-	if rwc.err != nil {
-		return rwc, fmt.Errorf("cannot close: %w", rwc.err)
-	}
 	return rwc, nil
 }

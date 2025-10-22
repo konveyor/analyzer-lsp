@@ -246,12 +246,19 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 			HTTPSProxy: config.Proxy.HTTPSProxy,
 			NoProxy:    config.Proxy.NoProxy,
 		},
+		PipeName:    config.LanguageServerPipe,
+		Initialized: config.Initialized,
 	}
 
 	newCtx := context.Background()
 
 	if config.LanguageServerPipe != "" {
-		rpc, err := GetProviderRPCClient(newCtx, config.LanguageServerPipe, s.Log)
+		s.Log.Info("language server pipe is set", "pipe", config.LanguageServerPipe)
+		var handler jsonrpc2.Handler
+		if h, ok := s.Client.(jsonrpc2.Handler); ok {
+			handler = h
+		}
+		rpc, err := socket.ConnectRPC(newCtx, config.LanguageServerPipe, handler)
 		if err != nil {
 			return nil, err
 		}
@@ -520,14 +527,4 @@ func (s *server) authUnaryInterceptor(ctx context.Context, req any, info *grpc.U
 	s.Log.Info("user making request", "audience", a, "issuer", i, "subject", sub, "name", name)
 
 	return handler(ctx, req)
-}
-
-// Get Provider RPCClient
-func GetProviderRPCClient(ctx context.Context, pipeName string, log logr.Logger) (*jsonrpc2.Connection, error) {
-	fileName, err := socket.GetAddress(pipeName)
-	if err != nil {
-		return nil, err
-	}
-	return socket.ConnectRPC(ctx, fileName)
-
 }

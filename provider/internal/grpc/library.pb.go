@@ -83,6 +83,7 @@ type Config struct {
 	ProviderSpecificConfig *structpb.Struct       `protobuf:"bytes,5,opt,name=providerSpecificConfig,proto3" json:"providerSpecificConfig,omitempty"`
 	Proxy                  *Proxy                 `protobuf:"bytes,6,opt,name=proxy,proto3" json:"proxy,omitempty"`
 	LanguageServerPipe     string                 `protobuf:"bytes,7,opt,name=languageServerPipe,proto3" json:"languageServerPipe,omitempty"`
+	Initialized            bool                   `protobuf:"varint,8,opt,name=initialized,proto3" json:"initialized,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -157,6 +158,13 @@ func (x *Config) GetLanguageServerPipe() string {
 		return x.LanguageServerPipe
 	}
 	return ""
+}
+
+func (x *Config) GetInitialized() bool {
+	if x != nil {
+		return x.Initialized
+	}
+	return false
 }
 
 type InitResponse struct {
@@ -1631,14 +1639,15 @@ const file_provider_internal_grpc_library_proto_rawDesc = "" +
 	"\n" +
 	"Capability\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12A\n" +
-	"\x0ftemplateContext\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x0ftemplateContext\"\x98\x02\n" +
+	"\x0ftemplateContext\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x0ftemplateContext\"\xba\x02\n" +
 	"\x06Config\x12\x1a\n" +
 	"\blocation\x18\x01 \x01(\tR\blocation\x12&\n" +
 	"\x0edependencyPath\x18\x02 \x01(\tR\x0edependencyPath\x12\"\n" +
 	"\fanalysisMode\x18\x04 \x01(\tR\fanalysisMode\x12O\n" +
 	"\x16providerSpecificConfig\x18\x05 \x01(\v2\x17.google.protobuf.StructR\x16providerSpecificConfig\x12%\n" +
 	"\x05proxy\x18\x06 \x01(\v2\x0f.provider.ProxyR\x05proxy\x12.\n" +
-	"\x12languageServerPipe\x18\a \x01(\tR\x12languageServerPipe\"\x8c\x01\n" +
+	"\x12languageServerPipe\x18\a \x01(\tR\x12languageServerPipe\x12 \n" +
+	"\vinitialized\x18\b \x01(\bR\vinitialized\"\x8c\x01\n" +
 	"\fInitResponse\x12\x14\n" +
 	"\x05error\x18\x01 \x01(\tR\x05error\x12\x1e\n" +
 	"\n" +

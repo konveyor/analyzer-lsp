@@ -495,15 +495,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	wg.Wait()
 
 	// Create a shared input,ouput dialer
-	dialer, err := base.NewStdDialer(ctx, "java", stdin, stdout)
-	if err != nil {
-		return nil, additionalBuiltinConfig, err
-	}
+	dialer := base.NewStdDialer(stdin, stdout)
 
 	rpc, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{
 		Handler: base.NewChainHandler(base.LogHandler(log)),
 	})
 	if err != nil {
+		cancelFunc()
 		log.Error(err, "unable to connect over new package")
 		return nil, additionalBuiltinConfig, err
 	}

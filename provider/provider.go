@@ -152,8 +152,10 @@ type InitConfig struct {
 	// This will be unusable connecting over a network but can be used in code.
 	RPC RPCClient `yaml:"-" json:"-"`
 
-	// Given a pipe name for the init config, we will use that pipe and connect to an already inited provider.
 	PipeName string `yaml:"pipeName" json:"pipeName"`
+
+	// Given a pipe name for the init config, we will use that pipe and connect to an already inited provider.
+	Initialized bool `yaml:"initialized" json:"initialized"`
 }
 
 type RPCClient interface {

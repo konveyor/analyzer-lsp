@@ -1,5 +1,4 @@
-#FROM quay.io/konveyor/analyzer-lsp
-FROM localhost/testing/analyzer-lsp:testing-socket
+FROM quay.io/konveyor/analyzer-lsp
 
 WORKDIR /analyzer-lsp
 

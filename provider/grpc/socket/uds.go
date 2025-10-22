@@ -41,9 +41,13 @@ func ConnectGRPC(connectionString string) (*grpc.ClientConn, error) {
 	)
 }
 
-func ConnectRPC(ctx context.Context, address string) (*jsonrpc2.Connection, error) {
+func ConnectRPC(ctx context.Context, address string, handler jsonrpc2.Handler) (*jsonrpc2.Connection, error) {
 	dialer := jsonrpc2.NetDialer("unix", address, net.Dialer{})
-	conn, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{})
+	options := jsonrpc2.ConnectionOptions{}
+	if handler != nil {
+		options.Handler = handler
+	}
+	conn, err := jsonrpc2.Dial(ctx, dialer, options)
 	if err != nil {
 		return nil, err
 	}

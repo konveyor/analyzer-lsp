@@ -191,6 +191,7 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, provider.InitConfig{}, err
 	}
 
+	g.log.Info("provider configuration", "config", config)
 	c := pb.Config{
 		Location:               config.Location,
 		DependencyPath:         config.DependencyPath,
@@ -201,6 +202,8 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 			HTTPSProxy: config.Proxy.HTTPSProxy,
 			NoProxy:    config.Proxy.NoProxy,
 		},
+		LanguageServerPipe: config.PipeName,
+		Initialized:        config.Initialized,
 	}
 
 	r, err := g.Client.Init(ctx, &c)
@@ -321,6 +324,7 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 				grpc.WithTransportCredentials(creds))
 			if err != nil {
 				log.Error(err, "did not connect")
+				return nil, nil, err
 			}
 			return conn, nil, nil
 
@@ -333,6 +337,7 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 				grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
 			if err != nil {
 				log.Error(err, "did not connect")
+				return nil, nil, err
 			}
 			return conn, nil, nil
 

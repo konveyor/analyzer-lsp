@@ -28,14 +28,23 @@ func GetConnectionString(address string) string {
 }
 
 func ConnectGRPC(connectionString string) (*grpc.ClientConn, error) {
-	// Note that gRPC by default performs name resolution on the target passed to NewClient.
-	// // To bypass name resolution and cause the target string to be passed directly to the dialer here instead, use the "passthrough" resolver by specifying it in the target string, e.g. "passthrough:target".
-	return grpc.NewClient(connectionString,
-		grpc.WithContextDialer(DialWindowsPipePassthrough),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MAX_MESSAGE_SIZE)),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithAuthority("localhost"),
-	)
+	if strings.Contains(connectionString, "unix") {
+		// Note that gRPC by default performs name resolution on the target passed to NewClient.
+		// // To bypass name resolution and cause the target string to be passed directly to the dialer here instead, use the "passthrough" resolver by specifying it in the target string, e.g. "passthrough:target".
+		return grpc.NewClient(connectionString,
+			grpc.WithContextDialer(DialWindowsPipePassthrough),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MAX_MESSAGE_SIZE)),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithAuthority("localhost"),
+		)
+	} else {
+		return grpc.NewClient(connectionString,
+			grpc.WithDefaultCallOptions(
+				grpc.MaxCallRecvMsgSize(MAX_MESSAGE_SIZE),
+			),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+	}
 }
 
 func Listen(socketName string) (net.Listener, error) {
@@ -52,9 +61,13 @@ func DialWindowsPipePassthrough(ctx context.Context, connectionString string) (n
 	return pipe, nil
 }
 
-func ConnectRPC(ctx context.Context, address string) (*jsonrpc2.Connection, error) {
+func ConnectRPC(ctx context.Context, address string, handler jsonrpc2.Handler) (*jsonrpc2.Connection, error) {
 	wrapper := jsonrpc2WindowsWrapper{address}
-	conn, err := jsonrpc2.Dial(ctx, &wrapper, jsonrpc2.ConnectionOptions{})
+	options := jsonrpc2.ConnectionOptions{}
+	if handler != nil {
+		options.Handler = handler
+	}
+	conn, err := jsonrpc2.Dial(ctx, &wrapper, options)
 	if err != nil {
 		return nil, err
 	}

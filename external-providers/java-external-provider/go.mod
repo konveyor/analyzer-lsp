@@ -2,8 +2,6 @@ module github.com/konveyor/analyzer-lsp/external-providers/java-external-provide
 
 go 1.23.9
 
-toolchain go1.24.3
-
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250625194402-05dca9b4ac43
