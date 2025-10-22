@@ -3,7 +3,7 @@
   when:
     builtin.filecontent:
       pattern: "import.*React"
-      filePattern: "*.tsx"
+      filePattern: "\\.tsx$"
   message: Found React import in .tsx file
   effort: 1
   category: potential
