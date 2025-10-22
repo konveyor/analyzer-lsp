@@ -1097,7 +1097,7 @@
           kind: Property
           name: Configuration
           package: io.konveyor.demo.ordermanagement.config
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/WebConfig.java
         message: Annotation inspection 05
         codeSnip: "1  package io.konveyor.demo.ordermanagement.config;\n 2  \n 3  import org.springframework.boot.autoconfigure.EnableAutoConfiguration;\n 4  import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;\n 5  import org.springframework.context.annotation.Configuration;\n 6  \n 7  @Configuration\n 8  @EnableAutoConfiguration(exclude = { DataSourceAutoConfiguration.class })\n 9  public class WebConfig {\n10  \n11  }\n"
         lineNumber: 7
