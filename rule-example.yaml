@@ -458,4 +458,48 @@
   effort: 1
   when:
     nodejs.referenced:
-      pattern: "log"
+      pattern: "log"- message: Found React import in .tsx file
+  ruleID: test-tsx-support-00000
+  description: Test that .tsx files are scanned (builtin provider)
+  effort: 1
+  category: potential
+  when:
+    builtin.filecontent:
+      pattern: "import.*React"
+      filePattern: "*.tsx"
+- message: Found React reference in .tsx file using nodejs provider
+  ruleID: test-tsx-support-00010
+  description: Test that nodejs provider can find references in .tsx files
+  effort: 1
+  category: potential
+  when:
+    nodejs.referenced:
+      pattern: "React"
+      location: ".tsx"
+- message: Found React reference in .jsx file using nodejs provider
+  ruleID: test-tsx-support-00020
+  description: Test that nodejs provider can find references in .jsx files
+  effort: 1
+  category: potential
+  when:
+    nodejs.referenced:
+      pattern: "React"
+      location: ".jsx"
+- message: Found React reference using regex pattern
+  ruleID: test-regex-pattern-00000
+  description: Test regex pattern for TypeScript/JavaScript files
+  effort: 1
+  category: potential
+  when:
+    builtin.filecontent:
+      pattern: "React"
+      filePattern: "\\.(j|t)sx?$"
+- message: Found PatternFly CSS variable using regex pattern
+  ruleID: test-regex-pattern-00010
+  description: Test regex pattern for CSS/SCSS files
+  effort: 1
+  category: potential
+  when:
+    builtin.filecontent:
+      pattern: "--pf-"
+      filePattern: "\\.(css|scss)$"
