@@ -137,8 +137,11 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 	// get all ts files
 	folder := strings.TrimPrefix(sc.Config.WorkspaceFolders[0], "file://")
-	var nodeFiles []string
-	var langID string
+	type fileInfo struct {
+		path   string
+		langID string
+	}
+	var nodeFiles []fileInfo
 	err = filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -151,14 +154,20 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		if !info.IsDir() {
 			ext := filepath.Ext(path)
 			if ext == ".ts" || ext == ".tsx" {
-				langID = "typescriptreact"
+				langID := "typescript"
+				if ext == ".tsx" {
+					langID = "typescriptreact"
+				}
 				path = "file://" + path
-				nodeFiles = append(nodeFiles, path)
+				nodeFiles = append(nodeFiles, fileInfo{path: path, langID: langID})
 			}
 			if ext == ".js" || ext == ".jsx" {
-				langID = "javascriptreact"
+				langID := "javascript"
+				if ext == ".jsx" {
+					langID = "javascriptreact"
+				}
 				path = "file://" + path
-				nodeFiles = append(nodeFiles, path)
+				nodeFiles = append(nodeFiles, fileInfo{path: path, langID: langID})
 			}
 		}
 
@@ -168,7 +177,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return provider.ProviderEvaluateResponse{}, err
 	}
 
-	didOpen := func(uri string, text []byte) error {
+	didOpen := func(uri string, langID string, text []byte) error {
 		params := protocol.DidOpenTextDocumentParams{
 			TextDocument: protocol.TextDocumentItem{
 				URI:        uri,
@@ -196,7 +205,8 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	var symbols []protocol.WorkspaceSymbol
 	for batchRight < len(nodeFiles) {
 		for batchRight-batchLeft < BATCH_SIZE && batchRight < len(nodeFiles) {
-			trimmedURI := strings.TrimPrefix(nodeFiles[batchRight], "file://")
+			fileInfo := nodeFiles[batchRight]
+			trimmedURI := strings.TrimPrefix(fileInfo.path, "file://")
 			text, err := os.ReadFile(trimmedURI)
 			if err != nil {
 				return provider.ProviderEvaluateResponse{}, err
@@ -207,7 +217,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 			// for small apps, this can cause another conn.Notify call before the previous completes
 			// resulting in missing incidents
 			time.Sleep(2 * time.Second)
-			err = didOpen(nodeFiles[batchRight], text)
+			err = didOpen(fileInfo.path, fileInfo.langID, text)
 			if err != nil {
 				return provider.ProviderEvaluateResponse{}, err
 			}
@@ -224,7 +234,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	}
 
 	for batchLeft < batchRight {
-		if err = didClose(nodeFiles[batchLeft]); err != nil {
+		if err = didClose(nodeFiles[batchLeft].path); err != nil {
 			return provider.ProviderEvaluateResponse{}, err
 		}
 		batchLeft++
