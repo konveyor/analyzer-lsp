@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/gobwas/glob"
 )
 
 // FileSearcher takes global include / exclude patterns and base locations for search
@@ -218,32 +217,19 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 					}
 				}
 			} else {
-				// try matching as go regex or glob pattern
+				// try matching as go regex pattern
 				regex, regexErr := regexp.Compile(pattern)
 				if regexErr == nil && (regex.MatchString(file) || regex.MatchString(filepath.Base(file))) {
 					patternMatched = true
-				} else if regexErr != nil {
-					// try using glob library which supports brace expansion (e.g., *.{ts,tsx})
-					g, globErr := glob.Compile(pattern)
-					if globErr == nil {
-						// try matching against full path
-						if g.Match(file) {
-							patternMatched = true
-						}
-						// try matching against basename
-						if g.Match(filepath.Base(file)) {
-							patternMatched = true
-						}
-					} else {
-						// fallback to filepath.Match for simple patterns
-						m, err := filepath.Match(pattern, file)
-						if err == nil {
-							patternMatched = patternMatched || m
-						}
-						m, err = filepath.Match(pattern, filepath.Base(file))
-						if err == nil {
-							patternMatched = patternMatched || m
-						}
+				} else {
+					// fallback to filepath.Match for simple patterns
+					m, err := filepath.Match(pattern, file)
+					if err == nil {
+						patternMatched = patternMatched || m
+					}
+					m, err = filepath.Match(pattern, filepath.Base(file))
+					if err == nil {
+						patternMatched = patternMatched || m
 					}
 				}
 			}
