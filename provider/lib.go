@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	"github.com/gobwas/glob"
 )
 
 // FileSearcher takes global include / exclude patterns and base locations for search
@@ -222,13 +223,27 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				if regexErr == nil && (regex.MatchString(file) || regex.MatchString(filepath.Base(file))) {
 					patternMatched = true
 				} else if regexErr != nil {
-					m, err := filepath.Match(pattern, file)
-					if err == nil {
-						patternMatched = m
-					}
-					m, err = filepath.Match(pattern, filepath.Base(file))
-					if err == nil {
-						patternMatched = m
+					// try using glob library which supports brace expansion (e.g., *.{ts,tsx})
+					g, globErr := glob.Compile(pattern)
+					if globErr == nil {
+						// try matching against full path
+						if g.Match(file) {
+							patternMatched = true
+						}
+						// try matching against basename
+						if g.Match(filepath.Base(file)) {
+							patternMatched = true
+						}
+					} else {
+						// fallback to filepath.Match for simple patterns
+						m, err := filepath.Match(pattern, file)
+						if err == nil {
+							patternMatched = m
+						}
+						m, err = filepath.Match(pattern, filepath.Base(file))
+						if err == nil {
+							patternMatched = m
+						}
 					}
 				}
 			}
