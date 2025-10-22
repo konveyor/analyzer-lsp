@@ -1,0 +1,9 @@
+- ruleID: test-tsx-support-00000
+  description: Test that .tsx files are scanned
+  when:
+    builtin.filecontent:
+      pattern: "import.*React"
+      filePattern: "*.tsx"
+  message: Found React import in .tsx file
+  effort: 1
+  category: potential
