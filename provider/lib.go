@@ -238,11 +238,11 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 						// fallback to filepath.Match for simple patterns
 						m, err := filepath.Match(pattern, file)
 						if err == nil {
-							patternMatched = m
+							patternMatched = patternMatched || m
 						}
 						m, err = filepath.Match(pattern, filepath.Base(file))
 						if err == nil {
-							patternMatched = m
+							patternMatched = patternMatched || m
 						}
 					}
 				}
