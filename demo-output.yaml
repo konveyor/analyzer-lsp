@@ -1097,6 +1097,20 @@
           kind: Property
           name: Configuration
           package: io.konveyor.demo.ordermanagement.config
+    java-chaining-01:
+      description: There should only be one instance of this rule
+      category: mandatory
+      incidents:
+        - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+          message: |
+            Sample message. This rule checks that the chaining conditions are working. Should only get a single issue.
+          codeSnip: " 3  import javax.servlet.ServletContext;\n 4  import javax.servlet.ServletException;\n 5  import javax.servlet.ServletRegistration;\n 6  \n 7  import org.springframework.web.WebApplicationInitializer;\n 8  import org.springframework.web.context.ContextLoaderListener;\n 9  import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;\n10  import org.springframework.web.servlet.DispatcherServlet;\n11  \n12  \n13  public class OrderManagementAppInitializer implements WebApplicationInitializer  {\n14  \n15  \t@Override\n16  \tpublic void onStartup(ServletContext container) throws ServletException {\n17  \t\tAnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();\n18        context.setConfigLocation(\"io.konveyor.demo.ordermanagement.config\");\n19  \n20        context.scan(\"io.konveyor.demo.ordermanagement\");\n21        container.addListener(new ContextLoaderListener(context));\n22  \n23        ServletRegistration.Dynamic dispatcher = container"
+          lineNumber: 13
+          variables:
+            file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+            kind: Class
+            name: OrderManagementAppInitializer
+            package: io.konveyor.demo.ordermanagement
     java-downloaded-maven-artifact:
       description: |
         This rule tests the application downloaded from maven artifact
@@ -1283,7 +1297,6 @@
         line 11: cannot unmarshal !!map into string
   unmatched:
   - file-002
-  - java-chaining-01
   - lang-ref-002
   - node-sample-rule-003
   - python-sample-rule-003
