@@ -145,17 +145,18 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		}
 
 		// TODO source-only mode
-		// if info.IsDir() && info.Name() == "node_modules" {
-		// 	return filepath.SkipDir
-		// }
+		if info.IsDir() && info.Name() == "node_modules" {
+			return filepath.SkipDir
+		}
 		if !info.IsDir() {
-			if filepath.Ext(path) == ".ts" {
-				langID = "typescript"
+			ext := filepath.Ext(path)
+			if ext == ".ts" || ext == ".tsx" {
+				langID = "typescriptreact"
 				path = "file://" + path
 				nodeFiles = append(nodeFiles, path)
 			}
-			if filepath.Ext(path) == ".js" {
-				langID = "javascript"
+			if ext == ".js" || ext == ".jsx" {
+				langID = "javascriptreact"
 				path = "file://" + path
 				nodeFiles = append(nodeFiles, path)
 			}
