@@ -40,7 +40,7 @@ grep -q "violations:" /tmp/output.yaml && echo "✅ PASS" || echo "❌ FAIL"
 
 **Expected:** Should find violations in `Component.tsx`
 
-### Test 2: Verify Brace Expansion
+### Test 2: Verify Regex File Patterns
 
 ```bash
 # Add more test files
@@ -60,6 +60,10 @@ echo "Violations found: $(grep -c 'uri: file://' /tmp/output.yaml)"
 ```
 
 **Expected:** Should find violations in ALL file types
+
+**Regex Patterns Used:**
+- `\.(j|t)sx?$` - Matches .js, .jsx, .ts, .tsx files
+- `\.(css|scss)$` - Matches .css, .scss files
 
 ### Test 3: Verify node_modules is Skipped
 
