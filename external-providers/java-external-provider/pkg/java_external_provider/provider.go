@@ -286,7 +286,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	disableMavenSearch, ok := config.ProviderSpecificConfig[DISABLE_MAVEN_SEARCH].(bool)
-	mavenIndexPath, ok := config.ProviderSpecificConfig[providerSpecificConfigOpenSourceDepListKey].(string)
+	mavenIndexPath, ok := config.ProviderSpecificConfig[providerSpecificConfigMavenIndexPath].(string)
 
 	isBinary := false
 	var returnErr error
