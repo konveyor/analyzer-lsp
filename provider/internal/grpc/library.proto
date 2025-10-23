@@ -20,6 +20,8 @@ message Config {
   string analysisMode = 4;
   google.protobuf.Struct providerSpecificConfig= 5;
   Proxy proxy = 6;
+  string languageServerPipe = 7;
+  bool initialized= 8;
 
   // repeated string workspaceFolders = 7;
   // repeated string dependencyFolders = 8;

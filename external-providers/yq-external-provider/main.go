@@ -14,6 +14,7 @@ import (
 
 var (
 	port      = flag.Int("port", 0, "Port must be set")
+	socket    = flag.String("socket", "", "Socket to be used")
 	name      = flag.String("name", "yaml", "Port must be set")
 	certFile  = flag.String("certFile", "", "Path to the cert file")
 	keyFile   = flag.String("keyFile", "", "Path to the key file")
@@ -32,8 +33,9 @@ func main() {
 
 	client := yq_provider.NewYqProvider()
 
-	if port == nil || *port == 0 {
-		panic(fmt.Errorf("must pass in the port for the external provider"))
+	if (socket == nil || *socket == "") && (port == nil || *port == 0) {
+		log.Error(fmt.Errorf("no serving location"), "port or socket must be set.")
+		panic(1)
 	}
 	var c string
 	var k string
@@ -51,7 +53,7 @@ func main() {
 		secret = *secretKey
 	}
 
-	s := provider.NewServer(client, *port, c, k, secret, log)
+	s := provider.NewServer(client, *port, c, k, secret, *socket, log)
 	ctx := context.TODO()
 	s.Start(ctx)
 }

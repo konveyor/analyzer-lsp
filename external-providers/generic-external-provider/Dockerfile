@@ -14,7 +14,7 @@ RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mo
 
 RUN go build -o generic-external-provider main.go && go install golang.org/x/tools/gopls@v0.18.0
 
-FROM quay.io/konveyor/golang-dependency-provider as go-dep-provider
+FROM golang-dep-provider as go-dep-provider
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
@@ -31,5 +31,7 @@ RUN npm install -g typescript-language-server typescript
 COPY --from=go-builder /go/bin/gopls /usr/local/bin/gopls
 COPY --from=go-builder /generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
 COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
+COPY external-providers/generic-external-provider/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT [ "/usr/local/bin/generic-external-provider" ]
+
+ENTRYPOINT ["/usr/local/bin/generic-external-provider"]

@@ -126,8 +126,7 @@ type LSPServiceClientBase struct {
 	BaseConfig LSPServiceClientConfig
 
 	Dialer *CmdDialer
-	Conn   *jsonrpc2.Connection
-
+	Conn   provider.RPCClient
 	// Will call this handler's Handle function first. If it returns an
 	// ErrMethodNotFound or ErrNotHandled we use the LSPServiceClientBase's Handle
 	// method.
@@ -145,6 +144,7 @@ type LSPServiceClientBase struct {
 	ServerInfo         *protocol.PServerInfoMsg_initialize
 
 	TempDir string
+	handler jsonrpc2.Handler
 }
 
 func NewLSPServiceClientBase(
@@ -169,7 +169,6 @@ func NewLSPServiceClientBase(
 	if sc.BaseConfig.LspServerName == "" {
 		sc.BaseConfig.LspServerName = "generic"
 	}
-
 	if initializeParams.RootURI == "" && len(initializeParams.WorkspaceFolders) == 0 {
 		TempDir, err := os.MkdirTemp("", "tmp")
 		if err != nil {
@@ -192,54 +191,60 @@ func NewLSPServiceClientBase(
 	sc.Ctx, sc.CancelFunc = context.WithCancel(ctx)
 	sc.Log = log.WithValues("provider", sc.BaseConfig.LspServerName)
 
-	// launch the lsp command
-	sc.Dialer, err = NewCmdDialer(
-		sc.Ctx, sc.BaseConfig.LspServerPath, sc.BaseConfig.LspServerArgs...,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("new cmd dialer error: %w", err)
+	sc.handler = NewChainHandler(initializeHandler)
+	if c.RPC == nil {
+		// launch the lsp command
+		sc.Dialer, err = NewCmdDialer(
+			sc.Ctx, sc.BaseConfig.LspServerPath, sc.BaseConfig.LspServerArgs...,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("new cmd dialer error: %w", err)
+		}
+		sc.Conn, err = jsonrpc2.Dial(
+			sc.Ctx, sc.Dialer, jsonrpc2.ConnectionOptions{
+				Handler: &sc,
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("jsonrpc2.Dial error: %w", err)
+		}
+		time.Sleep(5 * time.Second)
+
+	} else {
+		sc.Log.Info("using provided connection", "conn", c.RPC)
+		sc.Conn = c.RPC
 	}
-
-	time.Sleep(5 * time.Second)
-
 	// Create the caches for the various handler stuffs
 	sc.PublishDiagnosticsCache = NewAwaitCache[string, []protocol.Diagnostic]()
 
 	// Create a connection to the lsp server
-	sc.Conn, err = jsonrpc2.Dial(
-		sc.Ctx, sc.Dialer, jsonrpc2.ConnectionOptions{
-			Handler: NewChainHandler(&sc, initializeHandler),
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("jsonrpc2.Dial error: %w", err)
+	if !c.Initialized {
+		var result json.RawMessage
+		err = sc.Conn.Call(sc.Ctx, "initialize", initializeParams).Await(sc.Ctx, &result)
+		if err != nil {
+			b, _ := json.Marshal(initializeParams)
+			return nil, fmt.Errorf("initialize request error: %w, result: %s, initializeParams: %s, Dialer: %v", err, string(result), string(b), sc.Dialer)
+		}
+
+		sc.Log.V(7).Info(fmt.Sprintf("%s\n", string(result)))
+
+		initializeResult := protocol.InitializeResult{}
+		err = json.Unmarshal(result, &initializeResult)
+		if err != nil {
+			return nil, fmt.Errorf("initialize result unmarshal error: %w", err)
+		}
+
+		sc.ServerCapabilities = initializeResult.Capabilities
+		sc.ServerInfo = initializeResult.ServerInfo
+
+		err = sc.Conn.Notify(sc.Ctx, "initialized", protocol.InitializeParams{})
+		if err != nil {
+			return nil, fmt.Errorf("initialized notification error: %w", err)
+		}
+		sc.Log.Info("provider connection initialized\n")
 	}
 
-	var result json.RawMessage
-	err = sc.Conn.Call(sc.Ctx, "initialize", initializeParams).Await(sc.Ctx, &result)
-	if err != nil {
-		b, _ := json.Marshal(initializeParams)
-		return nil, fmt.Errorf("initialize request error: %w, result: %s, initializeParams: %s, Dialer: %v", err, string(result), string(b), sc.Dialer)
-	}
-
-	fmt.Printf("%s\n", string(result))
-
-	initializeResult := protocol.InitializeResult{}
-	err = json.Unmarshal(result, &initializeResult)
-	if err != nil {
-		return nil, fmt.Errorf("initialize result unmarshal error: %w", err)
-	}
-
-	sc.ServerCapabilities = initializeResult.Capabilities
-	sc.ServerInfo = initializeResult.ServerInfo
-
-	err = sc.Conn.Notify(sc.Ctx, "initialized", protocol.InitializeParams{})
-	if err != nil {
-		return nil, fmt.Errorf("initialized notification error: %w", err)
-	}
-
-	fmt.Printf("provider connection initialized\n")
-	sc.Log.V(2).Info("provider connection initialized\n")
+	sc.Log.V(2).Info("provider connection established\n")
 
 	return &sc, nil
 }
@@ -298,7 +303,13 @@ func (sc *LSPServiceClientBase) GetDependenciesDAG(ctx context.Context) (map[uri
 }
 
 func (sc *LSPServiceClientBase) Handle(ctx context.Context, req *jsonrpc2.Request) (result interface{}, err error) {
-	// fmt.Printf("Base Handler!\n")
+
+	if sc.handler != nil {
+		res, err := sc.handler.Handle(ctx, req)
+		if err == nil {
+			return res, err
+		}
+	}
 
 	switch req.Method {
 	case "textDocument/publishDiagnostics":
