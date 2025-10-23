@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -25,6 +26,7 @@ import (
 
 type gradleBuildTool struct {
 	gradleBuildFile    string
+	buildHashSync      *sync.Mutex
 	gradleBuildhash    *string
 	gradleTaskFile     string
 	disableMavenSearch bool
@@ -46,6 +48,7 @@ func findGradleBuild(opts BuildToolOptions, log logr.Logger) BuildTool {
 		}
 		return &gradleBuildTool{
 			gradleBuildFile:    f,
+			buildHashSync:      &sync.Mutex{},
 			gradleTaskFile:     opts.GradleTaskFile,
 			disableMavenSearch: opts.DisableMavenSearch,
 			log:                log,
@@ -151,7 +154,8 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 	if err != nil {
 		return nil, fmt.Errorf("unable to create build file hash for gradle")
 	}
-	g.gradleBuildhash = &hashString
+	g.buildHashSync.Lock()
+	defer g.buildHashSync.Unlock()
 	subprojects, err := g.getGradleSubprojects(ctx)
 	if err != nil {
 		return nil, err
@@ -197,6 +201,7 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 	file := uri.File(g.gradleBuildFile)
 	m := map[uri.URI][]provider.DepDAGItem{}
 	m[file] = deps
+	g.gradleBuildhash = &hashString
 
 	// TODO: need error?
 	return m, nil

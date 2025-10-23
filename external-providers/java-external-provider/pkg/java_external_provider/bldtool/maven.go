@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -24,8 +25,9 @@ const (
 
 type mavenBuildTool struct {
 	mavenBaseTool
-	pomPath string
-	pomHash *string
+	pomPath     string
+	pomHash     *string
+	pomHashSync *sync.Mutex
 }
 
 func findPom(opts BuildToolOptions, log logr.Logger) BuildTool {
@@ -54,6 +56,7 @@ func findPom(opts BuildToolOptions, log logr.Logger) BuildTool {
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
 	return &mavenBuildTool{
 		pomPath:       f,
+		pomHashSync:   &sync.Mutex{},
 		mavenBaseTool: mavenBaseTool,
 	}
 }
@@ -107,11 +110,12 @@ func (m *mavenBuildTool) GetCachedDepError(errorCached map[string]error) (error,
 
 func (m *mavenBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	m.log.Info("getting deps", "file", m.pomPath)
+	m.pomHashSync.Lock()
+	defer m.pomHashSync.Unlock()
 	hash, err := getHash(m.pomPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate hash")
 	}
-	m.pomHash = &hash
 	ll, err := m.getDependenciesForMaven(ctx)
 	if err != nil {
 		m.log.Info("unable to get dependencies, using fallback", "error", err.Error())
@@ -128,6 +132,7 @@ func (m *mavenBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pro
 			return nil, fmt.Errorf("%w %w", err, fallBackErr)
 		}
 	}
+	m.pomHash = &hash
 	return ll, nil
 
 }

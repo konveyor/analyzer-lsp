@@ -280,8 +280,12 @@
   message: Only incidents in util/FileReader.java should be found
   ruleID: java-inclusion-test
   when:
-    java.referenced:
-      pattern: java.io.File
+    and:
+    - builtin.file:
+        pattern: ".*inclusion-tests/.*/FileReader.java"
+      ignore: true
+    - java.referenced:
+        pattern: io.konveyor.util.FileReader
 - category: optional
   description: |
     This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.

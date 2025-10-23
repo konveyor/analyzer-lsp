@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency"
@@ -89,8 +90,9 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 			log:             m.log,
 			labeler:         m.labeler,
 		},
-		pomPath: filepath.Join(projectPath, "pom.xml"),
-		pomHash: nil,
+		pomPath:     filepath.Join(projectPath, "pom.xml"),
+		pomHashSync: &sync.Mutex{},
+		pomHash:     nil,
 	}
 	return projectPath, depPath, nil
 }
