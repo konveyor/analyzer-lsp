@@ -61,6 +61,7 @@ jobs:
       registry: "quay.io/konveyor"
       image_name: ${{ matrix.images.name }}
       containerfile: ${{ matrix.images.containerfile }}
+      extra-args: ${{ matrix.images['extra-args'] || '' }}
       pre_build_cmd: ${{ matrix.images.pre_build_cmd }}
       architectures: ${{ matrix.images.architectures }}
       context: ${{ matrix.images.context }}
