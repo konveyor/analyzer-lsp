@@ -35,9 +35,7 @@ import (
 //   - Caching based on build.gradle hash to avoid redundant processing
 //   - Maven repository searches for artifact metadata (unless disabled)
 type gradleBuildTool struct {
-	buildFile          string         // Absolute path to the build.gradle file
-	buildHashSync      *sync.Mutex    // Mutex for thread-safe hash access
-	buildhash          *string        // SHA256 hash of build.gradle for caching
+	depCache
 	taskFile           string         // Path to custom Gradle task file for dependency resolution
 	disableMavenSearch bool           // Whether to disable Maven repository lookups
 	log                logr.Logger    // Logger instance for this build tool
@@ -57,8 +55,11 @@ func getGradleBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 			return nil
 		}
 		return &gradleBuildTool{
-			buildFile:          f,
-			buildHashSync:      &sync.Mutex{},
+			depCache: depCache{
+				hashFile: f,
+				hashSync: &sync.Mutex{},
+				depLog:   log.WithName("dep-cache"),
+			},
 			taskFile:           opts.GradleTaskFile,
 			disableMavenSearch: opts.DisableMavenSearch,
 			log:                log,
@@ -88,8 +89,8 @@ func (g *gradleBuildTool) GetResolver(decompileTool string) (dependency.Resolver
 
 	opts := dependency.ResolverOptions{
 		Log:                g.log,
-		Location:           filepath.Dir(g.buildFile),
-		BuildFile:          g.buildFile,
+		Location:           filepath.Dir(g.hashFile),
+		BuildFile:          g.hashFile,
 		Version:            gradleVersion,
 		Wrapper:            gradleWrapper,
 		JavaHome:           javaHome,
@@ -133,39 +134,20 @@ func (g *gradleBuildTool) GetSourceFileLocation(path string, jarPath string, jav
 	return javaFileAbsolutePath, nil
 }
 
-func (g *gradleBuildTool) UseCache() (bool, error) {
-	//  Note to self's if this ever has more build tools that need hashing,
-	// Create a specific shared struct for this interface
-	hashString, err := getHash(g.buildFile)
-	if err != nil {
-		g.log.Error(err, "unable to generate hash from pom file")
-		return false, err
-	}
-	if g.buildhash != nil && *g.buildhash == hashString {
-		return true, nil
-	}
-	return false, nil
-
-}
-
 func (g *gradleBuildTool) GetLocalRepoPath() string {
 	return ""
 }
 
-func (g *gradleBuildTool) GetCachedDepError(errorCached map[string]error) (error, bool) {
-	gradleErr, hasGradleErr := errorCached[gradleDepErr]
-	return gradleErr, hasGradleErr
-
-}
-
 // getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
 func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
-	hashString, err := getHash(g.buildFile)
+	g.log.V(3).Info("getting deps")
+	ok, err := g.depCache.useCache()
 	if err != nil {
-		return nil, fmt.Errorf("unable to create build file hash for gradle")
+		return nil, err
 	}
-	g.buildHashSync.Lock()
-	defer g.buildHashSync.Unlock()
+	if ok {
+		return g.depCache.getCachedDeps(), nil
+	}
 	subprojects, err := g.getGradleSubprojects(ctx)
 	if err != nil {
 		return nil, err
@@ -182,7 +164,7 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 	}
 
 	// get the graph output
-	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.buildFile), "gradlew"))
+	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.hashFile), "gradlew"))
 	if err != nil {
 		return nil, fmt.Errorf("error calculating gradle wrapper path")
 	}
@@ -198,7 +180,7 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 		return nil, err
 	}
 	cmd := exec.CommandContext(timeout, exe, args...)
-	cmd.Dir = filepath.Dir(g.buildFile)
+	cmd.Dir = filepath.Dir(g.hashFile)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -208,12 +190,13 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 	lines := strings.Split(string(output), "\n")
 	deps := g.parseGradleDependencyOutput(lines)
 
-	file := uri.File(g.buildFile)
+	file := uri.File(g.hashFile)
 	m := map[uri.URI][]provider.DepDAGItem{}
 	m[file] = deps
-	g.buildhash = &hashString
-
-	// TODO: need error?
+	g.depCache.setCachedDeps(m, err)
+	if err != nil {
+		return nil, err
+	}
 	return m, nil
 }
 
@@ -227,7 +210,7 @@ func (g *gradleBuildTool) getGradleSubprojects(ctx context.Context) ([]string, e
 		return nil, err
 	}
 
-	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.buildFile), "gradlew"))
+	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.hashFile), "gradlew"))
 	if err != nil {
 		return nil, fmt.Errorf("error calculating gradle wrapper path")
 	}
@@ -235,7 +218,7 @@ func (g *gradleBuildTool) getGradleSubprojects(ctx context.Context) ([]string, e
 		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
 	}
 	cmd := exec.Command(exe, args...)
-	cmd.Dir = filepath.Dir(g.buildFile)
+	cmd.Dir = filepath.Dir(g.hashFile)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -340,7 +323,7 @@ func (g *gradleBuildTool) GetGradleWrapper() (string, error) {
 	if runtime.GOOS == "windows" {
 		wrapper = "gradlew.bat"
 	}
-	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.buildFile), wrapper))
+	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.hashFile), wrapper))
 	if err != nil {
 		return "", fmt.Errorf("error calculating gradle wrapper path")
 	}
@@ -362,13 +345,13 @@ func (g *gradleBuildTool) GetGradleVersion(ctx context.Context) (version.Version
 		"--version",
 	}
 	cmd := exec.CommandContext(ctx, exe, args...)
-	cmd.Dir = filepath.Dir(g.buildFile)
+	cmd.Dir = filepath.Dir(g.hashFile)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA8_HOME")))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		// if executing with 8 we get an error, try with 17
 		cmd = exec.CommandContext(ctx, exe, args...)
-		cmd.Dir = filepath.Dir(g.buildFile)
+		cmd.Dir = filepath.Dir(g.hashFile)
 		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA_HOME")))
 		output, err = cmd.CombinedOutput()
 		if err != nil {

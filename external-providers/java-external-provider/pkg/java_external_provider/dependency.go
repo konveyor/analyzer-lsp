@@ -33,24 +33,11 @@ func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 	p.log.V(4).Info("running dependency analysis for DAG")
 	var ll map[uri.URI][]konveyor.DepDAGItem
 
-	p.depsMutex.Lock()
-	defer p.depsMutex.Unlock()
-
 	p.log.Info("using bldtooL", "tool", fmt.Sprintf("%#v", p.buildTool))
-	useCache, err := p.buildTool.UseCache()
+	ll, err := p.buildTool.GetDependencies(ctx)
 	if err != nil {
+		// cache error
 		return nil, err
 	}
-	if useCache {
-		ll = p.depsCache
-		return ll, nil
-	} else {
-		ll, err = p.buildTool.GetDependencies(ctx)
-		if err != nil {
-			// cache error
-			return nil, err
-		}
-	}
-	p.depsCache = ll
 	return ll, nil
 }

@@ -35,9 +35,7 @@ const (
 //   - Fallback parsing when Maven commands fail
 type mavenBuildTool struct {
 	mavenBaseTool
-	pomPath     string      // Absolute path to the pom.xml file
-	pomHash     *string     // SHA256 hash of pom.xml for caching
-	pomHashSync *sync.Mutex // Mutex for thread-safe hash access
+	depCache
 }
 
 func getMavenBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
@@ -65,8 +63,11 @@ func getMavenBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath()
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
 	return &mavenBuildTool{
-		pomPath:       f,
-		pomHashSync:   &sync.Mutex{},
+		depCache: depCache{
+			hashFile: f,
+			hashSync: &sync.Mutex{},
+			depLog:   log.WithName("dep-cache"),
+		},
 		mavenBaseTool: mavenBaseTool,
 	}
 }
@@ -92,65 +93,27 @@ func (m *mavenBuildTool) GetSourceFileLocation(packagePath string, jarPath strin
 	return javaFileAbsolutePath, nil
 }
 
-func (m *mavenBuildTool) UseCache() (bool, error) {
-	m.log.Info("should we get dependencies")
-	hashString, err := getHash(m.pomPath)
-	if err != nil {
-		m.log.Error(err, "unable to generate hash from pom file")
-		return false, err
-	}
-	if m.pomHash != nil && *m.pomHash == hashString {
-		return true, nil
-	}
-	return false, nil
-}
-
-func (m *mavenBuildTool) GetCachedDepError(errorCached map[string]error) (error, bool) {
-	mvnErr, hasMvnErr := errorCached[mavenDepErr]
-	fallbackErr, hasFallbackErr := errorCached[fallbackDepErr]
-	switch {
-	case hasMvnErr, hasFallbackErr:
-		return fallbackErr, true
-	case hasMvnErr:
-		return mvnErr, true
-	default:
-		return nil, false
-	}
-}
-
 func (m *mavenBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
-	m.log.Info("getting deps", "file", m.pomPath)
-	m.pomHashSync.Lock()
-	defer m.pomHashSync.Unlock()
-	hash, err := getHash(m.pomPath)
+	m.log.V(3).Info("getting deps")
+	ok, err := m.depCache.useCache()
 	if err != nil {
-		return nil, fmt.Errorf("unable to generate hash")
+		return nil, err
+	}
+	if ok {
+		return m.depCache.getCachedDeps(), nil
 	}
 	ll, err := m.getDependenciesForMaven(ctx)
+	m.depCache.setCachedDeps(ll, err)
 	if err != nil {
-		m.log.Info("unable to get dependencies, using fallback", "error", err.Error())
-		fallBackDeps, fallBackErr := m.GetDependenciesFallback(ctx, "")
-		if fallBackErr != nil {
-			return nil, fmt.Errorf("%w %w", err, fallBackErr)
-		}
-		ll = fallBackDeps
-	} else if len(ll) == 0 {
-		m.log.Info("unable to get dependencies (none found), using fallback")
-		var fallBackErr error
-		ll, fallBackErr = m.GetDependenciesFallback(ctx, "")
-		if fallBackErr != nil {
-			return nil, fmt.Errorf("%w %w", err, fallBackErr)
-		}
+		return nil, err
 	}
-	m.pomHash = &hash
 	return ll, nil
-
 }
 
 func (m *mavenBuildTool) GetResolver(decompileTool string) (dependency.Resolver, error) {
 	opts := dependency.ResolverOptions{
 		Log:           m.log,
-		Location:      filepath.Dir(m.pomPath),
+		Location:      filepath.Dir(m.depCache.hashFile),
 		BuildFile:     m.mvnSettingsFile,
 		LocalRepo:     m.mvnLocalRepo,
 		Insecure:      m.mvnInsecure,
@@ -161,9 +124,9 @@ func (m *mavenBuildTool) GetResolver(decompileTool string) (dependency.Resolver,
 }
 
 func (m *mavenBuildTool) getDependenciesForMaven(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
-	file := uri.File(m.pomPath)
+	file := uri.File(m.hashFile)
 
-	moddir := filepath.Dir(m.pomPath)
+	moddir := filepath.Dir(m.hashFile)
 
 	args := []string{
 		"-B",
@@ -195,7 +158,7 @@ func (m *mavenBuildTool) getDependenciesForMaven(ctx context.Context) (map[uri.U
 
 	var pomDeps []provider.DepDAGItem
 	for _, tree := range submoduleTrees {
-		submoduleDeps, err := m.parseMavenDepLines(tree, m.mvnLocalRepo, m.pomPath)
+		submoduleDeps, err := m.parseMavenDepLines(tree, m.mvnLocalRepo, m.hashFile)
 		if err != nil {
 			return nil, err
 		}

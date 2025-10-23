@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,8 +34,8 @@ import (
 // and a generated pom.xml with discovered dependencies.
 type mavenBinaryBuildTool struct {
 	mavenBaseTool
+	resolveSync        *sync.Mutex
 	binaryLocation     string              // Absolute path to the binary artifact (JAR/WAR/EAR)
-	binaryLocationHash *string             // SHA256 hash of binary for caching
 	disableMavenSearch bool                // Whether to disable Maven repository lookups
 	dependencyPath     string              // Path to dependency configuration
 	resolver           dependency.Resolver // Resolver for source resolution and decompilation
@@ -62,6 +61,7 @@ func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
 	return &mavenBinaryBuildTool{
 		binaryLocation: opts.Config.Location,
+		resolveSync:    &sync.Mutex{},
 		mavenBaseTool:  mavenBaseTool,
 	}
 
@@ -86,6 +86,8 @@ func (m *mavenBinaryBuildTool) GetResolver(decompileTool string) (dependency.Res
 }
 
 func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, string, error) {
+	m.resolveSync.Lock()
+	defer m.resolveSync.Unlock()
 	if m.resolver == nil {
 		return "", "", errors.New("need to get the resolver")
 	}
@@ -104,9 +106,11 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 			log:             m.log,
 			labeler:         m.labeler,
 		},
-		pomPath:     filepath.Join(projectPath, dependency.PomXmlFile),
-		pomHashSync: &sync.Mutex{},
-		pomHash:     nil,
+		depCache: depCache{
+			hashFile: filepath.Join(projectPath, dependency.PomXmlFile),
+			hashSync: &sync.Mutex{},
+			depLog:   m.log.WithName("dep-cache"),
+		},
 	}
 	_, err = m.mavenBldTool.GetDependencies(ctx)
 	if err != nil {
@@ -122,48 +126,14 @@ func (m *mavenBinaryBuildTool) GetSourceFileLocation(path string, jarPath string
 	return "", fmt.Errorf("binaries should be decompiled and treated like maven repos")
 }
 
-func (m *mavenBinaryBuildTool) UseCache() (bool, error) {
-	if m.mavenBldTool != nil {
-		return m.mavenBldTool.UseCache()
-	}
-	return false, fmt.Errorf("binary not resolved yet")
-}
-
-func (m *mavenBinaryBuildTool) GetCachedDepError(errorCached map[string]error) (error, bool) {
-	fallbackErr, hasFallbackErr := errorCached[fallbackDepErr]
-	return fallbackErr, hasFallbackErr
-}
-
 func (m *mavenBinaryBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	m.resolveSync.Lock()
+	defer m.resolveSync.Unlock()
 	if m.mavenBldTool != nil {
-		m.log.Info("getting dependencies from mavenBldTool for binary", "bldTool", fmt.Sprintf("%#v", m.mavenBldTool))
+		m.log.Info("getting dependencies from mavenBldTool for binary")
 		return m.mavenBldTool.GetDependencies(ctx)
 	}
-	m.log.Info("falling back to dependency search from binary")
-	hash, err := getHash(m.binaryLocation)
-	if err != nil {
-		return nil, fmt.Errorf("unable to generate hash")
-	}
-	m.binaryLocationHash = &hash
-	depMap := map[uri.URI][]provider.DepDAGItem{}
-	m.discoverDepsFromJars(m.dependencyPath, depMap, m.disableMavenSearch)
-	if len(depMap) == 0 {
-		m.log.Info("unable to get dependencies from jars, looking for pom")
-		pomPaths := m.discoverPoms(m.dependencyPath, depMap)
-		for _, path := range pomPaths {
-			dep, err := m.GetDependenciesFallback(ctx, path)
-			if err != nil {
-				return nil, err
-			}
-			maps.Copy(depMap, dep)
-		}
-	}
-	if len(depMap) == 0 {
-		m.log.Error(fmt.Errorf("unable to get dependencies for binary"), "unable to find dependencies for binary")
-		return nil, fmt.Errorf("unable to get dependnecies for binary")
-	}
-	return depMap, nil
-
+	return nil, fmt.Errorf("binary is not yet resolved")
 }
 
 // discoverDepsFromJars walks given path to discover dependencies embedded as JARs

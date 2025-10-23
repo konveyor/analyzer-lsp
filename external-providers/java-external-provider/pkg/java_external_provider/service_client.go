@@ -38,9 +38,6 @@ type javaServiceClient struct {
 	cleanExplodedBins  []string
 	disableMavenSearch bool
 	activeRPCCalls     sync.WaitGroup
-	depsErrCache       map[string]error
-	depsMutex          sync.RWMutex
-	depsCache          map[uri.URI][]provider.DepDAGItem
 	depsLocationCache  map[string]int
 	buildTool          bldtool.BuildTool
 	mvnIndexPath       string

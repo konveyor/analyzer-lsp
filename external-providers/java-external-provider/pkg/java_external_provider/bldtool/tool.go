@@ -63,32 +63,6 @@ type BuildTool interface {
 	//   }
 	GetDependencies(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error)
 
-	// UseCache determines whether cached dependency results should be used.
-	// It compares the SHA256 hash of the current build file against the cached hash.
-	//
-	// Returns:
-	//   - bool: true if cache is valid and should be used, false if dependencies should be re-fetched
-	//   - error: Error if hash calculation fails
-	//
-	// Note: This method is called by the service client before calling GetDependencies()
-	// to determine if expensive build tool execution can be skipped.
-	UseCache() (bool, error)
-
-	// GetCachedDepError retrieves any cached errors from previous dependency resolution attempts.
-	// This prevents repeated execution of build commands that are known to fail.
-	//
-	// Parameters:
-	//   - errorCached: Map of error types to cached errors from previous attempts
-	//
-	// Returns:
-	//   - error: The cached error if one exists
-	//   - bool: true if a cached error was found, false otherwise
-	//
-	// Usage:
-	//   This allows the system to fail fast when build tool commands are broken,
-	//   without repeatedly attempting the same failing operation.
-	GetCachedDepError(errorCached map[string]error) (error, bool)
-
 	// GetLocalRepoPath returns the path to the local dependency repository where
 	// dependency JARs and their sources are stored. May return empty string if
 	// the build tool uses a different caching mechanism.
