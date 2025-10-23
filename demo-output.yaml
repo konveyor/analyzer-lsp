@@ -688,7 +688,7 @@
         lineNumber: 6
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Class
+          kind: Property
           name: Singleton
           package: com.example.apps
       - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
@@ -711,7 +711,7 @@
         lineNumber: 6
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Class
+          kind: Property
           name: Singleton
           package: com.example.apps
       - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
@@ -1080,7 +1080,7 @@
         lineNumber: 25
         variables:
           file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
-          kind: Method
+          kind: Property
           name: GetMapping
           package: io.konveyor.demo.ordermanagement.controller
     java-annotation-inspection-05:
@@ -1094,7 +1094,7 @@
         lineNumber: 21
         variables:
           file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
-          kind: Class
+          kind: Property
           name: Configuration
           package: io.konveyor.demo.ordermanagement.config
     java-chaining-01:
