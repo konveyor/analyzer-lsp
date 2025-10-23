@@ -458,7 +458,8 @@
   effort: 1
   when:
     nodejs.referenced:
-      pattern: "log"- message: Found React import in .tsx file
+      pattern: "log"
+- message: Found React import in .tsx file
   ruleID: test-tsx-support-00000
   description: Test that .tsx files are scanned (builtin provider)
   effort: 1
