@@ -33,6 +33,7 @@ type gradleBuildTool struct {
 }
 
 func findGradleBuild(opts BuildToolOptions, log logr.Logger) BuildTool {
+	log = log.WithName("gradle-bldtool")
 	if opts.Config.Location != "" {
 		path := filepath.Join(opts.Config.Location, "build.gradle")
 		_, err := os.Stat(path)

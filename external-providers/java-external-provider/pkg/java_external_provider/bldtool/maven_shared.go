@@ -35,7 +35,7 @@ func (m *mavenBaseTool) GetDependenciesFallback(ctx context.Context, location st
 
 	pom, err := gopom.Parse(location)
 	if err != nil {
-		m.log.Error(err, "Analyzing POM")
+		m.log.Error(err, "Analyzing POM", "file", location)
 		return nil, err
 	}
 	m.log.V(10).Info("Analyzing POM",

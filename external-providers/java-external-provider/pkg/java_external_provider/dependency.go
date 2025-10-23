@@ -2,6 +2,7 @@ package java
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -11,7 +12,7 @@ import (
 func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
 	p.log.V(4).Info("running dependency analysis")
 
-	var m map[uri.URI][]*provider.Dep
+	m := map[uri.URI][]*provider.Dep{}
 	ll, err := p.GetDependenciesDAG(ctx)
 	if err != nil {
 		return nil, err
@@ -29,11 +30,13 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 }
 
 func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	p.log.V(4).Info("running dependency analysis for DAG")
 	var ll map[uri.URI][]konveyor.DepDAGItem
 
 	p.depsMutex.Lock()
 	defer p.depsMutex.Unlock()
 
+	p.log.Info("using bldtooL", "tool", fmt.Sprintf("%#v", p.buildTool))
 	useCache, err := p.buildTool.UseCache()
 	if err != nil {
 		return nil, err

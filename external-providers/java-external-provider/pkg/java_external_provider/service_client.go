@@ -130,7 +130,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 
 	canRestrict, err := labels.CanRestrictSelector(condCTX.DepLabelSelector)
 	if err != nil {
-		p.log.Error(err, "could not construct dep label selector from condition context, search scope will not be limited")
+		p.log.Error(err, "could not construct dep label selector from condition context, search scope will not be limited", "label selector", condCTX.DepLabelSelector)
 	} else if !canRestrict {
 		// only set to false, when explicitely set to exclude oss libraries
 		// this makes it backward compatible
@@ -150,6 +150,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		argumentsMap[provider.IncludedPathsConfigKey] = includedPaths
 		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths, "argumentMap", argumentsMap)
 	}
+	log.V(8).Info("no filepaths to scope request")
 
 	argumentsBytes, _ := json.Marshal(argumentsMap)
 	arguments := []json.RawMessage{argumentsBytes}

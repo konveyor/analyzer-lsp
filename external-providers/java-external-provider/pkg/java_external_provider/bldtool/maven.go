@@ -25,11 +25,11 @@ const (
 type mavenBuildTool struct {
 	mavenBaseTool
 	pomPath string
-	log     logr.Logger
 	pomHash *string
 }
 
 func findPom(opts BuildToolOptions, log logr.Logger) BuildTool {
+	log = log.WithName("mvn-bldtool")
 	var depPath string
 	if opts.Config.DependencyPath == "" {
 		depPath = "pom.xml"
@@ -54,7 +54,6 @@ func findPom(opts BuildToolOptions, log logr.Logger) BuildTool {
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
 	return &mavenBuildTool{
 		pomPath:       f,
-		log:           log,
 		mavenBaseTool: mavenBaseTool,
 	}
 }
@@ -81,6 +80,7 @@ func (m *mavenBuildTool) GetSourceFileLocation(path string, jarPath string, java
 }
 
 func (m *mavenBuildTool) UseCache() (bool, error) {
+	m.log.Info("should we get dependencies")
 	hashString, err := getHash(m.pomPath)
 	if err != nil {
 		m.log.Error(err, "unable to generate hash from pom file")
@@ -106,6 +106,7 @@ func (m *mavenBuildTool) GetCachedDepError(errorCached map[string]error) (error,
 }
 
 func (m *mavenBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	m.log.Info("getting deps", "file", m.pomPath)
 	hash, err := getHash(m.pomPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate hash")
@@ -113,7 +114,7 @@ func (m *mavenBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pro
 	m.pomHash = &hash
 	ll, err := m.getDependenciesForMaven(ctx)
 	if err != nil {
-		m.log.Info("unable to get dependencies, using fallback", "error", err)
+		m.log.Info("unable to get dependencies, using fallback", "error", err.Error())
 		fallBackDeps, fallBackErr := m.GetDependenciesFallback(ctx, "")
 		if fallBackErr != nil {
 			return nil, fmt.Errorf("%w %w", err, fallBackErr)
@@ -133,7 +134,7 @@ func (m *mavenBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pro
 
 func (m *mavenBuildTool) GetResolver(decompileTool string) (dependency.Resolver, error) {
 	opts := dependency.ResolverOptions{
-		Log:           logr.Logger{},
+		Log:           m.log,
 		Location:      filepath.Dir(m.pomPath),
 		BuildFile:     m.mvnSettingsFile,
 		LocalRepo:     m.mvnLocalRepo,
@@ -169,6 +170,7 @@ func (m *mavenBuildTool) getDependenciesForMaven(ctx context.Context) (map[uri.U
 	cmd := exec.CommandContext(timeout, "mvn", args...)
 	cmd.Dir = moddir
 	mvnOutput, err := cmd.CombinedOutput()
+	m.log.V(8).Info("ran mvn command for dependnecy tree", "output", string(mvnOutput))
 	if err != nil {
 		return nil, fmt.Errorf("maven dependency:tree command failed with error %w, maven output: %s", err, string(mvnOutput))
 	}
@@ -187,11 +189,6 @@ func (m *mavenBuildTool) getDependenciesForMaven(ctx context.Context) (map[uri.U
 
 	deps := map[uri.URI][]provider.DepDAGItem{}
 	deps[file] = pomDeps
-
-	if len(deps) == 0 {
-		// grab the embedded deps
-		//p.discoverDepsFromJars(moddir, m, p.disableMavenSearch)
-	}
 
 	return deps, nil
 }

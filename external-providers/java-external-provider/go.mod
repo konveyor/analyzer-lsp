@@ -7,7 +7,7 @@ require (
 	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250625194402-05dca9b4ac43
 	github.com/swaggest/openapi-go v0.2.50
 	go.lsp.dev/uri v0.3.0
-	go.opentelemetry.io/otel v1.34.0
+	go.opentelemetry.io/otel v1.34.0 // indirect
 	google.golang.org/grpc v1.72.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -33,7 +33,7 @@ require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/cbroglie/mustache v1.4.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/hashicorp/go-version v1.6.0 // indirect
+	github.com/hashicorp/go-version v1.6.0
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/swaggest/jsonschema-go v0.3.70 // indirect
 	github.com/swaggest/refl v1.3.0 // indirect

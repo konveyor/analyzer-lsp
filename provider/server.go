@@ -368,6 +368,7 @@ func (s *server) GetDependencies(ctx context.Context, in *libgrpc.ServiceRequest
 	s.mutex.RLock()
 	client := s.clients[in.Id]
 	s.mutex.RUnlock()
+	s.Log.Info("using client", "client", client)
 	deps, err := client.client.GetDependencies(ctx)
 	if err != nil {
 		return &libgrpc.DependencyResponse{

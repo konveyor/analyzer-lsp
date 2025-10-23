@@ -147,6 +147,10 @@ func createJavaProject(_ context.Context, dir string, dependencies []JavaArtifac
 		return err
 	}
 
+	if _, err = os.Stat(filepath.Join(dir, "pom.xml")); err == nil {
+		return nil
+	}
+
 	pom, err := os.OpenFile(filepath.Join(dir, "pom.xml"), os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		return err

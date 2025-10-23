@@ -2,6 +2,7 @@ package bldtool
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"maps"
@@ -23,10 +24,12 @@ type mavenBinaryBuildTool struct {
 	binaryLocationHash *string
 	disableMavenSearch bool
 	dependencyPath     string
-	log                logr.Logger
+	resolver           dependency.Resolver
+	mavenBldTool       *mavenBuildTool
 }
 
 func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
+	log = log.WithName("mvn-binary-bldtool")
 	if opts.Config.Location == "" {
 		return nil
 	}
@@ -55,22 +58,54 @@ func (m *mavenBaseTool) ShouldResolve() bool {
 
 func (m *mavenBinaryBuildTool) GetResolver(decompileTool string) (dependency.Resolver, error) {
 	opts := dependency.ResolverOptions{
-		Log:           logr.Logger{},
-		Location:      filepath.Dir(m.binaryLocation),
+		Log:           m.log,
+		Location:      m.binaryLocation,
 		BuildFile:     m.mvnSettingsFile,
 		LocalRepo:     m.mvnLocalRepo,
 		Insecure:      m.mvnInsecure,
 		DecompileTool: decompileTool,
 		Labeler:       m.labeler,
 	}
-	return dependency.GetBinaryResolver(opts), nil
+	m.resolver = dependency.GetBinaryResolver(opts)
+	return m, nil
 }
 
-func (m *mavenBinaryBuildTool) GetSourceFileLocation(string, string, string) (string, error) {
+func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, string, error) {
+	if m.resolver == nil {
+		return "", "", errors.New("need to get the resolver")
+	}
+	projectPath, depPath, err := m.resolver.ResolveSources(ctx)
+	if err != nil {
+		return "", "", err
+	}
+
+	m.mavenBldTool = &mavenBuildTool{
+		mavenBaseTool: mavenBaseTool{
+			mvnInsecure:     m.mvnInsecure,
+			mvnSettingsFile: m.mvnSettingsFile,
+			mvnLocalRepo:    m.mvnLocalRepo,
+			mvnIndexPath:    m.mvnIndexPath,
+			dependnecyPath:  depPath,
+			log:             m.log,
+			labeler:         m.labeler,
+		},
+		pomPath: filepath.Join(projectPath, "pom.xml"),
+		pomHash: nil,
+	}
+	return projectPath, depPath, nil
+}
+
+func (m *mavenBinaryBuildTool) GetSourceFileLocation(path string, jarPath string, javaFileName string) (string, error) {
+	if m.mavenBldTool != nil {
+		return m.mavenBldTool.GetSourceFileLocation(path, jarPath, javaFileName)
+	}
 	return "", fmt.Errorf("Binaries should be decompled and treated like maven repos")
 }
 
 func (m *mavenBinaryBuildTool) UseCache() (bool, error) {
+	if m.mavenBldTool != nil {
+		return m.mavenBldTool.UseCache()
+	}
 	hashString, err := getHash(m.binaryLocation)
 	if err != nil {
 		m.log.Error(err, "unable to generate hash from pom file")
@@ -88,6 +123,11 @@ func (m *mavenBinaryBuildTool) GetCachedDepError(errorCached map[string]error) (
 }
 
 func (m *mavenBinaryBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	if m.mavenBldTool != nil {
+		m.log.Info("getting dependencies from mavenBldTool for binary", "bldTool", fmt.Sprintf("%#v", m.mavenBldTool))
+		return m.mavenBldTool.GetDependencies(ctx)
+	}
+	m.log.Info("fallling back to dependnecy search from binary")
 	hash, err := getHash(m.binaryLocation)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate hash")

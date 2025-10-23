@@ -70,10 +70,13 @@ func GetBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	}
 
 	if bt := findGradleBuild(opts, log); bt != nil {
+		log.Info("getting gradle build tool")
 		return bt
 	} else if isBinary {
+		log.Info("getting maven binary build tool")
 		return getMavenBinaryBuildTool(opts, log)
 	} else if bt := findPom(opts, log); bt != nil {
+		log.Info("getting maven build tool")
 		return bt
 	}
 	return nil

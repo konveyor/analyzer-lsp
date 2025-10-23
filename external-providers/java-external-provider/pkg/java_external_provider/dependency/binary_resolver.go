@@ -21,12 +21,13 @@ type binaryDependencyResolver struct {
 }
 
 func GetBinaryResolver(options ResolverOptions) Resolver {
+	log := options.Log.WithName("binary-resolver")
 	return &binaryDependencyResolver{
 		localRepo:          options.LocalRepo,
 		settingsFile:       options.BuildFile,
 		insecure:           options.Insecure,
 		location:           options.Location,
-		log:                options.Log,
+		log:                log,
 		decompileTool:      options.DecompileTool,
 		labeler:            options.Labeler,
 		disableMavenSearch: options.DisableMavenSearch,

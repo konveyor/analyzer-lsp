@@ -227,7 +227,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	p.encoding = provider.GetEncodingFromConfig(config)
-	log = log.WithValues("provider", "java")
+	log = log.WithValues("provider", "java").WithValues("analysis-mode", mode).WithValues("project", config.Location)
 
 	if config.RPC != nil {
 		return &javaServiceClient{
@@ -328,15 +328,16 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}, log)
 
 	if buildTool.ShouldResolve() || mode == provider.FullAnalysisMode {
+		log.Info("Resolving project", "location", config.Location)
 		resolver, err := buildTool.GetResolver(fernflower)
 		if err != nil {
-			//COntinueError just log
-			// else return w/ err
+			log.Error(err, "unable to resolve")
+			return nil, additionalBuiltinConfig, err
 		}
 		location, depLocation, err := resolver.ResolveSources(ctx)
 		if err != nil {
-			//COntinueError just log
-			// else return w/ err
+			log.Error(err, "unable to resolve")
+			return nil, additionalBuiltinConfig, err
 		}
 		config.Location = location
 		config.DependencyPath = depLocation
@@ -518,6 +519,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 // GetLocation given a dep, attempts to find line number, caches the line number for a given dep
 func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file string) (engine.Location, error) {
+	j.Log.Info("getting dep location", "dep", dep, "file", file)
 	location := engine.Location{StartPosition: engine.Position{}, EndPosition: engine.Position{}}
 
 	cacheKey := fmt.Sprintf("%s-%s-%s-%v",
@@ -551,7 +553,7 @@ func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file s
 	if dep.Extras == nil {
 		return location, fmt.Errorf("unable to get location for dep %s, dep.Extras not set", dep.Name)
 	}
-	extrasKeys := []string{artifactIdKey, groupIdKey, pomPathKey}
+	extrasKeys := []string{artifactIdKey, groupIdKey}
 	for _, key := range extrasKeys {
 		if val, ok := dep.Extras[key]; !ok {
 			return location,

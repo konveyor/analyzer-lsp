@@ -301,10 +301,12 @@ func AnalysisCmd() *cobra.Command {
 			// This will already wait
 			rulesets := eng.RunRules(ctx, ruleSets, selectors...)
 			engineSpan.End()
+			log.Info("waiting for deps")
 			wg.Wait()
 			if depSpan != nil {
 				depSpan.End()
 			}
+			log.Info("waited for deps")
 			eng.Stop()
 
 			for _, provider := range needProviders {
