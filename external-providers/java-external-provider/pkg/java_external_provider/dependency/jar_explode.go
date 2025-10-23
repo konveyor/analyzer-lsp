@@ -75,7 +75,7 @@ func (j *jarExplodeArtifact) HandleFile(path string, d fs.DirEntry, err error) e
 	if d.IsDir() {
 		return nil
 	}
-	if err = os.MkdirAll(filepath.Dir(outputPath), 0770); err != nil {
+	if err = os.MkdirAll(filepath.Dir(outputPath), DirPermRWXGrp); err != nil {
 		return err
 	}
 
@@ -104,12 +104,12 @@ func (j *jarExplodeArtifact) HandleFile(path string, d fs.DirEntry, err error) e
 		if _, ok := j.foundClassDirs[dirToCreate]; ok {
 			return nil
 		}
-		err = os.MkdirAll(filepath.Join(j.outputPath, "src/main/java", dirToCreate), 0770)
+		err = os.MkdirAll(filepath.Join(j.outputPath, JAVA, dirToCreate), DirPermRWXGrp)
 		if err != nil {
 			j.log.Info("here failed to create dir")
 			return err
 		}
-		decompileCommand := exec.CommandContext(context.Background(), "java", "-jar", j.decompileTool, filepath.Join(j.tmpDir, dirToCreate), filepath.Join(j.outputPath, "src/main/java/", dirToCreate))
+		decompileCommand := exec.CommandContext(context.Background(), "java", "-jar", j.decompileTool, filepath.Join(j.tmpDir, dirToCreate), filepath.Join(j.outputPath, JAVA+"/", dirToCreate))
 		err = decompileCommand.Run()
 		if err != nil {
 			j.log.Info("here failed to decompile", "err", err)
@@ -133,11 +133,11 @@ func (j *jarExplodeArtifact) shouldHandleFile(relPath string) bool {
 }
 
 func (j *jarExplodeArtifact) getOutputPath(relPath string) string {
-	if strings.Contains(relPath, METAINF) && filepath.Base(relPath) == "pom.xml" {
+	if strings.Contains(relPath, METAINF) && filepath.Base(relPath) == PomXmlFile {
 		return filepath.Join(j.outputPath, filepath.Base(relPath))
 	}
 	if strings.Contains(relPath, "class") {
-		return filepath.Join(j.outputPath, "src/main/java", relPath)
+		return filepath.Join(j.outputPath, JAVA, relPath)
 	}
 	return filepath.Join(j.outputPath, relPath)
 }

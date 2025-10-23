@@ -10,20 +10,31 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency"
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/vifraa/gopom"
 	"go.lsp.dev/uri"
 )
 
+// mavenBaseTool provides shared functionality for Maven-based build tools.
+// It contains common configuration and methods used by both mavenBuildTool
+// and mavenBinaryBuildTool implementations.
+//
+// This base type handles:
+//   - Maven repository configuration and access
+//   - Fallback dependency parsing from pom.xml when Maven commands fail
+//   - Local repository path management
+//   - Artifact labeling (open source vs internal)
+//   - Common Maven settings and security options
 type mavenBaseTool struct {
-	mvnInsecure     bool
-	mvnSettingsFile string
-	mvnLocalRepo    string
-	mvnIndexPath    string
-	dependencyPath  string
-	log             logr.Logger
-	labeler         labels.Labeler
+	mvnInsecure     bool           // Whether to allow insecure HTTPS connections
+	mvnSettingsFile string         // Path to Maven settings.xml file
+	mvnLocalRepo    string         // Path to local Maven repository (.m2/repository)
+	mvnIndexPath    string         // Path to Maven index for artifact searches
+	dependencyPath  string         // Path to dependency configuration file
+	log             logr.Logger    // Logger instance for this build tool
+	labeler         labels.Labeler // Labeler for identifying dependency types
 }
 
 func (m *mavenBaseTool) GetLocalRepoPath() string {
@@ -100,7 +111,7 @@ func (m *mavenBaseTool) GetDependenciesFallback(ctx context.Context, location st
 		deps = append(deps, dagDep)
 	}
 	if len(deps) == 0 {
-		m.log.V(1).Info("unable to get dependencies from pom.xml in fallback", "pom", location)
+		m.log.V(1).Info("unable to get dependencies from "+dependency.PomXmlFile+" in fallback", "pom", location)
 		return nil, nil
 	}
 
@@ -109,7 +120,7 @@ func (m *mavenBaseTool) GetDependenciesFallback(ctx context.Context, location st
 	// recursively find deps in submodules
 	if pom.Modules != nil {
 		for _, mod := range *pom.Modules {
-			mPath := fmt.Sprintf("%s/%s/pom.xml", filepath.Dir(location), mod)
+			mPath := fmt.Sprintf("%s/%s/%s", filepath.Dir(location), mod, dependency.PomXmlFile)
 			moreDeps, err := m.GetDependenciesFallback(ctx, mPath)
 			if err != nil {
 				return nil, err

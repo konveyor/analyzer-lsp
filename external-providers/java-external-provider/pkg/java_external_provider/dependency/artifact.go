@@ -18,6 +18,7 @@ import (
 	"github.com/go-logr/logr"
 	engine_labels "github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
+	"github.com/vifraa/gopom"
 )
 
 type JavaArtifact struct {
@@ -31,6 +32,24 @@ type JavaArtifact struct {
 
 func (j JavaArtifact) IsValid() bool {
 	return (j.ArtifactId != "" && j.GroupId != "" && j.Version != "")
+}
+
+func (j JavaArtifact) EqualsPomDep(dependency gopom.Dependency) bool {
+	if dependency.ArtifactID == nil || dependency.GroupID == nil || dependency.Version == nil {
+		return false
+	}
+	if j.ArtifactId == *dependency.ArtifactID && j.GroupId == *dependency.GroupID && j.Version == *dependency.Version {
+		return true
+	}
+	return false
+}
+
+func (j JavaArtifact) ToPomDep() gopom.Dependency {
+	return gopom.Dependency{
+		GroupID:    &j.GroupId,
+		ArtifactID: &j.ArtifactId,
+		Version:    &j.Version,
+	}
 }
 
 // toDependency returns javaArtifact constructed for a jar
@@ -164,12 +183,12 @@ func constructArtifactFromPom(log logr.Logger, jarFile string, labeler labels.La
 			scanner := bufio.NewScanner(rc)
 			for scanner.Scan() {
 				line := scanner.Text()
-				if strings.HasPrefix(line, "version=") {
-					dep.Version = strings.TrimSpace(strings.TrimPrefix(line, "version="))
-				} else if strings.HasPrefix(line, "artifactId=") {
-					dep.ArtifactId = strings.TrimSpace(strings.TrimPrefix(line, "artifactId="))
-				} else if strings.HasPrefix(line, "groupId=") {
-					dep.GroupId = strings.TrimSpace(strings.TrimPrefix(line, "groupId="))
+				if after, ok := strings.CutPrefix(line, "version="); ok {
+					dep.Version = strings.TrimSpace(after)
+				} else if after0, ok0 := strings.CutPrefix(line, "artifactId="); ok0 {
+					dep.ArtifactId = strings.TrimSpace(after0)
+				} else if after1, ok1 := strings.CutPrefix(line, "groupId="); ok1 {
+					dep.GroupId = strings.TrimSpace(after1)
 				}
 			}
 			// Setting false here because we don't know if it is opensource or not.

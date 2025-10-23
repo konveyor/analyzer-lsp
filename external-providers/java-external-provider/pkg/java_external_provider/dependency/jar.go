@@ -56,7 +56,7 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 		// into a new jar at the m2Repo for the dependency
 		destinationPath := j.getM2Path(dep)
 		log.Info("getting sources - allready found", "souce-dst", sourceDestPath, "destPath", destinationPath)
-		if err = os.MkdirAll(destinationPath, 0770); err != nil {
+		if err = os.MkdirAll(destinationPath, DirPermRWXGrp); err != nil {
 			log.Info("getting sources - can not create dir", "souce-dst", sourceDestPath, "destPath", destinationPath)
 			return err
 		}

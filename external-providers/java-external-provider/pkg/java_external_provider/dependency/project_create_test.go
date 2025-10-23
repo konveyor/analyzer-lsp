@@ -1,4 +1,4 @@
-package java
+package dependency
 
 import (
 	"bytes"
@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency"
 )
 
 func TestRenderPom(t *testing.T) {
@@ -16,7 +14,7 @@ func TestRenderPom(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Define some sample dependencies
-	dependencies := []dependency.JavaArtifact{
+	dependencies := []JavaArtifact{
 		{
 			GroupId:    "com.example",
 			ArtifactId: "example-artifact",

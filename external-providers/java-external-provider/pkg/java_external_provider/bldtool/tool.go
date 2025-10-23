@@ -35,8 +35,6 @@ const (
 	fallbackDepErr = "fallbackDepErr"
 )
 
-// TODO; Replace the mvn URI stuff in provider with the
-// a specific maven downloader tool.
 type Downloader interface {
 	Download(context.Context) (string, error)
 }
@@ -154,15 +152,25 @@ type BuildTool interface {
 	ShouldResolve() bool
 }
 
+// BuildToolOptions contains configuration options for creating and initializing
+// build tool instances. These options are used by GetBuildTool to detect the
+// project type and create the appropriate BuildTool implementation.
+//
+// The options control:
+//   - Project location and dependency configuration
+//   - Maven-specific settings (repository, settings file, security)
+//   - Gradle-specific settings (custom task files)
+//   - Dependency labeling and Maven search behavior
+//   - Binary cleanup preferences
 type BuildToolOptions struct {
-	Config             provider.InitConfig
-	MvnSettingsFile    string
-	MvnInsecure        bool
-	MvnIndexPath       string
-	DisableMavenSearch bool
-	Labeler            labels.Labeler
-	CleanBin           bool
-	GradleTaskFile     string
+	Config             provider.InitConfig // Base provider configuration including project location
+	MvnSettingsFile    string              // Path to Maven settings.xml for custom repository configuration
+	MvnInsecure        bool                // Allow insecure HTTPS connections to Maven repositories
+	MvnIndexPath       string              // Path to Maven index for artifact metadata searches
+	DisableMavenSearch bool                // Disable remote Maven repository lookups for artifact identification
+	Labeler            labels.Labeler      // Labeler for classifying dependencies as open source or internal
+	CleanBin           bool                // Whether to clean up temporary binary decompilation artifacts
+	GradleTaskFile     string              // Path to custom Gradle task file for dependency resolution
 }
 
 func GetBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
@@ -172,13 +180,13 @@ func GetBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 		isBinary = true
 	}
 
-	if bt := findGradleBuild(opts, log); bt != nil {
+	if bt := getGradleBuildTool(opts, log); bt != nil {
 		log.Info("getting gradle build tool")
 		return bt
 	} else if isBinary {
 		log.Info("getting maven binary build tool")
 		return getMavenBinaryBuildTool(opts, log)
-	} else if bt := findPom(opts, log); bt != nil {
+	} else if bt := getMavenBuildTool(opts, log); bt != nil {
 		log.Info("getting maven build tool")
 		return bt
 	}

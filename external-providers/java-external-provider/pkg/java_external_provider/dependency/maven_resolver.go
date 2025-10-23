@@ -75,7 +75,7 @@ func (m *mavenDependencyResolver) ResolveSources(ctx context.Context) (string, s
 	decompiler, err := getDecompiler(DecompilerOpts{
 		DecompileTool:      m.decompileTool,
 		log:                m.log,
-		workers:            10,
+		workers:            DefaultWorkerPoolSize,
 		labler:             m.labeler,
 		disableMavenSearch: m.disableMavenSearch,
 		m2Repo:             m.localRepo,

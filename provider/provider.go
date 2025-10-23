@@ -781,7 +781,6 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 		}
 
 		resp.Matched = constraints.Check(depVersion)
-		log.Info("here -- ", "response", resp.Matched, "matchedDep", matchedDep.dep, "dc", dc)
 		incident := engine.IncidentContext{
 			FileURI: matchedDep.uri,
 			Variables: map[string]interface{}{

@@ -14,14 +14,10 @@ import (
 )
 
 const (
-	WEBINF  = "WEB-INF"
-	METAINF = "META-INF"
-	CSS     = "css"
-	JS      = "js"
-	IMAGES  = "images"
-	WEBAPP  = "src/main/webapp"
-	JAVA    = "src/main/java"
-	HTML    = "html"
+	CSS    = "css"
+	JS     = "js"
+	IMAGES = "images"
+	HTML   = "html"
 )
 
 type warArtifact struct {
@@ -74,7 +70,7 @@ func (w *warArtifact) HandleFile(path string, d fs.DirEntry, err error) error {
 
 	// Decompiles all of the class to the correct location in the output path "<path>/src/main/java"
 	if d.IsDir() && strings.Contains(outputPath, JAVA) {
-		if err = os.MkdirAll(outputPath, 0770); err != nil {
+		if err = os.MkdirAll(outputPath, DirPermRWXGrp); err != nil {
 			return err
 		}
 		decompileCommand := exec.CommandContext(context.Background(), w.javaPath, "-jar", w.decompileTool, absPath, outputPath)
@@ -95,7 +91,7 @@ func (w *warArtifact) HandleFile(path string, d fs.DirEntry, err error) error {
 		if strings.Contains(outputPath, "classes") {
 			return nil
 		}
-		if err = os.MkdirAll(filepath.Dir(filepath.Base(outputPath)), 0770); err != nil {
+		if err = os.MkdirAll(filepath.Dir(filepath.Base(outputPath)), DirPermRWXGrp); err != nil {
 			return err
 		}
 	}
@@ -124,7 +120,7 @@ func (w *warArtifact) convertToWebappFolder(relPath string) string {
 func (w *warArtifact) shouldHandleFile(relPath string) bool {
 	// Everything here is not for source code but for the
 	// binary. We can ignore this.
-	if strings.Contains(relPath, METAINF) && !strings.Contains(relPath, "pom.xml") {
+	if strings.Contains(relPath, METAINF) && !strings.Contains(relPath, PomXmlFile) {
 		return false
 	}
 	return true
@@ -141,11 +137,11 @@ func (w *warArtifact) getOutputPath(relPath string) string {
 	if strings.Contains(relPath, WEBINF) && !(strings.Contains(relPath, "classes") || strings.Contains(relPath, "lib")) {
 		return w.convertToWebappFolder(relPath)
 	}
-	if strings.Contains(relPath, METAINF) && filepath.Base(relPath) == "pom.xml" {
+	if strings.Contains(relPath, METAINF) && filepath.Base(relPath) == PomXmlFile {
 		return filepath.Join(w.outputPath, filepath.Base(relPath))
 	}
 	if strings.Contains(relPath, WEBINF) && filepath.Base(relPath) == "classes" {
-		return filepath.Join(w.outputPath, "src/main/java")
+		return filepath.Join(w.outputPath, JAVA)
 	}
 	return filepath.Join(w.outputPath, relPath)
 

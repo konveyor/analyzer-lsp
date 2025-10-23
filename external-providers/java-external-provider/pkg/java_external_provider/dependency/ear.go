@@ -120,7 +120,7 @@ func (e *earArtifact) HandleFile(path string, d fs.DirEntry, err error) error {
 	}
 
 	if d.IsDir() {
-		if err = os.MkdirAll(filepath.Dir(outputPath), 0770); err != nil {
+		if err = os.MkdirAll(filepath.Dir(outputPath), DirPermRWXGrp); err != nil {
 			return err
 		}
 		return nil
@@ -151,7 +151,7 @@ func (e *earArtifact) shouldHandleFile(relPath string) bool {
 }
 
 func (e *earArtifact) getOutputPath(relPath string) string {
-	if strings.Contains(relPath, METAINF) && filepath.Base(relPath) == "pom.xml" {
+	if strings.Contains(relPath, METAINF) && filepath.Base(relPath) == PomXmlFile {
 		return filepath.Join(e.outputPath, filepath.Base(relPath))
 	}
 	return filepath.Join(e.outputPath, relPath)

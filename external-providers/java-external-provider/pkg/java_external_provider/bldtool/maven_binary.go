@@ -19,14 +19,28 @@ import (
 	"go.lsp.dev/uri"
 )
 
+// mavenBinaryBuildTool implements the BuildTool interface for binary Java artifacts
+// (JAR, WAR, EAR files) without source code. It decompiles binaries into a Maven project
+// structure to enable analysis.
+//
+// This implementation supports:
+//   - JAR, WAR, and EAR file analysis
+//   - Binary decompilation into source code
+//   - Creation of synthetic Maven project structure
+//   - Recursive processing of nested archives
+//   - Dependency extraction from embedded libraries
+//   - Hash-based caching to avoid reprocessing unchanged binaries
+//
+// The tool creates a "java-project" directory containing decompiled sources
+// and a generated pom.xml with discovered dependencies.
 type mavenBinaryBuildTool struct {
 	mavenBaseTool
-	binaryLocation     string
-	binaryLocationHash *string
-	disableMavenSearch bool
-	dependencyPath     string
-	resolver           dependency.Resolver
-	mavenBldTool       *mavenBuildTool
+	binaryLocation     string              // Absolute path to the binary artifact (JAR/WAR/EAR)
+	binaryLocationHash *string             // SHA256 hash of binary for caching
+	disableMavenSearch bool                // Whether to disable Maven repository lookups
+	dependencyPath     string              // Path to dependency configuration
+	resolver           dependency.Resolver // Resolver for source resolution and decompilation
+	mavenBldTool       *mavenBuildTool     // Optional Maven build tool if pom.xml found in binary
 }
 
 func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
@@ -90,9 +104,13 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 			log:             m.log,
 			labeler:         m.labeler,
 		},
-		pomPath:     filepath.Join(projectPath, "pom.xml"),
+		pomPath:     filepath.Join(projectPath, dependency.PomXmlFile),
 		pomHashSync: &sync.Mutex{},
 		pomHash:     nil,
+	}
+	_, err = m.mavenBldTool.GetDependencies(ctx)
+	if err != nil {
+		return projectPath, depPath, err
 	}
 	return projectPath, depPath, nil
 }
@@ -108,15 +126,7 @@ func (m *mavenBinaryBuildTool) UseCache() (bool, error) {
 	if m.mavenBldTool != nil {
 		return m.mavenBldTool.UseCache()
 	}
-	hashString, err := getHash(m.binaryLocation)
-	if err != nil {
-		m.log.Error(err, "unable to generate hash from pom file")
-		return false, err
-	}
-	if m.binaryLocationHash != nil && *m.binaryLocationHash == hashString {
-		return true, nil
-	}
-	return false, nil
+	return false, fmt.Errorf("binary not resolved yet")
 }
 
 func (m *mavenBinaryBuildTool) GetCachedDepError(errorCached map[string]error) (error, bool) {
@@ -185,15 +195,25 @@ func (m *mavenBinaryBuildTool) discoverPoms(pathStart string, ll map[uri.URI][]k
 	return w.pomPaths
 }
 
+// walker is an internal helper type for traversing decompiled binary artifacts
+// to discover dependencies and build a dependency graph. It walks the directory
+// structure created by binary decompilation to find JAR files and pom.xml files.
+//
+// The walker performs:
+//   - Recursive directory traversal
+//   - JAR file discovery and metadata extraction
+//   - POM file location tracking
+//   - Dependency deduplication via seen map
+//   - Maven repository artifact identification
 type walker struct {
-	deps               map[uri.URI][]provider.DepDAGItem
-	labeler            labels.Labeler
-	m2RepoPath         string
-	initialPath        string
-	seen               map[string]bool
-	pomPaths           []string
-	log                logr.Logger
-	disableMavenSearch bool
+	deps               map[uri.URI][]provider.DepDAGItem // Accumulated dependency graph
+	labeler            labels.Labeler                    // Labeler for dependency classification
+	m2RepoPath         string                            // Maven local repository path
+	initialPath        string                            // Starting path for traversal
+	seen               map[string]bool                   // Tracks processed artifacts to prevent duplicates
+	pomPaths           []string                          // Collected paths to found pom.xml files
+	log                logr.Logger                       // Logger instance
+	disableMavenSearch bool                              // Whether to skip Maven repository lookups
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -273,7 +293,7 @@ func (w *walker) walkDirForPom(path string, info fs.DirEntry, err error) error {
 	if info.IsDir() {
 		return filepath.WalkDir(filepath.Join(path, info.Name()), w.walkDirForPom)
 	}
-	if strings.Contains(info.Name(), "pom.xml") {
+	if strings.Contains(info.Name(), dependency.PomXmlFile) {
 		w.pomPaths = append(w.pomPaths, path)
 	}
 	return nil

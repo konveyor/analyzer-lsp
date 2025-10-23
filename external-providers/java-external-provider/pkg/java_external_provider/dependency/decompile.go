@@ -20,9 +20,27 @@ const (
 	EnterpriseArchive = ".ear"
 	ClassFile         = ".class"
 	MvnURIPrefix      = "mvn://"
+	PomXmlFile        = "pom.xml"
 )
 
-const EMBEDDED_KONVEYOR_GROUP = "io.konveyor.embededdep"
+const (
+	METAINF = "META-INF"
+	WEBINF  = "WEB-INF"
+	JAVA    = "src/main/java"
+	WEBAPP  = "src/main/webapp"
+)
+
+const (
+	// File and directory permissions
+	DirPermRWX    = 0755 // rwxr-xr-x: Owner can read/write/execute, others can read/execute
+	DirPermRWXGrp = 0770 // rwxrwx---: Owner and group can read/write/execute
+	FilePermRW    = 0644 // rw-r--r--: Owner can read/write, others can read
+)
+
+const (
+	EMBEDDED_KONVEYOR_GROUP = "io.konveyor.embededdep"
+	DefaultWorkerPoolSize   = 10 // Number of parallel workers for decompilation
+)
 
 type decompileFilter interface {
 	shouldDecompile(JavaArtifact) bool
@@ -381,8 +399,8 @@ func (d *decompiler) getIntoProjectJobInternal(artifactPath, projectPath string,
 	case JavaArchive:
 		d.log.V(7).Info(fmt.Sprintf("getting java archive job: %s", artifactPath))
 		// Create the job.
-		return &jarExloadArtifact{
-			exploadArtifact: exploadArtifact{
+		return &jarExplodeArtifact{
+			explodeArtifact: explodeArtifact{
 				baseArtifact: baseArtifact{
 					artifactPath:        artifactPath,
 					m2Repo:              d.m2Repo,
@@ -403,7 +421,7 @@ func (d *decompiler) getIntoProjectJobInternal(artifactPath, projectPath string,
 	case WebArchive:
 		d.log.V(7).Info("getting web archive job")
 		return &warArtifact{
-			exploadArtifact: exploadArtifact{
+			explodeArtifact: explodeArtifact{
 				baseArtifact: baseArtifact{
 					artifactPath:        artifactPath,
 					m2Repo:              d.m2Repo,

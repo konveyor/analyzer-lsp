@@ -24,17 +24,27 @@ import (
 	"go.lsp.dev/uri"
 )
 
+// gradleBuildTool implements the BuildTool interface for Gradle-based Java projects.
+// It handles projects with build.gradle files, extracting dependencies using Gradle
+// dependency resolution tasks and custom Gradle scripts.
+//
+// This implementation supports:
+//   - Standard Gradle projects with build.gradle
+//   - Gradle wrapper execution for reproducible builds
+//   - Custom dependency resolution tasks (task.gradle, task-v9.gradle for Gradle >= 9.0)
+//   - Caching based on build.gradle hash to avoid redundant processing
+//   - Maven repository searches for artifact metadata (unless disabled)
 type gradleBuildTool struct {
-	gradleBuildFile    string
-	buildHashSync      *sync.Mutex
-	gradleBuildhash    *string
-	gradleTaskFile     string
-	disableMavenSearch bool
-	log                logr.Logger
-	labeler            labels.Labeler
+	buildFile          string         // Absolute path to the build.gradle file
+	buildHashSync      *sync.Mutex    // Mutex for thread-safe hash access
+	buildhash          *string        // SHA256 hash of build.gradle for caching
+	taskFile           string         // Path to custom Gradle task file for dependency resolution
+	disableMavenSearch bool           // Whether to disable Maven repository lookups
+	log                logr.Logger    // Logger instance for this build tool
+	labeler            labels.Labeler // Labeler for identifying open source vs internal dependencies
 }
 
-func findGradleBuild(opts BuildToolOptions, log logr.Logger) BuildTool {
+func getGradleBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	log = log.WithName("gradle-bldtool")
 	if opts.Config.Location != "" {
 		path := filepath.Join(opts.Config.Location, "build.gradle")
@@ -47,9 +57,9 @@ func findGradleBuild(opts BuildToolOptions, log logr.Logger) BuildTool {
 			return nil
 		}
 		return &gradleBuildTool{
-			gradleBuildFile:    f,
+			buildFile:          f,
 			buildHashSync:      &sync.Mutex{},
-			gradleTaskFile:     opts.GradleTaskFile,
+			taskFile:           opts.GradleTaskFile,
 			disableMavenSearch: opts.DisableMavenSearch,
 			log:                log,
 			labeler:            opts.Labeler,
@@ -78,14 +88,14 @@ func (g *gradleBuildTool) GetResolver(decompileTool string) (dependency.Resolver
 
 	opts := dependency.ResolverOptions{
 		Log:                g.log,
-		Location:           filepath.Dir(g.gradleBuildFile),
-		BuildFile:          g.gradleBuildFile,
+		Location:           filepath.Dir(g.buildFile),
+		BuildFile:          g.buildFile,
 		Version:            gradleVersion,
 		Wrapper:            gradleWrapper,
 		JavaHome:           javaHome,
 		DecompileTool:      decompileTool,
 		Labeler:            g.labeler,
-		GradleTaskFile:     g.gradleTaskFile,
+		GradleTaskFile:     g.taskFile,
 		DisableMavenSearch: g.disableMavenSearch,
 	}
 	return dependency.GetGradleResolver(opts), nil
@@ -126,12 +136,12 @@ func (g *gradleBuildTool) GetSourceFileLocation(path string, jarPath string, jav
 func (g *gradleBuildTool) UseCache() (bool, error) {
 	//  Note to self's if this ever has more build tools that need hashing,
 	// Create a specific shared struct for this interface
-	hashString, err := getHash(g.gradleBuildFile)
+	hashString, err := getHash(g.buildFile)
 	if err != nil {
 		g.log.Error(err, "unable to generate hash from pom file")
 		return false, err
 	}
-	if g.gradleBuildhash != nil && *g.gradleBuildhash == hashString {
+	if g.buildhash != nil && *g.buildhash == hashString {
 		return true, nil
 	}
 	return false, nil
@@ -150,7 +160,7 @@ func (g *gradleBuildTool) GetCachedDepError(errorCached map[string]error) (error
 
 // getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
 func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
-	hashString, err := getHash(g.gradleBuildFile)
+	hashString, err := getHash(g.buildFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create build file hash for gradle")
 	}
@@ -172,7 +182,7 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 	}
 
 	// get the graph output
-	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.gradleBuildFile), "gradlew"))
+	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.buildFile), "gradlew"))
 	if err != nil {
 		return nil, fmt.Errorf("error calculating gradle wrapper path")
 	}
@@ -188,7 +198,7 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 		return nil, err
 	}
 	cmd := exec.CommandContext(timeout, exe, args...)
-	cmd.Dir = filepath.Dir(g.gradleBuildFile)
+	cmd.Dir = filepath.Dir(g.buildFile)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -198,10 +208,10 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 	lines := strings.Split(string(output), "\n")
 	deps := g.parseGradleDependencyOutput(lines)
 
-	file := uri.File(g.gradleBuildFile)
+	file := uri.File(g.buildFile)
 	m := map[uri.URI][]provider.DepDAGItem{}
 	m[file] = deps
-	g.gradleBuildhash = &hashString
+	g.buildhash = &hashString
 
 	// TODO: need error?
 	return m, nil
@@ -217,7 +227,7 @@ func (g *gradleBuildTool) getGradleSubprojects(ctx context.Context) ([]string, e
 		return nil, err
 	}
 
-	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.gradleBuildFile), "gradlew"))
+	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.buildFile), "gradlew"))
 	if err != nil {
 		return nil, fmt.Errorf("error calculating gradle wrapper path")
 	}
@@ -225,7 +235,7 @@ func (g *gradleBuildTool) getGradleSubprojects(ctx context.Context) ([]string, e
 		return nil, fmt.Errorf("a gradle wrapper must be present in the project")
 	}
 	cmd := exec.Command(exe, args...)
-	cmd.Dir = filepath.Dir(g.gradleBuildFile)
+	cmd.Dir = filepath.Dir(g.buildFile)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -330,7 +340,7 @@ func (g *gradleBuildTool) GetGradleWrapper() (string, error) {
 	if runtime.GOOS == "windows" {
 		wrapper = "gradlew.bat"
 	}
-	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.gradleBuildFile), wrapper))
+	exe, err := filepath.Abs(filepath.Join(filepath.Dir(g.buildFile), wrapper))
 	if err != nil {
 		return "", fmt.Errorf("error calculating gradle wrapper path")
 	}
@@ -352,13 +362,13 @@ func (g *gradleBuildTool) GetGradleVersion(ctx context.Context) (version.Version
 		"--version",
 	}
 	cmd := exec.CommandContext(ctx, exe, args...)
-	cmd.Dir = filepath.Dir(g.gradleBuildFile)
+	cmd.Dir = filepath.Dir(g.buildFile)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA8_HOME")))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		// if executing with 8 we get an error, try with 17
 		cmd = exec.CommandContext(ctx, exe, args...)
-		cmd.Dir = filepath.Dir(g.gradleBuildFile)
+		cmd.Dir = filepath.Dir(g.buildFile)
 		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA_HOME")))
 		output, err = cmd.CombinedOutput()
 		if err != nil {

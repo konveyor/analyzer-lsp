@@ -2,15 +2,18 @@ package dependency
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"text/template"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
+	"github.com/vifraa/gopom"
 )
 
 // Resolver handles downloading and decompiling dependency sources for different build systems.
@@ -125,13 +128,7 @@ func contains(artifacts []JavaArtifact, artifactToFind JavaArtifact) bool {
 		return false
 	}
 
-	for _, artifact := range artifacts {
-		if artifact == artifactToFind {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(artifacts, artifactToFind)
 }
 
 func moveFile(srcPath string, destPath string) error {
@@ -147,7 +144,7 @@ func moveFile(srcPath string, destPath string) error {
 }
 
 func CopyFile(srcPath string, destPath string) error {
-	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destPath), DirPermRWX); err != nil {
 		return err
 	}
 	inputFile, err := os.Open(srcPath)
@@ -175,7 +172,7 @@ func AppendToFile(src string, dst string) error {
 	}
 
 	// Open the destination file in append mode
-	destFile, err := os.OpenFile(dst, os.O_APPEND|os.O_WRONLY, 0644)
+	destFile, err := os.OpenFile(dst, os.O_APPEND|os.O_WRONLY, FilePermRW)
 	if err != nil {
 		return fmt.Errorf("error opening destination file: %s", err)
 	}
@@ -224,16 +221,52 @@ const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
 func createJavaProject(_ context.Context, dir string, dependencies []JavaArtifact) error {
 	tmpl := template.Must(template.New("javaProjectPom").Parse(javaProjectPom))
 
-	err := os.MkdirAll(filepath.Join(dir, "src", "main", "java"), 0755)
+	err := os.MkdirAll(filepath.Join(dir, "src", "main", "java"), DirPermRWX)
 	if err != nil {
 		return err
 	}
 
-	if _, err = os.Stat(filepath.Join(dir, "pom.xml")); err == nil {
+	if _, err = os.Stat(filepath.Join(dir, PomXmlFile)); err == nil {
+		// enhance the pom.xml with any dependencies that were found
+		// that don't match an existing one.
+		pom, err := gopom.Parse(filepath.Join(dir, PomXmlFile))
+		if err != nil {
+			return err
+		}
+		if pom.Dependencies == nil {
+			pom.Dependencies = &[]gopom.Dependency{}
+		}
+		var foundUpdates bool
+		for _, artifact := range dependencies {
+			var found bool
+			if slices.ContainsFunc(*pom.Dependencies, artifact.EqualsPomDep) {
+				found = true
+			}
+			if found {
+				break
+			}
+			foundUpdates = true
+			*pom.Dependencies = append(*pom.Dependencies, artifact.ToPomDep())
+		}
+		if foundUpdates {
+			pomFile, err := os.OpenFile(filepath.Join(dir, PomXmlFile), os.O_TRUNC|os.O_CREATE|os.O_WRONLY, DirPermRWX)
+			if err != nil {
+				return err
+			}
+			defer pomFile.Close()
+			output, err := xml.MarshalIndent(pom, "", "  ")
+			if err != nil {
+				return err
+			}
+			_, err = pomFile.Write(output)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 
-	pom, err := os.OpenFile(filepath.Join(dir, "pom.xml"), os.O_CREATE|os.O_WRONLY, 0755)
+	pom, err := os.OpenFile(filepath.Join(dir, PomXmlFile), os.O_CREATE|os.O_WRONLY, DirPermRWX)
 	if err != nil {
 		return err
 	}

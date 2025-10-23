@@ -120,7 +120,7 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 		decompiler, err := getDecompiler(DecompilerOpts{
 			DecompileTool:      g.decompileTool,
 			log:                g.log,
-			workers:            10,
+			workers:            DefaultWorkerPoolSize,
 			labler:             g.labeler,
 			disableMavenSearch: g.disableMavenSearch,
 			m2Repo:             cache,

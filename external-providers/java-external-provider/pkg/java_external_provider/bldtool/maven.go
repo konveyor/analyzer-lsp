@@ -23,18 +23,28 @@ const (
 	mavenDepErr = "mvnErr"
 )
 
+// mavenBuildTool implements the BuildTool interface for Maven-based Java projects.
+// It handles projects with a pom.xml file, extracting dependencies and source locations
+// using Maven commands and parsing the POM structure.
+//
+// This implementation supports:
+//   - Standard Maven projects with pom.xml
+//   - Multi-module Maven projects
+//   - Dependency resolution via mvn dependency:tree
+//   - Caching based on pom.xml hash to avoid redundant processing
+//   - Fallback parsing when Maven commands fail
 type mavenBuildTool struct {
 	mavenBaseTool
-	pomPath     string
-	pomHash     *string
-	pomHashSync *sync.Mutex
+	pomPath     string      // Absolute path to the pom.xml file
+	pomHash     *string     // SHA256 hash of pom.xml for caching
+	pomHashSync *sync.Mutex // Mutex for thread-safe hash access
 }
 
-func findPom(opts BuildToolOptions, log logr.Logger) BuildTool {
+func getMavenBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	log = log.WithName("mvn-bldtool")
 	var depPath string
 	if opts.Config.DependencyPath == "" {
-		depPath = "pom.xml"
+		depPath = dependency.PomXmlFile
 	} else {
 		depPath = opts.Config.DependencyPath
 	}
