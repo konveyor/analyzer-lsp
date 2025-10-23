@@ -21,7 +21,7 @@ type mavenBaseTool struct {
 	mvnSettingsFile string
 	mvnLocalRepo    string
 	mvnIndexPath    string
-	dependnecyPath  string
+	dependencyPath  string
 	log             logr.Logger
 	labeler         labels.Labeler
 }

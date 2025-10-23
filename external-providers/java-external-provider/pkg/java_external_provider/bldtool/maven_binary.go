@@ -86,7 +86,7 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 			mvnSettingsFile: m.mvnSettingsFile,
 			mvnLocalRepo:    m.mvnLocalRepo,
 			mvnIndexPath:    m.mvnIndexPath,
-			dependnecyPath:  depPath,
+			dependencyPath:  depPath,
 			log:             m.log,
 			labeler:         m.labeler,
 		},
@@ -101,7 +101,7 @@ func (m *mavenBinaryBuildTool) GetSourceFileLocation(path string, jarPath string
 	if m.mavenBldTool != nil {
 		return m.mavenBldTool.GetSourceFileLocation(path, jarPath, javaFileName)
 	}
-	return "", fmt.Errorf("Binaries should be decompled and treated like maven repos")
+	return "", fmt.Errorf("binaries should be decompiled and treated like maven repos")
 }
 
 func (m *mavenBinaryBuildTool) UseCache() (bool, error) {
@@ -129,7 +129,7 @@ func (m *mavenBinaryBuildTool) GetDependencies(ctx context.Context) (map[uri.URI
 		m.log.Info("getting dependencies from mavenBldTool for binary", "bldTool", fmt.Sprintf("%#v", m.mavenBldTool))
 		return m.mavenBldTool.GetDependencies(ctx)
 	}
-	m.log.Info("fallling back to dependnecy search from binary")
+	m.log.Info("falling back to dependency search from binary")
 	hash, err := getHash(m.binaryLocation)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate hash")

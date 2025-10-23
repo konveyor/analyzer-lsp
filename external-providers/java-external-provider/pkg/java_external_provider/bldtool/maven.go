@@ -65,8 +65,8 @@ func (m *mavenBuildTool) ShouldResolve() bool {
 	return false
 }
 
-func (m *mavenBuildTool) GetSourceFileLocation(path string, jarPath string, javaFileName string) (string, error) {
-	javaFileAbsolutePath := filepath.Join(filepath.Dir(jarPath), filepath.Dir(path), javaFileName)
+func (m *mavenBuildTool) GetSourceFileLocation(packagePath string, jarPath string, javaFileName string) (string, error) {
+	javaFileAbsolutePath := filepath.Join(filepath.Dir(jarPath), filepath.Dir(packagePath), javaFileName)
 
 	// attempt to decompile when directory for the expected java file doesn't exist
 	// if directory exists, assume .java file is present within, this avoids decompiling every Jar
@@ -175,7 +175,7 @@ func (m *mavenBuildTool) getDependenciesForMaven(ctx context.Context) (map[uri.U
 	cmd := exec.CommandContext(timeout, "mvn", args...)
 	cmd.Dir = moddir
 	mvnOutput, err := cmd.CombinedOutput()
-	m.log.V(8).Info("ran mvn command for dependnecy tree", "output", string(mvnOutput))
+	m.log.V(8).Info("ran mvn command for dependency tree", "output", string(mvnOutput))
 	if err != nil {
 		return nil, fmt.Errorf("maven dependency:tree command failed with error %w, maven output: %s", err, string(mvnOutput))
 	}

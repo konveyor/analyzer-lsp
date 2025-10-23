@@ -2,18 +2,22 @@
 
 ## Overview
 
-The Java External Provider is responsible for analyzing Java applications and their dependencies. It consists of two main modules:
+The Java External Provider is responsible for analyzing Java applications and their dependencies. It consists of several key modules:
 
 1. **bldtool** - Build tool abstraction for extracting dependency information
-2. **dependency** - Dependency resolution and source code management
+2. **dependency** - Dependency resolution, source code management, and binary artifact handling
+3. **Symbol filtering** - LSP symbol to incident context conversion
+4. **Code snippet extraction** - Contextual code extraction for incidents
 
-This document describes the architecture, usage, and relationships between these modules and the broader provider system.
+This document describes the architecture, usage, and relationships between these modules and the broader provider system. It covers dependency analysis, source resolution, decompilation, binary explosion (JAR/WAR/EAR), Maven artifact downloading, incident reporting, and integration with the Eclipse JDT Language Server (JDTLS).
 
 ## Table of Contents
 
 - [High-Level Architecture](#high-level-architecture)
 - [Bldtool Module](#bldtool-module)
 - [Dependency Module](#dependency-module)
+- [Symbol Filtering and Incident Conversion](#symbol-filtering-and-incident-conversion)
+- [Code Snippet Extraction](#code-snippet-extraction)
 - [Integration with Provider and Service Client](#integration-with-provider-and-service-client)
 - [Usage Guide](#usage-guide)
 - [Flow Diagrams](#flow-diagrams)
@@ -191,6 +195,56 @@ Parsing Strategy:
 - Extends `mavenBaseTool`
 - `ShouldResolve()` returns `true` - binary artifacts always need resolution
 - `GetResolver()` - Returns a binary resolver for decompiling
+
+#### 5. Maven Downloader (`bldtool/maven_downloader.go`)
+
+**Responsibility**: Download Maven artifacts using Maven coordinates
+
+**Key Features**:
+- Supports `mvn://` URI scheme for artifact locations
+- URI format: `mvn://<group>:<artifact>:<version>:<classifier>@<path>`
+- Uses `mvn dependency:copy` command to download artifacts
+- Supports custom Maven settings files and insecure HTTPS mode
+
+**Example Usage**:
+```go
+location := "mvn://org.springframework:spring-core:5.3.21@/tmp/downloads"
+downloader, ok := bldtool.GetDownloader(location, settingsFile, insecure, logger)
+if ok {
+    downloadedPath, err := downloader.Download(ctx)
+    // downloadedPath points to the downloaded JAR file
+}
+```
+
+**Download Process**:
+```
+┌──────────────────────────────────────────────┐
+│  1. Parse mvn:// URI                         │
+│     - Extract GAV coordinates                │
+│     - Extract destination path               │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│  2. Build mvn dependency:copy command        │
+│     - Add artifact coordinates               │
+│     - Add output directory                   │
+│     - Add settings file (if specified)       │
+│     - Add insecure flag (if specified)       │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│  3. Execute Maven command                    │
+│     - Parse output for download path         │
+│     - Verify file exists                     │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│  4. Return path to downloaded artifact       │
+└──────────────────────────────────────────────┘
+```
 
 ---
 
@@ -372,6 +426,430 @@ type JavaArtifact struct {
 }
 ```
 
+#### 6. Binary Explosion Utilities
+
+The dependency module includes specialized handlers for exploding (extracting) different types of Java archive files. These utilities are critical for analyzing binary artifacts.
+
+**Base Explosion** (`dependency/explosion.go`):
+- `exploadArtifact` - Base type for archive explosion
+- Uses `jar -xvf` command to extract archives
+- Creates temporary directories for explosion
+- Provides foundation for specialized handlers
+
+**JAR Artifact Handler** (`dependency/jar.go`):
+- Handles standard JAR files
+- Identifies Maven coordinates using `ToDependency()`
+- Decompiles JARs without sources using FernFlower
+- Creates Maven-style directory structure in local repository
+- Copies JAR to `~/.m2/repository` with proper GAV path
+
+**JAR Explosion Handler** (`dependency/jar_expload.go`):
+- Handles nested JAR files (e.g., within EAR/WAR archives)
+- Walks exploded directory structure
+- Identifies and processes embedded JARs in `lib/` directories
+- Decompiles class directories using FernFlower
+- Creates `src/main/java` structure for decompiled code
+
+**WAR Artifact Handler** (`dependency/war.go`):
+- Handles Web Application Archive (.war) files
+- Understands WAR structure:
+  - `WEB-INF/classes/` → decompiled to `src/main/java/`
+  - `WEB-INF/lib/` → treated as dependencies
+  - Static resources (css, js, images, html) → moved to `src/main/webapp/`
+  - `WEB-INF/web.xml` and other config → preserved in `src/main/webapp/WEB-INF/`
+- Automatically decompiles embedded JARs in `WEB-INF/lib/`
+
+**EAR Artifact Handler** (`dependency/ear.go`):
+- Handles Enterprise Application Archive (.ear) files
+- Complex multi-module structure support
+- Smart module detection:
+  - Top-level JARs/WARs → decompiled into project (application modules)
+  - Nested JARs/WARs → treated as dependencies
+- Processes each module independently
+- Handles both WAR and JAR modules within EAR
+
+**Explosion Flow for Binary Artifacts**:
+```
+┌────────────────────────────────────────────────────┐
+│ Binary Artifact (JAR/WAR/EAR)                      │
+└─────────────────┬──────────────────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────────────────┐
+│ Identify Artifact Type                             │
+│  - .jar → jarArtifact                              │
+│  - .war → warArtifact                              │
+│  - .ear → earArtifact                              │
+└─────────────────┬──────────────────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────────────────┐
+│ Explode Archive to Temp Directory                  │
+│  - Run: jar -xvf <artifact>                        │
+│  - Extract to: /tmp/expload-<name>-<random>        │
+└─────────────────┬──────────────────────────────────┘
+                  │
+        ┌─────────┼─────────┐
+        │         │         │
+    JAR │     WAR │     EAR │
+        v         v         v
+┌─────────┐ ┌─────────┐ ┌─────────────────┐
+│ Process │ │ Process │ │ Collect modules │
+│ classes │ │ WEB-INF │ │ (JARs/WARs)     │
+│         │ │         │ │                 │
+│ Process │ │ Process │ │ For each module:│
+│ META-INF│ │ webapp  │ │  - Top level:   │
+│ POM     │ │ content │ │    Decompile    │
+└────┬────┘ └────┬────┘ │    into project │
+     │           │      │  - Nested:      │
+     │           │      │    Decompile as │
+     │           │      │    dependency   │
+     │           │      └────────┬────────┘
+     │           │               │
+     └───────────┼───────────────┘
+                 │
+                 v
+┌────────────────────────────────────────────────────┐
+│ Decompile .class files using FernFlower            │
+│  - Submit jobs to worker pool                      │
+│  - Concurrent decompilation (10 workers)           │
+└─────────────────┬──────────────────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────────────────┐
+│ Create Maven Project Structure                     │
+│  - src/main/java/ (decompiled sources)             │
+│  - src/main/webapp/ (web content, WAR only)        │
+│  - pom.xml (extracted from META-INF)               │
+└─────────────────┬──────────────────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────────────────┐
+│ Copy Dependencies to Local Repository              │
+│  - Embedded JARs → ~/.m2/repository/...            │
+│  - Maintain Maven GAV structure                    │
+└────────────────────────────────────────────────────┘
+```
+
+**Key Considerations**:
+- All archive types use the worker pool for parallel decompilation
+- Embedded dependencies are automatically identified and processed
+- Proper Maven directory structure is maintained for JDTLS compatibility
+- Temporary explosion directories are cleaned up after processing
+- Each artifact type has specific knowledge of its internal structure
+
+---
+
+## Symbol Filtering and Incident Conversion
+
+The Java provider includes sophisticated symbol filtering capabilities to convert Language Server Protocol (LSP) workspace symbols into incident contexts for rule evaluation.
+
+### Location
+`external-providers/java-external-provider/pkg/java_external_provider/filter.go`
+
+### Core Functionality
+
+The filtering system bridges the gap between JDTLS symbol search results and the analyzer's incident reporting format.
+
+**Key Constants**:
+```go
+const (
+    LINE_NUMBER_EXTRA_KEY = "lineNumber"
+    KIND_EXTRA_KEY        = "kind"
+    SYMBOL_NAME_KEY       = "name"
+    FILE_KEY              = "file"
+)
+```
+
+### Filter Functions
+
+Different filter functions handle different types of code locations:
+
+**1. `filterVariableDeclaration()`**:
+- Filters symbols related to variable declarations
+- Converts each symbol to an incident context
+- Useful for finding variable usage patterns
+
+**2. `filterModulesImports()`**:
+- Filters for module import symbols (`protocol.Module` kind)
+- Identifies dependency import statements
+- Helps detect deprecated or prohibited imports
+
+**3. `filterTypesInheritance()`**:
+- Filters symbols based on type inheritance
+- Identifies class/interface hierarchies
+- Useful for detecting extension of specific base classes
+
+**4. `filterMethodSymbols()`**:
+- Filters method-related symbols
+- Captures method calls and declarations
+- Currently returns all methods (filtration concept for future enhancement)
+
+**5. `filterDefault()`**:
+- Generic filter for unspecified location types
+- Converts all symbols to incident contexts
+
+### Symbol to Incident Conversion
+
+**`convertToIncidentContext()`** - Core conversion function:
+
+**Process**:
+```
+┌─────────────────────────────────────────────────────┐
+│ Input: protocol.WorkspaceSymbol from JDTLS          │
+└──────────────────┬──────────────────────────────────┘
+                   │
+                   v
+┌─────────────────────────────────────────────────────┐
+│ Extract Location Information                        │
+│  - Document URI (file path or class file URI)       │
+│  - Range (start/end line and character positions)   │
+└──────────────────┬──────────────────────────────────┘
+                   │
+                   v
+┌─────────────────────────────────────────────────────┐
+│ Process URI with getURI()                           │
+│  - Application source: Parse file for package name  │
+│  - Dependency (konveyor-jdt://): Parse class file   │
+│    URI and locate decompiled source                 │
+└──────────────────┬──────────────────────────────────┘
+                   │
+                   v
+┌─────────────────────────────────────────────────────┐
+│ Create IncidentContext                              │
+│  - FileURI: Resolved file path                      │
+│  - LineNumber: Incident line number                 │
+│  - CodeLocation: Start/end positions                │
+│  - Variables: Metadata (kind, name, package, file)  │
+│  - IsDependencyIncident: true if from decompiled    │
+└─────────────────────────────────────────────────────┘
+```
+
+**Special URI Handling** (`getURI()`):
+
+The function handles two types of URIs:
+
+1. **Regular File URIs** (`file://...`):
+   - Parses the Java file to extract package name
+   - Reads file and searches for `package` declaration
+   - Handles edge cases (comments, licenses with word "package")
+
+2. **JDT Class File URIs** (`konveyor-jdt://...`):
+   - Special format for decompiled dependency classes
+   - URI parameters include:
+     - `source-range`: Whether sources JAR exists
+     - `packageName`: Fully qualified class name
+   - Resolves to actual decompiled `.java` file location
+   - Uses `buildTool.GetSourceFileLocation()` to find file
+   - Handles inner classes (e.g., `OuterClass$InnerClass`)
+
+**Example JDT URI**:
+```
+konveyor-jdt://contents/.m2/repository/org/apache/logging/log4j/log4j-core/2.14.1/log4j-core-2.14.1.jar?source-range=true&packageName=org.apache.logging.log4j.core.appender.FileManager.class
+```
+
+### Incident Context Output
+
+**IncidentContext Structure**:
+```go
+type IncidentContext struct {
+    FileURI              uri.URI
+    LineNumber           *int
+    CodeLocation         *Location  // Start/end positions
+    IsDependencyIncident bool       // True for decompiled deps
+    Variables            map[string]interface{} {
+        "kind":    "Class|Method|Field|..."
+        "name":    "symbolName"
+        "file":    "/path/to/file.java"
+        "package": "com.example.package"
+    }
+}
+```
+
+**Usage in Rule Evaluation**:
+```
+┌────────────────────────────────────────┐
+│ Rule Condition evaluated via JDTLS     │
+└─────────────────┬──────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────┐
+│ JDTLS returns WorkspaceSymbol[]        │
+└─────────────────┬──────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────┐
+│ Apply appropriate filter function      │
+│  - Based on rule location type         │
+│  - e.g., "inheritance" → filterTypes   │
+└─────────────────┬──────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────┐
+│ Convert each symbol to IncidentContext │
+│  - Extract file location               │
+│  - Add metadata                        │
+│  - Mark dependency incidents           │
+└─────────────────┬──────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────┐
+│ Return IncidentContext[] to analyzer   │
+│  - Ready for violation reporting       │
+└────────────────────────────────────────┘
+```
+
+**Key Features**:
+- Handles both application code and dependency code uniformly
+- Automatically resolves decompiled source locations
+- Extracts package information for better context
+- Marks incidents from dependencies separately
+- Provides rich metadata for rule evaluation
+- Supports all LSP symbol kinds (Class, Method, Field, etc.)
+
+---
+
+## Code Snippet Extraction
+
+The Java provider implements code snippet extraction to provide contextual code around incidents for better understanding and reporting.
+
+### Location
+`external-providers/java-external-provider/pkg/java_external_provider/snipper.go`
+
+### Core Interface
+
+Implements the `engine.CodeSnip` interface from the analyzer engine.
+
+### Key Components
+
+**`GetCodeSnip(u uri.URI, loc engine.Location)`**:
+- Main entry point for snippet extraction
+- Validates URI is a file URI
+- Delegates to `scanFile()` for actual extraction
+
+**`scanFile(path string, loc engine.Location)`**:
+- Opens and scans the Java source file
+- Extracts code around the specified location
+- Includes configurable context lines before and after
+
+### Snippet Extraction Process
+
+```
+┌─────────────────────────────────────────────────┐
+│ Input: File URI + Location (line range)        │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   v
+┌─────────────────────────────────────────────────┐
+│ Validate URI                                    │
+│  - Must be file:// scheme                      │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   v
+┌─────────────────────────────────────────────────┐
+│ Open Source File                                │
+│  - Use URI.Filename() to get path              │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   v
+┌─────────────────────────────────────────────────┐
+│ Scan File Line by Line                          │
+│  - Track current line number                   │
+│  - Determine snippet boundaries:               │
+│    * Start: loc.StartLine - contextLines       │
+│    * End: loc.EndLine + contextLines           │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   v
+┌─────────────────────────────────────────────────┐
+│ Build Formatted Snippet                         │
+│  - Prefix each line with line number           │
+│  - Right-align line numbers with padding       │
+│  - Format: "  <lineNum>  <code>"               │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   v
+┌─────────────────────────────────────────────────┐
+│ Return Code Snippet String                      │
+└─────────────────────────────────────────────────┘
+```
+
+### Configuration
+
+**Context Lines**: Controlled by `p.contextLines` field
+- Configurable number of lines before and after the incident location
+- Provides surrounding code for better context
+- Default value can be set during provider initialization
+
+### Example Output
+
+For an incident at line 42 with 2 context lines:
+
+```
+  40  public class Example {
+  41      private String name;
+  42      public void problematicMethod() {  // <- Incident here
+  43          // method body
+  44      }
+```
+
+### Features
+
+- **Line Number Formatting**:
+  - Right-aligned for clean presentation
+  - Padding calculated based on max line number in snippet
+  - Makes it easy to identify exact incident location
+
+- **Context Awareness**:
+  - Includes surrounding code for understanding
+  - Helps developers see incident in context
+  - Configurable context size
+
+- **File URI Support**:
+  - Works with standard file:// URIs
+  - Compatible with decompiled source files
+  - Validates URI scheme before processing
+
+### Integration with Incident Reporting
+
+```
+┌────────────────────────────────────┐
+│ Incident detected in Java code     │
+└─────────────────┬──────────────────┘
+                  │
+                  v
+┌────────────────────────────────────┐
+│ IncidentContext has FileURI and    │
+│ CodeLocation with line range       │
+└─────────────────┬──────────────────┘
+                  │
+                  v
+┌────────────────────────────────────┐
+│ Analyzer calls GetCodeSnip()       │
+│  - Passes FileURI and Location     │
+└─────────────────┬──────────────────┘
+                  │
+                  v
+┌────────────────────────────────────┐
+│ Provider extracts code snippet     │
+│  - Opens file at URI               │
+│  - Reads lines around location     │
+│  - Formats with line numbers       │
+└─────────────────┬──────────────────┘
+                  │
+                  v
+┌────────────────────────────────────┐
+│ Snippet included in incident report│
+│  - Displayed to user               │
+│  - Written to output file          │
+└────────────────────────────────────┘
+```
+
+**Error Handling**:
+- Returns error if URI is not a file URI
+- Returns error if file cannot be opened
+- Logs errors at appropriate verbosity levels
+
 ---
 
 ## Integration with Provider and Service Client
@@ -458,8 +936,24 @@ type javaServiceClient struct {
    - Command: `io.konveyor.tackle.ruleEntry`
    - Returns matching symbols from codebase
 
-### Dependency Flow in Service Client
+### Dependency Caching and Retrieval
 
+The service client implements a thread-safe dependency caching mechanism in `dependency.go` to avoid repeated expensive build tool executions.
+
+**Key Methods**:
+
+1. **`GetDependencies(ctx context.Context)`** - Returns flattened dependency list
+   - Calls `GetDependenciesDAG()` internally
+   - Converts DAG structure to flat list
+   - Uses `provider.ConvertDagItemsToList()` for transitive dependencies
+
+2. **`GetDependenciesDAG(ctx context.Context)`** - Returns dependency DAG with caching
+   - **Thread-safe**: Uses `depsMutex` to protect cache access
+   - Checks if build file changed via `buildTool.UseCache()`
+   - Returns cached results if build file unchanged
+   - Updates cache on cache miss
+
+**Caching Strategy**:
 ```
 ┌──────────────────────────────────────────────┐
 │ User requests dependency analysis            │
@@ -467,14 +961,15 @@ type javaServiceClient struct {
                │
                v
 ┌──────────────────────────────────────────────┐
-│ Service Client: GetDependencies()            │
+│ Service Client: GetDependenciesDAG()         │
+│  - Lock depsMutex (thread safety)            │
 └──────────────┬───────────────────────────────┘
                │
                v
 ┌──────────────────────────────────────────────┐
 │ BuildTool: UseCache()                        │
 │  - Check if pom.xml/build.gradle changed     │
-│  - Compare SHA256 hash                       │
+│  - Compare SHA256 hash of build file         │
 └──────────────┬───────────────────────────────┘
                │
          ┌─────┴─────┐
@@ -486,18 +981,31 @@ type javaServiceClient struct {
          │     │ BuildTool: GetDependencies() │
          │     │  - Run Maven/Gradle          │
          │     │  - Parse dependency tree     │
-         │     │  - Store in cache            │
+         │     │  - Update depsCache          │
          │     └──────────────────────────────┘
          │           │
          └─────┬─────┘
                │
                v
 ┌──────────────────────────────────────────────┐
+│ Unlock depsMutex                             │
 │ Return map[uri.URI][]provider.DepDAGItem    │
 │  - Key: Build file URI                       │
 │  - Value: List of dependencies with DAG      │
 └──────────────────────────────────────────────┘
 ```
+
+**Cache Benefits**:
+- Avoids expensive Maven/Gradle command execution
+- Thread-safe for concurrent access
+- Automatically invalidates when build file changes
+- Reduces analysis time for repeated requests
+
+**Dual Interface**:
+- `GetDependencies()`: Returns flat list (`[]*provider.Dep`)
+- `GetDependenciesDAG()`: Returns DAG structure (`[]provider.DepDAGItem`)
+- Both use same underlying cache
+- DAG structure preserves transitive dependency relationships
 
 ### Relationship Diagram
 
@@ -1101,18 +1609,33 @@ func (a *antBuildTool) GetResolver(decompileTool string) (dependency.Resolver, e
 
 ### Key Files
 
+**Build Tool Module**:
 - **bldtool/tool.go**: Main BuildTool interface and factory
 - **bldtool/maven.go**: Maven build tool implementation
 - **bldtool/gradle.go**: Gradle build tool implementation
 - **bldtool/maven_binary.go**: Binary artifact handling
 - **bldtool/maven_shared.go**: Shared Maven functionality
+- **bldtool/maven_downloader.go**: Maven artifact downloader with mvn:// URI support
+
+**Dependency Module**:
 - **dependency/resolver.go**: Resolver interface
 - **dependency/maven_resolver.go**: Maven source resolution
 - **dependency/gradle_resolver.go**: Gradle source resolution
-- **dependency/decompile.go**: Decompilation engine
+- **dependency/binary_resolver.go**: Binary artifact resolution
+- **dependency/decompile.go**: Decompilation engine with worker pool
 - **dependency/artifact.go**: JAR artifact identification
-- **provider.go**: Java provider initialization
+- **dependency/explosion.go**: Base archive explosion utilities
+- **dependency/jar.go**: JAR artifact handler
+- **dependency/jar_expload.go**: JAR explosion handler for nested archives
+- **dependency/war.go**: WAR artifact handler with web structure support
+- **dependency/ear.go**: EAR artifact handler for enterprise applications
+
+**Provider Core**:
+- **provider.go**: Java provider initialization and lifecycle
 - **service_client.go**: Service client for analysis operations
+- **dependency.go**: Dependency caching and retrieval layer
+- **filter.go**: Symbol filtering and incident conversion
+- **snipper.go**: Code snippet extraction for incidents
 
 ### External Tools
 

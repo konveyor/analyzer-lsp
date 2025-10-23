@@ -18,15 +18,15 @@ const (
 )
 
 type earArtifact struct {
-	exploadArtifact
+	explodeArtifact
 	tmpDir       string
 	ctx          context.Context
 	archiveFiles []string
 	log          logr.Logger
 }
 
-// This handles the case, when we expload "something" and it contains an war artifact.
-// The primary place this will happen, is in a ear file decomp/explosion
+// This handles the case, when we explode "something" and it contains a war artifact.
+// The primary place this will happen, is in an ear file decomp/explosion
 func (e *earArtifact) Run(ctx context.Context, log logr.Logger) error {
 	defer e.decompilerWG.Done()
 	e.ctx = ctx
@@ -34,7 +34,7 @@ func (e *earArtifact) Run(ctx context.Context, log logr.Logger) error {
 	jobCtx, span := tracing.StartNewSpan(ctx, "ear-artifact-job")
 	// Handle explosion
 	var err error
-	e.tmpDir, err = e.exploadArtifact.ExploadArtifact(ctx, log)
+	e.tmpDir, err = e.explodeArtifact.ExplodeArtifact(ctx, log)
 	if err != nil {
 		return err
 	}

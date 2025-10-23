@@ -13,28 +13,28 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
-type jarExloadArtifact struct {
-	exploadArtifact
+type jarExplodeArtifact struct {
+	explodeArtifact
 	tmpDir         string
 	ctx            context.Context
 	foundClassDirs map[string]struct{}
 	log            logr.Logger
 }
 
-// This handles the case, when we expload "something" and it contains an war artifact.
-// The primary place this will happen, is in a ear file decomp/explosion
-func (j *jarExloadArtifact) Run(ctx context.Context, log logr.Logger) error {
+// This handles the case, when we explode "something" and it contains a war artifact.
+// The primary place this will happen, is in an ear file decomp/explosion
+func (j *jarExplodeArtifact) Run(ctx context.Context, log logr.Logger) error {
 	defer j.decompilerWG.Done()
 	j.ctx = ctx
-	j.log = log.WithName("expload_jar").WithValues("archive", filepath.Base(j.artifactPath))
-	jobCtx, span := tracing.StartNewSpan(ctx, "jar-expload-artifact-job")
+	j.log = log.WithName("explode_jar").WithValues("archive", filepath.Base(j.artifactPath))
+	jobCtx, span := tracing.StartNewSpan(ctx, "jar-explode-artifact-job")
 	log.V(7).Info("starting jar archive job")
 	// Handle explosion
 	var err error
-	j.tmpDir, err = j.exploadArtifact.ExploadArtifact(ctx, log)
-	log.V(7).Info(fmt.Sprintf("expload: %#v, %#v", j.tmpDir, err))
+	j.tmpDir, err = j.explodeArtifact.ExplodeArtifact(ctx, log)
+	log.V(7).Info(fmt.Sprintf("explode: %#v, %#v", j.tmpDir, err))
 	if err != nil {
-		log.Error(err, "unable to expload")
+		log.Error(err, "unable to explode")
 		return err
 	}
 
@@ -50,7 +50,7 @@ func (j *jarExloadArtifact) Run(ctx context.Context, log logr.Logger) error {
 	return nil
 }
 
-func (j *jarExloadArtifact) HandleFile(path string, d fs.DirEntry, err error) error {
+func (j *jarExplodeArtifact) HandleFile(path string, d fs.DirEntry, err error) error {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return err
@@ -128,11 +128,11 @@ func (j *jarExloadArtifact) HandleFile(path string, d fs.DirEntry, err error) er
 	return nil
 }
 
-func (j *jarExloadArtifact) shouldHandleFile(relPath string) bool {
+func (j *jarExplodeArtifact) shouldHandleFile(relPath string) bool {
 	return true
 }
 
-func (j *jarExloadArtifact) getOutputPath(relPath string) string {
+func (j *jarExplodeArtifact) getOutputPath(relPath string) string {
 	if strings.Contains(relPath, METAINF) && filepath.Base(relPath) == "pom.xml" {
 		return filepath.Join(j.outputPath, filepath.Base(relPath))
 	}

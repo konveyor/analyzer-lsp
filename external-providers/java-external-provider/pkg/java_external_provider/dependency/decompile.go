@@ -138,13 +138,13 @@ func getDecompiler(options DecompilerOpts) (Decompiler, error) {
 	return &d, nil
 }
 
-// Decompile will treat the artifact as a dependnecy, Trying to make an JavaArtifact from it
+// Decompile will treat the artifact as a dependency, Trying to make an JavaArtifact from it
 // To be handled with maven as a dependency.
 func (d *decompiler) Decompile(ctx context.Context, artifactPath string) ([]JavaArtifact, error) {
 	// For right now, the only thing that can be handled this way is a Jar file. If it is not a jar file
 	// we should error out.
 	if filepath.Ext(artifactPath) != JavaArchive {
-		return nil, fmt.Errorf("unable to treat %s as a depednecy", artifactPath)
+		return nil, fmt.Errorf("unable to treat %s as a dependency", artifactPath)
 	}
 
 	responseChannel := make(chan DecomplierResponse)
@@ -173,7 +173,7 @@ func (d *decompiler) Decompile(ctx context.Context, artifactPath string) ([]Java
 	}
 	errs := []error{}
 	artifacts := []JavaArtifact{}
-	recieverCtx, cancelFunc := context.WithCancel(ctx)
+	receiverCtx, cancelFunc := context.WithCancel(ctx)
 	go func() {
 		for {
 			select {
@@ -183,7 +183,7 @@ func (d *decompiler) Decompile(ctx context.Context, artifactPath string) ([]Java
 					errs = append(errs, resp.err)
 				}
 				artifacts = append(artifacts, resp.Artifacts...)
-			case <-recieverCtx.Done():
+			case <-receiverCtx.Done():
 				return
 			}
 		}
@@ -214,12 +214,12 @@ func (d *decompiler) DecompileIntoProject(ctx context.Context, artifactPath, pro
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("unable to treat %s as a depednecy", artifactPath)
+		return nil, fmt.Errorf("unable to treat %s as a dependency", artifactPath)
 	}
 
 	errs := []error{}
 	artifacts := []JavaArtifact{}
-	recieverCtx, cancelFunc := context.WithCancel(ctx)
+	receiverCtx, cancelFunc := context.WithCancel(ctx)
 	go func() {
 		for {
 			select {
@@ -230,7 +230,7 @@ func (d *decompiler) DecompileIntoProject(ctx context.Context, artifactPath, pro
 					errs = append(errs, resp.err)
 				}
 				artifacts = append(artifacts, resp.Artifacts...)
-			case <-recieverCtx.Done():
+			case <-receiverCtx.Done():
 				return
 			}
 		}
@@ -259,8 +259,8 @@ func (d *decompiler) getIntoProjectJob(artifactPath, projectPath string) (decomp
 		responseChannel := make(chan DecomplierResponse)
 		waitGroup := sync.WaitGroup{}
 		// Create the job.
-		return &jarExloadArtifact{
-			exploadArtifact: exploadArtifact{
+		return &jarExplodeArtifact{
+			explodeArtifact: explodeArtifact{
 				baseArtifact: baseArtifact{
 					artifactPath:        artifactPath,
 					m2Repo:              d.m2Repo,
@@ -283,7 +283,7 @@ func (d *decompiler) getIntoProjectJob(artifactPath, projectPath string) (decomp
 		responseChannel := make(chan DecomplierResponse)
 		waitGroup := sync.WaitGroup{}
 		return &warArtifact{
-			exploadArtifact: exploadArtifact{
+			explodeArtifact: explodeArtifact{
 				baseArtifact: baseArtifact{
 					artifactPath:        artifactPath,
 					m2Repo:              d.m2Repo,
@@ -305,7 +305,7 @@ func (d *decompiler) getIntoProjectJob(artifactPath, projectPath string) (decomp
 		responseChannel := make(chan DecomplierResponse)
 		waitGroup := sync.WaitGroup{}
 		return &earArtifact{
-			exploadArtifact: exploadArtifact{
+			explodeArtifact: explodeArtifact{
 				baseArtifact: baseArtifact{
 					artifactPath:        artifactPath,
 					m2Repo:              d.m2Repo,
@@ -325,16 +325,16 @@ func (d *decompiler) getIntoProjectJob(artifactPath, projectPath string) (decomp
 		}, responseChannel, &waitGroup, nil
 
 	}
-	return nil, nil, nil, fmt.Errorf("unable to get a job fo rthe artifact")
+	return nil, nil, nil, fmt.Errorf("unable to get a job for the artifact")
 
 }
 
-// Internal Decompile calls will return with the number of jobs submited to the queue
+// Internal Decompile calls will return with the number of jobs submitted to the queue
 // The main Decompile jobs should be the only thing that waits based on the all the jobs
-// that have been submited.
+// that have been submitted.
 func (d *decompiler) internalDecompile(ctx context.Context, artifactPath string, response chan DecomplierResponse, waitGroup *sync.WaitGroup) error {
 	if filepath.Ext(artifactPath) != JavaArchive {
-		return fmt.Errorf("unable to treat %s as a depednecy", artifactPath)
+		return fmt.Errorf("unable to treat %s as a dependency", artifactPath)
 	}
 	job := jarArtifact{
 		baseArtifact: baseArtifact{
@@ -367,7 +367,7 @@ func (d *decompiler) internalDecompileIntoProject(ctx context.Context, artifactP
 			return err
 		}
 	default:
-		return fmt.Errorf("unable to treat %s as a depednecy", artifactPath)
+		return fmt.Errorf("unable to treat %s as a dependency", artifactPath)
 	}
 
 	// For the entry point job in the public methods, we will run the job, and wait for it to complete
@@ -423,7 +423,7 @@ func (d *decompiler) getIntoProjectJobInternal(artifactPath, projectPath string,
 	case EnterpriseArchive:
 		d.log.V(7).Info("getting enterprise archive job")
 		return &earArtifact{
-			exploadArtifact: exploadArtifact{
+			explodeArtifact: explodeArtifact{
 				baseArtifact: baseArtifact{
 					artifactPath:        artifactPath,
 					m2Repo:              d.m2Repo,

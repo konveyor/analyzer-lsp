@@ -41,13 +41,116 @@ type Downloader interface {
 	Download(context.Context) (string, error)
 }
 
+// BuildTool provides a unified interface for interacting with different Java build systems
+// and binary artifacts. It abstracts dependency extraction, source resolution, and caching
+// across different build tool implementations.
 type BuildTool interface {
-	GetDependencies(context.Context) (map[uri.URI][]provider.DepDAGItem, error)
+	// GetDependencies retrieves all project dependencies as a directed acyclic graph (DAG).
+	// It executes the underlying build tool to extract the complete dependency tree,
+	// including both direct and transitive dependencies.
+	//
+	// The method caches results based on build file hash to avoid repeated expensive executions.
+	// Cache is invalidated when the build file changes.
+	//
+	// Returns:
+	//   - map[uri.URI][]provider.DepDAGItem: Map of build file URIs to dependency DAG items
+	//     Key: URI of the build file (e.g., file:///path/to/pom.xml or build.gradle)
+	//     Value: Slice of dependency DAG items with hierarchy information
+	//   - error: Error if dependency resolution fails
+	//
+	// Example:
+	//   deps, err := buildTool.GetDependencies(ctx)
+	//   for buildFileURI, dagItems := range deps {
+	//       // dagItems contains direct deps and their transitive deps
+	//   }
+	GetDependencies(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error)
+
+	// UseCache determines whether cached dependency results should be used.
+	// It compares the SHA256 hash of the current build file against the cached hash.
+	//
+	// Returns:
+	//   - bool: true if cache is valid and should be used, false if dependencies should be re-fetched
+	//   - error: Error if hash calculation fails
+	//
+	// Note: This method is called by the service client before calling GetDependencies()
+	// to determine if expensive build tool execution can be skipped.
 	UseCache() (bool, error)
+
+	// GetCachedDepError retrieves any cached errors from previous dependency resolution attempts.
+	// This prevents repeated execution of build commands that are known to fail.
+	//
+	// Parameters:
+	//   - errorCached: Map of error types to cached errors from previous attempts
+	//
+	// Returns:
+	//   - error: The cached error if one exists
+	//   - bool: true if a cached error was found, false otherwise
+	//
+	// Usage:
+	//   This allows the system to fail fast when build tool commands are broken,
+	//   without repeatedly attempting the same failing operation.
 	GetCachedDepError(errorCached map[string]error) (error, bool)
+
+	// GetLocalRepoPath returns the path to the local dependency repository where
+	// dependency JARs and their sources are stored. May return empty string if
+	// the build tool uses a different caching mechanism.
+	//
+	// This path is used to locate dependency JARs and their sources for decompilation
+	// and source file location resolution.
 	GetLocalRepoPath() string
-	GetSourceFileLocation(string, string, string) (string, error)
-	GetResolver(string) (dependency.Resolver, error)
+
+	// GetSourceFileLocation resolves the absolute path to a decompiled Java source file
+	// within a dependency JAR. This is critical for converting JDT class file URIs
+	// (konveyor-jdt://) to actual file paths for incident reporting.
+	//
+	// Parameters:
+	//   - packagePath: Package path derived from class name (e.g., "org/apache/logging/log4j/core/appender")
+	//   - jarPath: Absolute path to the dependency JAR file
+	//   - javaFileName: Name of the Java source file (e.g., "FileManager.java")
+	//
+	// Returns:
+	//   - string: Absolute path to the decompiled .java file
+	//   - error: Error if file cannot be located or decompiled
+	//
+	// Behavior:
+	//   - Searches local repository structure for decompiled sources
+	//   - Triggers on-demand decompilation if source doesn't exist
+	//
+	// Example:
+	//   path, err := buildTool.GetSourceFileLocation(
+	//       "org/springframework/core",
+	//       "/home/user/.m2/repository/org/springframework/spring-core/5.3.21/spring-core-5.3.21.jar",
+	//       "SpringApplication.java",
+	//   )
+	//   // Returns absolute path to the .java file
+	GetSourceFileLocation(packagePath string, jarPath string, javaFileName string) (string, error)
+
+	// GetResolver creates a dependency resolver appropriate for this build tool.
+	// The resolver handles downloading dependency sources and decompiling JARs
+	// that don't have source JARs available.
+	//
+	// Parameters:
+	//   - decompileTool: Absolute path to the FernFlower decompiler JAR
+	//
+	// Returns:
+	//   - dependency.Resolver: Build tool-specific resolver implementation
+	//   - error: Error if resolver cannot be created
+	//
+	// The resolver will be used by the provider during initialization if ShouldResolve()
+	// returns true or if running in FullAnalysisMode.
+	GetResolver(decompileTool string) (dependency.Resolver, error)
+
+	// ShouldResolve indicates whether source resolution must be performed for this build tool.
+	//
+	// Returns:
+	//   - bool: true if resolution is required (e.g., binary artifacts that need decompilation),
+	//           false if resolution can be deferred to standard build tool source download
+	//
+	// When true, the provider will automatically call GetResolver() and resolver.ResolveSources()
+	// during initialization to ensure the project can be analyzed.
+	//
+	// Note: Even when false, source resolution may still occur if FullAnalysisMode is enabled
+	// to ensure all dependency sources are available for deep analysis.
 	ShouldResolve() bool
 }
 

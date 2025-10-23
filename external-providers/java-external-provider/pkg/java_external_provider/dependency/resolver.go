@@ -13,28 +13,110 @@ import (
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
 )
 
+// Resolver handles downloading and decompiling dependency sources for different build systems.
+// It ensures that all project dependencies have accessible source code for analysis, either by
+// downloading source JARs from repositories or by decompiling binary JARs using a decompiler.
+//
+// The resolver is obtained from BuildTool.GetResolver() and is automatically invoked during
+// provider initialization when BuildTool.ShouldResolve() returns true or when running in
+// FullAnalysisMode.
 type Resolver interface {
-	ResolveSources(ctx context.Context) (string, string, error)
+	// ResolveSources downloads dependency sources and decompiles JARs that lack source artifacts.
+	// This is a critical step for enabling deep code analysis, as it ensures the language server
+	// has access to all dependency source code.
+	//
+	// Process:
+	//   1. Execute build tool command to download available source JARs
+	//   2. Parse output to identify dependencies without sources
+	//   3. Locate binary JARs for unresolved dependencies
+	//   4. Decompile missing sources using a decompiler (parallel worker pool)
+	//   5. Store decompiled sources in appropriate repository structure
+	//
+	// Parameters:
+	//   - ctx: Context for cancellation and timeout control (typically 5-10 minute timeout)
+	//
+	// Returns:
+	//   - sourceLocation (string): Absolute path to project source directory
+	//     For source projects: Original project location
+	//     For binary artifacts: Path to generated project directory
+	//   - dependencyLocation (string): Absolute path to local dependency repository
+	//     May be empty string if the build tool uses a different caching mechanism
+	//   - error: Error if source resolution fails
+	//
+	// Example Usage:
+	//   resolver, _ := buildTool.GetResolver("/path/to/decompiler.jar")
+	//   srcPath, depPath, err := resolver.ResolveSources(ctx)
+	//   if err != nil {
+	//       // Handle resolution failure
+	//   }
+	//   // srcPath: Project directory with sources
+	//   // depPath: Repository with dependency sources (may be empty)
+	//
+	// Performance Considerations:
+	//   - Uses worker pool for parallel decompilation
+	//   - Can take several minutes for large projects with many dependencies
+	//   - Progress logged at various verbosity levels
+	//   - Individual decompilation failures logged but don't stop overall process
+	//
+	// Error Handling:
+	//   - Returns error if build tool command fails completely
+	//   - Returns error if decompiler initialization fails
+	//   - Logs individual JAR decompilation failures but continues
+	//   - May cache errors to avoid repeated failures
+	ResolveSources(ctx context.Context) (sourceLocation string, dependencyLocation string, err error)
 }
 
+// ResolverOptions contains configuration options for creating build tool-specific resolvers.
+// Different resolvers use different subsets of these options based on their requirements.
 type ResolverOptions struct {
-	Log                logr.Logger
-	Location           string
-	DecompileTool      string
-	Labeler            labels.Labeler
-	LocalRepo          string
+	// Log is the logger instance for logging resolver operations.
+	// Used by all resolver types for progress tracking and error reporting.
+	Log logr.Logger
+
+	// Location is the absolute path to the project directory or binary artifact.
+	// Points to the root of the project or the binary file to be analyzed.
+	Location string
+
+	// DecompileTool is the absolute path to the decompiler JAR.
+	// Required by all resolver types for decompiling dependencies without sources.
+	DecompileTool string
+
+	// Labeler identifies whether dependencies are open source or internal.
+	// Used to determine if remote repository lookups should be attempted.
+	Labeler labels.Labeler
+
+	// LocalRepo is the path to the local dependency repository where
+	// dependencies and their sources are cached.
+	// May not be used by all build tools.
+	LocalRepo string
+
+	// DisableMavenSearch disables lookups to remote repositories for artifact identification.
+	// When true, relies solely on embedded metadata and JAR structure analysis.
+	// Useful in air-gapped environments or to reduce network traffic.
 	DisableMavenSearch bool
-	// for gradle this is the build file
-	// for maven this is the settings file
+
+	// BuildFile points to build tool-specific configuration file.
+	// May be a settings file or build definition depending on the build tool.
 	BuildFile string
 
-	// mvn specifics
+	// Insecure allows insecure HTTPS connections when downloading dependencies.
+	// Should only be used in development/testing environments.
 	Insecure bool
 
-	// Gradle Specifics
-	Version        version.Version
-	Wrapper        string
-	JavaHome       string
+	// Version is the build tool version detected from the project.
+	// Used by some resolvers to determine compatibility requirements.
+	Version version.Version
+
+	// Wrapper is the absolute path to the build tool wrapper executable.
+	// Used by build tools that support wrapper scripts for reproducible builds.
+	Wrapper string
+
+	// JavaHome is the path to the Java installation to use for build tool execution.
+	// May be set based on build tool version requirements.
+	JavaHome string
+
+	// GradleTaskFile is the path to a custom task file for source download.
+	// Optional custom task file to use instead of embedded defaults.
 	GradleTaskFile string
 }
 
@@ -102,7 +184,7 @@ func AppendToFile(src string, dst string) error {
 	// Append the content to the destination file
 	_, err = destFile.Write(content)
 	if err != nil {
-		return fmt.Errorf("error apending to destination file: %s", err)
+		return fmt.Errorf("error appending to destination file: %s", err)
 	}
 
 	return nil
