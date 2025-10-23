@@ -154,6 +154,7 @@ type InitConfig struct {
 type RPCClient interface {
 	Call(context.Context, string, interface{}, interface{}) error
 	Notify(context.Context, string, interface{}) error
+	Close() error
 }
 
 func GetConfig(filepath string) ([]Config, error) {
