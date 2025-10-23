@@ -31,6 +31,7 @@ const (
 	javaDepSourceInternal                      = "internal"
 	javaDepSourceOpenSource                    = "open-source"
 	providerSpecificConfigOpenSourceDepListKey = "depOpenSourceLabelsFile"
+	providerSpecificConfigMavenIndexPath       = "mavenIndexPath"
 	providerSpecificConfigExcludePackagesKey   = "excludePackages"
 )
 
@@ -661,26 +662,26 @@ func extractSubmoduleTrees(lines []string) [][]string {
 func (p *javaServiceClient) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem, disableMavenSearch bool) {
 	// for binaries we only find JARs embedded in archive
 	w := walker{
-		deps:               ll,
-		depToLabels:        p.depToLabels,
-		m2RepoPath:         p.mvnLocalRepo,
-		seen:               map[string]bool{},
-		initialPath:        path,
-		log:                p.log,
-		disableMavenSearch: disableMavenSearch,
+		deps:         ll,
+		depToLabels:  p.depToLabels,
+		m2RepoPath:   p.mvnLocalRepo,
+		seen:         map[string]bool{},
+		initialPath:  path,
+		log:          p.log,
+		mvnIndexPath: p.mvnIndexPath,
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
 
 type walker struct {
-	deps               map[uri.URI][]provider.DepDAGItem
-	depToLabels        map[string]*depLabelItem
-	m2RepoPath         string
-	initialPath        string
-	seen               map[string]bool
-	pomPaths           []string
-	log                logr.Logger
-	disableMavenSearch bool
+	deps         map[uri.URI][]provider.DepDAGItem
+	depToLabels  map[string]*depLabelItem
+	m2RepoPath   string
+	initialPath  string
+	seen         map[string]bool
+	pomPaths     []string
+	log          logr.Logger
+	mvnIndexPath string
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -699,7 +700,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		artifact, _ := toDependency(context.TODO(), w.log, w.depToLabels, path, w.disableMavenSearch)
+		artifact, _ := toDependency(context.TODO(), w.log, path, w.mvnIndexPath)
 		if (artifact != javaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version
@@ -755,13 +756,14 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 
 func (p *javaServiceClient) discoverPoms(pathStart string, ll map[uri.URI][]konveyor.DepDAGItem) []string {
 	w := walker{
-		deps:        ll,
-		depToLabels: p.depToLabels,
-		m2RepoPath:  "",
-		seen:        map[string]bool{},
-		initialPath: pathStart,
-		pomPaths:    []string{},
-		log:         p.log,
+		deps:         ll,
+		depToLabels:  p.depToLabels,
+		m2RepoPath:   "",
+		seen:         map[string]bool{},
+		initialPath:  pathStart,
+		pomPaths:     []string{},
+		log:          p.log,
+		mvnIndexPath: p.mvnIndexPath,
 	}
 	filepath.WalkDir(pathStart, w.walkDirForPom)
 	return w.pomPaths
