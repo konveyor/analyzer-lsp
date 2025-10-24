@@ -8,20 +8,10 @@
   effort: 1
   category: potential
 - ruleID: test-tsx-support-00010
-  description: Test that nodejs provider can find references in .tsx files
+  description: Test that nodejs provider can find references in TypeScript/React files
   when:
     nodejs.referenced:
       pattern: "React"
-      location: ".tsx"
-  message: Found React reference in .tsx file using nodejs provider
-  effort: 1
-  category: potential
-- ruleID: test-tsx-support-00020
-  description: Test that nodejs provider can find references in .jsx files
-  when:
-    nodejs.referenced:
-      pattern: "React"
-      location: ".jsx"
-  message: Found React reference in .jsx file using nodejs provider
+  message: Found React reference using nodejs provider
   effort: 1
   category: potential
