@@ -26,8 +26,6 @@ const (
 const (
 	METAINF = "META-INF"
 	WEBINF  = "WEB-INF"
-	JAVA    = "src/main/java"
-	WEBAPP  = "src/main/webapp"
 )
 
 const (

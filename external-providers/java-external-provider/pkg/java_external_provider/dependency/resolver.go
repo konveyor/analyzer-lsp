@@ -270,6 +270,7 @@ func createJavaProject(_ context.Context, dir string, dependencies []JavaArtifac
 	if err != nil {
 		return err
 	}
+	defer pom.Close()
 
 	err = tmpl.Execute(pom, dependencies)
 	if err != nil {

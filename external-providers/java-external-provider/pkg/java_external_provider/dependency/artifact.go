@@ -171,6 +171,8 @@ func constructArtifactFromPom(log logr.Logger, jarFile string, labeler labels.La
 			return dep, err
 		}
 
+		log.Info("match", "match", match, "name", file.Name)
+
 		if match {
 			// Open the file in the ZIP archive
 			rc, err := file.Open()

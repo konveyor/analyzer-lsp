@@ -327,7 +327,7 @@ func (p testProject) matchProject(dir string, t *testing.T) {
 			t.Logf("could not find file: %v", filepath.ToSlash(relPath))
 			t.Fail()
 		} else {
-			p.output[relPath] = &struct{}{}
+			p.output[filepath.ToSlash(relPath)] = &struct{}{}
 		}
 
 		return nil
@@ -363,7 +363,7 @@ func (m testMavenDir) matchMavenDir(dir string, t *testing.T) {
 			t.Logf("could not find file: %v", path)
 			t.Fail()
 		} else {
-			m.output[relPath] = &struct{}{}
+			m.output[filepath.ToSlash(relPath)] = &struct{}{}
 		}
 
 		return nil
@@ -625,7 +625,7 @@ func TestDecompile(t *testing.T) {
 				workers:            10,
 				labler:             &testLabeler{},
 				disableMavenSearch: true,
-				m2Repo:             mavenDir,
+				m2Repo:             filepath.Clean(mavenDir),
 			})
 			if err != nil {
 				t.Fail()
@@ -635,7 +635,7 @@ func TestDecompile(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			artifacts, err := decompiler.DecompileIntoProject(context.Background(), p, projectTmpDir)
+			artifacts, err := decompiler.DecompileIntoProject(context.Background(), p, filepath.Clean(projectTmpDir))
 			if err != nil {
 				t.Fail()
 			}
