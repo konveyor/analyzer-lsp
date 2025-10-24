@@ -690,6 +690,7 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	}
 	regex, err := regexp.Compile(dc.NameRegex)
 	if err != nil {
+		log.Error(err, "unable to get regex for name search")
 		return resp, err
 	}
 	type matchedDep struct {
