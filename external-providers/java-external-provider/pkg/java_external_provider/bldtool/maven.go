@@ -56,7 +56,7 @@ func getMavenBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	mavenBaseTool := mavenBaseTool{
 		mvnInsecure:     opts.MvnInsecure,
 		mvnSettingsFile: opts.MvnSettingsFile,
-		mvnIndexPath:    opts.MvnIndexPath,
+		mavenIndexPath:  opts.MavenIndexPath,
 		log:             log,
 		labeler:         opts.Labeler,
 	}
@@ -261,7 +261,7 @@ func (m *mavenBuildTool) parseDepString(dep, localRepoPath, pomPath string) (pro
 		d.FileURIPrefix = strings.ReplaceAll(d.FileURIPrefix, "\\", "/")
 	}
 
-	d.Extras = map[string]interface{}{
+	d.Extras = map[string]any{
 		groupIdKey:    group,
 		artifactIdKey: artifact,
 		pomPathKey:    pomPath,
@@ -288,7 +288,7 @@ func (m *mavenBuildTool) parseMavenDepLines(lines []string, localRepoPath, pomPa
 			if err != nil {
 				return nil, err
 			}
-			dm := map[string]interface{}{
+			dm := map[string]any{
 				"name":    baseDep.Name,
 				"version": baseDep.Version,
 				"extras":  baseDep.Extras,
@@ -310,7 +310,7 @@ func (m *mavenBuildTool) parseMavenDepLines(lines []string, localRepoPath, pomPa
 
 // resolveDepFilepath tries to extract a valid filepath for the dependency with either JAR or POM packaging
 func (m *mavenBuildTool) resolveDepFilepath(d *provider.Dep, group string, artifact string, localRepoPath string) string {
-	groupPath := strings.Replace(group, ".", "/", -1)
+	groupPath := strings.ReplaceAll(group, ".", "/")
 
 	// Try pom packaging (see https://www.baeldung.com/maven-packaging-types#4-pom)
 	var fp string

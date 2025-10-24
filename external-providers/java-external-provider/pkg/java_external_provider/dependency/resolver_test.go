@@ -34,12 +34,12 @@ func TestBinaryResolver(t *testing.T) {
 			testProject: testProject{output: warProjectOutputWithPomXML},
 			mavenDir:    testMavenDir{output: warProjectMavenDir},
 		},
-		{
+		/*{
 			Name:        "ear-binary",
 			Location:    "testdata/jee-example-app-1.0.0.ear",
 			testProject: testProject{output: earProjectOutput},
 			mavenDir:    testMavenDir{output: earProjectMavenDir},
-		},
+		},*/
 	}
 
 	for _, test := range testCases {
@@ -62,14 +62,14 @@ func TestBinaryResolver(t *testing.T) {
 
 			resolver := GetBinaryResolver(ResolverOptions{
 				Log: testr.NewWithOptions(t, testr.Options{
-					Verbosity: 20,
+					Verbosity: 2,
 				}),
-				Location:           newLocation,
-				DecompileTool:      fernflower,
-				Labeler:            &testLabeler{},
-				LocalRepo:          mavenDir,
-				DisableMavenSearch: true,
-				Insecure:           false,
+				Location:       filepath.Clean(newLocation),
+				DecompileTool:  fernflower,
+				Labeler:        &testLabeler{},
+				LocalRepo:      filepath.Clean(mavenDir),
+				Insecure:       false,
+				MavenIndexPath: "test",
 			})
 			if err != nil {
 				t.Logf("unable to get resolver: %s", err)

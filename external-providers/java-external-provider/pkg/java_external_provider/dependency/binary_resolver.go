@@ -9,28 +9,28 @@ import (
 )
 
 type binaryDependencyResolver struct {
-	decompileTool      string
-	labeler            labels.Labeler
-	localRepo          string
-	log                logr.Logger
-	settingsFile       string
-	insecure           bool
-	location           string
-	cleanBin           bool
-	disableMavenSearch bool
+	decompileTool  string
+	labeler        labels.Labeler
+	localRepo      string
+	log            logr.Logger
+	settingsFile   string
+	insecure       bool
+	location       string
+	cleanBin       bool
+	mavenIndexPath string
 }
 
 func GetBinaryResolver(options ResolverOptions) Resolver {
 	log := options.Log.WithName("binary-resolver")
 	return &binaryDependencyResolver{
-		localRepo:          options.LocalRepo,
-		settingsFile:       options.BuildFile,
-		insecure:           options.Insecure,
-		location:           options.Location,
-		log:                log,
-		decompileTool:      options.DecompileTool,
-		labeler:            options.Labeler,
-		disableMavenSearch: options.DisableMavenSearch,
+		localRepo:      options.LocalRepo,
+		settingsFile:   options.BuildFile,
+		insecure:       options.Insecure,
+		location:       options.Location,
+		log:            log,
+		decompileTool:  options.DecompileTool,
+		labeler:        options.Labeler,
+		mavenIndexPath: options.MavenIndexPath,
 	}
 }
 
@@ -38,12 +38,12 @@ func (m *binaryDependencyResolver) ResolveSources(ctx context.Context) (string, 
 	projectPath := filepath.Join(filepath.Dir(m.location), "java-project")
 	// And whatever else we need
 	decompiler, err := getDecompiler(DecompilerOpts{
-		DecompileTool:      m.decompileTool,
-		log:                m.log,
-		workers:            DefaultWorkerPoolSize,
-		labler:             m.labeler,
-		disableMavenSearch: m.disableMavenSearch,
-		m2Repo:             m.localRepo,
+		DecompileTool:  m.decompileTool,
+		log:            m.log,
+		workers:        DefaultWorkerPoolSize,
+		labler:         m.labeler,
+		m2Repo:         m.localRepo,
+		mavenIndexPath: m.mavenIndexPath,
 	})
 	if err != nil {
 		return "", "", err

@@ -38,6 +38,7 @@ const (
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
 	DISABLE_MAVEN_SEARCH          = "disableMavenSearch"
 	GRADLE_SOURCES_TASK_FILE      = "gradleSourcesTaskFile"
+	MAVEN_INDEX_PATH              = "mavenIndexPath"
 )
 
 const (
@@ -284,25 +285,30 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		fernflower = "/bin/fernflower.jar"
 	}
 
-	disableMavenSearch, ok := config.ProviderSpecificConfig[DISABLE_MAVEN_SEARCH].(bool)
-	mavenIndexPath, ok := config.ProviderSpecificConfig[providerSpecificConfigMavenIndexPath].(string)
-
 	gradleTaskFile, ok := config.ProviderSpecificConfig[GRADLE_SOURCES_TASK_FILE].(string)
 	if !ok {
 		gradleTaskFile = ""
 	}
 
+	var mavenIndexPath string
+	if val, ok := config.ProviderSpecificConfig[labels.ProviderSpecificConfigOpenSourceDepListKey]; ok {
+		if strVal, ok := val.(string); ok {
+			mavenIndexPath = strVal
+		}
+	}
+
 	// each service client should have their own context
-	ctx, cancelFunc := context.WithCancel(ctx)
+	downloadCtx, cancelFunc := context.WithCancel(ctx)
 	// location can be a coordinate to a remote mvn artifact
 	if downloader, ok := bldtool.GetDownloader(config.Location, mavenSettingsFile, mavenInsecure, log); ok {
-		downloadPath, err := downloader.Download(ctx)
+		downloadPath, err := downloader.Download(downloadCtx)
 		if err != nil {
 			cancelFunc()
 			return nil, additionalBuiltinConfig, err
 		}
 		config.Location = downloadPath
 	}
+	cancelFunc()
 
 	openSourceLabeler, err := labels.GetOpenSourceLabeler(config.ProviderSpecificConfig, log)
 	if err != nil {
@@ -314,13 +320,12 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	/// Full Analysis Mode OR binary analysis should kick of the resolve sources.
 	// TODO: handle Continue Errors vs Non Continue Errors in bldtool
 	buildTool := bldtool.GetBuildTool(bldtool.BuildToolOptions{
-		Config:             config,
-		MvnSettingsFile:    mavenSettingsFile,
-		MvnInsecure:        mavenInsecure,
-		MvnIndexPath:       mavenIndexPath,
-		DisableMavenSearch: disableMavenSearch,
-		Labeler:            openSourceLabeler,
-		GradleTaskFile:     gradleTaskFile,
+		Config:          config,
+		MvnSettingsFile: mavenSettingsFile,
+		MvnInsecure:     mavenInsecure,
+		MavenIndexPath:  mavenIndexPath,
+		Labeler:         openSourceLabeler,
+		GradleTaskFile:  gradleTaskFile,
 	}, log)
 
 	if buildTool.ShouldResolve() || mode == provider.FullAnalysisMode {
@@ -644,7 +649,7 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string) (settingsFile string
 	if err != nil {
 		return "", err
 	}
-	_, err = f.Write([]byte(fmt.Sprintf(fileContentTemplate, m2CacheDir)))
+	_, err = fmt.Fprint(f, fileContentTemplate, m2CacheDir)
 	if err != nil {
 		return "", err
 	}

@@ -53,7 +53,7 @@ func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	mavenBaseTool := mavenBaseTool{
 		mvnInsecure:     opts.MvnInsecure,
 		mvnSettingsFile: opts.MvnSettingsFile,
-		mvnIndexPath:    opts.MvnIndexPath,
+		mavenIndexPath:  opts.MavenIndexPath,
 		log:             log,
 		labeler:         opts.Labeler,
 	}
@@ -101,7 +101,7 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 			mvnInsecure:     m.mvnInsecure,
 			mvnSettingsFile: m.mvnSettingsFile,
 			mvnLocalRepo:    m.mvnLocalRepo,
-			mvnIndexPath:    m.mvnIndexPath,
+			mavenIndexPath:  m.mavenIndexPath,
 			dependencyPath:  depPath,
 			log:             m.log,
 			labeler:         m.labeler,
@@ -137,16 +137,16 @@ func (m *mavenBinaryBuildTool) GetDependencies(ctx context.Context) (map[uri.URI
 }
 
 // discoverDepsFromJars walks given path to discover dependencies embedded as JARs
-func (m *mavenBinaryBuildTool) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem, disableMavenSearch bool) {
+func (m *mavenBinaryBuildTool) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem, mavenIndexPath string) {
 	// for binaries we only find JARs embedded in archive
 	w := walker{
-		deps:               ll,
-		labeler:            m.labeler,
-		m2RepoPath:         m.mvnLocalRepo,
-		seen:               map[string]bool{},
-		initialPath:        path,
-		log:                m.log,
-		disableMavenSearch: disableMavenSearch,
+		deps:           ll,
+		labeler:        m.labeler,
+		m2RepoPath:     m.mvnLocalRepo,
+		seen:           map[string]bool{},
+		initialPath:    path,
+		log:            m.log,
+		mavenIndexPath: mavenIndexPath,
 	}
 	filepath.WalkDir(path, w.walkDirForJar)
 }
@@ -176,14 +176,14 @@ func (m *mavenBinaryBuildTool) discoverPoms(pathStart string, ll map[uri.URI][]k
 //   - Dependency deduplication via seen map
 //   - Maven repository artifact identification
 type walker struct {
-	deps               map[uri.URI][]provider.DepDAGItem // Accumulated dependency graph
-	labeler            labels.Labeler                    // Labeler for dependency classification
-	m2RepoPath         string                            // Maven local repository path
-	initialPath        string                            // Starting path for traversal
-	seen               map[string]bool                   // Tracks processed artifacts to prevent duplicates
-	pomPaths           []string                          // Collected paths to found pom.xml files
-	log                logr.Logger                       // Logger instance
-	disableMavenSearch bool                              // Whether to skip Maven repository lookups
+	deps           map[uri.URI][]provider.DepDAGItem // Accumulated dependency graph
+	labeler        labels.Labeler                    // Labeler for dependency classification
+	m2RepoPath     string                            // Maven local repository path
+	initialPath    string                            // Starting path for traversal
+	seen           map[string]bool                   // Tracks processed artifacts to prevent duplicates
+	pomPaths       []string                          // Collected paths to found pom.xml files
+	log            logr.Logger                       // Logger instance
+	mavenIndexPath string
 }
 
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
@@ -202,7 +202,7 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 		d := provider.Dep{
 			Name: info.Name(),
 		}
-		artifact, _ := dependency.ToDependency(context.TODO(), w.log, w.labeler, path, w.disableMavenSearch)
+		artifact, _ := dependency.ToDependency(context.TODO(), w.log, w.labeler, path, w.mavenIndexPath)
 		if (artifact != dependency.JavaArtifact{}) {
 			d.Name = fmt.Sprintf("%s.%s", artifact.GroupId, artifact.ArtifactId)
 			d.Version = artifact.Version

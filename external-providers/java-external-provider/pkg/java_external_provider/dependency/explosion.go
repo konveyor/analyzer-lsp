@@ -23,7 +23,7 @@ func (e *explodeArtifact) ExplodeArtifact(ctx context.Context, log logr.Logger) 
 	tmpDir := os.TempDir()
 	tmpDir = filepath.Join(tmpDir, fmt.Sprintf("explode-%s-%v", strings.TrimSuffix(filepath.Base(e.artifactPath), filepath.Ext(e.artifactPath)), rand.IntN(100)))
 	log.V(7).Info("exploding into tmpDir", "tmpDir", tmpDir)
-	os.MkdirAll(tmpDir, DirPermRWXGrp)
+	os.MkdirAll(filepath.Clean(tmpDir), DirPermRWXGrp)
 
 	// Now we need to explode the archive into the tmp folder whole sale.
 	cmd := exec.CommandContext(ctx, "jar", "-xvf", e.artifactPath)

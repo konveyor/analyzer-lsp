@@ -19,17 +19,17 @@ import (
 )
 
 type gradleResolver struct {
-	log                logr.Logger
-	decompileTool      string
-	labeler            labels.Labeler
-	gradleVersion      version.Version
-	location           string
-	buildFile          string
-	wrapper            string
-	javaHome           string
-	taskFile           string
-	localRepo          string
-	disableMavenSearch bool
+	log           logr.Logger
+	decompileTool string
+	labeler       labels.Labeler
+	gradleVersion version.Version
+	location      string
+	buildFile     string
+	wrapper       string
+	javaHome      string
+	taskFile      string
+	localRepo     string
+	mvnIndexPath  string
 }
 
 func GetGradleResolver(opts ResolverOptions) Resolver {
@@ -118,12 +118,12 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 			return "", "", err
 		}
 		decompiler, err := getDecompiler(DecompilerOpts{
-			DecompileTool:      g.decompileTool,
-			log:                g.log,
-			workers:            DefaultWorkerPoolSize,
-			labler:             g.labeler,
-			disableMavenSearch: g.disableMavenSearch,
-			m2Repo:             cache,
+			DecompileTool:  g.decompileTool,
+			log:            g.log,
+			workers:        DefaultWorkerPoolSize,
+			labler:         g.labeler,
+			mavenIndexPath: g.mvnIndexPath,
+			m2Repo:         cache,
 		})
 		if err != nil {
 			return "", "", err

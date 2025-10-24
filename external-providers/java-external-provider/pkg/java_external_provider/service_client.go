@@ -112,7 +112,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
-	argumentsMap := map[string]interface{}{
+	argumentsMap := map[string]any{
 		"query":                      c.Referenced.Pattern,
 		"project":                    "java",
 		"location":                   fmt.Sprintf("%v", locationToCode[strings.ToLower(c.Referenced.Location)]),
@@ -166,7 +166,8 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	p.activeRPCCalls.Add(1)
 	defer p.activeRPCCalls.Done()
 
-	timeOutCtx, _ := context.WithTimeout(ctx, timeout)
+	timeOutCtx, cancelFunc := context.WithTimeout(ctx, timeout)
+	defer cancelFunc()
 	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp).Await(timeOutCtx, &refs)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
@@ -343,31 +344,31 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	params := &protocol.InitializeParams{}
 	params.RootURI = string(uri.File(absLocation))
 	params.Capabilities = protocol.ClientCapabilities{}
-	params.ExtendedClientCapilities = map[string]interface{}{
+	params.ExtendedClientCapilities = map[string]any{
 		"classFileContentsSupport": true,
 	}
 	// See https://github.com/eclipse-jdtls/eclipse.jdt.ls/blob/1a3dd9323756113bf39cfab82746d57a2fd19474/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/preferences/Preferences.java
 	java8home := os.Getenv("JAVA8_HOME")
-	params.InitializationOptions = map[string]interface{}{
+	params.InitializationOptions = map[string]any{
 		"bundles":          absBundles,
 		"workspaceFolders": []string{string(uri.File(absLocation))},
-		"settings": map[string]interface{}{
-			"java": map[string]interface{}{
-				"configuration": map[string]interface{}{
-					"maven": map[string]interface{}{
+		"settings": map[string]any{
+			"java": map[string]any{
+				"configuration": map[string]any{
+					"maven": map[string]any{
 						"userSettings":   p.mvnSettingsFile,
 						"globalSettings": p.globalSettings,
 					},
 				},
-				"autobuild": map[string]interface{}{
+				"autobuild": map[string]any{
 					"enabled": false,
 				},
-				"maven": map[string]interface{}{
+				"maven": map[string]any{
 					"downloadSources": downloadSources,
 				},
-				"import": map[string]interface{}{
-					"gradle": map[string]interface{}{
-						"java": map[string]interface{}{
+				"import": map[string]any{
+					"gradle": map[string]any{
+						"java": map[string]any{
 							"home": java8home,
 						},
 					},

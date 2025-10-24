@@ -32,7 +32,7 @@ func (j *jarExplodeArtifact) Run(ctx context.Context, log logr.Logger) error {
 	// Handle explosion
 	var err error
 	j.tmpDir, err = j.explodeArtifact.ExplodeArtifact(ctx, log)
-	log.V(7).Info(fmt.Sprintf("explode: %#v, %#v", j.tmpDir, err))
+	j.log.V(7).Info(fmt.Sprintf("explode: %#v, %#v", j.tmpDir, err))
 	if err != nil {
 		log.Error(err, "unable to explode")
 		return err
@@ -66,6 +66,8 @@ func (j *jarExplodeArtifact) HandleFile(path string, d fs.DirEntry, err error) e
 
 	outputPath := j.getOutputPath(relPath)
 
+	j.log.Info("paths", "relPath", relPath, "output", outputPath)
+
 	if d.IsDir() && filepath.Base(outputPath) == "lib" {
 		// We don't need to do anything  as all of these
 		// will be treated as dependencies
@@ -94,7 +96,7 @@ func (j *jarExplodeArtifact) HandleFile(path string, d fs.DirEntry, err error) e
 		if err != nil {
 			return err
 		}
-		parts := strings.Split(rel, "/")
+		parts := strings.Split(rel, string(filepath.Separator))
 		var dirToCreate string
 		if len(parts) == 0 {
 			dirToCreate = relPath

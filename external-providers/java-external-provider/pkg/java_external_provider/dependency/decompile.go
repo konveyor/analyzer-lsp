@@ -26,8 +26,6 @@ const (
 const (
 	METAINF = "META-INF"
 	WEBINF  = "WEB-INF"
-	JAVA    = "src/main/java"
-	WEBAPP  = "src/main/webapp"
 )
 
 const (
@@ -63,7 +61,7 @@ type baseArtifact struct {
 	decompileTool       string
 	javaPath            string
 	labeler             labels.Labeler
-	disableMavenSearch  bool
+	mavenIndexPath      string
 	decompiler          internalDecompiler
 	decompilerResponses chan DecomplierResponse
 	decompilerWG        *sync.WaitGroup
@@ -111,39 +109,39 @@ type Decompiler interface {
 // The Decompiler will spin up some number of threads, and then a worker will take the job
 // Executing the decompilation and file movement that must occur for the given job.
 type decompiler struct {
-	decompileTool      string
-	log                logr.Logger
-	workers            int
-	labeler            labels.Labeler
-	disableMavenSearch bool
-	jobs               chan decompileJob
-	cancelWorkersFunc  context.CancelFunc
-	java               string
-	m2Repo             string
+	decompileTool     string
+	log               logr.Logger
+	workers           int
+	labeler           labels.Labeler
+	jobs              chan decompileJob
+	cancelWorkersFunc context.CancelFunc
+	java              string
+	m2Repo            string
+	mavenIndexPath    string
 	// This should be set here when starting the decompiler
 }
 
 type DecompilerOpts struct {
-	DecompileTool      string
-	log                logr.Logger
-	workers            int
-	labler             labels.Labeler
-	disableMavenSearch bool
-	m2Repo             string
+	DecompileTool  string
+	log            logr.Logger
+	workers        int
+	labler         labels.Labeler
+	m2Repo         string
+	mavenIndexPath string
 }
 
 func getDecompiler(options DecompilerOpts) (Decompiler, error) {
 	log := options.log.WithName("decompiler")
 	java := filepath.Join(os.Getenv("JAVA_HOME"), "bin", "java")
 	d := decompiler{
-		decompileTool:      options.DecompileTool,
-		log:                log,
-		workers:            options.workers,
-		labeler:            options.labler,
-		disableMavenSearch: options.disableMavenSearch,
-		jobs:               make(chan decompileJob, 30),
-		java:               java,
-		m2Repo:             options.m2Repo,
+		decompileTool:  options.DecompileTool,
+		log:            log,
+		workers:        options.workers,
+		labeler:        options.labler,
+		jobs:           make(chan decompileJob, 30),
+		java:           java,
+		m2Repo:         options.m2Repo,
+		mavenIndexPath: options.mavenIndexPath,
 	}
 	// create and save decompile jobs channel.
 	// Start Worker threads
@@ -175,7 +173,7 @@ func (d *decompiler) Decompile(ctx context.Context, artifactPath string) ([]Java
 			decompileTool:       d.decompileTool,
 			javaPath:            d.java,
 			labeler:             d.labeler,
-			disableMavenSearch:  d.disableMavenSearch,
+			mavenIndexPath:      d.mavenIndexPath,
 			decompiler:          d,
 			decompilerResponses: responseChannel,
 			decompilerWG:        &waitGroup,
@@ -285,7 +283,7 @@ func (d *decompiler) getIntoProjectJob(artifactPath, projectPath string) (decomp
 					decompileTool:       d.decompileTool,
 					javaPath:            d.java,
 					labeler:             d.labeler,
-					disableMavenSearch:  d.disableMavenSearch,
+					mavenIndexPath:      d.mavenIndexPath,
 					decompiler:          d,
 					decompilerResponses: responseChannel,
 					decompilerWG:        &waitGroup,
@@ -308,7 +306,7 @@ func (d *decompiler) getIntoProjectJob(artifactPath, projectPath string) (decomp
 					decompileTool:       d.decompileTool,
 					javaPath:            d.java,
 					labeler:             d.labeler,
-					disableMavenSearch:  d.disableMavenSearch,
+					mavenIndexPath:      d.mavenIndexPath,
 					decompiler:          d,
 					decompilerResponses: responseChannel,
 					decompilerWG:        &waitGroup,
@@ -330,7 +328,7 @@ func (d *decompiler) getIntoProjectJob(artifactPath, projectPath string) (decomp
 					decompileTool:       d.decompileTool,
 					javaPath:            d.java,
 					labeler:             d.labeler,
-					disableMavenSearch:  d.disableMavenSearch,
+					mavenIndexPath:      d.mavenIndexPath,
 					decompiler:          d,
 					decompilerResponses: responseChannel,
 					decompilerWG:        &waitGroup,
@@ -361,7 +359,7 @@ func (d *decompiler) internalDecompile(ctx context.Context, artifactPath string,
 			decompileTool:       d.decompileTool,
 			javaPath:            d.java,
 			labeler:             d.labeler,
-			disableMavenSearch:  d.disableMavenSearch,
+			mavenIndexPath:      d.mavenIndexPath,
 			decompiler:          d,
 			decompilerResponses: response,
 			decompilerWG:        waitGroup,
@@ -407,7 +405,7 @@ func (d *decompiler) getIntoProjectJobInternal(artifactPath, projectPath string,
 					decompileTool:       d.decompileTool,
 					javaPath:            d.java,
 					labeler:             d.labeler,
-					disableMavenSearch:  d.disableMavenSearch,
+					mavenIndexPath:      d.mavenIndexPath,
 					decompiler:          d,
 					decompilerResponses: responseChannel,
 					decompilerWG:        waitGroup,
@@ -428,7 +426,7 @@ func (d *decompiler) getIntoProjectJobInternal(artifactPath, projectPath string,
 					decompileTool:       d.decompileTool,
 					javaPath:            d.java,
 					labeler:             d.labeler,
-					disableMavenSearch:  d.disableMavenSearch,
+					mavenIndexPath:      d.mavenIndexPath,
 					decompiler:          d,
 					decompilerResponses: responseChannel,
 					decompilerWG:        waitGroup,
@@ -448,7 +446,7 @@ func (d *decompiler) getIntoProjectJobInternal(artifactPath, projectPath string,
 					decompileTool:       d.decompileTool,
 					javaPath:            d.java,
 					labeler:             d.labeler,
-					disableMavenSearch:  d.disableMavenSearch,
+					mavenIndexPath:      d.mavenIndexPath,
 					decompiler:          d,
 					decompilerResponses: responseChannel,
 					decompilerWG:        waitGroup,

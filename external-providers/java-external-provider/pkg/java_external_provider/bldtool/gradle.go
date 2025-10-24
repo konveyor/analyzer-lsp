@@ -36,10 +36,10 @@ import (
 //   - Maven repository searches for artifact metadata (unless disabled)
 type gradleBuildTool struct {
 	depCache
-	taskFile           string         // Path to custom Gradle task file for dependency resolution
-	disableMavenSearch bool           // Whether to disable Maven repository lookups
-	log                logr.Logger    // Logger instance for this build tool
-	labeler            labels.Labeler // Labeler for identifying open source vs internal dependencies
+	taskFile       string // Path to custom Gradle task file for dependency resolution
+	mavenIndexPath string
+	log            logr.Logger    // Logger instance for this build tool
+	labeler        labels.Labeler // Labeler for identifying open source vs internal dependencies
 }
 
 func getGradleBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
@@ -60,10 +60,10 @@ func getGradleBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 				hashSync: &sync.Mutex{},
 				depLog:   log.WithName("dep-cache"),
 			},
-			taskFile:           opts.GradleTaskFile,
-			disableMavenSearch: opts.DisableMavenSearch,
-			log:                log,
-			labeler:            opts.Labeler,
+			taskFile:       opts.GradleTaskFile,
+			mavenIndexPath: opts.MavenIndexPath,
+			log:            log,
+			labeler:        opts.Labeler,
 		}
 	}
 	return nil
@@ -88,16 +88,16 @@ func (g *gradleBuildTool) GetResolver(decompileTool string) (dependency.Resolver
 	}
 
 	opts := dependency.ResolverOptions{
-		Log:                g.log,
-		Location:           filepath.Dir(g.hashFile),
-		BuildFile:          g.hashFile,
-		Version:            gradleVersion,
-		Wrapper:            gradleWrapper,
-		JavaHome:           javaHome,
-		DecompileTool:      decompileTool,
-		Labeler:            g.labeler,
-		GradleTaskFile:     g.taskFile,
-		DisableMavenSearch: g.disableMavenSearch,
+		Log:            g.log,
+		Location:       filepath.Dir(g.hashFile),
+		BuildFile:      g.hashFile,
+		Version:        gradleVersion,
+		Wrapper:        gradleWrapper,
+		JavaHome:       javaHome,
+		DecompileTool:  decompileTool,
+		Labeler:        g.labeler,
+		GradleTaskFile: g.taskFile,
+		MavenIndexPath: g.mavenIndexPath,
 	}
 	return dependency.GetGradleResolver(opts), nil
 }
@@ -194,9 +194,6 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 	m := map[uri.URI][]provider.DepDAGItem{}
 	m[file] = deps
 	g.depCache.setCachedDeps(m, err)
-	if err != nil {
-		return nil, err
-	}
 	return m, nil
 }
 

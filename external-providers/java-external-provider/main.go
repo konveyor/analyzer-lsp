@@ -29,7 +29,9 @@ func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
-	logrusLog.SetLevel(logrus.Level(30))
+	if logLevel != nil {
+		logrusLog.SetLevel(logrus.Level(*logLevel))
+	}
 	log := logrusr.New(logrusLog)
 	log = log.WithName("java-provider")
 

@@ -18,26 +18,26 @@ import (
 )
 
 type mavenDependencyResolver struct {
-	decompileTool      string
-	labeler            labels.Labeler
-	localRepo          string
-	log                logr.Logger
-	settingsFile       string
-	insecure           bool
-	location           string
-	disableMavenSearch bool
+	decompileTool  string
+	labeler        labels.Labeler
+	localRepo      string
+	log            logr.Logger
+	settingsFile   string
+	insecure       bool
+	location       string
+	mavenIndexPath string
 }
 
 func GetMavenResolver(options ResolverOptions) Resolver {
 	return &mavenDependencyResolver{
-		localRepo:          options.LocalRepo,
-		settingsFile:       options.BuildFile,
-		insecure:           options.Insecure,
-		location:           options.Location,
-		log:                options.Log,
-		decompileTool:      options.DecompileTool,
-		labeler:            options.Labeler,
-		disableMavenSearch: options.DisableMavenSearch,
+		localRepo:      options.LocalRepo,
+		settingsFile:   options.BuildFile,
+		insecure:       options.Insecure,
+		location:       options.Location,
+		log:            options.Log,
+		decompileTool:  options.DecompileTool,
+		labeler:        options.Labeler,
+		mavenIndexPath: options.MavenIndexPath,
 	}
 }
 
@@ -73,12 +73,12 @@ func (m *mavenDependencyResolver) ResolveSources(ctx context.Context) (string, s
 	}
 
 	decompiler, err := getDecompiler(DecompilerOpts{
-		DecompileTool:      m.decompileTool,
-		log:                m.log,
-		workers:            DefaultWorkerPoolSize,
-		labler:             m.labeler,
-		disableMavenSearch: m.disableMavenSearch,
-		m2Repo:             m.localRepo,
+		DecompileTool:  m.decompileTool,
+		log:            m.log,
+		workers:        DefaultWorkerPoolSize,
+		labler:         m.labeler,
+		m2Repo:         m.localRepo,
+		mavenIndexPath: m.mavenIndexPath,
 	})
 	if err != nil {
 		return "", "", err

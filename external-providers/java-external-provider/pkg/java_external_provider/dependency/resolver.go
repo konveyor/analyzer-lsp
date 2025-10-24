@@ -93,11 +93,6 @@ type ResolverOptions struct {
 	// May not be used by all build tools.
 	LocalRepo string
 
-	// DisableMavenSearch disables lookups to remote repositories for artifact identification.
-	// When true, relies solely on embedded metadata and JAR structure analysis.
-	// Useful in air-gapped environments or to reduce network traffic.
-	DisableMavenSearch bool
-
 	// BuildFile points to build tool-specific configuration file.
 	// May be a settings file or build definition depending on the build tool.
 	BuildFile string
@@ -121,6 +116,8 @@ type ResolverOptions struct {
 	// GradleTaskFile is the path to a custom task file for source download.
 	// Optional custom task file to use instead of embedded defaults.
 	GradleTaskFile string
+
+	MavenIndexPath string
 }
 
 func contains(artifacts []JavaArtifact, artifactToFind JavaArtifact) bool {
@@ -270,6 +267,7 @@ func createJavaProject(_ context.Context, dir string, dependencies []JavaArtifac
 	if err != nil {
 		return err
 	}
+	defer pom.Close()
 
 	err = tmpl.Execute(pom, dependencies)
 	if err != nil {
