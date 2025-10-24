@@ -81,13 +81,11 @@ The `bldtool` module provides an abstraction layer over different Java build sys
 
 ### Core Interface
 
-The main interface is `BuildTool` defined in `bldtool/tool.go:44-52`:
+The main interface is `BuildTool` defined in `bldtool/tool.go`:
 
 ```go
 type BuildTool interface {
     GetDependencies(context.Context) (map[uri.URI][]provider.DepDAGItem, error)
-    UseCache() (bool, error)
-    GetCachedDepError(errorCached map[string]error) (error, bool)
     GetLocalRepoPath() string
     GetSourceFileLocation(string, string, string) (string, error)
     GetResolver(string) (dependency.Resolver, error)
@@ -95,9 +93,97 @@ type BuildTool interface {
 }
 ```
 
+**Note**: Caching logic has been refactored and is now handled internally by each BuildTool implementation using the shared `depCache` struct.
+
 ### Key Components
 
-#### 1. BuildTool Factory (`bldtool/tool.go:65-83`)
+#### 0. Shared Dependency Cache (`bldtool/dep_cache.go`)
+
+**Responsibility**: Provide thread-safe dependency caching for all build tool implementations
+
+The `depCache` struct is embedded in each BuildTool implementation to provide consistent, thread-safe caching behavior:
+
+```go
+type depCache struct {
+    hashFile string      // Path to build file (pom.xml, build.gradle)
+    hash     *string     // SHA256 hash of build file for caching
+    hashSync *sync.Mutex // Mutex for thread-safe hash access
+    deps     map[uri.URI][]provider.DepDAGItem
+    depLog   logr.Logger
+}
+```
+
+**Key Methods**:
+
+- `useCache() (bool, error)` - Check if cached dependencies are valid
+  - Computes SHA256 hash of build file
+  - Compares with cached hash
+  - **Acquires lock on cache miss** to prevent concurrent dependency resolution
+  - Returns true if cache is valid, false if dependencies need to be re-fetched
+
+- `getCachedDeps() map[uri.URI][]provider.DepDAGItem` - Retrieve cached dependencies
+  - Returns the cached dependency DAG
+  - Called when `useCache()` returns true
+
+- `setCachedDeps(deps, err) error` - Update cache with new dependencies
+  - Stores new dependency results
+  - Updates cached hash
+  - **Releases lock** acquired by `useCache()`
+  - Ensures thread-safe cache updates
+
+**Cache Invalidation Strategy**:
+```
+┌──────────────────────────────────────────────┐
+│ GetDependencies() called                     │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│ useCache() checks build file hash            │
+│  - Compute SHA256 of build file              │
+│  - Compare with cached hash                  │
+└──────────────┬───────────────────────────────┘
+               │
+         ┌─────┴─────┐
+         │           │
+    Cache Hit    Cache Miss
+         │           │
+         │           v
+         │     ┌──────────────────────────────┐
+         │     │ Lock acquired (hashSync)     │
+         │     │ Prevent concurrent resolution│
+         │     └──────────────────────────────┘
+         │           │
+         v           v
+┌─────────────┐ ┌──────────────────────────────┐
+│Return cached│ │ Run build tool command       │
+│dependencies │ │  - mvn dependency:tree       │
+│             │ │  - gradlew dependencies      │
+│             │ └──────────────────────────────┘
+└─────────────┘          │
+                         v
+                ┌──────────────────────────────┐
+                │ setCachedDeps()              │
+                │  - Update cache              │
+                │  - Update hash               │
+                │  - Release lock              │
+                └──────────────────────────────┘
+```
+
+**Thread Safety Features**:
+- **Lock-on-miss**: When cache is invalid, lock is acquired immediately to prevent concurrent builds
+- **Lock-on-update**: Lock is released only after cache is updated with new results
+- **Single build execution**: Multiple concurrent requests will wait for the first to complete
+- **No deadlocks**: Lock is always released via `setCachedDeps()`, even on error
+
+**Benefits**:
+- Eliminates duplicate Maven/Gradle command execution
+- Reduces service client complexity (caching moved from client to build tool)
+- Thread-safe without requiring external synchronization
+- Automatic invalidation on build file changes
+- Consistent behavior across all build tool types
+
+#### 1. BuildTool Factory (`bldtool/tool.go`)
 
 The factory function `GetBuildTool()` determines which build tool to use based on:
 
@@ -123,50 +209,112 @@ The factory function `GetBuildTool()` determines which build tool to use based o
 
 **Responsibility**: Handle Maven-based projects
 
+**Structure**:
+```go
+type mavenBuildTool struct {
+    mavenBaseTool
+    depCache  // Embedded dependency cache
+}
+```
+
 **Key Methods**:
-- `GetDependencies()` - Runs `mvn dependency:tree` to extract dependency graph
-- `getDependenciesForMaven()` - Parses Maven output to build dependency DAG
+- `GetDependencies(ctx)` - Retrieves Maven dependencies with caching
+  - Calls `depCache.useCache()` to check cache validity
+  - Returns cached results on cache hit
+  - Calls `getDependenciesForMaven()` on cache miss
+  - Updates cache via `depCache.setCachedDeps()`
+  - **Thread-safe**: Lock managed by depCache
+- `getDependenciesForMaven()` - Runs `mvn dependency:tree` and parses output
 - `parseMavenDepLines()` - Recursively parses Maven dependency tree output
-- `GetDependenciesFallback()` - Directly parses pom.xml when Maven command fails
+- `GetDependenciesFallback()` - Directly parses pom.xml when Maven command fails (inherited from mavenBaseTool)
 
 **Dependency Resolution Flow**:
 ```
 ┌──────────────────────────────────────────────┐
-│  1. Run mvn dependency:tree                  │
+│  1. GetDependencies() called                 │
 └──────────────┬───────────────────────────────┘
                │
                v
 ┌──────────────────────────────────────────────┐
-│  2. Parse output using regex patterns        │
+│  2. depCache.useCache() checks pom.xml hash  │
+│     - Cache hit? Return cached dependencies  │
+│     - Cache miss? Acquire lock & continue    │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│  3. getDependenciesForMaven()                │
+│     - Run: mvn dependency:tree               │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│  4. Parse output using regex patterns        │
 │     - Extract submodule trees                │
 │     - Parse dependency strings               │
 └──────────────┬───────────────────────────────┘
                │
                v
 ┌──────────────────────────────────────────────┐
-│  3. Build DepDAGItem hierarchy               │
+│  5. Build DepDAGItem hierarchy               │
 │     - Direct dependencies                    │
 │     - Transitive dependencies (indirect)     │
 └──────────────┬───────────────────────────────┘
                │
                v
 ┌──────────────────────────────────────────────┐
-│  4. On failure → Use fallback pom.xml parser │
-│     (gopom library)                          │
+│  6. depCache.setCachedDeps()                 │
+│     - Update cache with results              │
+│     - Update hash                            │
+│     - Release lock                           │
 └──────────────────────────────────────────────┘
 ```
 
+**Note**: The fallback pom.xml parser is available through `GetDependenciesFallback()` but is now called separately, not automatically on failure.
+
 **Maven Shared Base** (`bldtool/maven_shared.go`):
-- `mavenBaseTool` struct provides common functionality
+
+The `mavenBaseTool` struct provides common functionality shared between Maven and Maven Binary build tools:
+
+```go
+type mavenBaseTool struct {
+    mvnInsecure     bool           // Whether to allow insecure HTTPS connections
+    mvnSettingsFile string         // Path to Maven settings.xml file
+    mvnLocalRepo    string         // Path to local Maven repository (.m2/repository)
+    mvnIndexPath    string         // Path to Maven index for artifact searches
+    dependencyPath  string         // Path to dependency configuration file
+    log             logr.Logger    // Logger instance
+    labeler         labels.Labeler // Labeler for identifying dependency types
+}
+```
+
+**Key Methods**:
 - `GetDependenciesFallback()` - Parses pom.xml directly using gopom library
 - `getMavenLocalRepoPath()` - Determines local Maven repository location
+- `GetLocalRepoPath()` - Returns the local Maven repository path
 
 #### 3. Gradle Build Tool (`bldtool/gradle.go`)
 
 **Responsibility**: Handle Gradle-based projects
 
+**Structure**:
+```go
+type gradleBuildTool struct {
+    depCache                        // Embedded dependency cache
+    taskFile           string       // Path to custom Gradle task file
+    disableMavenSearch bool         // Whether to disable Maven repository lookups
+    log                logr.Logger  // Logger instance
+    labeler            labels.Labeler // Labeler for dependency classification
+}
+```
+
 **Key Methods**:
-- `GetDependencies()` - Runs `gradlew dependencies` to extract dependency tree
+- `GetDependencies(ctx)` - Retrieves Gradle dependencies with caching
+  - Calls `depCache.useCache()` to check build.gradle hash
+  - Returns cached results on cache hit
+  - Calls internal dependency resolution on cache miss
+  - Updates cache via `depCache.setCachedDeps()`
+  - **Thread-safe**: Lock managed by depCache
 - `getGradleSubprojects()` - Identifies subprojects in multi-module builds
 - `parseGradleDependencyOutput()` - Parses Gradle dependency tree
 - `GetGradleVersion()` - Determines Gradle version for Java compatibility
@@ -191,10 +339,86 @@ Parsing Strategy:
 
 **Responsibility**: Handle binary artifacts (JAR/WAR/EAR files) without build files
 
+**Structure**:
+```go
+type mavenBinaryBuildTool struct {
+    mavenBaseTool
+    resolveSync    *sync.Mutex     // Protects resolution and mavenBldTool access
+    binaryLocation string          // Path to binary artifact
+    resolver       dependency.Resolver
+    mavenBldTool   *mavenBuildTool // Created after resolution completes
+}
+```
+
 **Key Methods**:
 - Extends `mavenBaseTool`
 - `ShouldResolve()` returns `true` - binary artifacts always need resolution
 - `GetResolver()` - Returns a binary resolver for decompiling
+- `ResolveSources(ctx)` - Decompiles binary and creates Maven project structure
+  - **Acquires resolveSync lock** to prevent concurrent resolution
+  - Calls resolver to decompile binary
+  - Creates `mavenBuildTool` instance with generated pom.xml
+  - Calls `mavenBuildTool.GetDependencies()` to analyze decompiled project
+  - **Releases lock** after resolution completes
+- `GetDependencies(ctx)` - Returns dependencies from decompiled project
+  - **Acquires resolveSync lock** for thread-safe access
+  - Returns error if resolution hasn't completed yet
+  - Delegates to `mavenBldTool.GetDependencies()` after resolution
+
+**Binary Resolution and Synchronization Flow**:
+```
+┌──────────────────────────────────────────────┐
+│ Binary artifact analysis starts              │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│ ResolveSources() called (from provider init) │
+│  - Acquires resolveSync lock                 │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│ Binary resolver decompiles artifact          │
+│  - Explodes JAR/WAR/EAR structure            │
+│  - Decompiles .class files                   │
+│  - Generates pom.xml with dependencies       │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│ Create mavenBuildTool instance               │
+│  - Points to generated pom.xml               │
+│  - Includes depCache for dependency caching  │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│ Call mavenBuildTool.GetDependencies()        │
+│  - Analyzes generated pom.xml                │
+│  - Populates depCache                        │
+└──────────────┬───────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│ Release resolveSync lock                     │
+│ - Binary is now ready for analysis           │
+└──────────────────────────────────────────────┘
+               │
+               v
+┌──────────────────────────────────────────────┐
+│ Subsequent GetDependencies() calls           │
+│  - Acquire resolveSync lock                  │
+│  - Delegate to mavenBldTool (uses depCache)  │
+│  - Release lock and return results           │
+└──────────────────────────────────────────────┘
+```
+
+**Thread Safety Features**:
+- **resolveSync mutex**: Ensures only one thread performs binary resolution
+- **Wait-for-resolution**: `GetDependencies()` waits if resolution is in progress
+- **Lazy mavenBuildTool creation**: Only created after successful decompilation
+- **Delegation to depCache**: Once resolved, uses standard Maven caching via mavenBuildTool
 
 #### 5. Maven Downloader (`bldtool/maven_downloader.go`)
 
@@ -906,39 +1130,52 @@ For an incident at line 42 with 2 context lines:
 
 ### Service Client Responsibilities
 
-The `javaServiceClient` (`service_client.go:27-48`) is the main interface for analyzing Java code:
+The `javaServiceClient` (`service_client.go:27-45`) is the main interface for analyzing Java code:
 
 **Key Components**:
 ```go
 type javaServiceClient struct {
-    rpc                provider.RPCClient      // JSON-RPC to JDTLS
-    buildTool          bldtool.BuildTool       // Reference to build tool
-    config             provider.InitConfig      // Configuration
-    depsCache          map[uri.URI][]provider.DepDAGItem  // Cached deps
-    mvnSettingsFile    string                  // Maven settings
-    mvnIndexPath       string                  // Maven index for labeling
+    rpc                provider.RPCClient    // JSON-RPC to JDTLS
+    cancelFunc         context.CancelFunc    // Cancel function for cleanup
+    config             provider.InitConfig   // Configuration
+    log                logr.Logger           // Logger instance
+    cmd                *exec.Cmd             // JDTLS process
+    bundles            []string              // OSGi bundles for JDTLS
+    workspace          string                // Workspace directory
+    isLocationBinary   bool                  // Whether analyzing binary artifact
+    globalSettings     string                // Global settings file path
+    includedPaths      []string              // Paths to include in analysis
+    cleanExplodedBins  []string              // Binary explosion dirs to clean up
+    disableMavenSearch bool                  // Whether to disable Maven lookups
+    activeRPCCalls     sync.WaitGroup        // Tracks active RPC calls
+    depsLocationCache  map[string]int        // Cache for dependency locations
+    buildTool          bldtool.BuildTool     // Reference to build tool
+    mvnIndexPath       string                // Maven index for labeling
+    mvnSettingsFile    string                // Maven settings file
 }
 ```
 
+**Note**: As of commit 7b864b5, `depsCache`, `depsMutex`, and `depsErrCache` fields have been removed. Dependency caching is now handled by the BuildTool implementations.
+
 **Key Methods**:
 
-1. **Evaluate()** (`service_client.go:52-112`)
+1. **Evaluate()** (`service_client.go:49+`)
    - Evaluates rule conditions using JDTLS
    - Calls `GetAllSymbols()` to query code
    - Filters results based on location type (inheritance, method calls, etc.)
 
 2. **GetDependencies()** (via BuildTool)
    - Returns dependency DAG for the project
-   - Uses caching to avoid repeated Maven/Gradle executions
+   - Delegates to BuildTool which handles caching internally
 
-3. **GetAllSymbols()** (`service_client.go:114-198`)
+3. **GetAllSymbols()** (`service_client.go:111+`)
    - Sends workspace/executeCommand to JDTLS
    - Command: `io.konveyor.tackle.ruleEntry`
    - Returns matching symbols from codebase
 
 ### Dependency Caching and Retrieval
 
-The service client implements a thread-safe dependency caching mechanism in `dependency.go` to avoid repeated expensive build tool executions.
+The service client in `dependency.go` provides a simplified interface for dependency retrieval. Caching is now handled internally by the BuildTool implementations.
 
 **Key Methods**:
 
@@ -947,13 +1184,12 @@ The service client implements a thread-safe dependency caching mechanism in `dep
    - Converts DAG structure to flat list
    - Uses `provider.ConvertDagItemsToList()` for transitive dependencies
 
-2. **`GetDependenciesDAG(ctx context.Context)`** - Returns dependency DAG with caching
-   - **Thread-safe**: Uses `depsMutex` to protect cache access
-   - Checks if build file changed via `buildTool.UseCache()`
-   - Returns cached results if build file unchanged
-   - Updates cache on cache miss
+2. **`GetDependenciesDAG(ctx context.Context)`** - Returns dependency DAG
+   - **Simplified**: No longer manages cache or synchronization at this level
+   - Directly delegates to `buildTool.GetDependencies(ctx)`
+   - BuildTool handles all caching and thread-safety internally
 
-**Caching Strategy**:
+**Simplified Retrieval Flow**:
 ```
 ┌──────────────────────────────────────────────┐
 │ User requests dependency analysis            │
@@ -962,49 +1198,36 @@ The service client implements a thread-safe dependency caching mechanism in `dep
                v
 ┌──────────────────────────────────────────────┐
 │ Service Client: GetDependenciesDAG()         │
-│  - Lock depsMutex (thread safety)            │
+│  - No locks needed at this level             │
 └──────────────┬───────────────────────────────┘
                │
                v
 ┌──────────────────────────────────────────────┐
-│ BuildTool: UseCache()                        │
-│  - Check if pom.xml/build.gradle changed     │
-│  - Compare SHA256 hash of build file         │
+│ BuildTool: GetDependencies(ctx)              │
+│  - BuildTool manages its own cache/locks     │
+│  - For Maven/Gradle: uses depCache           │
+│  - For Binary: uses resolveSync              │
 └──────────────┬───────────────────────────────┘
-               │
-         ┌─────┴─────┐
-         │           │
-    Cache Hit    Cache Miss
-         │           │
-         │           v
-         │     ┌──────────────────────────────┐
-         │     │ BuildTool: GetDependencies() │
-         │     │  - Run Maven/Gradle          │
-         │     │  - Parse dependency tree     │
-         │     │  - Update depsCache          │
-         │     └──────────────────────────────┘
-         │           │
-         └─────┬─────┘
                │
                v
 ┌──────────────────────────────────────────────┐
-│ Unlock depsMutex                             │
 │ Return map[uri.URI][]provider.DepDAGItem    │
 │  - Key: Build file URI                       │
 │  - Value: List of dependencies with DAG      │
 └──────────────────────────────────────────────┘
 ```
 
-**Cache Benefits**:
-- Avoids expensive Maven/Gradle command execution
-- Thread-safe for concurrent access
-- Automatically invalidates when build file changes
-- Reduces analysis time for repeated requests
+**Architectural Benefits of Refactoring**:
+- **Separation of concerns**: Service client no longer manages caching
+- **Encapsulation**: Each BuildTool controls its own synchronization strategy
+- **Reduced complexity**: Eliminated `depsMutex`, `depsCache`, and `depsErrCache` from service client
+- **Consistent behavior**: All build tools use same depCache pattern
+- **Thread-safety**: Moved from service client level to BuildTool level where it belongs
 
 **Dual Interface**:
 - `GetDependencies()`: Returns flat list (`[]*provider.Dep`)
 - `GetDependenciesDAG()`: Returns DAG structure (`[]provider.DepDAGItem`)
-- Both use same underlying cache
+- Both delegate to BuildTool's internal implementation
 - DAG structure preserves transitive dependency relationships
 
 ### Relationship Diagram
@@ -1611,9 +1834,10 @@ func (a *antBuildTool) GetResolver(decompileTool string) (dependency.Resolver, e
 
 **Build Tool Module**:
 - **bldtool/tool.go**: Main BuildTool interface and factory
+- **bldtool/dep_cache.go**: Shared dependency caching mechanism for all build tools
 - **bldtool/maven.go**: Maven build tool implementation
 - **bldtool/gradle.go**: Gradle build tool implementation
-- **bldtool/maven_binary.go**: Binary artifact handling
+- **bldtool/maven_binary.go**: Binary artifact handling with resolution synchronization
 - **bldtool/maven_shared.go**: Shared Maven functionality
 - **bldtool/maven_downloader.go**: Maven artifact downloader with mvn:// URI support
 
