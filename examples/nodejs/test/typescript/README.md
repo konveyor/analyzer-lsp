@@ -31,7 +31,7 @@ EOF
 # Run test
 ./konveyor-analyzer \
   --provider-settings=/tmp/provider-settings.json \
-  --rules=test/test-tsx-support.yaml \
+  --rules=./test-tsx-support.yaml \
   --output-file=/tmp/output.yaml
 
 # Verify success
@@ -52,7 +52,7 @@ echo ".example { color: var(--pf-global); }" > /tmp/test-tsx-app/src/test.css
 # Run test
 ./konveyor-analyzer \
   --provider-settings=/tmp/provider-settings.json \
-  --rules=test/test-brace-expansion.yaml \
+  --rules=./test-brace-expansion.yaml \
   --output-file=/tmp/output.yaml
 
 # Count matches (should be 5: .tsx, .ts, .js, .jsx files + 1 CSS)
@@ -77,7 +77,7 @@ done
 # Time the analysis (should be fast)
 time ./konveyor-analyzer \
   --provider-settings=/tmp/provider-settings.json \
-  --rules=test/test-tsx-support.yaml \
+  --rules=./test-tsx-support.yaml \
   --output-file=/tmp/output.yaml
 ```
 
