@@ -468,24 +468,14 @@
     builtin.filecontent:
       pattern: "import.*React"
       filePattern: "\\.tsx$"
-- message: Found React reference in .tsx file using nodejs provider
+- message: Found React reference using nodejs provider
   ruleID: test-tsx-support-00010
-  description: Test that nodejs provider can find references in .tsx files
+  description: Test that nodejs provider can find references in TypeScript/React files
   effort: 1
   category: potential
   when:
     nodejs.referenced:
       pattern: "React"
-      location: ".tsx"
-- message: Found React reference in .jsx file using nodejs provider
-  ruleID: test-tsx-support-00020
-  description: Test that nodejs provider can find references in .jsx files
-  effort: 1
-  category: potential
-  when:
-    nodejs.referenced:
-      pattern: "React"
-      location: ".jsx"
 - message: Found React reference using regex pattern
   ruleID: test-regex-pattern-00000
   description: Test regex pattern for TypeScript/JavaScript files
