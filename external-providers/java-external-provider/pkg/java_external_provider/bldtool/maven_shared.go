@@ -31,7 +31,7 @@ type mavenBaseTool struct {
 	mvnInsecure     bool           // Whether to allow insecure HTTPS connections
 	mvnSettingsFile string         // Path to Maven settings.xml file
 	mvnLocalRepo    string         // Path to local Maven repository (.m2/repository)
-	mvnIndexPath    string         // Path to Maven index for artifact searches
+	mavenIndexPath  string         // Path to Maven index for artifact searches
 	dependencyPath  string         // Path to dependency configuration file
 	log             logr.Logger    // Logger instance for this build tool
 	labeler         labels.Labeler // Labeler for identifying dependency types
@@ -76,7 +76,7 @@ func (m *mavenBaseTool) GetDependenciesFallback(ctx context.Context, location st
 		}
 		dep := provider.Dep{}
 		dep.Name = fmt.Sprintf("%s.%s", *d.GroupID, *d.ArtifactID)
-		dep.Extras = map[string]interface{}{
+		dep.Extras = map[string]any{
 			groupIdKey:    *d.GroupID,
 			artifactIdKey: *d.ArtifactID,
 			pomPathKey:    location,
@@ -104,7 +104,7 @@ func (m *mavenBaseTool) GetDependenciesFallback(ctx context.Context, location st
 			}
 			if m.mvnLocalRepo != "" && d.ArtifactID != nil && d.GroupID != nil {
 				dep.FileURIPrefix = fmt.Sprintf("file://%s", filepath.Join(m.mvnLocalRepo,
-					strings.Replace(*d.GroupID, ".", "/", -1), *d.ArtifactID, dep.Version))
+					strings.ReplaceAll(*d.GroupID, ".", "/"), *d.ArtifactID, dep.Version))
 			}
 		}
 		dagDep := provider.DepDAGItem{Dep: dep}

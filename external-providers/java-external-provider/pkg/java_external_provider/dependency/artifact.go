@@ -3,20 +3,21 @@ package dependency
 import (
 	"archive/zip"
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/go-logr/logr"
-	engine_labels "github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
 	"github.com/vifraa/gopom"
 )
@@ -53,17 +54,13 @@ func (j JavaArtifact) ToPomDep() gopom.Dependency {
 }
 
 // toDependency returns javaArtifact constructed for a jar
-func ToDependency(_ context.Context, log logr.Logger, labeler labels.Labeler, jarFile string, disableMavenSearch bool) (JavaArtifact, error) {
-	if !disableMavenSearch {
-		dep, err := constructArtifactFromSHA(log, jarFile)
-		if err == nil {
-			return dep, nil
-		}
-		log.V(3).Error(err, "unable to look up dependency by SHA, falling back to get maven cordinates", "jar", jarFile)
-	} else {
-		log.Info("maven search disabled - looking for dependencies from poms and jar structure")
+func ToDependency(_ context.Context, log logr.Logger, labeler labels.Labeler, jarFile string, mavenIndexPath string) (JavaArtifact, error) {
+	dep, err := constructArtifactFromSHA(log, jarFile, mavenIndexPath)
+	if err == nil {
+		return dep, nil
 	}
-	dep, err := constructArtifactFromPom(log, jarFile, labeler)
+	log.V(3).Error(err, "unable to look up dependency by SHA, falling back to get maven cordinates", "jar", jarFile)
+	dep, err = constructArtifactFromPom(log, jarFile)
 	if err == nil {
 		return dep, nil
 	}
@@ -80,7 +77,7 @@ func ToDependency(_ context.Context, log logr.Logger, labeler labels.Labeler, ja
 
 var mavenSearchErrorCache error
 
-func constructArtifactFromSHA(log logr.Logger, jarFile string) (JavaArtifact, error) {
+func constructArtifactFromSHA(log logr.Logger, jarFile string, mavenIndexPath string) (JavaArtifact, error) {
 	dep := JavaArtifact{}
 	// we look up the jar in maven
 	file, err := os.Open(jarFile)
@@ -96,67 +93,16 @@ func constructArtifactFromSHA(log logr.Logger, jarFile string) (JavaArtifact, er
 	}
 
 	sha1sum := hex.EncodeToString(hash.Sum(nil))
-
-	// if maven search is down, we do not want to keep trying on each dep
-	if mavenSearchErrorCache != nil {
-		log.Info("maven search is down, returning cached error", "error", mavenSearchErrorCache)
-		return dep, mavenSearchErrorCache
-	}
-
-	// Make an HTTPS request to search.maven.org
-	searchURL := fmt.Sprintf("https://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
-	resp, err := http.Get(searchURL)
+	dataFilePath := filepath.Join(mavenIndexPath, "maven-index.txt")
+	indexFilePath := filepath.Join(mavenIndexPath, "maven-index.idx")
+	dep, err = search(log, sha1sum, dataFilePath, indexFilePath)
 	if err != nil {
-		return dep, err
+		return constructArtifactFromPom(log, jarFile)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		statusErr := fmt.Errorf("Maven search is unavailable: %s", resp.Status)
-		// cache the server errors
-		if resp.StatusCode >= 500 {
-			mavenSearchErrorCache = statusErr
-		}
-		return dep, statusErr
-	}
-
-	// Read and parse the JSON response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return dep, err
-	}
-
-	var data map[string]any
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		return dep, err
-	}
-
-	// Check if a single result is found
-	response, ok := data["response"].(map[string]any)
-	if !ok {
-		return dep, err
-	}
-
-	numFound, ok := response["numFound"].(float64)
-	if !ok {
-		return dep, err
-	}
-
-	if numFound == 1 {
-		jarInfo := response["docs"].([]any)[0].(map[string]any)
-		dep.GroupId = jarInfo["g"].(string)
-		dep.ArtifactId = jarInfo["a"].(string)
-		dep.Version = jarInfo["v"].(string)
-		dep.Sha1 = sha1sum
-		dep.FoundOnline = true
-		return dep, nil
-	} else if numFound > 1 {
-		return dep, fmt.Errorf("unable to determine maven cordinates, got more then one for jar")
-	}
-	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
+	return dep, nil
 }
-func constructArtifactFromPom(log logr.Logger, jarFile string, labeler labels.Labeler) (JavaArtifact, error) {
+
+func constructArtifactFromPom(log logr.Logger, jarFile string) (JavaArtifact, error) {
 	log.V(5).Info("trying to find pom within jar %s to get info", jarFile)
 	dep := JavaArtifact{}
 	jar, err := zip.OpenReader(jarFile)
@@ -170,6 +116,8 @@ func constructArtifactFromPom(log logr.Logger, jarFile string, labeler labels.La
 		if err != nil {
 			return dep, err
 		}
+
+		log.Info("match", "match", match, "name", file.Name)
 
 		if match {
 			// Open the file in the ZIP archive
@@ -189,23 +137,6 @@ func constructArtifactFromPom(log logr.Logger, jarFile string, labeler labels.La
 					dep.ArtifactId = strings.TrimSpace(after0)
 				} else if after1, ok1 := strings.CutPrefix(line, "groupId="); ok1 {
 					dep.GroupId = strings.TrimSpace(after1)
-				}
-			}
-			// Setting false here because we don't know if it is opensource or not.
-			depName := fmt.Sprintf("%s.%s", dep.GroupId, dep.ArtifactId)
-			groupIdRegex := strings.Join([]string{dep.GroupId, "*"}, ".")
-			if labeler.HasLabel(groupIdRegex) {
-				dep.FoundOnline = true
-			}
-			l := labeler.AddLabels(depName, dep.FoundOnline)
-			for _, l := range l {
-				if l == engine_labels.AsString(labels.DepSourceLabel, labels.JavaDepSourceOpenSource) {
-					// Setting here to make things easier.
-					dep.FoundOnline = true
-					break
-				}
-				if l == engine_labels.AsString(labels.DepSourceLabel, labels.JavaDepSourceInternal) {
-					break
 				}
 			}
 			return dep, err
@@ -323,4 +254,179 @@ func ToFilePathDependency(_ context.Context, filePath string) (JavaArtifact, err
 	dep.GroupId = strings.ReplaceAll(filepath.Dir(dir), "/", ".")
 	dep.Version = "0.0.0"
 	return dep, nil
+}
+
+const KeySize = 40
+
+// entrySize defines the fixed size of each index entry in bytes.
+// Each entry contains: key (KeySize bytes) + offset (8 bytes) + length (8 bytes).
+const entrySize = KeySize + 8 + 8
+
+// IndexEntry represents a single entry in the search index.
+// It contains the key and metadata needed to locate the corresponding value in the data file.
+type IndexEntry struct {
+	Key    string // The search key
+	Offset int64  // Byte offset of the line in the data file
+	Length int64  // Length of the line in the data file
+}
+
+// search performs a complete search operation for a given key.
+// It opens the index and data files, searches for the key, and prints the result.
+// This is the main search function used by the CLI.
+//
+// Parameters:
+//   - key: the key to search for
+//   - indexFile: path to the binary index file
+//   - dataFile: path to the original data file
+//
+// Returns an error if any step of the search process fails.
+func search(log logr.Logger, key, dataFile, indexFile string) (JavaArtifact, error) {
+	data, err := os.Open(dataFile)
+	if err != nil {
+		return JavaArtifact{}, err
+	}
+	defer data.Close()
+	val, err := searchIndex(log, data, key)
+	if err != nil {
+		return JavaArtifact{}, fmt.Errorf("search failed: %w", err)
+	}
+
+	return buildJavaArtifact(key, val), nil
+}
+
+// searchIndex performs a binary search on the index file to find an exact key match.
+// It uses Go's sort.Search function to efficiently locate the key in the sorted index.
+// This removes the need to read the entire index file into memory.
+//
+// Parameters:
+//   - f: open file handle to the binary index file
+//   - key: the key to search for
+//
+// Returns the IndexEntry if found, or an error if the key doesn't exist.
+func searchIndex(log logr.Logger, f *os.File, key string) (string, error) {
+	fi, err := f.Stat()
+	if err != nil {
+		return "", err
+	}
+	n := int(fi.Size())
+
+	// binary search over file
+	var entry string
+	var searchErr error
+	i := sort.Search(n, func(i int) bool {
+		// Hopefully this short circuts the search loop
+		if searchErr != nil {
+			return true
+		}
+		log.Info("read at", "index", i)
+		entryKey, newEntry, err := readKeyAt(f, i)
+		log.Info("finished read at", "index", i, "key", key, "newKey", entryKey, "newEntry", newEntry, "err", err)
+		if err != nil {
+			searchErr = err
+			return true
+		}
+		if entryKey == key {
+			entry = newEntry
+		}
+		return entryKey >= key
+	})
+	if searchErr != nil {
+		return "", searchErr
+	}
+	if i >= n {
+		return "", fmt.Errorf("not found")
+	}
+	if entry != "" {
+		return entry, nil
+	} else {
+		// read again from i
+		return "", errors.New("not found")
+	}
+}
+
+// readKeyAt reads just the key portion of an index entry at the specified position.
+// This is used during binary search to compare keys without reading the full entry.
+//
+// Parameters:
+//   - f: open file handle to the binary index file
+//   - i: the index position (0-based) of the entry to read
+//
+// Returns the key string with null bytes trimmed, or an error if the read fails.
+func readKeyAt(f *os.File, i int) (string, string, error) {
+	_, err := f.Seek(int64(i), io.SeekStart)
+	if err != nil {
+		return "", "", err
+	}
+
+	// For now test with 500 bytes (largest line is 206, so worst case i is firt byte in that line, so 206 * 2 is what we want in the buffer, or 412 so 500 is a bit extra
+	scan := bufio.NewReaderSize(f, 500)
+	_, err = scan.ReadString('\n')
+	if err != nil {
+		return "", "", err
+	}
+	line, err := scan.ReadString('\n')
+	if err != nil {
+		return "", "", err
+	}
+	parts := strings.Split(strings.TrimSpace(line), " ")
+	if len(parts) != 2 {
+		return "", "", errors.New("invalid line in the index file")
+	}
+	return parts[0], parts[1], nil
+}
+
+// readEntryAt reads a complete index entry at the specified position.
+// It deserializes the binary data into an IndexEntry struct.
+//
+// Parameters:
+//   - f: open file handle to the binary index file
+//   - i: the index position (0-based) of the entry to read
+//
+// Returns a pointer to the IndexEntry, or an error if the read or deserialization fails.
+func readEntryAt(f *os.File, i int) (*IndexEntry, error) {
+	pos := int64(i) * entrySize
+	buf := make([]byte, entrySize)
+	_, err := f.ReadAt(buf, pos)
+	if err != nil {
+		return nil, err
+	}
+
+	key := string(bytes.TrimRight(buf[:KeySize], "\x00"))
+	offset := int64(binary.LittleEndian.Uint64(buf[KeySize : KeySize+8]))
+	length := int64(binary.LittleEndian.Uint64(buf[KeySize+8 : KeySize+16]))
+
+	return &IndexEntry{Key: key, Offset: offset, Length: length}, nil
+}
+
+// findValue extracts the value portion from a line in the data file.
+// It uses the offset and length from the IndexEntry to read the exact line,
+// then splits it to extract the value part after the key.
+//
+// Parameters:
+//   - dataFile: open file handle to the original data file
+//   - e: IndexEntry containing the offset and length of the target line
+//
+// Returns the value string, or an error if the read fails or the line format is invalid.
+func findValue(dataFile *os.File, e *IndexEntry) (string, error) {
+	buf := make([]byte, e.Length)
+	_, err := dataFile.ReadAt(buf, e.Offset)
+	if err != nil {
+		return "", err
+	}
+	parts := bytes.SplitN(bytes.TrimSpace(buf), []byte(" "), 2)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("malformed line")
+	}
+	return string(parts[1]), nil
+}
+
+func buildJavaArtifact(sha, str string) JavaArtifact {
+	dep := JavaArtifact{}
+	parts := strings.Split(str, ":")
+	dep.GroupId = parts[0]
+	dep.ArtifactId = parts[1]
+	dep.Version = parts[4]
+	dep.FoundOnline = true
+	dep.Sha1 = sha
+	return dep
 }

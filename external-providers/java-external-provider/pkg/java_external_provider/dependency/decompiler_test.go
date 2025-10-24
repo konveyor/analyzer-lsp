@@ -323,11 +323,11 @@ func (p testProject) matchProject(dir string, t *testing.T) {
 		if d.IsDir() {
 			return nil
 		}
-		if _, ok := p.output[relPath]; !ok {
-			t.Logf("could not find file: %v", relPath)
+		if _, ok := p.output[filepath.ToSlash(relPath)]; !ok {
+			t.Logf("could not find file: %v", filepath.ToSlash(relPath))
 			t.Fail()
 		} else {
-			p.output[relPath] = &struct{}{}
+			p.output[filepath.ToSlash(relPath)] = &struct{}{}
 		}
 
 		return nil
@@ -358,12 +358,12 @@ func (m testMavenDir) matchMavenDir(dir string, t *testing.T) {
 		if d.IsDir() {
 			return nil
 		}
-		if _, ok := m.output[relPath]; !ok {
-			t.Logf("relPath: %v", relPath)
+		if _, ok := m.output[filepath.ToSlash(relPath)]; !ok {
+			t.Logf("relPath: %v", filepath.ToSlash(relPath))
 			t.Logf("could not find file: %v", path)
 			t.Fail()
 		} else {
-			m.output[relPath] = &struct{}{}
+			m.output[filepath.ToSlash(relPath)] = &struct{}{}
 		}
 
 		return nil
@@ -622,10 +622,10 @@ func TestDecompile(t *testing.T) {
 				log: testr.NewWithOptions(t, testr.Options{
 					Verbosity: 20,
 				}),
-				workers:            10,
-				labler:             &testLabeler{},
-				disableMavenSearch: true,
-				m2Repo:             mavenDir,
+				workers:        10,
+				labler:         &testLabeler{},
+				mavenIndexPath: "test",
+				m2Repo:         filepath.Clean(mavenDir),
 			})
 			if err != nil {
 				t.Fail()
@@ -635,7 +635,7 @@ func TestDecompile(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			artifacts, err := decompiler.DecompileIntoProject(context.Background(), p, projectTmpDir)
+			artifacts, err := decompiler.DecompileIntoProject(context.Background(), p, filepath.Clean(projectTmpDir))
 			if err != nil {
 				t.Fail()
 			}

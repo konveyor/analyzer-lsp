@@ -18,7 +18,7 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 	log = log.WithName("jar").WithValues("artifact", filepath.Base(j.artifactPath))
 	defer j.decompilerWG.Done()
 	jobCtx, span := tracing.StartNewSpan(ctx, "java-artifact-job")
-	dep, err := ToDependency(ctx, log, j.labeler, j.artifactPath, j.disableMavenSearch)
+	dep, err := ToDependency(ctx, log, j.labeler, j.artifactPath, j.mavenIndexPath)
 	if err != nil {
 		log.Error(err, "failed to add dep", "file", j.artifactPath)
 		return err
