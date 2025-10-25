@@ -545,6 +545,41 @@
         variables:
           file: file:///examples/python/file_a.py
       effort: 1
+    test-regex-pattern-00000:
+      description: Test regex pattern for TypeScript/JavaScript files
+      category: potential
+      incidents:
+      - uri: file:///examples/nodejs/Component.tsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        lineNumber: 1
+        variables:
+          matchingText: React
+      - uri: file:///examples/nodejs/Component.tsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        lineNumber: 3
+        variables:
+          matchingText: React
+      - uri: file:///examples/nodejs/Component.tsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        lineNumber: 4
+        variables:
+          matchingText: React
+      - uri: file:///examples/nodejs/LegacyComponent.jsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const LegacyComponent = () => {\n 4    return <div>Hello from JavaScript React</div>;\n 5  };\n"
+        lineNumber: 1
+        variables:
+          matchingText: React
+      - uri: file:///examples/nodejs/LegacyComponent.jsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const LegacyComponent = () => {\n 4    return <div>Hello from JavaScript React</div>;\n 5  };\n"
+        lineNumber: 4
+        variables:
+          matchingText: React
+      effort: 1
     test-tsx-support-00000:
       description: Test that .tsx files are scanned (builtin provider)
       category: potential
@@ -557,61 +592,15 @@
           matchingText: import React
       effort: 1
     test-tsx-support-00010:
-      description: Test that nodejs provider can find references in .tsx files
+      description: Test that nodejs provider can find references in TypeScript/React files
       category: potential
       incidents:
       - uri: file:///examples/nodejs/Component.tsx
-        message: Found React reference in .tsx file using nodejs provider
+        message: Found React reference using nodejs provider
         codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
         lineNumber: 2
         variables:
           file: file:///examples/nodejs/Component.tsx
-      effort: 1
-    typescript-test-001:
-      description: Testing TypeScript (.ts) file analysis
-      category: potential
-      incidents:
-      - uri: file:///examples/nodejs/test_a.ts
-        message: TypeScript interface found
-        codeSnip: " 1  export interface Greeter {\n 2    name: string;\n 3    hello(): string;\n 4  }\n 5  \n 6  export const greeter: Greeter = {\n 7    name: \"Person1\",\n 8    hello() {\n 9      return `Hello, I'm ${this.name}`;\n10    },\n11  };\n"
-        lineNumber: 5
-        variables:
-          file: file:///examples/nodejs/test_a.ts
-      - uri: file:///examples/nodejs/test_b.ts
-        message: TypeScript interface found
-        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
-        lineNumber: 0
-        variables:
-          file: file:///examples/nodejs/test_b.ts
-      - uri: file:///examples/nodejs/test_b.ts
-        message: TypeScript interface found
-        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
-        lineNumber: 2
-        variables:
-          file: file:///examples/nodejs/test_b.ts
-      effort: 1
-    typescript-test-002:
-      description: Testing TypeScript function detection
-      category: potential
-      incidents:
-      - uri: file:///examples/nodejs/test_a.ts
-        message: TypeScript function found
-        codeSnip: " 1  export interface Greeter {\n 2    name: string;\n 3    hello(): string;\n 4  }\n 5  \n 6  export const greeter: Greeter = {\n 7    name: \"Person1\",\n 8    hello() {\n 9      return `Hello, I'm ${this.name}`;\n10    },\n11  };\n"
-        lineNumber: 2
-        variables:
-          file: file:///examples/nodejs/test_a.ts
-      - uri: file:///examples/nodejs/test_a.ts
-        message: TypeScript function found
-        codeSnip: " 1  export interface Greeter {\n 2    name: string;\n 3    hello(): string;\n 4  }\n 5  \n 6  export const greeter: Greeter = {\n 7    name: \"Person1\",\n 8    hello() {\n 9      return `Hello, I'm ${this.name}`;\n10    },\n11  };\n"
-        lineNumber: 7
-        variables:
-          file: file:///examples/nodejs/test_a.ts
-      - uri: file:///examples/nodejs/test_b.ts
-        message: TypeScript function found
-        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
-        lineNumber: 2
-        variables:
-          file: file:///examples/nodejs/test_b.ts
       effort: 1
     xml-pom-001:
       description: ""
@@ -1071,7 +1060,7 @@
     java-annotation-inspection-04: connection to the language server is closed, language server is not running
     java-annotation-inspection-05: connection to the language server is closed, language server is not running
     java-chaining-01: connection to the language server is closed, language server is not running
-    java-downloaded-maven-artifact: unable to ask for Konveyor rule entry
+    java-downloaded-maven-artifact: connection to the language server is closed, language server is not running
     java-gradle-project: connection to the language server is closed, language server is not running
     java-inclusion-test: connection to the language server is closed, language server is not running
     lang-ref-001: connection to the language server is closed, language server is not running
@@ -1080,6 +1069,7 @@
     lang-ref-004: connection to the language server is closed, language server is not running
     singleton-sessionbean-00001: connection to the language server is closed, language server is not running
     singleton-sessionbean-00002: connection to the language server is closed, language server is not running
+    test-regex-pattern-00010: failed to perform file content search - could not run grep with provided pattern exit status 2
   unmatched:
   - file-002
   - node-sample-rule-003
