@@ -33,7 +33,7 @@ require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/cbroglie/mustache v1.4.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/hashicorp/go-version v1.6.0 // indirect
+	github.com/hashicorp/go-version v1.6.0
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/swaggest/jsonschema-go v0.3.70 // indirect
 	github.com/swaggest/refl v1.3.0 // indirect

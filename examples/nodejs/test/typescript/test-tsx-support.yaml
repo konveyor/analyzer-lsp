@@ -1,0 +1,17 @@
+- ruleID: test-tsx-support-00000
+  description: Test that .tsx files are scanned (builtin provider)
+  when:
+    builtin.filecontent:
+      pattern: "import.*React"
+      filePattern: "\\.tsx$"
+  message: Found React import in .tsx file
+  effort: 1
+  category: potential
+- ruleID: test-tsx-support-00010
+  description: Test that nodejs provider can find references in TypeScript/React files
+  when:
+    nodejs.referenced:
+      pattern: "React"
+  message: Found React reference using nodejs provider
+  effort: 1
+  category: potential

@@ -217,18 +217,19 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 					}
 				}
 			} else {
-				// try matching as go regex or glob pattern
+				// try matching as go regex pattern
 				regex, regexErr := regexp.Compile(pattern)
 				if regexErr == nil && (regex.MatchString(file) || regex.MatchString(filepath.Base(file))) {
 					patternMatched = true
-				} else if regexErr != nil {
+				} else {
+					// fallback to filepath.Match for simple patterns
 					m, err := filepath.Match(pattern, file)
 					if err == nil {
-						patternMatched = m
+						patternMatched = patternMatched || m
 					}
 					m, err = filepath.Match(pattern, filepath.Base(file))
 					if err == nil {
-						patternMatched = m
+						patternMatched = patternMatched || m
 					}
 				}
 			}

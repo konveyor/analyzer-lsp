@@ -724,6 +724,63 @@
           name: Bean
           package: com.example.apps
       effort: 1
+    test-regex-pattern-00000:
+      description: Test regex pattern for TypeScript/JavaScript files
+      category: potential
+      incidents:
+      - uri: file:///examples/nodejs/Component.tsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        lineNumber: 1
+        variables:
+          matchingText: React
+      - uri: file:///examples/nodejs/Component.tsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        lineNumber: 3
+        variables:
+          matchingText: React
+      - uri: file:///examples/nodejs/Component.tsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        lineNumber: 4
+        variables:
+          matchingText: React
+      - uri: file:///examples/nodejs/LegacyComponent.jsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const LegacyComponent = () => {\n 4    return <div>Hello from JavaScript React</div>;\n 5  };\n"
+        lineNumber: 1
+        variables:
+          matchingText: React
+      - uri: file:///examples/nodejs/LegacyComponent.jsx
+        message: Found React reference using regex pattern
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const LegacyComponent = () => {\n 4    return <div>Hello from JavaScript React</div>;\n 5  };\n"
+        lineNumber: 4
+        variables:
+          matchingText: React
+      effort: 1
+    test-tsx-support-00000:
+      description: Test that .tsx files are scanned (builtin provider)
+      category: potential
+      incidents:
+      - uri: file:///examples/nodejs/Component.tsx
+        message: Found React import in .tsx file
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        lineNumber: 1
+        variables:
+          matchingText: import React
+      effort: 1
+    test-tsx-support-00010:
+      description: Test that nodejs provider can find references in TypeScript/React files
+      category: potential
+      incidents:
+      - uri: file:///examples/nodejs/Component.tsx
+        message: Found React reference using nodejs provider
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        lineNumber: 2
+        variables:
+          file: file:///examples/nodejs/Component.tsx
+      effort: 1
     xml-pom-001:
       description: ""
       category: potential
@@ -1295,6 +1352,7 @@
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:
         line 11: cannot unmarshal !!map into string
+    test-regex-pattern-00010: failed to perform file content search - could not run grep with provided pattern exit status 2
   unmatched:
   - file-002
   - lang-ref-002

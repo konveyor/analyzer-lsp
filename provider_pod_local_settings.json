@@ -129,9 +129,10 @@
         "initConfig": [
             {"location": "examples/java/"},
             {"location": "examples/golang/"},
+            {"location": "examples/nodejs/"},
             {"location": "examples/customers-tomcat-legacy/"},
             {
-                "location": "examples/builtin/", 
+                "location": "examples/builtin/",
                 "providerSpecificConfig": {
                     "includedPaths": ["inclusion_tests/dir-0"]
                 }
