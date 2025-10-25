@@ -66,6 +66,16 @@ Using the LSP/Protocal from Golang https://github.com/golang/tools/tree/master/g
 Using JSONRPC2 from google.org/x/tools/internal. Copied and removed anything to do with serving.
 
 
+## Contributing
+
+We welcome contributions to the Analyzer LSP project! Please see our [Contributing Guide](CONTRIBUTING.md) for:
+
+- Setting up your development environment
+- Building and testing the project
+- Adding new rules and language support
+- Common issues and solutions
+- Pull request process
+
 ## Code of Conduct
 
 Refer to Konveyor's [Code of Conduct page](https://github.com/konveyor/community/blob/main/CODE_OF_CONDUCT.md)
