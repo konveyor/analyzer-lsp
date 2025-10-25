@@ -567,17 +567,6 @@
         variables:
           file: file:///examples/nodejs/Component.tsx
       effort: 1
-    test-tsx-support-00020:
-      description: Test that nodejs provider can find references in .jsx files
-      category: potential
-      incidents:
-      - uri: file:///examples/nodejs/Component.tsx
-        message: Found React reference in .jsx file using nodejs provider
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
-        lineNumber: 2
-        variables:
-          file: file:///examples/nodejs/Component.tsx
-      effort: 1
     typescript-test-001:
       description: Testing TypeScript (.ts) file analysis
       category: potential
