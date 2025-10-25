@@ -523,26 +523,31 @@ RUN cd examples/nodejs && npm install
 
 ### Commit and PR Title Conventions
 
-This project follows **conventional commits with emoji prefixes**:
+This project follows **conventional commits with emoji prefixes**. PR titles must use one of these prefixes:
 
-**Common prefixes:**
-- ✨ `:sparkles:` - New feature or enhancement
+**Required PR title prefixes:**
+- ⚠️ `:warning:` - Breaking change
+- ✨ `:sparkles:` - Non-breaking feature
 - 🐛 `:bug:` - Bug fix
-- 📝 `:memo:` - Documentation changes
-- ♻️ `:recycle:` - Code refactoring
-- ✅ `:white_check_mark:` - Adding or updating tests
-- 👻 `:ghost:` - Chore, maintenance, or minor updates
+- 📖 `:book:` - Documentation
+- 🌱 `:seedling:` - Infrastructure/Tests/Other
+- 👻 `:ghost:` - No release note required
 
 **Examples:**
 ```bash
-# Commit message
+# Commit messages (use text codes like :sparkles:)
 git commit -s -m ":sparkles: Add TypeScript/React support to nodejs provider"
+git commit -s -m ":bug: Fix Java provider OOM with large projects"
+git commit -s -m ":book: Add comprehensive contributor guide"
 
-# PR titles (can use emoji character or code)
-✨ Add TypeScript/React support to nodejs provider
-📝 Add contributor guide for new developers
-🐛 Fix Java provider OOM issues with large projects
+# PR titles (must use text codes, not emoji characters)
+:sparkles: Add TypeScript/React support to nodejs provider
+:book: Add comprehensive contributor guide
+:bug: Fix Java provider OOM issues with large projects
+:seedling: Update CI workflow configuration
 ```
+
+**Important:** PR titles must use the **text code** (`:sparkles:`) not the emoji character (✨), or the CI check will fail.
 
 ### Regenerating Demo Output
 
