@@ -537,6 +537,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 			if tt.openSourceLabelPath != "" {
 				p.config.ProviderSpecificConfig["depOpenSourceLabelsFile"] = tt.openSourceLabelPath
 			}
+			// we are not testing dep init here, so ignore error
+			//p.depInit()
 			var deps []provider.DepDAGItem
 			if deps, err = p.parseMavenDepLines(lines[1:], "testdata", "pom.xml"); (err != nil) != tt.wantErr {
 				t.Errorf("parseMavenDepLines() error = %v, wantErr %v", err, tt.wantErr)

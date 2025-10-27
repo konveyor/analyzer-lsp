@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
+
+	"github.com/go-logr/logr/testr"
 )
 
 func TestRenderPom(t *testing.T) {
@@ -95,5 +98,64 @@ func TestRenderPom(t *testing.T) {
 		fmt.Println(string(pomContent))
 		fmt.Println("expected POM")
 		fmt.Println(expectedPom)
+	}
+}
+
+// BenchmarkConstructArtifactFromSHA benchmarks the constructArtifactFromSHA function// with different scenarios to measure performance characteristics.
+func TestConstructArtifactFromSHA(t *testing.T) {
+	testCases := []struct {
+		name           string
+		jarFile        string
+		mavenIndexPath string
+		shouldFind     bool
+		value          javaArtifact
+	}{
+		{
+			name:           "InIndex",
+			jarFile:        "testdata/should_find_in_index.jar",
+			mavenIndexPath: "testdata",
+			shouldFind:     true,
+			value: javaArtifact{
+				foundOnline: true,
+				GroupId:     "org.springframework",
+				ArtifactId:  "spring-core",
+				Version:     "3.1.2.RELEASE",
+				sha1:        "dd4295f0567deb2cc629dd647d2f055268c2fd3e",
+			},
+		},
+		{
+			name:           "NotInIndex",
+			jarFile:        "testdata/will_not_find.jar",
+			mavenIndexPath: "testdata",
+			shouldFind:     true,
+			value: javaArtifact{
+				foundOnline: false,
+				packaging:   "",
+				GroupId:     "org.windup.example",
+				ArtifactId:  "jee-example-services",
+				Version:     "1.0.0",
+				sha1:        "",
+			},
+		},
+	}
+
+	log := testr.New(t)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			val, err := toDependency(context.Background(), log, tc.jarFile, tc.mavenIndexPath)
+			log.Info("here", "val", fmt.Sprintf("%#v", val), "err", err)
+			if err != nil && !tc.shouldFind {
+				return
+			}
+			if err != nil {
+				t.Fail()
+			}
+			if !tc.shouldFind {
+				t.Fail()
+			}
+			if !reflect.DeepEqual(val, tc.value) {
+				t.Fail()
+			}
+		})
 	}
 }
