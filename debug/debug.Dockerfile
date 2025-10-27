@@ -5,7 +5,6 @@ COPY ../cmd /analyzer-lsp/cmd
 COPY ../engine /analyzer-lsp/engine
 COPY  ../event /analyzer-lsp/event
 COPY ../output /analyzer-lsp/output
-COPY ../jsonrpc2 /analyzer-lsp/jsonrpc2
 COPY  ../jsonrpc2_v2 /analyzer-lsp/jsonrpc2_v2
 COPY ../lsp /analyzer-lsp/lsp
 COPY ../parser /analyzer-lsp/parser

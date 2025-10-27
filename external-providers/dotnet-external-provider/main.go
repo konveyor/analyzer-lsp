@@ -18,6 +18,7 @@ var (
 	certFile  = flag.String("certFile", "", "Path to the cert file")
 	keyFile   = flag.String("keyFile", "", "Path to the key file")
 	secretKey = flag.String("secretKey", "", "Secret Key value")
+	socket    = flag.String("socket", "", "Socket to be used")
 )
 
 func main() {
@@ -34,8 +35,8 @@ func main() {
 	if logLevel != nil && *logLevel != 5 {
 		logrusLog.SetLevel(logrus.Level(*logLevel))
 	}
-	if port == nil || *port == 0 {
-		log.Error(fmt.Errorf("port unspecified"), "port number must be specified")
+	if (socket == nil || *socket == "") && (port == nil || *port == 0) {
+		log.Error(fmt.Errorf("no serving location"), "port or socket must be set.")
 		panic(1)
 	}
 
@@ -55,7 +56,7 @@ func main() {
 		secret = *secretKey
 	}
 
-	s := provider.NewServer(client, *port, c, k, secret, log)
+	s := provider.NewServer(client, *port, c, k, secret, *socket, log)
 	ctx := context.TODO()
 	s.Start(ctx)
 }

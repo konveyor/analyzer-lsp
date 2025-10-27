@@ -33,6 +33,13 @@ func (g *grpcServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf(r.Error)
 	}
 
+	// The response is optional, if the provider says that it was successful but no response then nothing matched.
+	if r.Response == nil {
+		return provider.ProviderEvaluateResponse{
+			Matched: false,
+		}, nil
+	}
+
 	if !r.Response.Matched {
 		return provider.ProviderEvaluateResponse{
 			Matched:         false,
