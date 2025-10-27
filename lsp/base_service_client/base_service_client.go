@@ -162,8 +162,8 @@ func NewLSPServiceClientBase(
 		return nil, fmt.Errorf("base config unmarshal error: %w", err)
 	}
 
-	if sc.BaseConfig.LspServerPath == "" {
-		return nil, fmt.Errorf("must provide lspServerPath")
+	if sc.BaseConfig.LspServerPath == "" && c.RPC == nil {
+		return nil, fmt.Errorf("must provide lspServerPath when RPC connection is not provided")
 	}
 
 	if sc.BaseConfig.LspServerName == "" {
