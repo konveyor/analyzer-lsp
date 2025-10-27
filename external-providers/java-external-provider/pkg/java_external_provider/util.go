@@ -3,19 +3,19 @@ package java
 import (
 	"archive/zip"
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"math"
-	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"text/template"
@@ -24,8 +24,6 @@ import (
 	"math/rand"
 
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/engine/labels"
-	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -96,7 +94,7 @@ type decompileJob struct {
 // decompile decompiles files submitted via a list of decompileJob concurrently
 // if a .class file is encountered, it will be decompiled to output path right away
 // if a .jar file is encountered, it will be decompiled as a whole, then exploded to project path
-func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, workerCount int, jobs []decompileJob, fernflower, projectPath string, depLabels map[string]*depLabelItem, disableMavenSearch bool) error {
+func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, workerCount int, jobs []decompileJob, fernflower, projectPath string, mavenIndexPath string) error {
 	wg := &sync.WaitGroup{}
 	jobChan := make(chan decompileJob)
 
@@ -141,7 +139,7 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 				// if we just decompiled a java archive, we need to
 				// explode it further and copy files to project
 				if job.artifact.packaging == JavaArchive && projectPath != "" {
-					_, _, _, err = explode(jobCtx, log, job.outputPath, projectPath, job.m2RepoPath, depLabels, disableMavenSearch)
+					_, _, _, err = explode(jobCtx, log, job.outputPath, projectPath, job.m2RepoPath, mavenIndexPath)
 					if err != nil {
 						log.V(5).Error(err, "failed to explode decompiled jar", "path", job.inputPath)
 					}
@@ -171,7 +169,7 @@ func decompile(ctx context.Context, log logr.Logger, filter decompileFilter, wor
 // decompileJava unpacks archive at archivePath, decompiles all .class files in it
 // creates new java project and puts the java files in the tree of the project
 // returns path to exploded archive, path to java project, and an error when encountered
-func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath string, m2RepoPath string, cleanBin bool, depLabels map[string]*depLabelItem, disableMavenSearch bool) (explodedPath, projectPath string, err error) {
+func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath string, m2RepoPath string, cleanBin bool, mavenIndexPath string) (explodedPath, projectPath string, err error) {
 	ctx, span := tracing.StartNewSpan(ctx, "decompile")
 	defer span.End()
 
@@ -184,7 +182,7 @@ func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath
 
 	decompFilter := alwaysDecompileFilter(true)
 
-	explodedPath, decompJobs, deps, err := explode(ctx, log, archivePath, projectPath, m2RepoPath, depLabels, disableMavenSearch)
+	explodedPath, decompJobs, deps, err := explode(ctx, log, archivePath, projectPath, m2RepoPath, mavenIndexPath)
 	if err != nil {
 		log.Error(err, "failed to decompile archive", "path", archivePath)
 		return "", "", err
@@ -197,7 +195,7 @@ func decompileJava(ctx context.Context, log logr.Logger, fernflower, archivePath
 	}
 	log.V(5).Info("created java project", "path", projectPath)
 
-	err = decompile(ctx, log, decompFilter, 10, decompJobs, fernflower, projectPath, depLabels, disableMavenSearch)
+	err = decompile(ctx, log, decompFilter, 10, decompJobs, fernflower, projectPath, mavenIndexPath)
 	if err != nil {
 		log.Error(err, "failed to decompile", "path", archivePath)
 		return "", "", err
@@ -233,7 +231,7 @@ func removeIncompleteDependencies(dependencies []javaArtifact) []javaArtifact {
 // explode explodes the given JAR, WAR or EAR archive, generates javaArtifact struct for given archive
 // and identifies all .class found recursively. returns output path, a list of decompileJob for .class files
 // it also returns a list of any javaArtifact we could interpret from jars
-func explode(ctx context.Context, log logr.Logger, archivePath, projectPath string, m2Repo string, depLabels map[string]*depLabelItem, disableMavenSearch bool) (string, []decompileJob, []javaArtifact, error) {
+func explode(ctx context.Context, log logr.Logger, archivePath, projectPath string, m2Repo string, mvnIndexPath string) (string, []decompileJob, []javaArtifact, error) {
 	var dependencies []javaArtifact
 	fileInfo, err := os.Stat(archivePath)
 	if err != nil {
@@ -365,7 +363,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 		// decompile web archives
 		case strings.HasSuffix(f.Name, WebArchive):
 			// TODO(djzager): Should we add these deps to the pom?
-			_, nestedJobs, deps, err := explode(ctx, log, explodedFilePath, projectPath, m2Repo, depLabels, disableMavenSearch)
+			_, nestedJobs, deps, err := explode(ctx, log, explodedFilePath, projectPath, m2Repo, mvnIndexPath)
 			if err != nil {
 				log.Error(err, "failed to decompile file", "file", explodedFilePath)
 			}
@@ -373,7 +371,7 @@ func explode(ctx context.Context, log logr.Logger, archivePath, projectPath stri
 			dependencies = append(dependencies, deps...)
 		// attempt to add nested jars as dependency before decompiling
 		case strings.HasSuffix(f.Name, JavaArchive):
-			dep, err := toDependency(ctx, log, depLabels, explodedFilePath, disableMavenSearch)
+			dep, err := toDependency(ctx, log, explodedFilePath, mvnIndexPath)
 			if err != nil {
 				log.Error(err, "failed to add dep", "file", explodedFilePath)
 				// when we fail to identify a dep we will fallback to
@@ -529,35 +527,7 @@ func AppendToFile(src string, dst string) error {
 	return nil
 }
 
-// toDependency returns javaArtifact constructed for a jar
-func toDependency(_ context.Context, log logr.Logger, depToLabels map[string]*depLabelItem, jarFile string, disableMavenSearch bool) (javaArtifact, error) {
-	if !disableMavenSearch {
-		dep, err := constructArtifactFromSHA(log, jarFile)
-		if err == nil {
-			return dep, nil
-		}
-		log.V(3).Error(err, "unable to look up dependency by SHA, falling back to get maven cordinates", "jar", jarFile)
-	} else {
-		log.Info("maven search disabled - looking for dependencies from poms and jar structure")
-	}
-	dep, err := constructArtifactFromPom(log, jarFile, depToLabels)
-	if err == nil {
-		return dep, nil
-	}
-	log.V(3).Error(err, "could not construct artifact object from pom for artifact, trying to infer from structure", "jarFile", jarFile)
-
-	dep, err = constructArtifactFromStructure(log, jarFile, depToLabels)
-	if err != nil {
-		log.V(3).Error(err, "could not construct artifact object from structure", "jarFile", jarFile)
-		return javaArtifact{}, err
-	}
-
-	return dep, err
-}
-
-var mavenSearchErrorCache error
-
-func constructArtifactFromSHA(log logr.Logger, jarFile string) (javaArtifact, error) {
+func toDependency(_ context.Context, log logr.Logger, jarFile string, indexPath string) (javaArtifact, error) {
 	dep := javaArtifact{}
 	// we look up the jar in maven
 	file, err := os.Open(jarFile)
@@ -574,66 +544,16 @@ func constructArtifactFromSHA(log logr.Logger, jarFile string) (javaArtifact, er
 
 	sha1sum := hex.EncodeToString(hash.Sum(nil))
 
-	// if maven search is down, we do not want to keep trying on each dep
-	if mavenSearchErrorCache != nil {
-		log.Info("maven search is down, returning cached error", "error", mavenSearchErrorCache)
-		return dep, mavenSearchErrorCache
-	}
-
-	// Make an HTTPS request to search.maven.org
-	searchURL := fmt.Sprintf("https://search.maven.org/solrsearch/select?q=1:%s&rows=20&wt=json", sha1sum)
-	resp, err := http.Get(searchURL)
+	dataFilePath := filepath.Join(indexPath, "maven-index.txt")
+	indexFilePath := filepath.Join(indexPath, "maven-index.idx")
+	dep, err = search(sha1sum, dataFilePath, indexFilePath)
 	if err != nil {
-		return dep, err
+		return constructArtifactFromPom(log, jarFile)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		statusErr := fmt.Errorf("Maven search is unavailable: %s", resp.Status)
-		// cache the server errors
-		if resp.StatusCode >= 500 {
-			mavenSearchErrorCache = statusErr
-		}
-		return dep, statusErr
-	}
-
-	// Read and parse the JSON response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return dep, err
-	}
-
-	var data map[string]interface{}
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		return dep, err
-	}
-
-	// Check if a single result is found
-	response, ok := data["response"].(map[string]interface{})
-	if !ok {
-		return dep, err
-	}
-
-	numFound, ok := response["numFound"].(float64)
-	if !ok {
-		return dep, err
-	}
-
-	if numFound == 1 {
-		jarInfo := response["docs"].([]interface{})[0].(map[string]interface{})
-		dep.GroupId = jarInfo["g"].(string)
-		dep.ArtifactId = jarInfo["a"].(string)
-		dep.Version = jarInfo["v"].(string)
-		dep.sha1 = sha1sum
-		dep.foundOnline = true
-		return dep, nil
-	} else if numFound > 1 {
-		return dep, fmt.Errorf("unable to determine maven cordinates, got more then one for jar")
-	}
-	return dep, fmt.Errorf("failed to construct artifact from maven lookup")
+	return dep, nil
 }
-func constructArtifactFromPom(log logr.Logger, jarFile string, depToLabels map[string]*depLabelItem) (javaArtifact, error) {
+
+func constructArtifactFromPom(log logr.Logger, jarFile string) (javaArtifact, error) {
 	log.V(5).Info("trying to find pom within jar %s to get info", jarFile)
 	dep := javaArtifact{}
 	jar, err := zip.OpenReader(jarFile)
@@ -668,126 +588,10 @@ func constructArtifactFromPom(log logr.Logger, jarFile string, depToLabels map[s
 					dep.GroupId = strings.TrimSpace(strings.TrimPrefix(line, "groupId="))
 				}
 			}
-			// Setting false here because we don't know if it is opensource or not.
-			depName := fmt.Sprintf("%s.%s", dep.GroupId, dep.ArtifactId)
-			groupIdRegex := strings.Join([]string{dep.GroupId, "*"}, ".")
-			if depToLabels[groupIdRegex] != nil {
-				dep.foundOnline = true
-			}
-			l := addDepLabels(depToLabels, depName, dep.foundOnline)
-			for _, l := range l {
-				if l == labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource) {
-					// Setting here to make things easier.
-					dep.foundOnline = true
-					break
-				}
-				if l == labels.AsString(provider.DepSourceLabel, javaDepSourceInternal) {
-					break
-				}
-			}
 			return dep, err
 		}
 	}
 	return dep, fmt.Errorf("failed to construct artifact from pom properties")
-}
-
-// constructArtifactFromStructure builds an artifact object out of the JAR internal structure.
-func constructArtifactFromStructure(log logr.Logger, jarFile string, depToLabels map[string]*depLabelItem) (javaArtifact, error) {
-	log.V(10).Info(fmt.Sprintf("trying to infer if %s is a public dependency", jarFile))
-	groupId, err := inferGroupName(jarFile)
-	if err != nil {
-		return javaArtifact{}, err
-	}
-	// since the extracted groupId is not reliable, lets just name the dependency after its filename
-	artifact := javaArtifact{ArtifactId: filepath.Base(jarFile)}
-	// check the inferred groupId against list of public groups
-	// if groupId is not found, remove last segment. repeat if not found until no segments are left.
-	sgmts := strings.Split(groupId, ".")
-	for len(sgmts) > 0 {
-		// check against depToLabels. add *
-		groupIdRegex := strings.Join([]string{groupId, "*"}, ".")
-		if depToLabels[groupIdRegex] != nil {
-			log.V(10).Info(fmt.Sprintf("%s is a public dependency with a group id of: %s", jarFile, groupId))
-			// do a best effort to set some dependency data
-			artifact.GroupId = groupId
-			artifact.ArtifactId = strings.TrimSuffix(filepath.Base(jarFile), ".jar")
-			artifact.Version = "Unknown"
-			// Adding this back to make some things easier.
-			artifact.foundOnline = true
-			return artifact, nil
-		} else {
-			// lets try to remove one segment from the end
-			sgmts = sgmts[:len(sgmts)-1]
-			groupId = strings.Join(sgmts, ".")
-		}
-	}
-	log.V(10).Info(fmt.Sprintf("could not find groupId for in our public listing of group id's", jarFile))
-	return artifact, nil
-}
-
-// inferGroupName tries to extract the name of the group based on the directory structure.
-// Usually group names coincide with package names, this is, the dir structure
-// We go down the dir structure until we find either more than one dir, or a file that is not a dir
-func inferGroupName(jarPath string) (string, error) {
-	r, err := zip.OpenReader(jarPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open JAR file: %w", err)
-	}
-	defer r.Close()
-
-	var classPaths []string
-	for _, file := range r.File {
-		// Skip entries that aren't .class files
-		if !strings.HasSuffix(file.Name, ".class") {
-			continue
-		}
-
-		// Skip inner or anonymous classes
-		if strings.Contains(path.Base(file.Name), "$") {
-			continue
-		}
-
-		// Skip top-level class files (no package)
-		if !strings.Contains(file.Name, "/") {
-			continue
-		}
-
-		// Skip known metadata paths
-		if strings.HasPrefix(file.Name, "META-INF/") || strings.HasPrefix(file.Name, "BOOT-INF/") {
-			continue
-		}
-
-		classPaths = append(classPaths, file.Name)
-	}
-
-	if len(classPaths) == 0 {
-		return "", fmt.Errorf("no valid class files found in JAR")
-	}
-
-	// Convert each path to a list of package segments
-	var allPaths [][]string
-	for _, p := range classPaths {
-		dir := path.Dir(p)
-		parts := strings.Split(dir, "/")
-		allPaths = append(allPaths, parts)
-	}
-
-	// Find the longest common prefix
-	var groupParts []string
-	for i := 0; ; i++ {
-		var part string
-		for j, segments := range allPaths {
-			if i >= len(segments) {
-				return strings.Join(groupParts, "."), nil
-			}
-			if j == 0 {
-				part = segments[i]
-			} else if segments[i] != part {
-				return strings.Join(groupParts, "."), nil
-			}
-		}
-		groupParts = append(groupParts, part)
-	}
 }
 
 func toFilePathDependency(_ context.Context, filePath string) (javaArtifact, error) {
@@ -811,4 +615,169 @@ func RandomName() string {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
 	return string(b)
+}
+
+const KeySize = 40
+
+// entrySize defines the fixed size of each index entry in bytes.
+// Each entry contains: key (KeySize bytes) + offset (8 bytes) + length (8 bytes).
+const entrySize = KeySize + 8 + 8
+
+// IndexEntry represents a single entry in the search index.
+// It contains the key and metadata needed to locate the corresponding value in the data file.
+type IndexEntry struct {
+	Key    string // The search key
+	Offset int64  // Byte offset of the line in the data file
+	Length int64  // Length of the line in the data file
+}
+
+// search performs a complete search operation for a given key.
+// It opens the index and data files, searches for the key, and prints the result.
+// This is the main search function used by the CLI.
+//
+// Parameters:
+//   - key: the key to search for
+//   - indexFile: path to the binary index file
+//   - dataFile: path to the original data file
+//
+// Returns an error if any step of the search process fails.
+func search(key, dataFile, indexFile string) (javaArtifact, error) {
+	index, err := os.Open(indexFile)
+	if err != nil {
+		return javaArtifact{}, fmt.Errorf("failed to open index file: %w", err)
+	}
+	defer index.Close()
+
+	data, err := os.Open(dataFile)
+	if err != nil {
+		return javaArtifact{}, fmt.Errorf("failed to open data file: %w", err)
+	}
+	defer data.Close()
+
+	entry, err := searchIndex(index, key)
+	if err != nil {
+		return javaArtifact{}, fmt.Errorf("search failed: %w", err)
+	}
+
+	val, err := findValue(data, entry)
+	if err != nil {
+		return javaArtifact{}, fmt.Errorf("failed to find value: %w", err)
+	}
+
+	dep := buildJavaArtifact(key, val)
+
+	return dep, nil
+}
+
+// searchIndex performs a binary search on the index file to find an exact key match.
+// It uses Go's sort.Search function to efficiently locate the key in the sorted index.
+// This removes the need to read the entire index file into memory.
+//
+// Parameters:
+//   - f: open file handle to the binary index file
+//   - key: the key to search for
+//
+// Returns the IndexEntry if found, or an error if the key doesn't exist.
+func searchIndex(f *os.File, key string) (*IndexEntry, error) {
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	n := int(fi.Size() / entrySize)
+
+	// binary search over file
+	i := sort.Search(n, func(i int) bool {
+		entryKey, _ := readKeyAt(f, i)
+		return entryKey >= key
+	})
+	if i >= n {
+		return nil, fmt.Errorf("not found")
+	}
+
+	// read full entry and verify exact match
+	entry, err := readEntryAt(f, i)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if we found an exact match
+	if entry.Key != key {
+		return nil, fmt.Errorf("not found")
+	}
+
+	return entry, nil
+}
+
+// readKeyAt reads just the key portion of an index entry at the specified position.
+// This is used during binary search to compare keys without reading the full entry.
+//
+// Parameters:
+//   - f: open file handle to the binary index file
+//   - i: the index position (0-based) of the entry to read
+//
+// Returns the key string with null bytes trimmed, or an error if the read fails.
+func readKeyAt(f *os.File, i int) (string, error) {
+	pos := int64(i) * entrySize
+	buf := make([]byte, KeySize)
+	_, err := f.ReadAt(buf, pos)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes.TrimRight(buf, "\x00")), nil
+}
+
+// readEntryAt reads a complete index entry at the specified position.
+// It deserializes the binary data into an IndexEntry struct.
+//
+// Parameters:
+//   - f: open file handle to the binary index file
+//   - i: the index position (0-based) of the entry to read
+//
+// Returns a pointer to the IndexEntry, or an error if the read or deserialization fails.
+func readEntryAt(f *os.File, i int) (*IndexEntry, error) {
+	pos := int64(i) * entrySize
+	buf := make([]byte, entrySize)
+	_, err := f.ReadAt(buf, pos)
+	if err != nil {
+		return nil, err
+	}
+
+	key := string(bytes.TrimRight(buf[:KeySize], "\x00"))
+	offset := int64(binary.LittleEndian.Uint64(buf[KeySize : KeySize+8]))
+	length := int64(binary.LittleEndian.Uint64(buf[KeySize+8 : KeySize+16]))
+
+	return &IndexEntry{Key: key, Offset: offset, Length: length}, nil
+}
+
+// findValue extracts the value portion from a line in the data file.
+// It uses the offset and length from the IndexEntry to read the exact line,
+// then splits it to extract the value part after the key.
+//
+// Parameters:
+//   - dataFile: open file handle to the original data file
+//   - e: IndexEntry containing the offset and length of the target line
+//
+// Returns the value string, or an error if the read fails or the line format is invalid.
+func findValue(dataFile *os.File, e *IndexEntry) (string, error) {
+	buf := make([]byte, e.Length)
+	_, err := dataFile.ReadAt(buf, e.Offset)
+	if err != nil {
+		return "", err
+	}
+	parts := bytes.SplitN(bytes.TrimSpace(buf), []byte(" "), 2)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("malformed line")
+	}
+	return string(parts[1]), nil
+}
+
+func buildJavaArtifact(sha, str string) javaArtifact {
+	dep := javaArtifact{}
+	parts := strings.Split(str, ":")
+	dep.GroupId = parts[0]
+	dep.ArtifactId = parts[1]
+	dep.Version = parts[4]
+	dep.foundOnline = true
+	dep.sha1 = sha
+	return dep
 }
