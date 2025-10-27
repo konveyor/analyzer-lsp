@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -304,10 +305,21 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 	}
 	if config.Address != "" {
 		if config.CertPath == "" {
-			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
-				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
-				grpc.WithTransportCredentials(insecure.NewCredentials()),
-			)
+			var conn *grpc.ClientConn
+			var err error
+
+			if config.UseSocket && strings.HasPrefix(config.Address, "unix://") {
+				// Use socket connection
+				// for windows, we will ise passthrough to connect to the socket
+				// which is defined in the socket/pipe_windows.go file
+				conn, err = socket.ConnectGRPC(config.Address)
+			} else {
+				// Use regular HTTP connection
+				conn, err = grpc.NewClient(fmt.Sprintf(config.Address),
+					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
+					grpc.WithTransportCredentials(insecure.NewCredentials()),
+				)
+			}
 			if err != nil {
 				log.Error(err, "did not connect")
 				return nil, nil, err
