@@ -352,7 +352,9 @@ when:
 
 ### Combining Providers for Complete Coverage
 
-**Best Practice:** Use semantic providers (nodejs, java, go, python) for symbol references, and builtin provider for patterns they cannot detect.
+#### Best Practice: Provider Combination Strategy
+
+Use semantic providers (nodejs, java, go, python) for symbol references, and builtin provider for patterns they cannot detect.
 
 **Example: Detecting React Component Migration**
 
@@ -443,7 +445,7 @@ podman machine start
 **Problem:** `make build-external` fails with sed errors on macOS
 
 **Error:**
-```
+```text
 sed: 1: "external-providers/gene ...": invalid command code e
 ```
 
@@ -467,7 +469,7 @@ sed -i '' 's/old/new/g' file
 ### Volume/Pod Already Exists Errors
 
 **Problem:**
-```
+```text
 Error: volume with name test-data already exists
 Error: pod analyzer already exists
 ```
