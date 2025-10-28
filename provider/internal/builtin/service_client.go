@@ -515,10 +515,8 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 	// Fast path for small projects: use direct grep if args fit within ARG_MAX
 	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" && totalArgLength < argMaxSafeThreshold {
 		b.log.V(5).Info("using direct grep (fast path)", "pattern", pattern, "totalFiles", len(locations), "argLength", totalArgLength)
-		// Escape pattern for safe shell interpolation
-		escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
 		// Build grep command with all files as arguments
-		args := []string{"-o", "-n", "--with-filename", "-P", escapedPattern}
+		args := []string{"-o", "-n", "--with-filename", "-P", pattern}
 		args = append(args, locations...)
 		cmd := exec.Command("grep", args...)
 		output, err := cmd.Output()
