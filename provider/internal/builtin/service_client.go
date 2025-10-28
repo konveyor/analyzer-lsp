@@ -516,7 +516,8 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" && totalArgLength < argMaxSafeThreshold {
 		b.log.V(5).Info("using direct grep (fast path)", "pattern", pattern, "totalFiles", len(locations), "argLength", totalArgLength)
 		// Build grep command with all files as arguments
-		args := []string{"-o", "-n", "--with-filename", "-P", pattern}
+		// Use -- to mark end of options, preventing patterns like --pf- from being interpreted as options
+		args := []string{"-o", "-n", "--with-filename", "-P", "--", pattern}
 		args = append(args, locations...)
 		cmd := exec.Command("grep", args...)
 		output, err := cmd.Output()
@@ -576,7 +577,7 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 				// Escape pattern for safe shell interpolation
 				escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
 				cmdStr := fmt.Sprintf(
-					`xargs -0 grep -o -n --with-filename -P '%s'`,
+					`xargs -0 grep -o -n --with-filename -P -- '%s'`,
 					escapedPattern,
 				)
 				b.log.V(7).Info("running grep via xargs", "cmd", cmdStr)
