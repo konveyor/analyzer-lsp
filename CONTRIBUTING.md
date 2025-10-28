@@ -17,7 +17,7 @@ Welcome! This guide will help you contribute to the Konveyor Analyzer LSP projec
 
 ### Prerequisites
 
-- **Go 1.21+** - For building the analyzer and Go provider
+- **Go 1.23+** - For building the analyzer and Go provider
 - **Java 17+** - For Java provider (JDTLS)
 - **Node.js 18+** - For Node.js/TypeScript provider
 - **Python 3.9+** - For Python provider
@@ -60,7 +60,7 @@ Java provider uses Eclipse JDTLS which is bundled in the container image.
 Build the main analyzer binary:
 
 ```bash
-go build -o kantra main.go
+go build -o analyzer-lsp main.go
 ```
 
 ### Building External Providers
@@ -119,49 +119,18 @@ The `examples/` directory contains test projects for each language:
 - `examples/python/` - Python test projects
 - `examples/yaml/` - YAML/Kubernetes manifests
 
-### Running Analysis Locally
-
-Create a provider settings file (e.g., `provider_settings.json`):
-
-```json
-{
-  "name": "nodejs",
-  "binaryPath": "/usr/local/bin/typescript-language-server",
-  "address": "127.0.0.1:0",
-  "initConfig": [
-    {
-      "location": "/path/to/your/project",
-      "providerSpecificConfig": {
-        "includedPaths": ["src/"],
-        "excludedPaths": ["node_modules/", "dist/"]
-      }
-    }
-  ]
-}
-```
-
-Run analysis:
-
-```bash
-./kantra \
-  --provider-settings=provider_settings.json \
-  --rules=rule-example.yaml \
-  --output-file=output.yaml \
-  --verbose=1
-```
-
-## Container-Based Development
+### Container-Based Development
 
 Container-based testing is the **recommended approach** for comprehensive testing with all providers.
 
-### Why Use Containers?
+#### Why Use Containers?
 
 1. **Consistent Environment** - Same environment as CI/CD
 2. **All Providers Together** - Test interactions between providers
 3. **Resource Isolation** - Prevents provider memory/CPU conflicts
 4. **Reproducible** - Matches production deployment
 
-### Container Testing Workflow
+#### Container Testing Workflow
 
 This is the workflow used for regenerating `demo-output.yaml`:
 
@@ -182,7 +151,7 @@ podman build -f demo-local.Dockerfile -t localhost/testing:latest .
 make run-demo-image
 ```
 
-### Provider Pod Architecture
+#### Provider Pod Architecture
 
 The `run-external-providers-pod` target creates a pod named `analyzer` with 6 containers:
 
@@ -195,7 +164,9 @@ The `run-external-providers-pod` target creates a pod named `analyzer` with 6 co
 
 All containers share the `test-data` volume for accessing example projects.
 
-### Resource Requirements
+**Note:** The `test-data` volume is populated by copying from the `examples/` directories that are built into the analyzer-lsp and provider images.
+
+#### Resource Requirements
 
 **Minimum Resources for All Providers:**
 - **RAM**: 12GB (8GB causes Java provider OOM)
@@ -216,22 +187,66 @@ podman machine set --memory 12288  # 12GB
 podman machine start
 ```
 
-### Cleaning Up Containers
+#### Cleaning Up Containers
 
 If you need to restart the provider pod:
 
 ```bash
-# Remove pod and volume
-podman pod rm -f analyzer
-podman volume rm test-data
+# Clean up everything (pod, containers, and volume)
+make stop-external-providers-pod
 
 # Recreate pod
 make run-external-providers-pod
 ```
 
+### Running Analysis Locally
+
+Create a provider settings file. See existing examples:
+- [`provider_local_settings.json`](provider_local_settings.json) - Simple local development setup
+- [`provider_container_settings.json`](provider_container_settings.json) - Container-based setup with all providers
+- [`provider_pod_local_settings.json`](provider_pod_local_settings.json) - Pod-based local setup
+
+Example provider settings file for Node.js:
+
+```json
+[
+  {
+    "name": "nodejs",
+    "binaryPath": "./external-providers/generic-external-provider/generic-external-provider",
+    "initConfig": [{
+      "analysisMode": "full",
+      "providerSpecificConfig": {
+        "lspServerName": "nodejs",
+        "lspServerPath": "typescript-language-server",
+        "lspServerArgs": ["--stdio"],
+        "workspaceFolders": ["file:///path/to/your/project"]
+      }
+    }]
+  },
+  {
+    "name": "builtin",
+    "initConfig": [
+      {"location": "path/to/your/project/"}
+    ]
+  }
+]
+```
+
+Run analysis:
+
+```bash
+./analyzer-lsp \
+  --provider-settings=provider_settings.json \
+  --rules=rule-example.yaml \
+  --output-file=output.yaml \
+  --verbose=1
+```
+
 ## Adding New Rules
 
 Rules are defined in YAML files (e.g., `rule-example.yaml`).
+
+**For comprehensive documentation on rule syntax, provider capabilities, and advanced features, see [docs/rules.md](docs/rules.md).**
 
 ### Rule Structure
 
