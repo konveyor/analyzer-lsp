@@ -554,10 +554,21 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 			currOutput, err = cmd.Output()
 		}
 		if err != nil {
-			if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
-				return nil, nil
+			if exitError, ok := err.(*exec.ExitError); ok {
+				// Exit code 1: grep found no matches
+				// Exit code 123: GNU xargs (Linux) exits with 123 when any invocation exits with 1-125
+				// When grep processes files across multiple xargs batches and some batches have matches
+				// while others don't, xargs will exit with 123 (not 1). The current code treats this as
+				// an error and discards the partial results in currOutput, causing false negatives.
+				// Apply this fix to handle both exit codes correctly:
+				if exitError.ExitCode() == 1 || exitError.ExitCode() == 123 {
+					err = nil // Clear error; treat as "no matches in this batch"
+					// Continue to next batch (don't return!)
+				}
 			}
-			return nil, fmt.Errorf("could not run grep with provided pattern %+v", err)
+			if err != nil {
+				return nil, fmt.Errorf("could not run grep with provided pattern %+v", err)
+			}
 		}
 		outputBytes.Write(currOutput)
 	}
