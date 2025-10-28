@@ -502,75 +502,109 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 		return matches, nil
 	}
 
+	// Calculate total argument length to determine if we can use direct grep
+	// ARG_MAX on Linux is typically 2MB, use conservative 512KB threshold for safety
+	const argMaxSafeThreshold = 512 * 1024
+	totalArgLength := len(pattern) + 50 // pattern + grep flags overhead
+	for _, loc := range locations {
+		totalArgLength += len(loc) + 1 // +1 for space separator
+	}
+
 	var outputBytes bytes.Buffer
-	batchSize := 500
-	for start := 0; start < len(locations); start += batchSize {
-		end := int(math.Min(float64(start+batchSize), float64(len(locations))))
-		currBatch := locations[start:end]
-		b.log.V(5).Info("searching for pattern", "pattern", pattern, "batchSize", len(currBatch), "totalFiles", len(locations))
-		var currOutput []byte
-		switch runtime.GOOS {
-		case "darwin":
-			isEscaped := isSlashEscaped(pattern)
-			escapedPattern := pattern
-			// some rules already escape '/' while others do not
-			if !isEscaped {
-				escapedPattern = strings.ReplaceAll(escapedPattern, "/", "\\/")
-			}
-			// escape other chars used in perl pattern
-			escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
-			escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
-			var fileList bytes.Buffer
-			for _, f := range currBatch {
-				fileList.WriteString(f)
-				fileList.WriteByte('\x00')
-			}
-			cmdStr := fmt.Sprintf(
-				`xargs -0 perl -ne 'if (/%v/) { print "$ARGV:$.:$1\n" } close ARGV if eof;'`,
-				escapedPattern,
-			)
-			b.log.V(7).Info("running perl", "cmd", cmdStr)
-			cmd := exec.Command("/bin/sh", "-c", cmdStr)
-			cmd.Stdin = &fileList
-			currOutput, err = cmd.Output()
-		default:
-			// Use xargs to avoid ARG_MAX limits when processing large numbers of files
-			// This prevents "argument list too long" errors when analyzing projects
-			// with many files (e.g., node_modules with 30,000+ files)
-			var fileList bytes.Buffer
-			for _, f := range currBatch {
-				fileList.WriteString(f)
-				fileList.WriteByte('\x00')
-			}
-			// Escape pattern for safe shell interpolation
-			escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
-			cmdStr := fmt.Sprintf(
-				`xargs -0 grep -o -n --with-filename -P '%s'`,
-				escapedPattern,
-			)
-			b.log.V(7).Info("running grep via xargs", "cmd", cmdStr)
-			cmd := exec.Command("/bin/sh", "-c", cmdStr)
-			cmd.Stdin = &fileList
-			currOutput, err = cmd.Output()
-		}
+
+	// Fast path for small projects: use direct grep if args fit within ARG_MAX
+	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" && totalArgLength < argMaxSafeThreshold {
+		b.log.V(5).Info("using direct grep (fast path)", "pattern", pattern, "totalFiles", len(locations), "argLength", totalArgLength)
+		// Escape pattern for safe shell interpolation
+		escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
+		// Build grep command with all files as arguments
+		args := []string{"-o", "-n", "--with-filename", "-P", escapedPattern}
+		args = append(args, locations...)
+		cmd := exec.Command("grep", args...)
+		output, err := cmd.Output()
 		if err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok {
-				// Exit code 1: grep found no matches
-				// Exit code 123: GNU xargs (Linux) exits with 123 when any invocation exits with 1-125
-				// When grep processes files across multiple xargs batches and some batches have matches
-				// while others don't, xargs will exit with 123 (not 1). The current code treats this as
-				// an error and discards the partial results in currOutput, causing false negatives.
-				// Apply this fix to handle both exit codes correctly:
-				if exitError.ExitCode() == 1 || exitError.ExitCode() == 123 {
-					err = nil // Clear error; treat as "no matches in this batch"
-					// Continue to next batch (don't return!)
+				if exitError.ExitCode() == 1 {
+					// No matches found, not an error
+					err = nil
 				}
 			}
 			if err != nil {
 				return nil, fmt.Errorf("could not run grep with provided pattern %+v", err)
 			}
 		}
-		outputBytes.Write(currOutput)
+		outputBytes.Write(output)
+	} else {
+		// Slow path for large projects or macOS: use batching with xargs
+		batchSize := 500
+		for start := 0; start < len(locations); start += batchSize {
+			end := int(math.Min(float64(start+batchSize), float64(len(locations))))
+			currBatch := locations[start:end]
+			b.log.V(5).Info("searching for pattern", "pattern", pattern, "batchSize", len(currBatch), "totalFiles", len(locations))
+			var currOutput []byte
+			switch runtime.GOOS {
+			case "darwin":
+				isEscaped := isSlashEscaped(pattern)
+				escapedPattern := pattern
+				// some rules already escape '/' while others do not
+				if !isEscaped {
+					escapedPattern = strings.ReplaceAll(escapedPattern, "/", "\\/")
+				}
+				// escape other chars used in perl pattern
+				escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
+				escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
+				var fileList bytes.Buffer
+				for _, f := range currBatch {
+					fileList.WriteString(f)
+					fileList.WriteByte('\x00')
+				}
+				cmdStr := fmt.Sprintf(
+					`xargs -0 perl -ne 'if (/%v/) { print "$ARGV:$.:$1\n" } close ARGV if eof;'`,
+					escapedPattern,
+				)
+				b.log.V(7).Info("running perl", "cmd", cmdStr)
+				cmd := exec.Command("/bin/sh", "-c", cmdStr)
+				cmd.Stdin = &fileList
+				currOutput, err = cmd.Output()
+			default:
+				// Use xargs to avoid ARG_MAX limits when processing large numbers of files
+				// This prevents "argument list too long" errors when analyzing projects
+				// with many files (e.g., node_modules with 30,000+ files)
+				var fileList bytes.Buffer
+				for _, f := range currBatch {
+					fileList.WriteString(f)
+					fileList.WriteByte('\x00')
+				}
+				// Escape pattern for safe shell interpolation
+				escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
+				cmdStr := fmt.Sprintf(
+					`xargs -0 grep -o -n --with-filename -P '%s'`,
+					escapedPattern,
+				)
+				b.log.V(7).Info("running grep via xargs", "cmd", cmdStr)
+				cmd := exec.Command("/bin/sh", "-c", cmdStr)
+				cmd.Stdin = &fileList
+				currOutput, err = cmd.Output()
+			}
+			if err != nil {
+				if exitError, ok := err.(*exec.ExitError); ok {
+					// Exit code 1: grep found no matches
+					// Exit code 123: GNU xargs (Linux) exits with 123 when any invocation exits with 1-125
+					// When grep processes files across multiple xargs batches and some batches have matches
+					// while others don't, xargs will exit with 123 (not 1). The current code treats this as
+					// an error and discards the partial results in currOutput, causing false negatives.
+					// Apply this fix to handle both exit codes correctly:
+					if exitError.ExitCode() == 1 || exitError.ExitCode() == 123 {
+						err = nil // Clear error; treat as "no matches in this batch"
+						// Continue to next batch (don't return!)
+					}
+				}
+				if err != nil {
+					return nil, fmt.Errorf("could not run grep with provided pattern %+v", err)
+				}
+			}
+			outputBytes.Write(currOutput)
+		}
 	}
 
 	matches := []string{}
