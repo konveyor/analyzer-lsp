@@ -1352,9 +1352,9 @@
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:
         line 11: cannot unmarshal !!map into string
-    test-regex-pattern-00010: failed to perform file content search - could not run grep with provided pattern exit status 2
   unmatched:
   - file-002
   - lang-ref-002
   - node-sample-rule-003
   - python-sample-rule-003
+  - test-regex-pattern-00010
