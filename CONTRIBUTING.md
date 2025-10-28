@@ -356,7 +356,7 @@ when:
 
 Use semantic providers (nodejs, java, go, python) for symbol references, and builtin provider for patterns they cannot detect.
 
-**Example: Detecting React Component Migration**
+##### Example: Detecting React Component Migration
 
 ```yaml
 # nodejs provider - finds component imports and usage
