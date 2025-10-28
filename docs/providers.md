@@ -138,7 +138,13 @@ The `builtin` provider takes following additional configuration options in `prov
   - `target` - Java/Rust build output
   - `.venv`, `venv` - Python virtual environments
 
-  Additional directories can be excluded by specifying them in the config:
+  **Behavior based on configuration:**
+
+  - **Not configured** (default): The default excludes listed above are applied
+  - **Empty array** (`[]`): No directories are excluded - analyzes everything including dependencies
+  - **Non-empty array**: Default excludes are applied, plus any additional directories specified
+
+  To add custom excludes in addition to the defaults:
 
   ```json
   {
@@ -156,3 +162,21 @@ The `builtin` provider takes following additional configuration options in `prov
       ]
   }
   ```
+
+  To disable all excludes and analyze everything (including dependencies):
+
+  ```json
+  {
+      "name": "builtin",
+      "initConfig": [
+          {
+              "location": "/path/to/application",
+              "providerSpecificConfig": {
+                  "excludedDirs": []
+              }
+          }
+      ]
+  }
+  ```
+
+  **Note:** Analyzing dependency directories like `node_modules` can significantly increase analysis time and may cause "argument list too long" errors on projects with many files.
