@@ -403,8 +403,24 @@ func GetIncludedPathsFromConfig(i InitConfig, allowFilePaths bool) []string {
 	return validatedPaths
 }
 
+// GetExcludedDirsFromConfig returns directories to exclude from analysis.
+// It starts with sensible defaults (node_modules, vendor, .git, dist, build, target, venv)
+// to prevent "argument list too long" errors when analyzing projects with large
+// dependency directories. User-configured excludes are appended to these defaults.
 func GetExcludedDirsFromConfig(i InitConfig) []string {
-	validatedPaths := []string{}
+	// Default excluded directories prevent issues with large dependency dirs
+	validatedPaths := []string{
+		"node_modules", // JavaScript/TypeScript dependencies
+		"vendor",       // PHP/Go dependencies
+		".git",         // Git repository data
+		"dist",         // Common build output directory
+		"build",        // Common build output directory
+		"target",       // Java/Rust build output
+		".venv",        // Python virtual environment
+		"venv",         // Python virtual environment
+	}
+
+	// Add user-configured excludes
 	if excludedDirs, ok := i.ProviderSpecificConfig[ExcludedDirsConfigKey].([]interface{}); ok {
 		for _, dir := range excludedDirs {
 			if expath, ok := dir.(string); ok {

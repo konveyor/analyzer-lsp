@@ -534,10 +534,23 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 			cmd.Stdin = &fileList
 			currOutput, err = cmd.Output()
 		default:
-			args := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
-			b.log.V(7).Info("running grep with args", "args", args)
-			args = append(args, locations...)
-			cmd := exec.Command("grep", args...)
+			// Use xargs to avoid ARG_MAX limits when processing large numbers of files
+			// This prevents "argument list too long" errors when analyzing projects
+			// with many files (e.g., node_modules with 30,000+ files)
+			var fileList bytes.Buffer
+			for _, f := range currBatch {
+				fileList.WriteString(f)
+				fileList.WriteByte('\x00')
+			}
+			// Escape pattern for safe shell interpolation
+			escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
+			cmdStr := fmt.Sprintf(
+				`xargs -0 grep -o -n --with-filename -P '%s'`,
+				escapedPattern,
+			)
+			b.log.V(7).Info("running grep via xargs", "cmd", cmdStr)
+			cmd := exec.Command("/bin/sh", "-c", cmdStr)
+			cmd.Stdin = &fileList
 			currOutput, err = cmd.Output()
 		}
 		if err != nil {

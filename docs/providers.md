@@ -126,3 +126,33 @@ The `builtin` provider is configured by default. To override the default config,
 The `builtin` provider takes following additional configuration options in `providerSpecificConfig`:
 
 * `tagsFile`: Path to YAML file that contains a list of tags for the application being analyzed
+
+* `excludedDirs`: List of directory paths or patterns to exclude from analysis. These can be absolute paths or relative paths (relative to the `location`). Directory names are also matched anywhere in the tree (e.g., `"node_modules"` will exclude all `node_modules` directories).
+
+  The following directories are excluded by default to prevent performance issues and "argument list too long" errors:
+  - `node_modules` - JavaScript/TypeScript dependencies
+  - `vendor` - PHP/Go dependencies
+  - `.git` - Git repository data
+  - `dist` - Build output
+  - `build` - Build output
+  - `target` - Java/Rust build output
+  - `.venv`, `venv` - Python virtual environments
+
+  Additional directories can be excluded by specifying them in the config:
+
+  ```json
+  {
+      "name": "builtin",
+      "initConfig": [
+          {
+              "location": "/path/to/application",
+              "providerSpecificConfig": {
+                  "excludedDirs": [
+                      "custom-build-dir",
+                      "/absolute/path/to/exclude"
+                  ]
+              }
+          }
+      ]
+  }
+  ```
