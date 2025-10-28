@@ -30,7 +30,7 @@ type genericProvider struct {
 // Create a generic provider locked to a specific service client found in the
 // server_configuration maps. If the lspServerName is not found, then it
 // defaults to "generic"
-func NewGenericProvider(lspServerName string, log logr.Logger) *genericProvider {
+func NewGenericProvider(lspServerName string, log logr.Logger) provider.BaseClient {
 	// Get the constructor associated with the server
 	ctor, ok := serverconf.SupportedLanguages[lspServerName]
 	if !ok {

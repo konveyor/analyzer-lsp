@@ -21,7 +21,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
-	"github.com/konveyor/analyzer-lsp/jsonrpc2"
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
@@ -69,7 +69,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
 	// filepaths get rendered as a string and must be converted
-	if cond.Referenced.Filepaths != nil && len(cond.Referenced.Filepaths) > 0 {
+	if len(cond.Referenced.Filepaths) > 0 {
 		cond.Referenced.Filepaths = strings.Split(cond.Referenced.Filepaths[0], " ")
 	}
 
@@ -188,7 +188,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	defer p.activeRPCCalls.Done()
 
 	timeOutCtx, _ := context.WithTimeout(ctx, timeout)
-	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp, &refs)
+	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp).Await(timeOutCtx, &refs)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
 			log.Error(err, "connection to the language server is closed, language server is not running")
@@ -251,7 +251,7 @@ func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protoco
 	defer p.activeRPCCalls.Done()
 
 	res := []protocol.Location{}
-	err := p.rpc.Call(ctx, "textDocument/references", params, &res)
+	err := p.rpc.Call(ctx, "textDocument/references", params).Await(ctx, &res)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
 			p.log.Error(err, "connection to the language server is closed, language server is not running")
@@ -309,7 +309,7 @@ func (p *javaServiceClient) shutdown() error {
 	}
 
 	var shutdownResult interface{}
-	err := p.rpc.Call(shutdownCtx, "shutdown", nil, &shutdownResult)
+	err := p.rpc.Call(shutdownCtx, "shutdown", nil).Await(shutdownCtx, &shutdownResult)
 	if err != nil {
 		p.log.Error(err, "failed to send shutdown request to language server")
 		return err
@@ -408,7 +408,8 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 
 	var result protocol.InitializeResult
 	for i := 0; i < 10; i++ {
-		if err := p.rpc.Call(ctx, "initialize", params, &result); err != nil {
+		err := p.rpc.Call(ctx, "initialize", params).Await(ctx, &result)
+		if err != nil {
 			if jsonrpc2.IsRPCClosed(err) {
 				p.log.Error(err, "connection to the language server is closed, language server is not running")
 			} else {

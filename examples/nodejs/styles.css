@@ -1,0 +1,4 @@
+.patternfly-example {
+  color: var(--pf-global-color-100);
+  margin: var(--pf-global-spacer-md);
+}

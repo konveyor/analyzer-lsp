@@ -8,7 +8,6 @@ COPY cmd /analyzer-lsp/cmd
 COPY engine /analyzer-lsp/engine
 COPY  event /analyzer-lsp/event
 COPY output /analyzer-lsp/output
-COPY jsonrpc2 /analyzer-lsp/jsonrpc2
 COPY  jsonrpc2_v2 /analyzer-lsp/jsonrpc2_v2
 COPY lsp /analyzer-lsp/lsp
 COPY parser /analyzer-lsp/parser
@@ -53,6 +52,7 @@ COPY --from=builder /analyzer-lsp/external-providers/golang-dependency-provider/
 COPY --from=builder /analyzer-lsp/external-providers/java-external-provider/java-external-provider /usr/local/bin/java-external-provider
 
 COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
+RUN ln -s /root/go/bin/gopls /usr/local/bin/gopls
 
 WORKDIR /analyzer-lsp
 RUN chgrp -R 0 /analyzer-lsp && chmod -R g=u /analyzer-lsp

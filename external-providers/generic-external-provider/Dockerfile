@@ -31,5 +31,7 @@ RUN npm install -g typescript-language-server typescript
 COPY --from=go-builder /go/bin/gopls /usr/local/bin/gopls
 COPY --from=go-builder /generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
 COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
+COPY external-providers/generic-external-provider/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT [ "/usr/local/bin/generic-external-provider" ]
+
+ENTRYPOINT ["/usr/local/bin/generic-external-provider"]

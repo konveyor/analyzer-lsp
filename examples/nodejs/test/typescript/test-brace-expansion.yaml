@@ -1,0 +1,19 @@
+- ruleID: test-brace-expansion-00000
+  description: Test regex pattern for TypeScript/JavaScript files
+  when:
+    builtin.filecontent:
+      pattern: "React"
+      filePattern: "\\.(j|t)sx?$"
+  message: Found React reference using regex pattern
+  effort: 1
+  category: potential
+
+- ruleID: test-brace-expansion-00010
+  description: Test regex pattern for CSS/SCSS files
+  when:
+    builtin.filecontent:
+      pattern: "--pf-"
+      filePattern: "\\.(css|scss)$"
+  message: Found PatternFly CSS variable using regex pattern
+  effort: 1
+  category: potential
