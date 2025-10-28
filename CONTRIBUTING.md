@@ -619,8 +619,8 @@ The "ensure violation and dependency outputs are unchanged" test will fail if yo
 
 ## Getting Help
 
-- **GitHub Issues:** https://github.com/konveyor/analyzer-lsp/issues
-- **Konveyor Slack:** https://kubernetes.slack.com/archives/CR85S82A2
+- **GitHub Issues:** [https://github.com/konveyor/analyzer-lsp/issues](https://github.com/konveyor/analyzer-lsp/issues)
+- **Konveyor Slack:** [https://kubernetes.slack.com/archives/CR85S82A2](https://kubernetes.slack.com/archives/CR85S82A2)
 - **Documentation:**
   - [README](README.md) - Quick start guide
   - [Rules Documentation](docs/rules.md) - Detailed rule syntax
