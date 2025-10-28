@@ -23,6 +23,11 @@ func BenchmarkConstructArtifactFromSHA(b *testing.B) {
 			mavenIndexPath: "testdata",
 		},
 		{
+			name:           "LastItemInIndex",
+			jarFile:        "testdata/last_jar_in_file.jar",
+			mavenIndexPath: "testdata",
+		},
+		{
 			name:           "NotInIndex",
 			jarFile:        "testdata/will_not_find.jar.jar",
 			mavenIndexPath: "testdata",

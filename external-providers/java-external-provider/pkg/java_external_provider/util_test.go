@@ -124,6 +124,19 @@ func TestConstructArtifactFromSHA(t *testing.T) {
 			},
 		},
 		{
+			name:           "LastItemInIndex",
+			jarFile:        "testdata/last_jar_in_file.jar",
+			mavenIndexPath: "testdata",
+			shouldFind:     true,
+			value: javaArtifact{
+				foundOnline: true,
+				GroupId:     "ai.databand",
+				ArtifactId:  "dbnd-agent",
+				Version:     "1.0.4.2",
+				sha1:        "94fe24514156a7df393bf2f7485ad7219687877c",
+			},
+		},
+		{
 			name:           "NotInIndex",
 			jarFile:        "testdata/will_not_find.jar",
 			mavenIndexPath: "testdata",
@@ -143,17 +156,19 @@ func TestConstructArtifactFromSHA(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			val, err := toDependency(context.Background(), log, tc.jarFile, tc.mavenIndexPath)
-			log.Info("here", "val", fmt.Sprintf("%#v", val), "err", err)
 			if err != nil && !tc.shouldFind {
 				return
 			}
 			if err != nil {
+				log.Error(err, "got unexpected error", "testCase", tc.name, "jarFile", tc.jarFile)
 				t.Fail()
 			}
 			if !tc.shouldFind {
+				log.Info("We should not have found the jar in the index but did", "testCase", tc.name, "jarFile", tc.jarFile)
 				t.Fail()
 			}
 			if !reflect.DeepEqual(val, tc.value) {
+				log.Info("We did not get the expected return value", "expected", fmt.Sprintf("%#v", tc.value), "got", fmt.Sprintf("%#v", val))
 				t.Fail()
 			}
 		})

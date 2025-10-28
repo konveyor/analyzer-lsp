@@ -677,7 +677,7 @@ func searchIndex(f *os.File, key string) (string, error) {
 		return entryKey >= key
 	})
 	if searchErr != nil {
-		return "", err
+		return "", searchErr
 	}
 	if i >= n {
 		return "", fmt.Errorf("not found")
@@ -713,6 +713,7 @@ func readKeyAt(f *os.File, i int) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
+
 	parts := strings.Split(strings.TrimSpace(line), " ")
 	if len(parts) != 2 {
 		return "", "", errors.New("invalid line in the index file")
