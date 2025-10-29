@@ -12,25 +12,31 @@ else
 	MOUNT_OPT := 
 endif
 
-build: analyzer deps golang-dependency-provider external-generic yq-external-provider java-external-provider
+build-dir:
+	mkdir -p build
 
-analyzer:
-	go build -o konveyor-analyzer ./cmd/analyzer/main.go
+build: build-dir analyzer deps golang-dependency-provider external-generic yq-external-provider java-external-provider dotnet-external-provider
 
-external-generic:
-	( cd external-providers/generic-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o generic-external-provider main.go)
+analyzer: build-dir
+	go build -o build/konveyor-analyzer ./cmd/analyzer/main.go
 
-golang-dependency-provider:
-	( cd external-providers/golang-dependency-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o golang-dependency-provider main.go)
+external-generic: build-dir
+	( cd external-providers/generic-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/generic-external-provider main.go)
 
-yq-external-provider:
-	( cd external-providers/yq-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o yq-external-provider main.go)
+golang-dependency-provider: build-dir
+	( cd external-providers/golang-dependency-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/golang-dependency-provider main.go)
 
-java-external-provider:
-	( cd external-providers/java-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o java-external-provider main.go)
+yq-external-provider: build-dir
+	( cd external-providers/yq-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/yq-external-provider main.go)
 
-deps:
-	go build -o konveyor-analyzer-dep ./cmd/dep/main.go
+java-external-provider: build-dir
+	( cd external-providers/java-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/java-external-provider main.go)
+
+dotnet-external-provider: build-dir
+	( cd external-providers/dotnet-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/dotnet-external-provider main.go)
+
+deps: build-dir
+	go build -o build/konveyor-analyzer-dep ./cmd/dep/main.go
 
 image-build:
 	docker build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f Dockerfile . -t $(DOCKER_IMAGE)
