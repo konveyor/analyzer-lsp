@@ -10,7 +10,7 @@ import (
 
 // Demo program that shows how to use the channel reporter
 func main() {
-	fmt.Println("=== Progress Reporting Demo ===\n")
+	fmt.Println("=== Progress Reporting Demo ===")
 
 	// Create a channel reporter
 	reporter := progress.NewChannelReporter()
