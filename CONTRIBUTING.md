@@ -60,8 +60,25 @@ Java provider uses Eclipse JDTLS which is bundled in the container image.
 Build the main analyzer binary:
 
 ```bash
-go build -o analyzer-lsp main.go
+make analyzer
 ```
+
+This creates `build/konveyor-analyzer` in the project root.
+
+Alternatively, build all components at once:
+
+```bash
+make build
+```
+
+This creates all binaries in the `build/` directory:
+- `build/konveyor-analyzer` - Main analyzer binary
+- `build/konveyor-analyzer-dep` - Dependency analyzer
+- `build/generic-external-provider`
+- `build/golang-dependency-provider`
+- `build/yq-external-provider`
+- `build/java-external-provider`
+- `build/dotnet-external-provider`
 
 ### Building External Providers
 
@@ -212,7 +229,7 @@ Example provider settings file for Node.js:
 [
   {
     "name": "nodejs",
-    "binaryPath": "./external-providers/generic-external-provider/generic-external-provider",
+    "binaryPath": "./build/generic-external-provider",
     "initConfig": [{
       "analysisMode": "full",
       "providerSpecificConfig": {
@@ -235,7 +252,7 @@ Example provider settings file for Node.js:
 Run analysis:
 
 ```bash
-./analyzer-lsp \
+./build/konveyor-analyzer \
   --provider-settings=provider_settings.json \
   --rules=rule-example.yaml \
   --output-file=output.yaml \
@@ -531,7 +548,7 @@ RUN cd examples/nodejs && npm install
 
 ### Before Submitting
 
-1. **Build all providers:** `make build-external`
+1. **Build all components:** `make build`
 2. **Run tests:** `go test ./...`
 3. **Test with containers:** Follow container-based development workflow
 4. **Regenerate demo output:** If you added/changed rules or provider behavior
@@ -578,7 +595,7 @@ git commit -s -m ":book: Add comprehensive contributor guide"
 
 ```bash
 # 1. Build everything
-make build-external
+make build
 podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 
 # 2. Run providers
@@ -598,7 +615,7 @@ git commit -s -m "Regenerate demo output with [your changes]"
 
 ### PR Checklist
 
-- [ ] Code builds successfully (`make build-external`)
+- [ ] Code builds successfully (`make build`)
 - [ ] Tests pass (`go test ./...`)
 - [ ] Added test rules for new functionality
 - [ ] Regenerated `demo-output.yaml` if needed

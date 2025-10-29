@@ -1,4 +1,4 @@
-name: Testing Engine
+name: Build and Test
 
 on: ["push", "pull_request"]
 
@@ -44,28 +44,20 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: make build
 
-      - name: Upload analyzer-lsp binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: analyzer-lsp.${{ matrix.artifact_name }}-${{ github.sha }}
-          path: konveyor-analyzer${{ matrix.goos == 'windows' && '.exe' || '' }}
-          retention-days: 30
+      - name: Create binary archive (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          cd build
+          Compress-Archive -Path * -DestinationPath ../konveyor-analyzer-binaries-${{ matrix.goos }}-${{ matrix.goarch }}.zip
 
-      - name: Upload analyzer-lsp deps binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: analyzer-lsp-deps.${{ matrix.artifact_name }}-${{ github.sha }}
-          path: konveyor-analyzer-dep${{ matrix.goos == 'windows' && '.exe' || '' }}
-          retention-days: 30
+      - name: Create binary archive (Unix)
+        if: matrix.goos != 'windows'
+        run: tar -czf konveyor-analyzer-binaries-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C build .
 
-      - name: Upload external-providers binaries
+      - name: Upload binary archive
         uses: actions/upload-artifact@v4
         with:
-          name: external-providers.${{ matrix.artifact_name }}-${{ github.sha }}
-          path: |
-            external-providers/generic-external-provider/generic-external-provider${{ matrix.goos == 'windows' && '.exe' || '' }}
-            external-providers/golang-dependency-provider/golang-dependency-provider${{ matrix.goos == 'windows' && '.exe' || '' }}
-            external-providers/yq-external-provider/yq-external-provider${{ matrix.goos == 'windows' && '.exe' || '' }}
-            external-providers/java-external-provider/java-external-provider${{ matrix.goos == 'windows' && '.exe' || '' }}
+          name: konveyor-analyzer-binaries-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.zip' || '.tar.gz' }}
+          path: konveyor-analyzer-binaries-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.zip' || '.tar.gz' }}
           retention-days: 30
 

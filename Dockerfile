@@ -44,12 +44,12 @@ RUN npm install -g typescript-language-server typescript
 
 COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/local/bin/all-in-one-linux
 COPY --from=yq-builder /usr/bin/yq /usr/local/bin/yq
-COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/local/bin/konveyor-analyzer
-COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/local/bin/konveyor-analyzer-dep
-COPY --from=builder /analyzer-lsp/external-providers/generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
-COPY --from=builder /analyzer-lsp/external-providers/yq-external-provider/yq-external-provider /usr/local/bin/yq-external-provider
-COPY --from=builder /analyzer-lsp/external-providers/golang-dependency-provider/golang-dependency-provider /usr/local/bin/golang-dependency-provider
-COPY --from=builder /analyzer-lsp/external-providers/java-external-provider/java-external-provider /usr/local/bin/java-external-provider
+COPY --from=builder /analyzer-lsp/build/konveyor-analyzer /usr/local/bin/konveyor-analyzer
+COPY --from=builder /analyzer-lsp/build/konveyor-analyzer-dep /usr/local/bin/konveyor-analyzer-dep
+COPY --from=builder /analyzer-lsp/build/generic-external-provider /usr/local/bin/generic-external-provider
+COPY --from=builder /analyzer-lsp/build/yq-external-provider /usr/local/bin/yq-external-provider
+COPY --from=builder /analyzer-lsp/build/golang-dependency-provider /usr/local/bin/golang-dependency-provider
+COPY --from=builder /analyzer-lsp/build/java-external-provider /usr/local/bin/java-external-provider
 
 COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
 RUN ln -s /root/go/bin/gopls /usr/local/bin/gopls
