@@ -12,6 +12,7 @@ COPY  jsonrpc2_v2 /analyzer-lsp/jsonrpc2_v2
 COPY lsp /analyzer-lsp/lsp
 COPY parser /analyzer-lsp/parser
 COPY provider /analyzer-lsp/provider
+COPY pkg /analyzer-lsp/pkg
 COPY tracing /analyzer-lsp/tracing
 COPY external-providers /analyzer-lsp/external-providers
 COPY go.mod /analyzer-lsp/go.mod

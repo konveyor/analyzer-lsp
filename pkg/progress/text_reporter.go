@@ -7,20 +7,51 @@ import (
 	"time"
 )
 
-// TextReporter writes progress events as human-readable text
+// TextReporter writes progress events as human-readable text with timestamps.
+//
+// Each event is formatted with a timestamp prefix and stage-appropriate message.
+// This reporter is ideal for terminal output and log files where human readability
+// is important. It is thread-safe and suitable for concurrent use.
+//
+// Example output:
+//
+//	[17:06:14] Provider: Initializing nodejs provider
+//	[17:06:17] Provider: Provider nodejs ready
+//	[17:06:22] Rule: Starting rule execution: 10 rules to process
+//	[17:06:22] Rule: patternfly-v5-to-v6-charts-00000
+//	[17:06:26] Analysis complete!
 type TextReporter struct {
 	writer io.Writer
 	mu     sync.Mutex
 }
 
-// NewTextReporter creates a new text progress reporter
+// NewTextReporter creates a new text progress reporter that writes to w.
+//
+// The writer is typically os.Stderr for terminal output, but can be any io.Writer
+// including files or custom writers.
+//
+// Example:
+//
+//	reporter := progress.NewTextReporter(os.Stderr)
+//	reporter.Report(progress.ProgressEvent{
+//	    Stage: progress.StageRuleExecution,
+//	    Message: "Processing rule-001",
+//	})
 func NewTextReporter(w io.Writer) *TextReporter {
 	return &TextReporter{
 		writer: w,
 	}
 }
 
-// Report writes a progress event as human-readable text
+// Report writes a progress event as human-readable text.
+//
+// The output format varies by stage:
+//   - Provider init: "[HH:MM:SS] Provider: <message>"
+//   - Rule execution: "[HH:MM:SS] Rule: <rule-id>" or "[HH:MM:SS] Processing rules: X/Y (Z%)"
+//   - Complete: "[HH:MM:SS] Analysis complete!"
+//
+// If the event's Timestamp is zero, it will be set to the current time.
+// This method is safe for concurrent use.
 func (t *TextReporter) Report(event ProgressEvent) {
 	t.mu.Lock()
 	defer t.mu.Unlock()

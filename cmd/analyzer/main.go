@@ -175,6 +175,9 @@ func AnalysisCmd() *cobra.Command {
 				InitConfig: defaultBuiltinConfigs,
 			})
 
+			// Create progress reporter early so we can report provider initialization
+			progressReporter := createProgressReporter()
+
 			providers := map[string]provider.InternalProviderClient{}
 			providerLocations := []string{}
 			var encoding string
@@ -200,24 +203,50 @@ func AnalysisCmd() *cobra.Command {
 					}
 					config.InitConfig = inits
 				}
+
+				// Report provider initialization starting
+				progressReporter.Report(progress.ProgressEvent{
+					Stage:   progress.StageProviderInit,
+					Message: fmt.Sprintf("Initializing %s provider", config.Name),
+				})
+
 				prov, err := lib.GetProviderClient(config, log)
 				if err != nil {
+					// Report provider initialization failed
+					progressReporter.Report(progress.ProgressEvent{
+						Stage:   progress.StageProviderInit,
+						Message: fmt.Sprintf("Provider %s failed to initialize", config.Name),
+						Metadata: map[string]interface{}{
+							"error": err.Error(),
+						},
+					})
 					errLog.Error(err, "unable to create provider client")
 					os.Exit(1)
 				}
 				providers[config.Name] = prov
 				if s, ok := prov.(provider.Startable); ok {
 					if err := s.Start(ctx); err != nil {
+						// Report provider startup failed
+						progressReporter.Report(progress.ProgressEvent{
+							Stage:   progress.StageProviderInit,
+							Message: fmt.Sprintf("Provider %s failed to start", config.Name),
+							Metadata: map[string]interface{}{
+								"error": err.Error(),
+							},
+						})
 						errLog.Error(err, "unable to create provider client")
 						os.Exit(1)
 					}
 				}
+
+				// Report provider ready
+				progressReporter.Report(progress.ProgressEvent{
+					Stage:   progress.StageProviderInit,
+					Message: fmt.Sprintf("Provider %s ready", config.Name),
+				})
 			}
 
 			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
-
-			// Create progress reporter
-			progressReporter := createProgressReporter()
 
 			//start up the rule eng
 			eng := engine.CreateRuleEngine(engineCtx,
