@@ -759,6 +759,31 @@
         variables:
           matchingText: React
       effort: 1
+    test-regex-pattern-00010:
+      description: Test regex pattern for CSS/SCSS files
+      category: potential
+      incidents:
+      - uri: file:///examples/nodejs/styles.css
+        message: Found PatternFly CSS variable using regex pattern
+        codeSnip: |2
+           1  .patternfly-example {
+           2    color: var(--pf-global-color-100);
+           3    margin: var(--pf-global-spacer-md);
+           4  }
+        lineNumber: 2
+        variables:
+          matchingText: --pf-
+      - uri: file:///examples/nodejs/styles.css
+        message: Found PatternFly CSS variable using regex pattern
+        codeSnip: |2
+           1  .patternfly-example {
+           2    color: var(--pf-global-color-100);
+           3    margin: var(--pf-global-spacer-md);
+           4  }
+        lineNumber: 3
+        variables:
+          matchingText: --pf-
+      effort: 1
     test-tsx-support-00000:
       description: Test that .tsx files are scanned (builtin provider)
       category: potential
@@ -1352,7 +1377,6 @@
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:
         line 11: cannot unmarshal !!map into string
-    test-regex-pattern-00010: failed to perform file content search - could not run grep with provided pattern exit status 2
   unmatched:
   - file-002
   - lang-ref-002

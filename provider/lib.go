@@ -403,9 +403,31 @@ func GetIncludedPathsFromConfig(i InitConfig, allowFilePaths bool) []string {
 	return validatedPaths
 }
 
+// GetExcludedDirsFromConfig returns directories to exclude from analysis.
+// It starts with sensible defaults (node_modules, vendor, .git, dist, build, target, venv)
+// to prevent "argument list too long" errors when analyzing projects with large
+// dependency directories. User-configured excludes are appended to these defaults.
+// An empty array for excludedDirs explicitly clears the defaults (to analyze everything).
 func GetExcludedDirsFromConfig(i InitConfig) []string {
-	validatedPaths := []string{}
+	// Check if user explicitly configured excludedDirs
 	if excludedDirs, ok := i.ProviderSpecificConfig[ExcludedDirsConfigKey].([]interface{}); ok {
+		// Empty array means "no excludes, not even defaults" - analyze everything
+		if len(excludedDirs) == 0 {
+			return []string{}
+		}
+
+		// Non-empty array: start with defaults, then add user-configured excludes
+		validatedPaths := []string{
+			"node_modules", // JavaScript/TypeScript dependencies
+			"vendor",       // PHP/Go dependencies
+			".git",         // Git repository data
+			"dist",         // Common build output directory
+			"build",        // Common build output directory
+			"target",       // Java/Rust build output
+			".venv",        // Python virtual environment
+			"venv",         // Python virtual environment
+		}
+
 		for _, dir := range excludedDirs {
 			if expath, ok := dir.(string); ok {
 				ab := expath
@@ -417,8 +439,20 @@ func GetExcludedDirsFromConfig(i InitConfig) []string {
 				validatedPaths = append(validatedPaths, ab)
 			}
 		}
+		return validatedPaths
 	}
-	return validatedPaths
+
+	// No config provided: use defaults only
+	return []string{
+		"node_modules", // JavaScript/TypeScript dependencies
+		"vendor",       // PHP/Go dependencies
+		".git",         // Git repository data
+		"dist",         // Common build output directory
+		"build",        // Common build output directory
+		"target",       // Java/Rust build output
+		".venv",        // Python virtual environment
+		"venv",         // Python virtual environment
+	}
 }
 
 func GetEncodingFromConfig(i InitConfig) string {
