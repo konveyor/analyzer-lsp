@@ -290,11 +290,9 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		gradleTaskFile = ""
 	}
 
-	var mavenIndexPath string
-	if val, ok := config.ProviderSpecificConfig[labels.ProviderSpecificConfigOpenSourceDepListKey]; ok {
-		if strVal, ok := val.(string); ok {
-			mavenIndexPath = strVal
-		}
+	mavenIndexPath, ok := config.ProviderSpecificConfig[MAVEN_INDEX_PATH].(string)
+	if !ok {
+		log.Info("unable to find the maven index path in the provider specific config")
 	}
 
 	// each service client should have their own context
@@ -327,6 +325,9 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		Labeler:         openSourceLabeler,
 		GradleTaskFile:  gradleTaskFile,
 	}, log)
+	if buildTool == nil {
+		return nil, additionalBuiltinConfig, errors.New("unable to get build tool")
+	}
 
 	if buildTool.ShouldResolve() || mode == provider.FullAnalysisMode {
 		log.Info("Resolving project", "location", config.Location)

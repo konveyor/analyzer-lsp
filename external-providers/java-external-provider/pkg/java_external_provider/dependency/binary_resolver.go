@@ -8,18 +8,30 @@ import (
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
 )
 
+// binaryDependencyResolver implements the Resolver interface for binary Java artifacts.
+// It decompiles JAR/WAR/EAR files without source code, creating a synthetic Maven project
+// structure suitable for analysis.
+//
+// The resolver:
+//   - Decompiles the binary artifact into a "java-project" directory
+//   - Extracts embedded dependencies from the binary
+//   - Generates a pom.xml with discovered dependencies
+//   - Stores decompiled sources in Maven repository structure
 type binaryDependencyResolver struct {
-	decompileTool  string
-	labeler        labels.Labeler
-	localRepo      string
-	log            logr.Logger
-	settingsFile   string
-	insecure       bool
-	location       string
-	cleanBin       bool
-	mavenIndexPath string
+	decompileTool  string         // Path to FernFlower decompiler JAR
+	labeler        labels.Labeler // Labeler for dependency classification
+	localRepo      string         // Path to Maven local repository
+	log            logr.Logger    // Logger for resolver operations
+	settingsFile   string         // Path to Maven settings file (currently unused for binary)
+	insecure       bool           // Allow insecure HTTPS (currently unused for binary)
+	location       string         // Absolute path to the binary artifact file
+	cleanBin       bool           // Whether to clean up temporary binary files (currently unused)
+	mavenIndexPath string         // Path to Maven index for artifact lookups
 }
 
+// GetBinaryResolver creates a new binary dependency resolver with the provided options.
+// The resolver is used for analyzing standalone binary artifacts (JAR/WAR/EAR)
+// without accompanying source code or build files.
 func GetBinaryResolver(options ResolverOptions) Resolver {
 	log := options.Log.WithName("binary-resolver")
 	return &binaryDependencyResolver{

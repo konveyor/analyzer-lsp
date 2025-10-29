@@ -101,15 +101,16 @@ type BuildTool interface {
 
 **Responsibility**: Provide thread-safe dependency caching for all build tool implementations
 
-The `depCache` struct is embedded in each BuildTool implementation to provide consistent, thread-safe caching behavior:
+The `depCache` struct is embedded in each BuildTool implementation to provide consistent, thread-safe caching behavior.
 
+**Structure**:
 ```go
 type depCache struct {
-    hashFile string      // Path to build file (pom.xml, build.gradle)
-    hash     *string     // SHA256 hash of build file for caching
-    hashSync *sync.Mutex // Mutex for thread-safe hash access
-    deps     map[uri.URI][]provider.DepDAGItem
-    depLog   logr.Logger
+    hashFile string                         // Path to build file (pom.xml, build.gradle)
+    hash     *string                        // SHA256 hash of build file for cache validation
+    hashSync sync.Mutex                     // Mutex for thread-safe cache access
+    deps     map[uri.URI][]provider.DepDAGItem // Cached dependency DAG
+    depLog   logr.Logger                    // Logger for cache operations
 }
 ```
 
@@ -117,9 +118,11 @@ type depCache struct {
 
 - `useCache() (bool, error)` - Check if cached dependencies are valid
   - Computes SHA256 hash of build file
+  - **Acquires lock immediately** to ensure thread-safe cache access
   - Compares with cached hash
-  - **Acquires lock on cache miss** to prevent concurrent dependency resolution
-  - Returns true if cache is valid, false if dependencies need to be re-fetched
+  - **Releases lock on cache hit** and returns true
+  - **Keeps lock on cache miss** to prevent concurrent dependency resolution
+  - Returns false if dependencies need to be re-fetched (lock remains held)
 
 - `getCachedDeps() map[uri.URI][]provider.DepDAGItem` - Retrieve cached dependencies
   - Returns the cached dependency DAG
@@ -139,7 +142,8 @@ type depCache struct {
                │
                v
 ┌──────────────────────────────────────────────┐
-│ useCache() checks build file hash            │
+│ useCache() - acquire lock immediately        │
+│  - Lock acquired (hashSync)                  │
 │  - Compute SHA256 of build file              │
 │  - Compare with cached hash                  │
 └──────────────┬───────────────────────────────┘
@@ -148,19 +152,21 @@ type depCache struct {
          │           │
     Cache Hit    Cache Miss
          │           │
-         │           v
-         │     ┌──────────────────────────────┐
-         │     │ Lock acquired (hashSync)     │
-         │     │ Prevent concurrent resolution│
-         │     └──────────────────────────────┘
-         │           │
-         v           v
-┌─────────────┐ ┌──────────────────────────────┐
-│Return cached│ │ Run build tool command       │
-│dependencies │ │  - mvn dependency:tree       │
-│             │ │  - gradlew dependencies      │
-│             │ └──────────────────────────────┘
-└─────────────┘          │
+         v           │
+┌─────────────┐      │
+│Release lock │      │
+│Return cached│      │
+│dependencies │      │
+│             │      │
+└─────────────┘      │
+                     v
+                ┌──────────────────────────────┐
+                │ Lock remains held            │
+                │ Run build tool command       │
+                │  - mvn dependency:tree       │
+                │  - gradlew dependencies      │
+                └──────────────────────────────┘
+                         │
                          v
                 ┌──────────────────────────────┐
                 │ setCachedDeps()              │
@@ -171,10 +177,11 @@ type depCache struct {
 ```
 
 **Thread Safety Features**:
-- **Lock-on-miss**: When cache is invalid, lock is acquired immediately to prevent concurrent builds
-- **Lock-on-update**: Lock is released only after cache is updated with new results
+- **Early lock acquisition**: Lock is acquired at the start of `useCache()` before hash computation
+- **Lock release on cache hit**: Lock is immediately released when cached data is valid
+- **Lock hold on cache miss**: Lock remains held through build execution to prevent concurrent builds
 - **Single build execution**: Multiple concurrent requests will wait for the first to complete
-- **No deadlocks**: Lock is always released via `setCachedDeps()`, even on error
+- **No deadlocks**: Lock is always released via either `useCache()` on cache hit or `setCachedDeps()` on cache miss
 
 **Benefits**:
 - Eliminates duplicate Maven/Gradle command execution
@@ -213,7 +220,7 @@ The factory function `GetBuildTool()` determines which build tool to use based o
 ```go
 type mavenBuildTool struct {
     mavenBaseTool
-    depCache  // Embedded dependency cache
+    *depCache  // Embedded dependency cache (pointer)
 }
 ```
 
@@ -281,9 +288,9 @@ type mavenBaseTool struct {
     mvnInsecure     bool           // Whether to allow insecure HTTPS connections
     mvnSettingsFile string         // Path to Maven settings.xml file
     mvnLocalRepo    string         // Path to local Maven repository (.m2/repository)
-    mvnIndexPath    string         // Path to Maven index for artifact searches
+    mavenIndexPath  string         // Path to Maven index for artifact searches
     dependencyPath  string         // Path to dependency configuration file
-    log             logr.Logger    // Logger instance
+    log             logr.Logger    // Logger instance for this build tool
     labeler         labels.Labeler // Labeler for identifying dependency types
 }
 ```
@@ -300,11 +307,11 @@ type mavenBaseTool struct {
 **Structure**:
 ```go
 type gradleBuildTool struct {
-    depCache                        // Embedded dependency cache
-    taskFile           string       // Path to custom Gradle task file
-    disableMavenSearch bool         // Whether to disable Maven repository lookups
-    log                logr.Logger  // Logger instance
-    labeler            labels.Labeler // Labeler for dependency classification
+    *depCache                      // Embedded dependency cache
+    taskFile       string          // Path to custom Gradle task file for dependency resolution
+    mavenIndexPath string          // Path to Maven index for artifact searches
+    log            logr.Logger     // Logger instance for this build tool
+    labeler        labels.Labeler  // Labeler for identifying open source vs internal dependencies
 }
 ```
 
@@ -343,10 +350,12 @@ Parsing Strategy:
 ```go
 type mavenBinaryBuildTool struct {
     mavenBaseTool
-    resolveSync    *sync.Mutex     // Protects resolution and mavenBldTool access
-    binaryLocation string          // Path to binary artifact
-    resolver       dependency.Resolver
-    mavenBldTool   *mavenBuildTool // Created after resolution completes
+    resolveSync        *sync.Mutex          // Protects resolution and mavenBldTool access
+    binaryLocation     string               // Absolute path to the binary artifact (JAR/WAR/EAR)
+    disableMavenSearch bool                 // Whether to disable Maven repository lookups
+    dependencyPath     string               // Path to dependency configuration
+    resolver           dependency.Resolver  // Resolver for source resolution and decompilation
+    mavenBldTool       *mavenBuildTool      // Created after resolution completes
 }
 ```
 
@@ -364,6 +373,34 @@ type mavenBinaryBuildTool struct {
   - **Acquires resolveSync lock** for thread-safe access
   - Returns error if resolution hasn't completed yet
   - Delegates to `mavenBldTool.GetDependencies()` after resolution
+- `discoverDepsFromJars()` - Walks decompiled path to discover embedded JARs
+- `discoverPoms()` - Finds pom.xml files in decompiled structure
+
+**Internal Helper: walker struct**
+
+The `walker` type is an internal helper for traversing decompiled binary artifacts to discover dependencies:
+
+```go
+type walker struct {
+    deps           map[uri.URI][]provider.DepDAGItem // Accumulated dependency graph
+    labeler        labels.Labeler                    // Labeler for dependency classification
+    m2RepoPath     string                            // Maven local repository path
+    initialPath    string                            // Starting path for traversal
+    seen           map[string]bool                   // Tracks processed artifacts to prevent duplicates
+    pomPaths       []string                          // Collected paths to found pom.xml files
+    log            logr.Logger                       // Logger instance
+    mavenIndexPath string                            // Path to Maven index for lookups
+}
+```
+
+**Key Methods**:
+- `walkDirForJar()` - Traverses directories to find JAR files and .class files
+  - Identifies Maven coordinates using `dependency.ToDependency()`
+  - Adds discovered JARs to dependency graph
+  - Deduplicates using `seen` map
+  - Handles WEB-INF class files as application code (not dependencies)
+- `walkDirForPom()` - Traverses directories to find pom.xml files
+  - Collects paths to all discovered POM files
 
 **Binary Resolution and Synchronization Flow**:
 ```
@@ -650,7 +687,106 @@ type JavaArtifact struct {
 }
 ```
 
-#### 6. Binary Explosion Utilities
+#### 6. Dependency Labeling (`dependency/labels/`)
+
+**Responsibility**: Label dependencies for classification and filtering
+
+The labels subpackage provides sophisticated labeling functionality to classify Java dependencies, enabling analysis filtering and dependency categorization.
+
+**Location**: `dependency/labels/labels.go`
+
+**Key Features**:
+- **Open-Source Detection**: Identifies open-source dependencies vs internal/proprietary code
+- **Pattern Matching**: Uses regex patterns to match dependency names
+- **Exclusion Lists**: Supports excluding specific packages from analysis
+- **Label Types**:
+  - `konveyor.io/dep-source`: Source classification (open-source, internal)
+  - `konveyor.io/exclude`: Marks dependencies to exclude from analysis
+  - `konveyor.io/language`: Language classification (java)
+
+**Labeler Interface**:
+```go
+type Labeler interface {
+    AddLabels(string, bool) []string  // Add labels to a dependency
+    HasLabel(string) bool              // Check if pattern exists
+}
+```
+
+**Configuration**:
+- `depOpenSourceLabelsFile`: Path to file containing regex patterns for open-source packages
+- `excludePackages`: List of package patterns to exclude from analysis
+
+**Labeling Process**:
+```
+┌────────────────────────────────────────────────────┐
+│ Initialize Labeler                                 │
+│  - Load open-source patterns from file             │
+│  - Load exclude patterns from config               │
+│  - Compile regex patterns                          │
+└─────────────────┬──────────────────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────────────────┐
+│ For each dependency (e.g., "org.springframework:...")│
+└─────────────────┬──────────────────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────────────────┐
+│ Match against all regex patterns                  │
+│  - Check if matches open-source patterns           │
+│  - Check if matches exclude patterns               │
+└─────────────────┬──────────────────────────────────┘
+                  │
+                  v
+┌────────────────────────────────────────────────────┐
+│ Apply labels based on matches                      │
+│  - Default: konveyor.io/dep-source=internal        │
+│  - If matched or openSource=true:                  │
+│    konveyor.io/dep-source=open-source              │
+│  - Always: konveyor.io/language=java               │
+└────────────────────────────────────────────────────┘
+```
+
+**Example Open-Source Patterns File**:
+```
+^org\.springframework.*
+^org\.apache.*
+^com\.google.*
+^io\.netty.*
+```
+
+**Usage in Artifact Identification**:
+When identifying JAR coordinates, the labeler is used to determine if a dependency is open-source based on its groupId pattern. This affects how dependencies are classified in analysis results.
+
+#### 7. Platform-Specific Constants
+
+**Files**:
+- `dependency/constants.go` (Unix/Linux/macOS)
+- `dependency/constants_windows.go` (Windows)
+
+**Responsibility**: Provide platform-specific path constants
+
+These files use Go build tags to define platform-specific path constants:
+
+**Unix/Linux/macOS** (`constants.go`):
+```go
+const (
+    JAVA   = "src/main/java"
+    WEBAPP = "src/main/webapp"
+)
+```
+
+**Windows** (`constants_windows.go`):
+```go
+const (
+    JAVA   = `src\main\java`
+    WEBAPP = `src\main\webapp`
+)
+```
+
+This ensures proper path handling across different operating systems when creating Maven project structures during decompilation.
+
+#### 8. Binary Explosion Utilities
 
 The dependency module includes specialized handlers for exploding (extracting) different types of Java archive files. These utilities are critical for analyzing binary artifacts.
 
@@ -667,7 +803,7 @@ The dependency module includes specialized handlers for exploding (extracting) d
 - Creates Maven-style directory structure in local repository
 - Copies JAR to `~/.m2/repository` with proper GAV path
 
-**JAR Explosion Handler** (`dependency/jar_expload.go`):
+**JAR Explosion Handler** (`dependency/jar_explode.go`):
 - Handles nested JAR files (e.g., within EAR/WAR archives)
 - Walks exploded directory structure
 - Identifies and processes embedded JARs in `lib/` directories
@@ -1850,9 +1986,12 @@ func (a *antBuildTool) GetResolver(decompileTool string) (dependency.Resolver, e
 - **dependency/artifact.go**: JAR artifact identification
 - **dependency/explosion.go**: Base archive explosion utilities
 - **dependency/jar.go**: JAR artifact handler
-- **dependency/jar_expload.go**: JAR explosion handler for nested archives
+- **dependency/jar_explode.go**: JAR explosion handler for nested archives
 - **dependency/war.go**: WAR artifact handler with web structure support
 - **dependency/ear.go**: EAR artifact handler for enterprise applications
+- **dependency/labels/labels.go**: Dependency labeling and classification
+- **dependency/constants.go**: Platform-specific path constants (Unix/Linux/macOS)
+- **dependency/constants_windows.go**: Platform-specific path constants (Windows)
 
 **Provider Core**:
 - **provider.go**: Java provider initialization and lifecycle

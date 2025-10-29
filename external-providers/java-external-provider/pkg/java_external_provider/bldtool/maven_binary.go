@@ -106,9 +106,9 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 			log:             m.log,
 			labeler:         m.labeler,
 		},
-		depCache: depCache{
+		depCache: &depCache{
 			hashFile: filepath.Join(projectPath, dependency.PomXmlFile),
-			hashSync: &sync.Mutex{},
+			hashSync: sync.Mutex{},
 			depLog:   m.log.WithName("dep-cache"),
 		},
 	}
@@ -136,7 +136,12 @@ func (m *mavenBinaryBuildTool) GetDependencies(ctx context.Context) (map[uri.URI
 	return nil, fmt.Errorf("binary is not yet resolved")
 }
 
-// discoverDepsFromJars walks given path to discover dependencies embedded as JARs
+// discoverDepsFromJars walks the decompiled binary artifact directory to discover
+// dependencies embedded as JAR files and .class files. It uses the walker helper
+// to recursively traverse the directory tree and identify Maven artifacts.
+//
+// For binary artifacts, this method only processes embedded JARs found within the
+// decompiled archive structure, not the application's own classes.
 func (m *mavenBinaryBuildTool) discoverDepsFromJars(path string, ll map[uri.URI][]konveyor.DepDAGItem, mavenIndexPath string) {
 	// for binaries we only find JARs embedded in archive
 	w := walker{
@@ -151,6 +156,11 @@ func (m *mavenBinaryBuildTool) discoverDepsFromJars(path string, ll map[uri.URI]
 	filepath.WalkDir(path, w.walkDirForJar)
 }
 
+// discoverPoms walks the decompiled binary artifact directory to find all pom.xml
+// files. It uses the walker helper to recursively traverse the directory tree and
+// collect paths to discovered POM files.
+//
+// Returns a slice of absolute paths to all discovered pom.xml files.
 func (m *mavenBinaryBuildTool) discoverPoms(pathStart string, ll map[uri.URI][]konveyor.DepDAGItem) []string {
 	w := walker{
 		deps:        ll,
@@ -183,9 +193,15 @@ type walker struct {
 	seen           map[string]bool                   // Tracks processed artifacts to prevent duplicates
 	pomPaths       []string                          // Collected paths to found pom.xml files
 	log            logr.Logger                       // Logger instance
-	mavenIndexPath string
+	mavenIndexPath string                            // Path to Maven index for artifact searches
 }
 
+// walkDirForJar is a filepath.WalkDirFunc that discovers JAR files and .class files
+// in a decompiled binary artifact directory tree. For each discovered artifact:
+//   - JAR files: Identifies Maven coordinates and adds to dependency graph
+//   - .class files: Groups by package and identifies as dependencies (excluding WEB-INF/classes)
+//
+// Deduplication is performed using the seen map to avoid processing the same artifact twice.
 func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 	if info == nil {
 		return nil
@@ -256,6 +272,9 @@ func (w *walker) walkDirForJar(path string, info fs.DirEntry, err error) error {
 	return nil
 }
 
+// walkDirForPom is a filepath.WalkDirFunc that discovers pom.xml files
+// in a decompiled binary artifact directory tree. All discovered POM file
+// paths are collected in the pomPaths slice for later processing.
 func (w *walker) walkDirForPom(path string, info fs.DirEntry, err error) error {
 	if info == nil {
 		return nil

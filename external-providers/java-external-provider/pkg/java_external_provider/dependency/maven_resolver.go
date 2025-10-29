@@ -121,7 +121,7 @@ func (m *mavenDependencyResolver) ResolveSources(ctx context.Context) (string, s
 			}{artifact: artifact, err: err}
 		}()
 	}
-	wg.Done()
+	wg.Wait()
 	cancelFunc()
 
 	return m.location, m.localRepo, nil

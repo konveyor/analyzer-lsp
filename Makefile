@@ -114,7 +114,6 @@ stop-external-providers-pod: stop-external-providers
 extract-maven-index-files:
 	podman run --name temp-jdtls -d quay.io/konveyor/jdtls-server-base:latest
 	podman cp temp-jdtls:/usr/local/etc/maven-index.txt $(PWD)/external-providers/java-external-provider/pkg/java_external_provider/dependency/testdata/
-	podman cp temp-jdtls:/usr/local/etc/maven-index.idx $(PWD)/external-providers/java-external-provider/pkg/java_external_provider/dependency/testdata/
 	podman stop temp-jdtls || true
 	podman rm temp-jdtls || true
 

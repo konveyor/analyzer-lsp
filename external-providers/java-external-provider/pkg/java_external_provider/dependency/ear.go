@@ -31,7 +31,8 @@ func (e *earArtifact) Run(ctx context.Context, log logr.Logger) error {
 	defer e.decompilerWG.Done()
 	e.ctx = ctx
 	e.log = log.WithName("ear").WithValues("artifact", filepath.Base(e.artifactPath))
-	jobCtx, span := tracing.StartNewSpan(ctx, "ear-artifact-job")
+	_, span := tracing.StartNewSpan(ctx, "ear-artifact-job")
+	defer span.End()
 	// Handle explosion
 	var err error
 	e.tmpDir, err = e.explodeArtifact.ExplodeArtifact(ctx, log)
@@ -83,8 +84,6 @@ func (e *earArtifact) Run(ctx context.Context, log logr.Logger) error {
 		}
 	}
 
-	span.End()
-	jobCtx.Done()
 	return nil
 }
 

@@ -14,7 +14,7 @@ RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mo
 
 RUN go build -o generic-external-provider main.go && go install golang.org/x/tools/gopls@v0.18.0
 
-FROM golang-dep-provider as go-dep-provider
+FROM quay.io/konveyor/golang-dependency-provider as go-dep-provider
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 

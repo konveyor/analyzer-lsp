@@ -35,7 +35,7 @@ import (
 //   - Caching based on build.gradle hash to avoid redundant processing
 //   - Maven repository searches for artifact metadata (unless disabled)
 type gradleBuildTool struct {
-	depCache
+	*depCache
 	taskFile       string // Path to custom Gradle task file for dependency resolution
 	mavenIndexPath string
 	log            logr.Logger    // Logger instance for this build tool
@@ -55,9 +55,9 @@ func getGradleBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 			return nil
 		}
 		return &gradleBuildTool{
-			depCache: depCache{
+			depCache: &depCache{
 				hashFile: f,
-				hashSync: &sync.Mutex{},
+				hashSync: sync.Mutex{},
 				depLog:   log.WithName("dep-cache"),
 			},
 			taskFile:       opts.GradleTaskFile,

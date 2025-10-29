@@ -30,6 +30,6 @@ func (p *javaServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 
 func (p *javaServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	p.log.V(4).Info("running dependency analysis for DAG")
-	p.log.Info("using bldtooL", "tool", fmt.Sprintf("%#v", p.buildTool))
+	p.log.V(4).Info("using bldtooL", "tool", fmt.Sprintf("%T", p.buildTool))
 	return p.buildTool.GetDependencies(ctx)
 }

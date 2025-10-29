@@ -2,11 +2,6 @@ package bldtool
 
 import (
 	"context"
-	"crypto/sha256"
-	"errors"
-	"fmt"
-	"io"
-	"os"
 	"path"
 	"strings"
 
@@ -164,22 +159,4 @@ func GetBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 		return bt
 	}
 	return nil
-}
-
-func getHash(path string) (string, error) {
-	hash := sha256.New()
-	var file *os.File
-	file, err := os.Open(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return "", nil
-		}
-		return "", fmt.Errorf("unable to open the pom file %s - %w", path, err)
-	}
-	if _, err = io.Copy(hash, file); err != nil {
-		file.Close()
-		return "", fmt.Errorf("unable to copy file to hash %s - %w", path, err)
-	}
-	file.Close()
-	return string(hash.Sum(nil)), nil
 }

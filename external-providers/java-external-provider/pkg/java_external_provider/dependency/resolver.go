@@ -117,9 +117,13 @@ type ResolverOptions struct {
 	// Optional custom task file to use instead of embedded defaults.
 	GradleTaskFile string
 
+	// MavenIndexPath is the path to a Maven index for artifact metadata searches.
+	// Used to look up artifact information when identifying dependencies.
 	MavenIndexPath string
 }
 
+// contains checks if a JavaArtifact exists in a slice of artifacts.
+// Returns true if the artifact is found, false otherwise.
 func contains(artifacts []JavaArtifact, artifactToFind JavaArtifact) bool {
 	if len(artifacts) == 0 {
 		return false
@@ -128,6 +132,9 @@ func contains(artifacts []JavaArtifact, artifactToFind JavaArtifact) bool {
 	return slices.Contains(artifacts, artifactToFind)
 }
 
+// moveFile moves a file from srcPath to destPath by copying and then deleting the source.
+// Creates the destination directory if it doesn't exist.
+// Returns error if copy or delete operations fail.
 func moveFile(srcPath string, destPath string) error {
 	err := CopyFile(srcPath, destPath)
 	if err != nil {
@@ -140,6 +147,9 @@ func moveFile(srcPath string, destPath string) error {
 	return nil
 }
 
+// CopyFile copies a file from srcPath to destPath.
+// Creates the destination directory if it doesn't exist.
+// Returns error if file operations fail.
 func CopyFile(srcPath string, destPath string) error {
 	if err := os.MkdirAll(filepath.Dir(destPath), DirPermRWX); err != nil {
 		return err
@@ -161,6 +171,9 @@ func CopyFile(srcPath string, destPath string) error {
 	return nil
 }
 
+// AppendToFile reads the entire content of src file and appends it to dst file.
+// The destination file must already exist and be writable.
+// Returns error if file operations fail.
 func AppendToFile(src string, dst string) error {
 	// Read the contents of the source file
 	content, err := os.ReadFile(src)
@@ -215,6 +228,20 @@ const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
 </project>
 `
 
+// createJavaProject creates or updates a Maven project structure in the specified directory.
+// If a pom.xml already exists, it enhances it by adding missing dependencies.
+// If no pom.xml exists, it creates a new one with all dependencies from the javaProjectPom template.
+//
+// Parameters:
+//   - dir: Directory where the project should be created
+//   - dependencies: List of JavaArtifact dependencies to include in the pom.xml
+//
+// The function:
+//   - Creates src/main/java directory structure
+//   - Generates or updates pom.xml with dependency declarations
+//   - Ensures no duplicate dependencies are added
+//
+// Returns error if directory creation, POM parsing, or file operations fail.
 func createJavaProject(_ context.Context, dir string, dependencies []JavaArtifact) error {
 	tmpl := template.Must(template.New("javaProjectPom").Parse(javaProjectPom))
 
@@ -246,7 +273,7 @@ func createJavaProject(_ context.Context, dir string, dependencies []JavaArtifac
 			*pom.Dependencies = append(*pom.Dependencies, artifact.ToPomDep())
 		}
 		if foundUpdates {
-			pomFile, err := os.OpenFile(filepath.Join(dir, PomXmlFile), os.O_TRUNC|os.O_CREATE|os.O_WRONLY, DirPermRWX)
+			pomFile, err := os.OpenFile(filepath.Join(dir, PomXmlFile), os.O_TRUNC|os.O_CREATE|os.O_WRONLY, FilePermRW)
 			if err != nil {
 				return err
 			}
@@ -263,7 +290,7 @@ func createJavaProject(_ context.Context, dir string, dependencies []JavaArtifac
 		return nil
 	}
 
-	pom, err := os.OpenFile(filepath.Join(dir, PomXmlFile), os.O_CREATE|os.O_WRONLY, DirPermRWX)
+	pom, err := os.OpenFile(filepath.Join(dir, PomXmlFile), os.O_CREATE|os.O_WRONLY, FilePermRW)
 	if err != nil {
 		return err
 	}

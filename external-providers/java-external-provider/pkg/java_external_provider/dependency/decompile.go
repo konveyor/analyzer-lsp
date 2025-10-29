@@ -40,31 +40,41 @@ const (
 	DefaultWorkerPoolSize   = 10 // Number of parallel workers for decompilation
 )
 
+// decompileFilter determines whether a specific JavaArtifact should be decompiled.
+// Different implementations can provide filtering logic based on artifact properties.
 type decompileFilter interface {
 	shouldDecompile(JavaArtifact) bool
 }
 
+// alwaysDecompileFilter is a simple boolean filter that always returns the same decision.
+// When true, all artifacts will be decompiled. When false, none will be.
 type alwaysDecompileFilter bool
 
 func (a alwaysDecompileFilter) shouldDecompile(j JavaArtifact) bool {
 	return bool(a)
 }
 
+// decompileJob represents a unit of work for the decompiler worker pool.
+// Each job is responsible for decompiling a specific artifact (JAR, WAR, or EAR)
+// and signaling completion through the Done() method.
 type decompileJob interface {
 	Run(ctx context.Context, log logr.Logger) error
 	Done()
 }
 
+// baseArtifact provides common functionality for all artifact types being decompiled.
+// It contains shared configuration and helper methods used by jarArtifact, warArtifact,
+// earArtifact, and jarExplodeArtifact implementations.
 type baseArtifact struct {
-	artifactPath        string
-	m2Repo              string
-	decompileTool       string
-	javaPath            string
-	labeler             labels.Labeler
-	mavenIndexPath      string
-	decompiler          internalDecompiler
-	decompilerResponses chan DecomplierResponse
-	decompilerWG        *sync.WaitGroup
+	artifactPath        string                    // Absolute path to the artifact file being decompiled
+	m2Repo              string                    // Path to Maven local repository for storing decompiled artifacts
+	decompileTool       string                    // Absolute path to the FernFlower decompiler JAR
+	javaPath            string                    // Path to java executable for running decompiler
+	labeler             labels.Labeler            // Labeler for classifying dependencies
+	mavenIndexPath      string                    // Path to Maven index for artifact lookups
+	decompiler          internalDecompiler        // Reference to decompiler for nested artifact processing
+	decompilerResponses chan DecomplierResponse   // Channel for receiving decompilation results
+	decompilerWG        *sync.WaitGroup           // WaitGroup for coordinating job completion
 }
 
 func (b *baseArtifact) getFileName() string {
@@ -91,43 +101,71 @@ func (b *baseArtifact) getDecompileCommand(ctx context.Context, artifactPath, ou
 		ctx, b.javaPath, "-jar", b.decompileTool, "-mpm=30", artifactPath, outputPath)
 }
 
+// DecomplierResponse contains the results from a decompilation operation.
+// It is sent through a channel to communicate results from worker goroutines.
 type DecomplierResponse struct {
-	Artifacts         []JavaArtifact
-	ouputLocationBase string
-	err               error
+	Artifacts         []JavaArtifact // List of artifacts discovered during decompilation
+	ouputLocationBase string         // Base directory where decompiled output was written
+	err               error          // Error if decompilation failed
 }
 
+// internalDecompiler is an internal interface for recursive decompilation operations.
+// It's used by artifact jobs to trigger decompilation of nested artifacts (e.g., JARs within WARs).
 type internalDecompiler interface {
 	internalDecompileIntoProject(context context.Context, binaryPath, projectPath string, responseChannel chan DecomplierResponse, waitGroup *sync.WaitGroup) error
 	internalDecompile(context context.Context, binaryPath string, responseChannel chan DecomplierResponse, waitGroup *sync.WaitGroup) error
 }
+
+// Decompiler is the public interface for decompiling Java binary artifacts.
+// It provides two modes of operation:
+//   - Decompile: Treats artifact as a dependency, creating Maven repository structure
+//   - DecompileIntoProject: Decompiles into a project directory for analysis
+//
+// The decompiler uses a worker pool to parallelize decompilation of multiple artifacts.
 type Decompiler interface {
+	// DecompileIntoProject decompiles a binary artifact into a project directory structure.
+	// Used for decompiling application binaries (not dependencies).
+	//
+	// Returns list of discovered JavaArtifacts from embedded dependencies.
 	DecompileIntoProject(context context.Context, binaryPath, projectPath string) ([]JavaArtifact, error)
+
+	// Decompile treats an artifact as a dependency and decompiles it into Maven repository structure.
+	// Creates proper groupId/artifactId/version directory hierarchy in the local Maven repository.
+	//
+	// Returns list of JavaArtifacts including the main artifact and any discovered embedded dependencies.
 	Decompile(context context.Context, binaryPath string) ([]JavaArtifact, error)
 }
 
-// The Decompiler will spin up some number of threads, and then a worker will take the job
-// Executing the decompilation and file movement that must occur for the given job.
+// decompiler implements the Decompiler interface using a worker pool pattern.
+// It spawns multiple worker goroutines that process decompilation jobs concurrently,
+// significantly improving performance when decompiling multiple artifacts.
+//
+// Worker Pool Architecture:
+//   - Configurable number of workers (default: 10)
+//   - Job queue (channel) for distributing work
+//   - Supports JAR, WAR, and EAR files
+//   - Recursive decompilation of nested archives
 type decompiler struct {
-	decompileTool     string
-	log               logr.Logger
-	workers           int
-	labeler           labels.Labeler
-	jobs              chan decompileJob
-	cancelWorkersFunc context.CancelFunc
-	java              string
-	m2Repo            string
-	mavenIndexPath    string
-	// This should be set here when starting the decompiler
+	decompileTool     string                 // Path to FernFlower decompiler JAR
+	log               logr.Logger            // Logger for decompiler operations
+	workers           int                    // Number of worker goroutines in the pool
+	labeler           labels.Labeler         // Labeler for dependency classification
+	jobs              chan decompileJob      // Channel for distributing decompilation jobs to workers
+	cancelWorkersFunc context.CancelFunc     // Function to cancel all worker goroutines
+	java              string                 // Path to java executable
+	m2Repo            string                 // Path to Maven local repository
+	mavenIndexPath    string                 // Path to Maven index for artifact lookups
 }
 
+// DecompilerOpts contains configuration options for creating a Decompiler instance.
+// All fields must be properly initialized except workers which defaults to DefaultWorkerPoolSize if zero.
 type DecompilerOpts struct {
-	DecompileTool  string
-	log            logr.Logger
-	workers        int
-	labler         labels.Labeler
-	m2Repo         string
-	mavenIndexPath string
+	DecompileTool  string         // Absolute path to FernFlower decompiler JAR
+	log            logr.Logger    // Logger instance for decompiler operations
+	workers        int            // Number of worker goroutines (0 = use DefaultWorkerPoolSize)
+	labler         labels.Labeler // Labeler for classifying dependencies as open-source or internal
+	m2Repo         string         // Path to Maven local repository for storing decompiled artifacts
+	mavenIndexPath string         // Path to Maven index directory for artifact lookups
 }
 
 func getDecompiler(options DecompilerOpts) (Decompiler, error) {
@@ -143,10 +181,13 @@ func getDecompiler(options DecompilerOpts) (Decompiler, error) {
 		m2Repo:         options.m2Repo,
 		mavenIndexPath: options.mavenIndexPath,
 	}
+	if d.workers == 0 {
+		d.workers = DefaultWorkerPoolSize
+	}
 	// create and save decompile jobs channel.
 	// Start Worker threads
 	ctx, workerCacnelFunc := context.WithCancel(context.Background())
-	for i := range options.workers {
+	for i := range d.workers {
 		go d.decompileWorker(ctx, i)
 	}
 	d.cancelWorkersFunc = workerCacnelFunc

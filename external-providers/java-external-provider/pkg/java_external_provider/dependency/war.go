@@ -33,7 +33,8 @@ func (w *warArtifact) Run(ctx context.Context, log logr.Logger) error {
 	defer w.decompilerWG.Done()
 	w.ctx = ctx
 	w.log = log.WithName("war").WithValues("artifact", filepath.Base(w.artifactPath))
-	jobCtx, span := tracing.StartNewSpan(ctx, "war-artifact-job")
+	_, span := tracing.StartNewSpan(ctx, "war-artifact-job")
+	defer span.End()
 	// Handle explosion
 	var err error
 	w.tmpDir, err = w.explodeArtifact.ExplodeArtifact(ctx, log)
@@ -46,8 +47,6 @@ func (w *warArtifact) Run(ctx context.Context, log logr.Logger) error {
 		return err
 	}
 
-	span.End()
-	jobCtx.Done()
 	return nil
 }
 

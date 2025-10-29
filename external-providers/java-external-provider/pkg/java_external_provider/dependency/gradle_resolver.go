@@ -172,7 +172,7 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 			}()
 		}
 
-		wg.Done()
+		wg.Wait()
 		cancelFunc()
 
 		return g.location, cache, nil

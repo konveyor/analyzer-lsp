@@ -35,7 +35,7 @@ const (
 //   - Fallback parsing when Maven commands fail
 type mavenBuildTool struct {
 	mavenBaseTool
-	depCache
+	*depCache
 }
 
 func getMavenBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
@@ -63,9 +63,9 @@ func getMavenBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath()
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
 	return &mavenBuildTool{
-		depCache: depCache{
+		depCache: &depCache{
 			hashFile: f,
-			hashSync: &sync.Mutex{},
+			hashSync: sync.Mutex{},
 			depLog:   log.WithName("dep-cache"),
 		},
 		mavenBaseTool: mavenBaseTool,
