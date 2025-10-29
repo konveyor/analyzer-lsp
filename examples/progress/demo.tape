@@ -1,6 +1,6 @@
 # VHS tape file for recording the progress reporting demo
 # Install VHS: https://github.com/charmbracelet/vhs
-# Run: vhs demo-progress.tape
+# Run: vhs demo.tape
 
 Output demo-progress.mp4
 
