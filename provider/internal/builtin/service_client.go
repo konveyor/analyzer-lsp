@@ -576,6 +576,7 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 				}
 				// Escape pattern for safe shell interpolation
 				escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
+				// Use -- to mark end of options, preventing patterns like --pf- from being interpreted as options
 				cmdStr := fmt.Sprintf(
 					`xargs -0 grep -o -n --with-filename -P -- '%s'`,
 					escapedPattern,
@@ -588,14 +589,20 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 			if err != nil {
 				if exitError, ok := err.(*exec.ExitError); ok {
 					// Exit code 1: grep found no matches
-					// Exit code 123: GNU xargs (Linux) exits with 123 when any invocation exits with 1-125
-					// When grep processes files across multiple xargs batches and some batches have matches
-					// while others don't, xargs will exit with 123 (not 1). The current code treats this as
-					// an error and discards the partial results in currOutput, causing false negatives.
-					// Apply this fix to handle both exit codes correctly:
-					if exitError.ExitCode() == 1 || exitError.ExitCode() == 123 {
-						err = nil // Clear error; treat as "no matches in this batch"
-						// Continue to next batch (don't return!)
+					if exitError.ExitCode() == 1 {
+						err = nil // Clear error; no matches in this batch
+					}
+					// Exit code 123: GNU xargs exits with 123 when any child exits with 1-125
+					// This includes both "no matches" (grep exit 1) and real errors (grep exit 2)
+					// Only clear 123 if stderr is empty; otherwise surface the error
+					if exitError.ExitCode() == 123 {
+						stderrStr := strings.TrimSpace(string(exitError.Stderr))
+						if stderrStr == "" {
+							err = nil // mixed batches, but no actual error output
+						} else {
+							// Real grep error (e.g., exit 2) - include stderr in error message
+							return nil, fmt.Errorf("could not run grep with provided pattern %+v; stderr=%s", err, stderrStr)
+						}
 					}
 				}
 				if err != nil {
