@@ -24,6 +24,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/engine/internal"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
+	"github.com/konveyor/analyzer-lsp/pkg/progress"
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
@@ -63,6 +64,7 @@ type ruleEngine struct {
 	incidentSelector string
 	locationPrefixes []string
 	encoding         string
+	progressReporter progress.ProgressReporter
 }
 
 type Option func(engine *ruleEngine)
@@ -103,6 +105,12 @@ func WithEncoding(encoding string) Option {
 	}
 }
 
+func WithProgressReporter(reporter progress.ProgressReporter) Option {
+	return func(engine *ruleEngine) {
+		engine.progressReporter = reporter
+	}
+}
+
 func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger, options ...Option) RuleEngine {
 	// Only allow for 10 rules to be waiting in the buffer at once.
 	// Adding more workers will increase the number of rules running at once.
@@ -133,6 +141,13 @@ func (r *ruleEngine) Stop() {
 	r.cancelFunc()
 	r.logger.V(5).Info("rule engine stopping")
 	r.wg.Wait()
+}
+
+// reportProgress sends a progress event if a reporter is configured
+func (r *ruleEngine) reportProgress(event progress.ProgressEvent) {
+	if r.progressReporter != nil {
+		r.progressReporter.Report(event)
+	}
 }
 
 func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logger logr.Logger, wg *sync.WaitGroup) {
@@ -213,6 +228,16 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 
 	ruleContext := r.runTaggingRules(ctx, taggingRules, mapRuleSets, conditionContext, scopes)
 
+	// Report total number of rules to process
+	totalRules := len(otherRules)
+	r.reportProgress(progress.ProgressEvent{
+		Stage:   progress.StageRuleExecution,
+		Current: 0,
+		Total:   totalRules,
+		Percent: 0.0,
+		Message: fmt.Sprintf("Starting rule execution: %d rules to process", totalRules),
+	})
+
 	// Need a better name for this thing
 	ret := make(chan response)
 
@@ -272,6 +297,16 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 					}
 					r.logger.V(5).Info("rule response received", "total", len(otherRules), "failed", failedRules, "matched", matchedRules, "unmatched", unmatchedRules)
 
+					// Report progress after each rule completes
+					completed := int(matchedRules + unmatchedRules + failedRules)
+					r.reportProgress(progress.ProgressEvent{
+						Stage:   progress.StageRuleExecution,
+						Current: completed,
+						Total:   totalRules,
+						Percent: float64(completed) / float64(totalRules) * 100.0,
+						Message: response.Rule.RuleID,
+					})
+
 				}()
 			case <-ctx.Done():
 				// At this point we should just return the function, we may want to close the wait group too.
@@ -302,6 +337,14 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 	select {
 	case <-done:
 		r.logger.V(2).Info("done processing all the rules")
+		// Report completion
+		r.reportProgress(progress.ProgressEvent{
+			Stage:   progress.StageComplete,
+			Current: totalRules,
+			Total:   totalRules,
+			Percent: 100.0,
+			Message: "Rule execution complete",
+		})
 	case <-ctx.Done():
 		r.logger.V(1).Info("processing of rules was canceled")
 	}

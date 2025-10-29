@@ -16,6 +16,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/parser"
+	"github.com/konveyor/analyzer-lsp/pkg/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/konveyor/analyzer-lsp/tracing"
@@ -50,6 +51,8 @@ var (
 	getOpenAPISpec    string
 	treeOutput        bool
 	depOutputFile     string
+	progressOutput    string
+	progressFormat    string
 )
 
 func AnalysisCmd() *cobra.Command {
@@ -213,6 +216,9 @@ func AnalysisCmd() *cobra.Command {
 
 			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
 
+			// Create progress reporter
+			progressReporter := createProgressReporter()
+
 			//start up the rule eng
 			eng := engine.CreateRuleEngine(engineCtx,
 				10,
@@ -223,6 +229,7 @@ func AnalysisCmd() *cobra.Command {
 				engine.WithIncidentSelector(incidentSelector),
 				engine.WithLocationPrefixes(providerLocations),
 				engine.WithEncoding(encoding),
+				engine.WithProgressReporter(progressReporter),
 			)
 
 			if getOpenAPISpec != "" {
@@ -348,6 +355,8 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&getOpenAPISpec, "get-openapi-spec", "", "Get the openAPI spec for the rulesets, rules and provider capabilities and put in file passed in.")
 	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
 	rootCmd.Flags().StringVar(&depOutputFile, "dep-output-file", "", "path to dependency output file")
+	rootCmd.Flags().StringVar(&progressOutput, "progress-output", "", "where to write progress events (stderr, stdout, or file path)")
+	rootCmd.Flags().StringVar(&progressFormat, "progress-format", "text", "format for progress output: text or json")
 
 	return rootCmd
 }
@@ -380,6 +389,44 @@ func validateFlags() error {
 	}
 
 	return nil
+}
+
+// createProgressReporter creates a progress reporter based on CLI flags
+func createProgressReporter() progress.ProgressReporter {
+	// If no output specified, return noop reporter
+	if progressOutput == "" {
+		return progress.NewNoopReporter()
+	}
+
+	// Determine output writer
+	var writer *os.File
+	switch progressOutput {
+	case "stderr":
+		writer = os.Stderr
+	case "stdout":
+		writer = os.Stdout
+	default:
+		// It's a file path
+		file, err := os.Create(progressOutput)
+		if err != nil {
+			// If we can't create the file, fallback to stderr
+			fmt.Fprintf(os.Stderr, "Warning: failed to create progress output file %s: %v\n", progressOutput, err)
+			writer = os.Stderr
+		} else {
+			writer = file
+		}
+	}
+
+	// Create reporter based on format
+	switch progressFormat {
+	case "json":
+		return progress.NewJSONReporter(writer)
+	case "text":
+		return progress.NewTextReporter(writer)
+	default:
+		// Default to text
+		return progress.NewTextReporter(writer)
+	}
 }
 
 func createOpenAPISchema(providers map[string]provider.InternalProviderClient, log logr.Logger) openapi3.Spec {
