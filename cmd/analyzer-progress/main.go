@@ -46,8 +46,12 @@ func main() {
 
 	err := cmd.Run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\nAnalysis failed: %v\n", err)
-		os.Exit(1)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			fmt.Fprintf(os.Stderr, "\nAnalysis failed: %v\n", err)
+			os.Exit(exitErr.ExitCode())
+		}
+		fmt.Fprintf(os.Stderr, "\nFailed to execute analyzer: %v\n", err)
+		os.Exit(127)
 	}
 
 	fmt.Fprintf(os.Stderr, "\n=== Analysis Complete ===\n")
