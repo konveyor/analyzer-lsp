@@ -28,17 +28,27 @@ type earArtifact struct {
 // This handles the case, when we explode "something" and it contains a war artifact.
 // The primary place this will happen, is in an ear file decomp/explosion
 func (e *earArtifact) Run(ctx context.Context, log logr.Logger) error {
-	defer e.decompilerWG.Done()
 	e.ctx = ctx
 	e.log = log.WithName("ear").WithValues("artifact", filepath.Base(e.artifactPath))
-	jobCtx, span := tracing.StartNewSpan(ctx, "ear-artifact-job")
-	// Handle explosion
+	_, span := tracing.StartNewSpan(ctx, "ear-artifact-job")
+	defer span.End()
 	var err error
+	var artifacts []JavaArtifact
+	var outputLocationBase string
+	defer func() {
+		log.V(9).Info("Returning")
+		e.decompilerResponses <- DecomplierResponse{
+			Artifacts:         artifacts,
+			ouputLocationBase: outputLocationBase,
+			err:               err,
+		}
+	}()
+	// Handle explosion
 	e.tmpDir, err = e.explodeArtifact.ExplodeArtifact(ctx, log)
 	if err != nil {
 		return err
 	}
-
+	outputLocationBase = e.tmpDir
 	err = filepath.WalkDir(e.tmpDir, e.HandleFile)
 	if err != nil {
 		return err
@@ -83,8 +93,11 @@ func (e *earArtifact) Run(ctx context.Context, log logr.Logger) error {
 		}
 	}
 
-	span.End()
-	jobCtx.Done()
+	if len(errs) > 0 {
+		err = errs[0]
+		return err
+	}
+
 	return nil
 }
 

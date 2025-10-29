@@ -63,7 +63,7 @@ func GetOpenSourceLabeler(config map[string]any, log logr.Logger) (Labeler, erro
 func GetExcludeDepLabels(config map[string]any, log logr.Logger, l Labeler) (Labeler, error) {
 	la, ok := l.(*labeler)
 	if !ok {
-		return nil, fmt.Errorf("labler must be already created")
+		return nil, fmt.Errorf("labeler must be already created")
 	}
 
 	depToLabels, err := initExcludeDepLabels(config, la.depToLabels, log)

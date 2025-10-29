@@ -34,7 +34,46 @@ jobs:
         run: go test -v ./...
 
       - name: Test Java External Provider
+        if: ${{ startsWith(matrix.goos, 'linux') }}
         run: |
+          make extract-maven-index-files
           cd external-providers/java-external-provider/
           go test -v ./...
+      
+      - name: Test Java External Provider
+        if: ${{ !startsWith(matrix.goos, 'linux') }}
+        run: |
+          cd external-providers/java-external-provider/
+          go test -v -skip 'TestConstructArtifactFromSHA' ./... 
+      
+      - name: Build binaries
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: make build
+      
+      - name: Archive binaries (linux & mac)
+        if: ${{ !startsWith(matrix.goos, 'windows') }}
+        env:
+          OS: ${{ matrix.goos }}
+          OS_ARCH: ${{ matrix.goarch }}
+        run: |
+          zip -j analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip build/*
+      
+      - name: Archive binaries (windows)
+        if: ${{ startsWith(matrix.goos, 'windows') }}
+        env:
+          OS: ${{ matrix.goos }}
+          OS_ARCH: ${{ matrix.goarch }}
+        run: |
+          Compress-Archive -Path build/* -DestinationPath analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip
 
+      - name: Upload binary archive
+        uses: actions/upload-artifact@v4
+        env:
+          OS: ${{ matrix.goos }}
+          OS_ARCH: ${{ matrix.goarch }}
+        with:
+          name: analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip
+          path: analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip
+          retention-days: 30

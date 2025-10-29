@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -93,14 +94,14 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 		"konveyorDownloadSources",
 	}
 	cmd := exec.CommandContext(ctx, g.wrapper, args...)
-	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", g.javaHome))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("JAVA_HOME=%s", g.javaHome))
 	cmd.Dir = g.location
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", "", fmt.Errorf("error trying to get sources for Gradle: %w - Gradle output: %s", err, output)
 	}
 
-	g.log.V(8).WithValues("output", output).Info("got gradle output")
+	g.log.V(8).WithValues("output", string(output)).Info("got gradle output")
 
 	// TODO: what if all sources available
 	reader := bytes.NewReader(output)
@@ -110,6 +111,8 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 	}
 
 	g.log.V(5).Info("total unresolved sources", "count", len(unresolvedSources))
+	gradleHome := g.findGradleHome()
+	cacheRoot := filepath.Join(gradleHome, "caches", "modules-2")
 
 	if len(unresolvedSources) > 1 {
 		// Gradle cache dir structure changes over time - we need to find where the actual dependencies are stored
@@ -155,7 +158,8 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 		for _, artifact := range unresolvedSources {
 			g.log.V(5).WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
 
-			artifactDir := filepath.Join(cache, artifact.GroupId, artifact.ArtifactId)
+			groupDirs := filepath.Join(strings.Split(artifact.GroupId, ".")...)
+			artifactDir := filepath.Join(cache, groupDirs, artifact.Version, artifact.ArtifactId)
 			jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
 			artifactPath, err := g.findGradleArtifact(artifactDir, jarName)
 			if err != nil {
@@ -172,12 +176,12 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 			}()
 		}
 
-		wg.Done()
+		wg.Wait()
 		cancelFunc()
 
 		return g.location, cache, nil
 	}
-	return g.location, "", nil
+	return g.location, cacheRoot, nil
 }
 
 // findGradleCache looks for the folder within the Gradle cache where the actual dependencies are stored
@@ -205,18 +209,24 @@ func (g *gradleResolver) findGradleCache(sampleGroupId string) (string, error) {
 }
 
 // findGradleHome tries to get the .gradle directory from several places
-// 1. check $GRADLE_HOME
-// 2. check $HOME/.gradle
-// 3. else, set to /root/.gradle
+// 1. Check GRADLE_USER_HOME: https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home
+// 2. check $GRADLE_HOME
+// 3. check $HOME/.gradle
+// 4. else, set to /root/.gradle
 func (g *gradleResolver) findGradleHome() string {
-	gradleHome := os.Getenv("GRADLE_HOME")
-	if gradleHome == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			home = "/root"
-		}
-		gradleHome = filepath.Join(home, ".gradle")
+	gradleHome := os.Getenv("GRADLE_USER_HOME")
+	if gradleHome != "" {
+		return gradleHome
 	}
+	gradleHome = os.Getenv("GRADLE_HOME")
+	if gradleHome != "" {
+		return gradleHome
+	}
+	home := os.Getenv("HOME")
+	if home == "" {
+		home = "/root"
+	}
+	gradleHome = filepath.Join(home, ".gradle")
 	return gradleHome
 }
 

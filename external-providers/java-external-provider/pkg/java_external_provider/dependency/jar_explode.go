@@ -24,14 +24,24 @@ type jarExplodeArtifact struct {
 // This handles the case, when we explode "something" and it contains a war artifact.
 // The primary place this will happen, is in an ear file decomp/explosion
 func (j *jarExplodeArtifact) Run(ctx context.Context, log logr.Logger) error {
-	defer j.decompilerWG.Done()
 	j.ctx = ctx
 	j.log = log.WithName("explode_jar").WithValues("archive", filepath.Base(j.artifactPath))
 	jobCtx, span := tracing.StartNewSpan(ctx, "jar-explode-artifact-job")
 	log.V(7).Info("starting jar archive job")
-	// Handle explosion
 	var err error
+	var artifacts []JavaArtifact
+	var outputLocationBase string
+	defer func() {
+		log.Info("Returning", "artifact", j.artifactPath)
+		j.decompilerResponses <- DecomplierResponse{
+			Artifacts:         artifacts,
+			ouputLocationBase: outputLocationBase,
+			err:               err,
+		}
+	}()
+	// Handle explosion
 	j.tmpDir, err = j.explodeArtifact.ExplodeArtifact(ctx, log)
+	outputLocationBase = j.tmpDir
 	j.log.V(7).Info(fmt.Sprintf("explode: %#v, %#v", j.tmpDir, err))
 	if err != nil {
 		log.Error(err, "unable to explode")

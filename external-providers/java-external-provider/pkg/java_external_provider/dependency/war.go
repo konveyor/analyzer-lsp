@@ -2,10 +2,8 @@ package dependency
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -30,24 +28,33 @@ type warArtifact struct {
 // This handles the case, when we explode "something" and it contains a war artifact.
 // The primary place this will happen, is in an ear file decomp/explosion
 func (w *warArtifact) Run(ctx context.Context, log logr.Logger) error {
-	defer w.decompilerWG.Done()
 	w.ctx = ctx
 	w.log = log.WithName("war").WithValues("artifact", filepath.Base(w.artifactPath))
-	jobCtx, span := tracing.StartNewSpan(ctx, "war-artifact-job")
-	// Handle explosion
+	_, span := tracing.StartNewSpan(ctx, "war-artifact-job")
+	defer span.End()
 	var err error
+	var artifacts []JavaArtifact
+	var outputLocationBase string
+	defer func() {
+		log.V(9).Info("Returning")
+		w.decompilerResponses <- DecomplierResponse{
+			Artifacts:         artifacts,
+			ouputLocationBase: outputLocationBase,
+			err:               err,
+		}
+	}()
+	// Handle explosion
 	w.tmpDir, err = w.explodeArtifact.ExplodeArtifact(ctx, log)
 	if err != nil {
 		return err
 	}
+	outputLocationBase = w.tmpDir
 
 	err = filepath.WalkDir(w.tmpDir, w.HandleFile)
 	if err != nil {
 		return err
 	}
 
-	span.End()
-	jobCtx.Done()
 	return nil
 }
 
@@ -73,13 +80,10 @@ func (w *warArtifact) HandleFile(path string, d fs.DirEntry, err error) error {
 		if err = os.MkdirAll(outputPath, DirPermRWXGrp); err != nil {
 			return err
 		}
-		decompileCommand := exec.CommandContext(context.Background(), w.javaPath, "-jar", w.decompileTool, absPath, outputPath)
-		out, err := decompileCommand.Output()
-		w.log.Info(fmt.Sprintf("%s", out))
+		err = w.decompiler.internalDecompileClasses(w.ctx, absPath, outputPath, w.decompilerResponses, w.decompilerWG)
 		if err != nil {
 			return err
 		}
-		return nil
 	}
 	if d.IsDir() {
 		// We don't need to do anything  as all of these

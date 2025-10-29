@@ -28,3 +28,9 @@ external-providers/dotnet-external-provider/examples/HelloWorld/HelloWorld/bin/*
 external-providers/dotnet-external-provider/examples/HelloWorld/HelloWorld/obj/*
 external-providers/java-external-provider/pkg/java_external_provider/dependency/testdata/maven-index.idx
 external-providers/java-external-provider/pkg/java_external_provider/dependency/testdata/maven-index.txt
+.gradle/
+
+# Go test coverage files
+coverage.out
+*.coverprofile
+...

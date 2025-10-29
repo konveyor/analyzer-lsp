@@ -96,7 +96,7 @@ func (m *mavenDependencyResolver) ResolveSources(ctx context.Context) (string, s
 		for {
 			select {
 			case resp := <-returnChan:
-				defer wg.Done()
+				wg.Done()
 				if resp.err != nil {
 					m.log.Error(err, "unable to get java artifact")
 					continue
@@ -113,15 +113,18 @@ func (m *mavenDependencyResolver) ResolveSources(ctx context.Context) (string, s
 		groupDirs := filepath.Join(strings.Split(artifact.GroupId, ".")...)
 		jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
 		wg.Add(1)
+		m.log.Info("adding to wait group")
 		go func() {
-			artifact, err := decompiler.Decompile(decompilerCtx, filepath.Join(m.localRepo, groupDirs, artifact.ArtifactId, jarName))
+			artifact, err := decompiler.Decompile(decompilerCtx, filepath.Join(m.localRepo, groupDirs, artifact.ArtifactId, artifact.Version, jarName))
 			returnChan <- struct {
 				artifact []JavaArtifact
 				err      error
 			}{artifact: artifact, err: err}
 		}()
 	}
-	wg.Done()
+	m.log.Info("wating in resolver")
+	wg.Wait()
+	m.log.Info("finished waiting in resolver")
 	cancelFunc()
 
 	return m.location, m.localRepo, nil

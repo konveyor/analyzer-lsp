@@ -16,8 +16,19 @@ type jarArtifact struct {
 
 func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 	log = log.WithName("jar").WithValues("artifact", filepath.Base(j.artifactPath))
-	defer j.decompilerWG.Done()
 	jobCtx, span := tracing.StartNewSpan(ctx, "java-artifact-job")
+	var err error
+	var artifacts []JavaArtifact
+	var outputLocationBase string
+	defer func() {
+		log.V(9).Info("Returning", "artifact", j.artifactPath)
+		j.decompilerResponses <- DecomplierResponse{
+			Artifacts:         artifacts,
+			ouputLocationBase: outputLocationBase,
+			err:               err,
+		}
+	}()
+
 	dep, err := ToDependency(ctx, log, j.labeler, j.artifactPath, j.mavenIndexPath)
 	if err != nil {
 		log.Error(err, "failed to add dep", "file", j.artifactPath)
@@ -37,18 +48,14 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 		}
 		dep = newDep
 	}
-	artifacts := []JavaArtifact{dep}
+	artifacts = []JavaArtifact{dep}
 	if !dep.FoundOnline {
 		sourceDestPath := j.getSourcesJarDestPath(dep)
+		outputLocationBase = filepath.Base(sourceDestPath)
 		log.Info("getting sources", "souce-dst", sourceDestPath)
 		if _, err := os.Stat(sourceDestPath); err == nil {
 			log.Info("getting sources - allready found", "souce-dst", sourceDestPath)
 			// already decompiled, duplicate...
-			j.decompilerResponses <- DecomplierResponse{
-				Artifacts:         []JavaArtifact{},
-				ouputLocationBase: filepath.Base(sourceDestPath),
-				err:               nil,
-			}
 			return nil
 		}
 
@@ -77,17 +84,13 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 	}
 	// When we find a jar, and have a dep, we should pre-copy it to m2repo to reduce the network traffic.
 	destPath := j.getJarDestPath(dep)
+	outputLocationBase = filepath.Base(destPath)
 	if err := CopyFile(j.artifactPath, destPath); err != nil {
 		log.Error(err, fmt.Sprintf("failed copying jar to %s", destPath))
 		return err
 	}
 	log.Info("copied jar file", "src", j.artifactPath, "dest", destPath)
 
-	j.decompilerResponses <- DecomplierResponse{
-		Artifacts:         artifacts,
-		ouputLocationBase: filepath.Base(destPath),
-		err:               nil,
-	}
 	span.End()
 	jobCtx.Done()
 	return nil

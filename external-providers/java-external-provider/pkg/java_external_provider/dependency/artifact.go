@@ -3,16 +3,13 @@ package dependency
 import (
 	"archive/zip"
 	"bufio"
-	"bytes"
 	"context"
 	"crypto/sha1"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -22,19 +19,31 @@ import (
 	"github.com/vifraa/gopom"
 )
 
+// JavaArtifact represents Maven coordinates and metadata for a Java dependency artifact.
+// It is used to identify JAR files and manage their Maven repository locations.
+//
+// The artifact can be constructed from various sources:
+//   - SHA1 hash lookup in Maven index
+//   - Embedded pom.properties in JAR META-INF
+//   - Inferred from file path structure
 type JavaArtifact struct {
-	FoundOnline bool
-	Packaging   string
-	GroupId     string
-	ArtifactId  string
-	Version     string
-	Sha1        string
+	FoundOnline bool   // Whether the artifact was found in Maven Central or known OSS repositories
+	Packaging   string // Archive type: .jar, .war, .ear
+	GroupId     string // Maven groupId (e.g., "org.springframework")
+	ArtifactId  string // Maven artifactId (e.g., "spring-core")
+	Version     string // Maven version (e.g., "5.3.21")
+	Sha1        string // SHA1 hash for verification and lookups
 }
 
+// IsValid checks if the artifact has the minimum required Maven coordinates.
+// Returns true if groupId, artifactId, and version are all non-empty.
 func (j JavaArtifact) IsValid() bool {
 	return (j.ArtifactId != "" && j.GroupId != "" && j.Version != "")
 }
 
+// EqualsPomDep compares a JavaArtifact with a gopom.Dependency for equality.
+// Returns true if groupId, artifactId, and version all match.
+// Returns false if any field is nil or doesn't match.
 func (j JavaArtifact) EqualsPomDep(dependency gopom.Dependency) bool {
 	if dependency.ArtifactID == nil || dependency.GroupID == nil || dependency.Version == nil {
 		return false
@@ -45,6 +54,8 @@ func (j JavaArtifact) EqualsPomDep(dependency gopom.Dependency) bool {
 	return false
 }
 
+// ToPomDep converts a JavaArtifact to a gopom.Dependency structure.
+// This is used when generating or updating pom.xml files with discovered dependencies.
 func (j JavaArtifact) ToPomDep() gopom.Dependency {
 	return gopom.Dependency{
 		GroupID:    &j.GroupId,
@@ -53,7 +64,18 @@ func (j JavaArtifact) ToPomDep() gopom.Dependency {
 	}
 }
 
-// toDependency returns javaArtifact constructed for a jar
+// ToDependency identifies Maven coordinates for a JAR file using multiple strategies.
+// It attempts identification in the following order:
+//  1. SHA1 hash lookup in Maven index (fastest, requires mavenIndexPath)
+//  2. Extract from embedded pom.properties in JAR META-INF (fallback)
+//
+// Parameters:
+//   - jarFile: Absolute path to the JAR file to identify
+//   - mavenIndexPath: Path to Maven index directory for SHA1 lookups
+//   - log: Logger for progress and error reporting
+//   - labeler: Used to determine if dependency is open source (unused in current implementation)
+//
+// Returns the JavaArtifact with coordinates, or empty artifact with error if all strategies fail.
 func ToDependency(_ context.Context, log logr.Logger, labeler labels.Labeler, jarFile string, mavenIndexPath string) (JavaArtifact, error) {
 	dep, err := constructArtifactFromSHA(log, jarFile, mavenIndexPath)
 	if err == nil {
@@ -61,22 +83,28 @@ func ToDependency(_ context.Context, log logr.Logger, labeler labels.Labeler, ja
 	}
 	log.V(3).Error(err, "unable to look up dependency by SHA, falling back to get maven cordinates", "jar", jarFile)
 	dep, err = constructArtifactFromPom(log, jarFile)
-	if err == nil {
-		return dep, nil
-	}
-	log.V(3).Error(err, "could not construct artifact object from pom for artifact, trying to infer from structure", "jarFile", jarFile)
-
-	dep, err = constructArtifactFromStructure(log, jarFile, labeler)
 	if err != nil {
-		log.V(3).Error(err, "could not construct artifact object from structure", "jarFile", jarFile)
 		return JavaArtifact{}, err
 	}
-
-	return dep, err
+	return dep, nil
 }
 
+// mavenSearchErrorCache caches errors from Maven search to avoid repeated failures.
+// TODO: This is currently unused but intended for error caching optimization.
 var mavenSearchErrorCache error
 
+// constructArtifactFromSHA identifies a JAR file by computing its SHA1 hash
+// and looking it up in a Maven index file.
+//
+// This is the fastest identification method as it uses a pre-built index
+// of SHA1 hashes to Maven coordinates, avoiding the need to open and parse the JAR.
+//
+// Parameters:
+//   - log: Logger for error reporting
+//   - jarFile: Absolute path to the JAR file
+//   - mavenIndexPath: Path to directory containing maven-index.txt
+//
+// Returns JavaArtifact with FoundOnline=true if found, or error if lookup fails.
 func constructArtifactFromSHA(log logr.Logger, jarFile string, mavenIndexPath string) (JavaArtifact, error) {
 	dep := JavaArtifact{}
 	// we look up the jar in maven
@@ -94,16 +122,23 @@ func constructArtifactFromSHA(log logr.Logger, jarFile string, mavenIndexPath st
 
 	sha1sum := hex.EncodeToString(hash.Sum(nil))
 	dataFilePath := filepath.Join(mavenIndexPath, "maven-index.txt")
-	indexFilePath := filepath.Join(mavenIndexPath, "maven-index.idx")
-	dep, err = search(log, sha1sum, dataFilePath, indexFilePath)
-	if err != nil {
-		return constructArtifactFromPom(log, jarFile)
-	}
+	dep, err = search(log, sha1sum, dataFilePath)
 	return dep, nil
 }
 
+// constructArtifactFromPom extracts Maven coordinates from a JAR's embedded pom.properties file.
+// This is used as a fallback when SHA1 lookup fails.
+//
+// The function looks for META-INF/maven/*/*/pom.properties inside the JAR and parses
+// the groupId, artifactId, and version from the properties file.
+//
+// Parameters:
+//   - log: Logger for progress and error reporting
+//   - jarFile: Absolute path to the JAR file to analyze
+//
+// Returns JavaArtifact with coordinates from the embedded POM, or error if not found.
 func constructArtifactFromPom(log logr.Logger, jarFile string) (JavaArtifact, error) {
-	log.V(5).Info("trying to find pom within jar %s to get info", jarFile)
+	log.V(5).Info("trying to find pom within jar", "jarFile", jarFile)
 	dep := JavaArtifact{}
 	jar, err := zip.OpenReader(jarFile)
 	if err != nil {
@@ -117,7 +152,7 @@ func constructArtifactFromPom(log logr.Logger, jarFile string) (JavaArtifact, er
 			return dep, err
 		}
 
-		log.Info("match", "match", match, "name", file.Name)
+		log.V(5).Info("match", "match", match, "name", file.Name)
 
 		if match {
 			// Open the file in the ZIP archive
@@ -139,111 +174,28 @@ func constructArtifactFromPom(log logr.Logger, jarFile string) (JavaArtifact, er
 					dep.GroupId = strings.TrimSpace(after1)
 				}
 			}
+			if scanner.Err() != nil {
+				return dep, scanner.Err()
+			}
 			return dep, err
 		}
 	}
 	return dep, fmt.Errorf("failed to construct artifact from pom properties")
 }
 
-// constructArtifactFromStructure builds an artifact object out of the JAR internal structure.
-func constructArtifactFromStructure(log logr.Logger, jarFile string, labeler labels.Labeler) (JavaArtifact, error) {
-	log.V(10).Info(fmt.Sprintf("trying to infer if %s is a public dependency", jarFile))
-	groupId, err := inferGroupName(jarFile)
-	if err != nil {
-		return JavaArtifact{}, err
-	}
-	// since the extracted groupId is not reliable, lets just name the dependency after its filename
-	artifact := JavaArtifact{ArtifactId: filepath.Base(jarFile)}
-	// check the inferred groupId against list of public groups
-	// if groupId is not found, remove last segment. repeat if not found until no segments are left.
-	sgmts := strings.Split(groupId, ".")
-	for len(sgmts) > 0 {
-		// check against depToLabels. add *
-		groupIdRegex := strings.Join([]string{groupId, "*"}, ".")
-		if labeler.HasLabel(groupIdRegex) {
-			log.V(10).Info(fmt.Sprintf("%s is a public dependency with a group id of: %s", jarFile, groupId))
-			// do a best effort to set some dependency data
-			artifact.GroupId = groupId
-			artifact.ArtifactId = strings.TrimSuffix(filepath.Base(jarFile), ".jar")
-			artifact.Version = "Unknown"
-			// Adding this back to make some things easier.
-			artifact.FoundOnline = true
-			return artifact, nil
-		} else {
-			// lets try to remove one segment from the end
-			sgmts = sgmts[:len(sgmts)-1]
-			groupId = strings.Join(sgmts, ".")
-		}
-	}
-	log.V(10).Info(fmt.Sprintf("could not find groupId for in our public listing of group id's for jar: %s", jarFile))
-	return artifact, nil
-}
-
-// inferGroupName tries to extract the name of the group based on the directory structure.
-// Usually group names coincide with package names, this is, the dir structure
-// We go down the dir structure until we find either more than one dir, or a file that is not a dir
-func inferGroupName(jarPath string) (string, error) {
-	r, err := zip.OpenReader(jarPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open JAR file: %w", err)
-	}
-	defer r.Close()
-
-	var classPaths []string
-	for _, file := range r.File {
-		// Skip entries that aren't .class files
-		if !strings.HasSuffix(file.Name, ".class") {
-			continue
-		}
-
-		// Skip inner or anonymous classes
-		if strings.Contains(path.Base(file.Name), "$") {
-			continue
-		}
-
-		// Skip top-level class files (no package)
-		if !strings.Contains(file.Name, "/") {
-			continue
-		}
-
-		// Skip known metadata paths
-		if strings.HasPrefix(file.Name, "META-INF/") || strings.HasPrefix(file.Name, "BOOT-INF/") {
-			continue
-		}
-
-		classPaths = append(classPaths, file.Name)
-	}
-
-	if len(classPaths) == 0 {
-		return "", fmt.Errorf("no valid class files found in JAR")
-	}
-
-	// Convert each path to a list of package segments
-	var allPaths [][]string
-	for _, p := range classPaths {
-		dir := path.Dir(p)
-		parts := strings.Split(dir, "/")
-		allPaths = append(allPaths, parts)
-	}
-
-	// Find the longest common prefix
-	var groupParts []string
-	for i := 0; ; i++ {
-		var part string
-		for j, segments := range allPaths {
-			if i >= len(segments) {
-				return strings.Join(groupParts, "."), nil
-			}
-			if j == 0 {
-				part = segments[i]
-			} else if segments[i] != part {
-				return strings.Join(groupParts, "."), nil
-			}
-		}
-		groupParts = append(groupParts, part)
-	}
-}
-
+// ToFilePathDependency infers Maven coordinates from a file path structure.
+// This is used as a last-resort fallback when neither SHA1 lookup nor embedded POM work.
+//
+// The function assumes the file path follows Java package structure:
+// /org/springframework/boot/loader/jar/Something.class becomes:
+//   - GroupId: org.springframework.boot.loader
+//   - ArtifactId: jar
+//   - Version: 0.0.0 (placeholder)
+//
+// Parameters:
+//   - filePath: Path to a .class file within a decompiled structure
+//
+// Returns JavaArtifact with inferred coordinates. Version is always set to "0.0.0".
 func ToFilePathDependency(_ context.Context, filePath string) (JavaArtifact, error) {
 	dep := JavaArtifact{}
 	// Move up one level to the artifact. we are assuming that we get the full class file here.
@@ -280,7 +232,7 @@ type IndexEntry struct {
 //   - dataFile: path to the original data file
 //
 // Returns an error if any step of the search process fails.
-func search(log logr.Logger, key, dataFile, indexFile string) (JavaArtifact, error) {
+func search(log logr.Logger, key, dataFile string) (JavaArtifact, error) {
 	data, err := os.Open(dataFile)
 	if err != nil {
 		return JavaArtifact{}, err
@@ -318,9 +270,7 @@ func searchIndex(log logr.Logger, f *os.File, key string) (string, error) {
 		if searchErr != nil {
 			return true
 		}
-		log.Info("read at", "index", i)
 		entryKey, newEntry, err := readKeyAt(f, i)
-		log.Info("finished read at", "index", i, "key", key, "newKey", entryKey, "newEntry", newEntry, "err", err)
 		if err != nil {
 			searchErr = err
 			return true
@@ -375,51 +325,15 @@ func readKeyAt(f *os.File, i int) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// readEntryAt reads a complete index entry at the specified position.
-// It deserializes the binary data into an IndexEntry struct.
+// buildJavaArtifact constructs a JavaArtifact from index lookup results.
+// The input string is expected to be in Maven coordinate format from the index:
+// "groupId:artifactId:packaging:classifier:version"
 //
 // Parameters:
-//   - f: open file handle to the binary index file
-//   - i: the index position (0-based) of the entry to read
+//   - sha: SHA1 hash of the artifact
+//   - str: Maven coordinates string from index lookup
 //
-// Returns a pointer to the IndexEntry, or an error if the read or deserialization fails.
-func readEntryAt(f *os.File, i int) (*IndexEntry, error) {
-	pos := int64(i) * entrySize
-	buf := make([]byte, entrySize)
-	_, err := f.ReadAt(buf, pos)
-	if err != nil {
-		return nil, err
-	}
-
-	key := string(bytes.TrimRight(buf[:KeySize], "\x00"))
-	offset := int64(binary.LittleEndian.Uint64(buf[KeySize : KeySize+8]))
-	length := int64(binary.LittleEndian.Uint64(buf[KeySize+8 : KeySize+16]))
-
-	return &IndexEntry{Key: key, Offset: offset, Length: length}, nil
-}
-
-// findValue extracts the value portion from a line in the data file.
-// It uses the offset and length from the IndexEntry to read the exact line,
-// then splits it to extract the value part after the key.
-//
-// Parameters:
-//   - dataFile: open file handle to the original data file
-//   - e: IndexEntry containing the offset and length of the target line
-//
-// Returns the value string, or an error if the read fails or the line format is invalid.
-func findValue(dataFile *os.File, e *IndexEntry) (string, error) {
-	buf := make([]byte, e.Length)
-	_, err := dataFile.ReadAt(buf, e.Offset)
-	if err != nil {
-		return "", err
-	}
-	parts := bytes.SplitN(bytes.TrimSpace(buf), []byte(" "), 2)
-	if len(parts) != 2 {
-		return "", fmt.Errorf("malformed line")
-	}
-	return string(parts[1]), nil
-}
-
+// Returns JavaArtifact with FoundOnline=true and coordinates parsed from the string.
 func buildJavaArtifact(sha, str string) JavaArtifact {
 	dep := JavaArtifact{}
 	parts := strings.Split(str, ":")
