@@ -100,3 +100,13 @@ stop-external-providers-pod: stop-external-providers
 	podman pod kill analyzer
 	podman pod rm analyzer
 	podman volume rm test-data
+
+extract-maven-index-files:
+	podman run --name temp-jdtls -d quay.io/konveyor/jdtls-server-base:latest
+	podman cp temp-jdtls:/usr/local/etc/maven-index.txt $(PWD)/external-providers/java-external-provider/pkg/java_external_provider/testdata/
+	podman cp temp-jdtls:/usr/local/etc/maven-index.idx $(PWD)/external-providers/java-external-provider/pkg/java_external_provider/testdata/
+	podman stop temp-jdtls || true
+	podman rm temp-jdtls || true
+
+run-index-benchmark:
+	cd $(PWD)/external-providers/java-external-provider/pkg/java_external_provider/ &&  go test -bench=BenchmarkConstructArtifactFromSHA -benchmem -benchtime=5s

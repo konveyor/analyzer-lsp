@@ -26,3 +26,5 @@ external-providers/generic-external-provider/debug/
 external-providers/dotnet-external-provider/bin/*
 external-providers/dotnet-external-provider/examples/HelloWorld/HelloWorld/bin/*
 external-providers/dotnet-external-provider/examples/HelloWorld/HelloWorld/obj/*
+maven-index.txt
+maven-index.idx

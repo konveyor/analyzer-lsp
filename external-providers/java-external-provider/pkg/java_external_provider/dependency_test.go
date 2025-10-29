@@ -1,6 +1,7 @@
 package java
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -64,7 +65,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							artifactIdKey: "junit",
 							pomPathKey:    "pom.xml",
 						},
-						FileURIPrefix: "file://testdata/junit/junit/4.11",
+						FileURIPrefix: "file:///testdata/junit/junit/4.11",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -92,7 +93,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
+								FileURIPrefix: "file:///testdata/org/hamcrest/hamcrest-core/1.3",
 							},
 						},
 					},
@@ -113,7 +114,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							artifactIdKey: "kubernetes-client",
 							pomPathKey:    "pom.xml",
 						},
-						FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
+						FileURIPrefix: "file:///testdata/io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -142,7 +143,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/io/netty/netty-transport-native-epoll/4.1.76.Final",
+								FileURIPrefix: "file:///testdata/io/netty/netty-transport-native-epoll/4.1.76.Final",
 							},
 						},
 						{
@@ -170,7 +171,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
+								FileURIPrefix: "file:///testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
 						},
 						{
@@ -198,7 +199,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
+								FileURIPrefix: "file:///testdata/com/squareup/okhttp3/okhttp/3.12.12",
 							},
 						},
 						{
@@ -226,7 +227,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
+								FileURIPrefix: "file:///testdata/com/squareup/okio/okio/1.15.0",
 							},
 						},
 						{
@@ -254,7 +255,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
+								FileURIPrefix: "file:///testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
 						},
 						{
@@ -282,7 +283,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
+								FileURIPrefix: "file:///testdata/io/fabric8/zjsonpatch/0.3.0",
 							},
 						},
 					},
@@ -317,12 +318,12 @@ func Test_parseMavenDepLines(t *testing.T) {
 							labels.AsString(provider.DepSourceLabel, "open-source"),
 							labels.AsString(provider.DepLanguageLabel, "java"),
 						},
-						Extras: map[string]interface{}{
+						Extras: map[string]any{
 							groupIdKey:    "junit",
 							artifactIdKey: "junit",
 							pomPathKey:    "pom.xml",
 						},
-						FileURIPrefix: "file://testdata/junit/junit/4.11",
+						FileURIPrefix: "file:///testdata/junit/junit/4.11",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -351,7 +352,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/org/hamcrest/hamcrest-core/1.3",
+								FileURIPrefix: "file:///testdata/org/hamcrest/hamcrest-core/1.3",
 							},
 						},
 					},
@@ -372,7 +373,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 							artifactIdKey: "kubernetes-client",
 							pomPathKey:    "pom.xml",
 						},
-						FileURIPrefix: "file://testdata/io/fabric8/kubernetes-client/6.0.0",
+						FileURIPrefix: "file:///testdata/io/fabric8/kubernetes-client/6.0.0",
 					},
 					AddedDeps: []provider.DepDAGItem{
 						{
@@ -400,7 +401,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
+								FileURIPrefix: "file:///testdata/io/fabric8/kubernetes-httpclient-okhttp/6.0.0",
 							},
 						},
 						{
@@ -428,7 +429,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okhttp3/okhttp/3.12.12",
+								FileURIPrefix: "file:///testdata/com/squareup/okhttp3/okhttp/3.12.12",
 							},
 						},
 						{
@@ -456,7 +457,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okio/okio/1.15.0",
+								FileURIPrefix: "file:///testdata/com/squareup/okio/okio/1.15.0",
 							},
 						},
 						{
@@ -484,7 +485,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
+								FileURIPrefix: "file:///testdata/com/squareup/okhttp3/logging-interceptor/3.12.12",
 							},
 						},
 						{
@@ -512,7 +513,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 										},
 									},
 								},
-								FileURIPrefix: "file://testdata/io/fabric8/zjsonpatch/0.3.0",
+								FileURIPrefix: "file:///testdata/io/fabric8/zjsonpatch/0.3.0",
 							},
 						},
 					},
@@ -521,6 +522,8 @@ func Test_parseMavenDepLines(t *testing.T) {
 			wantErr: false,
 		},
 	}
+
+	log := testr.New(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			lines := strings.Split(tt.mavenOutput, "\n")
@@ -536,13 +539,23 @@ func Test_parseMavenDepLines(t *testing.T) {
 			}
 			if tt.openSourceLabelPath != "" {
 				p.config.ProviderSpecificConfig["depOpenSourceLabelsFile"] = tt.openSourceLabelPath
+				depToLabels, err := initOpenSourceDepLabels(log, p.config.ProviderSpecificConfig)
+				if err != nil {
+					t.Logf("unable to init labels")
+					t.FailNow()
+				}
+				log.Info("depToLabels", "l", fmt.Sprintf("%#v", depToLabels))
+				depToLabels, err = initExcludeDepLabels(log, p.config.ProviderSpecificConfig, depToLabels)
+				p.SetDepLabels(depToLabels)
 			}
+			// we are not testing dep init here, so ignore error
+			//p.depInit()
 			var deps []provider.DepDAGItem
 			if deps, err = p.parseMavenDepLines(lines[1:], "testdata", "pom.xml"); (err != nil) != tt.wantErr {
 				t.Errorf("parseMavenDepLines() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if len(tt.wantDeps) != len(deps) {
-				t.Errorf("expected wanted deps of size: %v, got: %v", len(tt.wantDeps), deps)
+				t.Errorf("expected wanted deps of size: %v, got: %v", len(tt.wantDeps), len(deps))
 			}
 			for _, wantedDep := range tt.wantDeps {
 				found := false
@@ -552,7 +565,7 @@ func Test_parseMavenDepLines(t *testing.T) {
 					}
 				}
 				if !found {
-					t.Errorf("Unable to find wanted dep: %v", wantedDep)
+					t.Errorf("Unable to find wanted dep: %#v\ngotDeps: %#v", wantedDep, deps)
 				}
 			}
 		})

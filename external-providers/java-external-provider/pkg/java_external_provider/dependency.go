@@ -601,14 +601,22 @@ func parseGradleDependencyString(s string) provider.DepDAGItem {
 		return provider.DepDAGItem{}
 	}
 
-	depRegex := regexp.MustCompile(`(.+):(.+)(:| -> )((.*) -> )?(.*)`)
+	// Match patterns like:
+	// groupId:artifactId:version
+	// groupId:artifactId:versionConstraint -> resolvedVersion
+	depRegex := regexp.MustCompile(`^([^:]+):([^:]+):.* -> (.+)$|^([^:]+):([^:]+):([^:]+)$`)
 	libRegex := regexp.MustCompile(`:(.*)`)
 
 	dep := provider.Dep{}
 	match := depRegex.FindStringSubmatch(s)
 	if match != nil {
-		dep.Name = match[1] + "." + match[2]
-		dep.Version = match[6]
+		if match[1] != "" { // Matched the "-> resolvedVersion" pattern
+			dep.Name = match[1] + "." + match[2]
+			dep.Version = match[3]
+		} else { // Matched the simple "groupId:artifactId:version" pattern
+			dep.Name = match[4] + "." + match[5]
+			dep.Version = match[6]
+		}
 	} else if match = libRegex.FindStringSubmatch(s); match != nil {
 		dep.Name = match[1]
 	}

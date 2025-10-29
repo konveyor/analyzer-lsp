@@ -3,11 +3,10 @@ package java
 import (
 	"archive/zip"
 	"bufio"
-	"bytes"
 	"context"
 	"crypto/sha1"
-	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -617,20 +616,6 @@ func RandomName() string {
 	return string(b)
 }
 
-const KeySize = 40
-
-// entrySize defines the fixed size of each index entry in bytes.
-// Each entry contains: key (KeySize bytes) + offset (8 bytes) + length (8 bytes).
-const entrySize = KeySize + 8 + 8
-
-// IndexEntry represents a single entry in the search index.
-// It contains the key and metadata needed to locate the corresponding value in the data file.
-type IndexEntry struct {
-	Key    string // The search key
-	Offset int64  // Byte offset of the line in the data file
-	Length int64  // Length of the line in the data file
-}
-
 // search performs a complete search operation for a given key.
 // It opens the index and data files, searches for the key, and prints the result.
 // This is the main search function used by the CLI.
@@ -642,26 +627,15 @@ type IndexEntry struct {
 //
 // Returns an error if any step of the search process fails.
 func search(key, dataFile, indexFile string) (javaArtifact, error) {
-	index, err := os.Open(indexFile)
-	if err != nil {
-		return javaArtifact{}, fmt.Errorf("failed to open index file: %w", err)
-	}
-	defer index.Close()
-
 	data, err := os.Open(dataFile)
 	if err != nil {
 		return javaArtifact{}, fmt.Errorf("failed to open data file: %w", err)
 	}
 	defer data.Close()
 
-	entry, err := searchIndex(index, key)
+	val, err := searchIndex(data, key)
 	if err != nil {
 		return javaArtifact{}, fmt.Errorf("search failed: %w", err)
-	}
-
-	val, err := findValue(data, entry)
-	if err != nil {
-		return javaArtifact{}, fmt.Errorf("failed to find value: %w", err)
 	}
 
 	dep := buildJavaArtifact(key, val)
@@ -678,34 +652,41 @@ func search(key, dataFile, indexFile string) (javaArtifact, error) {
 //   - key: the key to search for
 //
 // Returns the IndexEntry if found, or an error if the key doesn't exist.
-func searchIndex(f *os.File, key string) (*IndexEntry, error) {
+func searchIndex(f *os.File, key string) (string, error) {
 	fi, err := f.Stat()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	n := int(fi.Size() / entrySize)
+	n := int(fi.Size())
 
 	// binary search over file
+	var entry string
+	var searchErr error
 	i := sort.Search(n, func(i int) bool {
-		entryKey, _ := readKeyAt(f, i)
+		if searchErr != nil {
+			return true
+		}
+		entryKey, newEntry, err := readKeyAt(f, i)
+		if err != nil {
+			searchErr = err
+			return true
+		}
+		if entryKey == key {
+			entry = newEntry
+		}
 		return entryKey >= key
 	})
+	if searchErr != nil {
+		return "", searchErr
+	}
 	if i >= n {
-		return nil, fmt.Errorf("not found")
+		return "", fmt.Errorf("not found")
 	}
-
-	// read full entry and verify exact match
-	entry, err := readEntryAt(f, i)
-	if err != nil {
-		return nil, err
+	if entry != "" {
+		return entry, nil
+	} else {
+		return "", fmt.Errorf("not found")
 	}
-
-	// Check if we found an exact match
-	if entry.Key != key {
-		return nil, fmt.Errorf("not found")
-	}
-
-	return entry, nil
 }
 
 // readKeyAt reads just the key portion of an index entry at the specified position.
@@ -716,59 +697,28 @@ func searchIndex(f *os.File, key string) (*IndexEntry, error) {
 //   - i: the index position (0-based) of the entry to read
 //
 // Returns the key string with null bytes trimmed, or an error if the read fails.
-func readKeyAt(f *os.File, i int) (string, error) {
-	pos := int64(i) * entrySize
-	buf := make([]byte, KeySize)
-	_, err := f.ReadAt(buf, pos)
+func readKeyAt(f *os.File, i int) (string, string, error) {
+	_, err := f.Seek(int64(i), io.SeekStart)
 	if err != nil {
-		return "", err
-	}
-	return string(bytes.TrimRight(buf, "\x00")), nil
-}
-
-// readEntryAt reads a complete index entry at the specified position.
-// It deserializes the binary data into an IndexEntry struct.
-//
-// Parameters:
-//   - f: open file handle to the binary index file
-//   - i: the index position (0-based) of the entry to read
-//
-// Returns a pointer to the IndexEntry, or an error if the read or deserialization fails.
-func readEntryAt(f *os.File, i int) (*IndexEntry, error) {
-	pos := int64(i) * entrySize
-	buf := make([]byte, entrySize)
-	_, err := f.ReadAt(buf, pos)
-	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
-	key := string(bytes.TrimRight(buf[:KeySize], "\x00"))
-	offset := int64(binary.LittleEndian.Uint64(buf[KeySize : KeySize+8]))
-	length := int64(binary.LittleEndian.Uint64(buf[KeySize+8 : KeySize+16]))
-
-	return &IndexEntry{Key: key, Offset: offset, Length: length}, nil
-}
-
-// findValue extracts the value portion from a line in the data file.
-// It uses the offset and length from the IndexEntry to read the exact line,
-// then splits it to extract the value part after the key.
-//
-// Parameters:
-//   - dataFile: open file handle to the original data file
-//   - e: IndexEntry containing the offset and length of the target line
-//
-// Returns the value string, or an error if the read fails or the line format is invalid.
-func findValue(dataFile *os.File, e *IndexEntry) (string, error) {
-	buf := make([]byte, e.Length)
-	_, err := dataFile.ReadAt(buf, e.Offset)
+	// For now test with 500 bytes (largest line is 206, so worst case i is firt byte in that line, so 206 * 2 is what we want in the buffer, or 412 so 500 is a bit extra
+	scan := bufio.NewReaderSize(f, 500)
+	_, err = scan.ReadString('\n')
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	parts := bytes.SplitN(bytes.TrimSpace(buf), []byte(" "), 2)
+	line, err := scan.ReadString('\n')
+	if err != nil {
+		return "", "", err
+	}
+
+	parts := strings.Split(strings.TrimSpace(line), " ")
 	if len(parts) != 2 {
-		return "", fmt.Errorf("malformed line")
+		return "", "", errors.New("invalid line in the index file")
 	}
-	return string(parts[1]), nil
+	return parts[0], parts[1], nil
 }
 
 func buildJavaArtifact(sha, str string) javaArtifact {
