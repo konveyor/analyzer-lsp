@@ -6,10 +6,13 @@ IMG_GENERIC_PROVIDER ?= generic-provider
 IMG_GO_DEP_PROVIDER ?= golang-dep-provider
 IMG_YQ_PROVIDER ?= yq-provider
 OS := $(shell uname -s)
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+
 ifeq ($(OS),Linux)
 	MOUNT_OPT := :z
-else 
-	MOUNT_OPT := 
+else
+	MOUNT_OPT :=
 endif
 
 build-dir:
@@ -19,24 +22,31 @@ build: build-dir analyzer deps golang-dependency-provider external-generic yq-ex
 
 analyzer: build-dir
 	go build -o build/konveyor-analyzer ./cmd/analyzer/main.go
+	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer build/konveyor-analyzer.exe; fi
 
 external-generic: build-dir
-	( cd external-providers/generic-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/generic-external-provider main.go)
+	(cd external-providers/generic-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/generic-external-provider main.go)
+	if [ "${GOOS}" == "windows" ]; then mv build/generic-external-provider build/generic-external-provider.exe; fi
 
 golang-dependency-provider: build-dir
-	( cd external-providers/golang-dependency-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/golang-dependency-provider main.go)
+	(cd external-providers/golang-dependency-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/golang-dependency-provider main.go)
+	if [ "${GOOS}" == "windows" ]; then mv build/golang-dependency-provider build/golang-dependency-provider.exe; fi
 
 yq-external-provider: build-dir
-	( cd external-providers/yq-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/yq-external-provider main.go)
+	(cd external-providers/yq-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/yq-external-provider main.go)
+	if [ "${GOOS}" == "windows" ]; then mv build/yq-external-provider build/yq-external-provider.exe; fi
 
 java-external-provider: build-dir
-	( cd external-providers/java-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/java-external-provider main.go)
+	(cd external-providers/java-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/java-external-provider main.go)
+	if [ "${GOOS}" == "windows" ]; then mv build/java-external-provider build/java-external-provider.exe; fi
 
 dotnet-external-provider: build-dir
-	( cd external-providers/dotnet-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/dotnet-external-provider main.go)
+	(cd external-providers/dotnet-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/dotnet-external-provider main.go)
+	if [ "${GOOS}" == "windows" ]; then mv build/dotnet-external-provider build/dotnet-external-provider.exe; fi
 
 deps: build-dir
 	go build -o build/konveyor-analyzer-dep ./cmd/dep/main.go
+	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer-dep build/konveyor-analyzer-dep.exe; fi
 
 image-build:
 	docker build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f Dockerfile . -t $(DOCKER_IMAGE)
