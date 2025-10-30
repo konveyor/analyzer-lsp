@@ -258,7 +258,6 @@ func AnalysisCmd() *cobra.Command {
 				engine.WithIncidentSelector(incidentSelector),
 				engine.WithLocationPrefixes(providerLocations),
 				engine.WithEncoding(encoding),
-				engine.WithProgressReporter(progressReporter),
 			)
 
 			if getOpenAPISpec != "" {
@@ -335,7 +334,9 @@ func AnalysisCmd() *cobra.Command {
 			}
 
 			// This will already wait
-			rulesets := eng.RunRules(ctx, ruleSets, selectors...)
+			rulesets := eng.RunRulesWithOptions(ctx, ruleSets, []engine.RunOption{
+				engine.WithProgressReporter(progressReporter),
+			}, selectors...)
 			engineSpan.End()
 			wg.Wait()
 			if depSpan != nil {

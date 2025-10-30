@@ -10,10 +10,13 @@
 //	// Create a text reporter
 //	reporter := progress.NewTextReporter(os.Stderr)
 //
-//	// Create engine with progress reporting
-//	eng := engine.CreateRuleEngine(ctx, workers, log,
+//	// Create engine
+//	eng := engine.CreateRuleEngine(ctx, workers, log)
+//
+//	// Run analysis with progress reporting
+//	results := eng.RunRulesWithOptions(ctx, ruleSets, []engine.RunOption{
 //	    engine.WithProgressReporter(reporter),
-//	)
+//	})
 //
 //	// Progress events will be automatically emitted during analysis
 //

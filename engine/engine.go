@@ -30,7 +30,9 @@ import (
 
 type RuleEngine interface {
 	RunRules(context context.Context, rules []RuleSet, selectors ...RuleSelector) []konveyor.RuleSet
+	RunRulesWithOptions(context context.Context, rules []RuleSet, opts []RunOption, selectors ...RuleSelector) []konveyor.RuleSet
 	RunRulesScoped(ctx context.Context, ruleSets []RuleSet, scopes Scope, selectors ...RuleSelector) []konveyor.RuleSet
+	RunRulesScopedWithOptions(ctx context.Context, ruleSets []RuleSet, scopes Scope, opts []RunOption, selectors ...RuleSelector) []konveyor.RuleSet
 	Stop()
 }
 
@@ -64,10 +66,24 @@ type ruleEngine struct {
 	incidentSelector string
 	locationPrefixes []string
 	encoding         string
-	progressReporter progress.ProgressReporter
 }
 
 type Option func(engine *ruleEngine)
+
+// RunOption configures options for a specific RunRules invocation
+type RunOption func(*runConfig)
+
+// runConfig holds configuration for a specific run
+type runConfig struct {
+	progressReporter progress.ProgressReporter
+}
+
+// WithProgressReporter sets the progress reporter for this run
+func WithProgressReporter(reporter progress.ProgressReporter) RunOption {
+	return func(cfg *runConfig) {
+		cfg.progressReporter = reporter
+	}
+}
 
 func WithIncidentLimit(i int) Option {
 	return func(engine *ruleEngine) {
@@ -105,12 +121,6 @@ func WithEncoding(encoding string) Option {
 	}
 }
 
-func WithProgressReporter(reporter progress.ProgressReporter) Option {
-	return func(engine *ruleEngine) {
-		engine.progressReporter = reporter
-	}
-}
-
 func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger, options ...Option) RuleEngine {
 	// Only allow for 10 rules to be waiting in the buffer at once.
 	// Adding more workers will increase the number of rules running at once.
@@ -143,10 +153,10 @@ func (r *ruleEngine) Stop() {
 	r.wg.Wait()
 }
 
-// reportProgress sends a progress event if a reporter is configured
-func (r *ruleEngine) reportProgress(event progress.ProgressEvent) {
-	if r.progressReporter != nil {
-		r.progressReporter.Report(event)
+// reportProgress sends a progress event to the given reporter
+func reportProgress(reporter progress.ProgressReporter, event progress.ProgressEvent) {
+	if reporter != nil {
+		reporter.Report(event)
 	}
 }
 
@@ -198,10 +208,25 @@ func (r *ruleEngine) createRuleSet(ruleSet RuleSet) *konveyor.RuleSet {
 // This will run tagging rules first, synchronously, generating tags to pass on further as context to other rules
 // then runs remaining rules async, fanning them out, fanning them in, finally generating the results. will block until completed.
 func (r *ruleEngine) RunRules(ctx context.Context, ruleSets []RuleSet, selectors ...RuleSelector) []konveyor.RuleSet {
-	return r.RunRulesScoped(ctx, ruleSets, nil, selectors...)
+	return r.RunRulesWithOptions(ctx, ruleSets, nil, selectors...)
+}
+
+func (r *ruleEngine) RunRulesWithOptions(ctx context.Context, ruleSets []RuleSet, opts []RunOption, selectors ...RuleSelector) []konveyor.RuleSet {
+	return r.RunRulesScopedWithOptions(ctx, ruleSets, nil, opts, selectors...)
 }
 
 func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, scopes Scope, selectors ...RuleSelector) []konveyor.RuleSet {
+	return r.RunRulesScopedWithOptions(ctx, ruleSets, scopes, nil, selectors...)
+}
+
+func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []RuleSet, scopes Scope, opts []RunOption, selectors ...RuleSelector) []konveyor.RuleSet {
+	// Build run configuration
+	cfg := &runConfig{
+		progressReporter: progress.NewNoopReporter(), // Default to no-op
+	}
+	for _, opt := range opts {
+		opt(cfg)
+	}
 	// determine if we should run
 
 	conditionContext := ConditionContext{
@@ -230,7 +255,7 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 
 	// Report total number of rules to process
 	totalRules := len(otherRules)
-	r.reportProgress(progress.ProgressEvent{
+	reportProgress(cfg.progressReporter, progress.ProgressEvent{
 		Stage:   progress.StageRuleExecution,
 		Current: 0,
 		Total:   totalRules,
@@ -299,7 +324,7 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 
 					// Report progress after each rule completes
 					completed := int(matchedRules + unmatchedRules + failedRules)
-					r.reportProgress(progress.ProgressEvent{
+					reportProgress(cfg.progressReporter, progress.ProgressEvent{
 						Stage:   progress.StageRuleExecution,
 						Current: completed,
 						Total:   totalRules,
@@ -338,7 +363,7 @@ func (r *ruleEngine) RunRulesScoped(ctx context.Context, ruleSets []RuleSet, sco
 	case <-done:
 		r.logger.V(2).Info("done processing all the rules")
 		// Report completion
-		r.reportProgress(progress.ProgressEvent{
+		reportProgress(cfg.progressReporter, progress.ProgressEvent{
 			Stage:   progress.StageComplete,
 			Current: totalRules,
 			Total:   totalRules,

@@ -107,10 +107,8 @@ func main() {
     // Optionally pass a logger to log dropped events
     reporter := progress.NewChannelReporter(ctx, progress.WithLogger(log))
 
-    // Create engine with progress reporter
-    eng := engine.CreateRuleEngine(ctx, 10, log,
-        engine.WithProgressReporter(reporter),
-    )
+    // Create engine
+    eng := engine.CreateRuleEngine(ctx, 10, log)
 
     // Process events in a goroutine
     go func() {
@@ -119,8 +117,10 @@ func main() {
         }
     }()
 
-    // Run analysis
-    results := eng.RunRules(ctx, ruleSets)
+    // Run analysis with progress reporter
+    results := eng.RunRulesWithOptions(ctx, ruleSets, []engine.RunOption{
+        engine.WithProgressReporter(reporter),
+    })
 }
 
 func handleProgressEvent(event progress.ProgressEvent) {

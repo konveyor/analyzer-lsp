@@ -74,9 +74,7 @@ defer cancel()
 
 reporter := progress.NewChannelReporter(ctx)
 
-eng := engine.CreateRuleEngine(ctx, 10, log,
-    engine.WithProgressReporter(reporter),
-)
+eng := engine.CreateRuleEngine(ctx, 10, log)
 
 go func() {
     for event := range reporter.Events() {
@@ -84,7 +82,9 @@ go func() {
     }
 }()
 
-results := eng.RunRules(ctx, ruleSets)
+results := eng.RunRulesWithOptions(ctx, ruleSets, []engine.RunOption{
+    engine.WithProgressReporter(reporter),
+})
 ```
 
 ## Flags Reference
