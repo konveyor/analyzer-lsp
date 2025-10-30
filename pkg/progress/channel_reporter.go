@@ -1,6 +1,8 @@
 package progress
 
 import (
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -31,7 +33,10 @@ import (
 //	    engine.WithProgressReporter(reporter),
 //	)
 type ChannelReporter struct {
-	events chan ProgressEvent
+	events        chan ProgressEvent
+	mu            sync.RWMutex
+	closed        bool
+	droppedEvents atomic.Uint64
 }
 
 // NewChannelReporter creates a new channel-based progress reporter.
@@ -53,11 +58,23 @@ func NewChannelReporter() *ChannelReporter {
 // the consumer is not keeping up), the event will be dropped to avoid blocking
 // the analysis. This ensures progress reporting never impacts performance.
 //
+// If the reporter has been closed, this method returns immediately without
+// panicking, ensuring safe concurrent usage.
+//
 // If the event's Timestamp is zero, it will be set to the current time.
 func (c *ChannelReporter) Report(event ProgressEvent) {
 	// Set timestamp if not already set
 	if event.Timestamp.IsZero() {
 		event.Timestamp = time.Now()
+	}
+
+	// Hold read lock during the entire send operation to prevent Close()
+	// from closing the channel while we're sending
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if c.closed {
+		return
 	}
 
 	// Non-blocking send
@@ -66,6 +83,7 @@ func (c *ChannelReporter) Report(event ProgressEvent) {
 		// Event sent successfully
 	default:
 		// Channel is full, skip this event to avoid blocking analysis
+		c.droppedEvents.Add(1)
 	}
 }
 
@@ -82,6 +100,17 @@ func (c *ChannelReporter) Events() <-chan ProgressEvent {
 	return c.events
 }
 
+// DroppedEvents returns the number of events that were dropped due to
+// the channel buffer being full.
+//
+// This can be used to monitor backpressure. If this number is high, consider:
+//   - Increasing the buffer size in NewChannelReporter
+//   - Optimizing the event consumer to process events faster
+//   - Reducing the frequency of progress reporting
+func (c *ChannelReporter) DroppedEvents() uint64 {
+	return c.droppedEvents.Load()
+}
+
 // Close closes the events channel, signaling to consumers that no more events will be sent.
 //
 // This should be called when the analysis is complete. It's safe to call Close()
@@ -92,5 +121,11 @@ func (c *ChannelReporter) Events() <-chan ProgressEvent {
 //	reporter := progress.NewChannelReporter()
 //	defer reporter.Close()
 func (c *ChannelReporter) Close() {
-	close(c.events)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if !c.closed {
+		c.closed = true
+		close(c.events)
+	}
 }

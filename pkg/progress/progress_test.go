@@ -249,6 +249,100 @@ func TestChannelReporterClose(t *testing.T) {
 	}
 }
 
+func TestChannelReporterCloseMultipleTimes(t *testing.T) {
+	reporter := NewChannelReporter()
+
+	// Close multiple times should not panic
+	reporter.Close()
+	reporter.Close()
+	reporter.Close()
+}
+
+func TestChannelReporterRaceCondition(t *testing.T) {
+	// This test verifies that concurrent Report() and Close() calls don't cause a panic
+	reporter := NewChannelReporter()
+
+	// Start consuming events
+	done := make(chan struct{})
+	go func() {
+		for range reporter.Events() {
+			// Consume events
+		}
+		close(done)
+	}()
+
+	// Concurrently send events from multiple goroutines
+	numSenders := 10
+	sendersStarted := make(chan struct{})
+	for i := 0; i < numSenders; i++ {
+		go func(id int) {
+			<-sendersStarted
+			for j := 0; j < 100; j++ {
+				reporter.Report(ProgressEvent{
+					Stage:   StageRuleExecution,
+					Current: j,
+					Total:   100,
+				})
+			}
+		}(i)
+	}
+
+	// Start all senders at once to maximize race potential
+	close(sendersStarted)
+
+	// Close the reporter while senders are still active
+	time.Sleep(5 * time.Millisecond)
+	reporter.Close()
+
+	// Wait for consumer to finish
+	<-done
+
+	// If we get here without panicking, the test passes
+}
+
+func TestChannelReporterReportAfterClose(t *testing.T) {
+	reporter := NewChannelReporter()
+
+	// Drain any existing events
+	go func() {
+		for range reporter.Events() {
+		}
+	}()
+
+	// Close the reporter
+	reporter.Close()
+
+	// Reporting after close should not panic
+	reporter.Report(ProgressEvent{Stage: StageInit})
+	reporter.Report(ProgressEvent{Stage: StageRuleExecution})
+}
+
+func TestChannelReporterDroppedEvents(t *testing.T) {
+	reporter := NewChannelReporter()
+	defer reporter.Close()
+
+	// Don't consume events, so channel buffer fills up
+	// The buffer is 100, so send 150 events
+	for i := 0; i < 150; i++ {
+		reporter.Report(ProgressEvent{
+			Stage:   StageRuleExecution,
+			Current: i,
+			Total:   150,
+		})
+	}
+
+	// At least some events should have been dropped
+	dropped := reporter.DroppedEvents()
+	if dropped == 0 {
+		t.Error("Expected some events to be dropped when channel buffer is full")
+	}
+
+	// Should be approximately 50 dropped events
+	if dropped < 40 || dropped > 60 {
+		t.Logf("Warning: Expected ~50 dropped events, got %d (this is informational)", dropped)
+	}
+}
+
 func TestNoopReporter(t *testing.T) {
 	reporter := NewNoopReporter()
 
