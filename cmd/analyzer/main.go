@@ -222,6 +222,7 @@ func AnalysisCmd() *cobra.Command {
 						},
 					})
 					errLog.Error(err, "unable to create provider client")
+					progressCleanup()
 					os.Exit(1)
 				}
 				providers[config.Name] = prov
@@ -236,6 +237,7 @@ func AnalysisCmd() *cobra.Command {
 							},
 						})
 						errLog.Error(err, "unable to create provider client")
+						progressCleanup()
 						os.Exit(1)
 					}
 				}
@@ -266,14 +268,17 @@ func AnalysisCmd() *cobra.Command {
 				b, err := json.Marshal(sc)
 				if err != nil {
 					errLog.Error(err, "unable to create inital schema")
+					progressCleanup()
 					os.Exit(1)
 				}
 
 				err = os.WriteFile(getOpenAPISpec, b, 0644)
 				if err != nil {
 					errLog.Error(err, "error writing output file", "file", getOpenAPISpec)
+					progressCleanup()
 					os.Exit(1) // Treat the error as a fatal error
 				}
+				progressCleanup()
 				os.Exit(0)
 			}
 
@@ -309,6 +314,7 @@ func AnalysisCmd() *cobra.Command {
 					additionalBuiltinConfs, err := provider.ProviderInit(initCtx, nil)
 					if err != nil {
 						errLog.Error(err, "unable to init the providers", "provider", name)
+						progressCleanup()
 						os.Exit(1)
 					}
 					if additionalBuiltinConfs != nil {
@@ -321,6 +327,7 @@ func AnalysisCmd() *cobra.Command {
 			if builtinClient, ok := needProviders["builtin"]; ok {
 				if _, err = builtinClient.ProviderInit(ctx, additionalBuiltinConfigs); err != nil {
 					errLog.Error(err, "unable to init builtin provider")
+					progressCleanup()
 					os.Exit(1)
 				}
 			}
@@ -357,12 +364,14 @@ func AnalysisCmd() *cobra.Command {
 			b, _ := yaml.Marshal(rulesets)
 			if errorOnViolations && len(rulesets) != 0 {
 				fmt.Printf("%s", string(b))
+				progressCleanup()
 				os.Exit(EXIT_ON_ERROR_CODE)
 			}
 
 			err = os.WriteFile(outputViolations, b, 0644)
 			if err != nil {
 				errLog.Error(err, "error writing output file", "file", outputViolations)
+				progressCleanup()
 				os.Exit(1) // Treat the error as a fatal error
 			}
 		},
