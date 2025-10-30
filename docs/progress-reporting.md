@@ -95,7 +95,7 @@ import (
     "fmt"
 
     "github.com/konveyor/analyzer-lsp/engine"
-    "github.com/konveyor/analyzer-lsp/pkg/progress"
+    "github.com/konveyor/analyzer-lsp/progress"
 )
 
 func main() {
@@ -141,7 +141,7 @@ import (
     "fmt"
     "strings"
 
-    "github.com/konveyor/analyzer-lsp/pkg/progress"
+    "github.com/konveyor/analyzer-lsp/progress"
 )
 
 func displayProgress(reporter *progress.ChannelReporter) {
@@ -350,7 +350,7 @@ import (
     "encoding/json"
     "net/http"
 
-    "github.com/konveyor/analyzer-lsp/pkg/progress"
+    "github.com/konveyor/analyzer-lsp/progress"
 )
 
 // Server-Sent Events endpoint
@@ -381,7 +381,7 @@ package main
 
 import (
     "github.com/prometheus/client_golang/prometheus"
-    "github.com/konveyor/analyzer-lsp/pkg/progress"
+    "github.com/konveyor/analyzer-lsp/progress"
 )
 
 type PrometheusReporter struct {

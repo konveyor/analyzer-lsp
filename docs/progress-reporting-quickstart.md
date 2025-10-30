@@ -67,7 +67,7 @@ analyzer \
 For building dashboards or UIs:
 
 ```go
-import "github.com/konveyor/analyzer-lsp/pkg/progress"
+import "github.com/konveyor/analyzer-lsp/progress"
 
 reporter := progress.NewChannelReporter()
 defer reporter.Close()
