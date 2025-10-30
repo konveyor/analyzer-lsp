@@ -130,6 +130,61 @@ func handleProgressEvent(event progress.ProgressEvent) {
 }
 ```
 
+### Visual Progress Bar Example
+
+For a more polished terminal UI with a progress bar:
+
+```go
+package main
+
+import (
+    "fmt"
+    "strings"
+
+    "github.com/konveyor/analyzer-lsp/pkg/progress"
+)
+
+func displayProgress(reporter *progress.ChannelReporter) {
+    for event := range reporter.Events() {
+        switch event.Stage {
+        case progress.StageInit:
+            fmt.Printf("⏳ %s\n", event.Message)
+
+        case progress.StageProviderInit:
+            fmt.Printf("🔌 Provider: %s\n", event.Message)
+
+        case progress.StageRuleParsing:
+            fmt.Printf("📋 %s\n", event.Message)
+
+        case progress.StageRuleExecution:
+            if event.Total > 0 {
+                // Draw progress bar
+                bar := drawProgressBar(event.Percent, 40)
+                fmt.Printf("\r🔍 Processing: %s %3.0f%% (%d/%d) - %s",
+                    bar,
+                    event.Percent,
+                    event.Current,
+                    event.Total,
+                    event.Message)
+            }
+
+        case progress.StageComplete:
+            fmt.Printf("\n✅ %s\n", event.Message)
+        }
+    }
+}
+
+func drawProgressBar(percent float64, width int) string {
+    filled := int(percent / 100.0 * float64(width))
+    if filled > width {
+        filled = width
+    }
+
+    bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
+    return fmt.Sprintf("[%s]", bar)
+}
+```
+
 ### Custom Reporter Implementation
 
 Implement the `ProgressReporter` interface for custom behavior:
