@@ -3,6 +3,7 @@ package progress
 import (
 	"encoding/json"
 	"io"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -66,5 +67,11 @@ func (j *JSONReporter) Report(event ProgressEvent) {
 	}
 
 	j.writer.Write(data)
-	j.writer.Write([]byte("\n"))
+
+	// Use OS-specific line ending
+	if runtime.GOOS == "windows" {
+		j.writer.Write([]byte("\r\n"))
+	} else {
+		j.writer.Write([]byte("\n"))
+	}
 }
