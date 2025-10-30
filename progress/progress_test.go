@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-logr/logr"
 )
 
 func TestJSONReporter(t *testing.T) {
@@ -383,6 +385,71 @@ func TestChannelReporterDroppedEvents(t *testing.T) {
 	if dropped < 40 || dropped > 60 {
 		t.Logf("Warning: Expected ~50 dropped events, got %d (this is informational)", dropped)
 	}
+}
+
+func TestChannelReporterWithLogger(t *testing.T) {
+	ctx := context.Background()
+
+	// Create a test logger that captures log calls
+	loggedDrops := 0
+	testLogger := testLogr{
+		logFunc: func(level int, msg string, keysAndValues ...interface{}) {
+			if msg == "progress event dropped due to slow consumer" {
+				loggedDrops++
+			}
+		},
+	}
+
+	reporter := NewChannelReporter(ctx, WithLogger(logr.New(testLogger)))
+	defer reporter.Close()
+
+	// Don't consume events, so channel buffer fills up
+	// The buffer is 100, so send 120 events to ensure some are dropped
+	for i := 0; i < 120; i++ {
+		reporter.Report(ProgressEvent{
+			Stage:   StageRuleExecution,
+			Current: i,
+			Total:   120,
+			Message: "test-rule",
+		})
+	}
+
+	// Verify that dropped events were logged
+	dropped := reporter.DroppedEvents()
+	if dropped == 0 {
+		t.Error("Expected some events to be dropped")
+	}
+
+	if loggedDrops != int(dropped) {
+		t.Errorf("Expected %d logged drops, got %d", dropped, loggedDrops)
+	}
+}
+
+// testLogr is a simple test implementation of logr.Logger
+type testLogr struct {
+	logFunc func(level int, msg string, keysAndValues ...interface{})
+}
+
+func (t testLogr) Init(info logr.RuntimeInfo) {}
+
+func (t testLogr) Enabled(level int) bool {
+	return true
+}
+
+func (t testLogr) Info(level int, msg string, keysAndValues ...interface{}) {
+	if t.logFunc != nil {
+		t.logFunc(level, msg, keysAndValues...)
+	}
+}
+
+func (t testLogr) Error(err error, msg string, keysAndValues ...interface{}) {}
+
+func (t testLogr) WithValues(keysAndValues ...interface{}) logr.LogSink {
+	return t
+}
+
+func (t testLogr) WithName(name string) logr.LogSink {
+	return t
 }
 
 func TestNoopReporter(t *testing.T) {

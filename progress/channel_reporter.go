@@ -5,6 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/go-logr/logr"
 )
 
 // ChannelReporter sends progress events to a Go channel for programmatic consumption.
@@ -39,6 +41,17 @@ type ChannelReporter struct {
 	mu            sync.RWMutex
 	closed        bool
 	droppedEvents atomic.Uint64
+	log           logr.Logger
+}
+
+// ChannelReporterOption is a function that configures a ChannelReporter.
+type ChannelReporterOption func(*ChannelReporter)
+
+// WithLogger sets a logger for the ChannelReporter to log dropped events.
+func WithLogger(log logr.Logger) ChannelReporterOption {
+	return func(r *ChannelReporter) {
+		r.log = log
+	}
 }
 
 // NewChannelReporter creates a new channel-based progress reporter.
@@ -51,15 +64,23 @@ type ChannelReporter struct {
 // following the standard Go pattern for shutdown logic. You can also manually
 // call Close() when finished to release resources.
 //
+// Optional: Pass WithLogger to log when events are dropped due to backpressure.
+//
 // Example:
 //
 //	ctx, cancel := context.WithCancel(context.Background())
 //	defer cancel()
-//	reporter := progress.NewChannelReporter(ctx)
+//	reporter := progress.NewChannelReporter(ctx, progress.WithLogger(log))
 //	// When ctx is cancelled, the channel will automatically close
-func NewChannelReporter(ctx context.Context) *ChannelReporter {
+func NewChannelReporter(ctx context.Context, opts ...ChannelReporterOption) *ChannelReporter {
 	r := &ChannelReporter{
 		events: make(chan ProgressEvent, 100), // Buffered to prevent blocking
+		log:    logr.Discard(),                // Default to discard logger
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(r)
 	}
 
 	// Monitor context and close when cancelled
@@ -102,7 +123,12 @@ func (c *ChannelReporter) Report(event ProgressEvent) {
 		// Event sent successfully
 	default:
 		// Channel is full, skip this event to avoid blocking analysis
-		c.droppedEvents.Add(1)
+		dropped := c.droppedEvents.Add(1)
+		c.log.V(1).Info("progress event dropped due to slow consumer",
+			"stage", event.Stage,
+			"message", event.Message,
+			"total_dropped", dropped,
+		)
 	}
 }
 

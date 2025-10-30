@@ -104,7 +104,8 @@ func main() {
 
     // Create a channel-based reporter
     // The reporter automatically closes when ctx is cancelled
-    reporter := progress.NewChannelReporter(ctx)
+    // Optionally pass a logger to log dropped events
+    reporter := progress.NewChannelReporter(ctx, progress.WithLogger(log))
 
     // Create engine with progress reporter
     eng := engine.CreateRuleEngine(ctx, 10, log,
@@ -463,6 +464,9 @@ jobs:
    defer cancel()
    reporter := progress.NewChannelReporter(ctx)
    // Reporter automatically closes when ctx is cancelled
+
+   // Optional: Add a logger to track dropped events
+   reporter := progress.NewChannelReporter(ctx, progress.WithLogger(log))
    ```
 
 2. **Handle events in separate goroutine**
@@ -553,7 +557,10 @@ func NewTextReporter(w io.Writer) *TextReporter
 
 // Create a channel-based reporter for programmatic use
 // Automatically closes when the context is cancelled
-func NewChannelReporter(ctx context.Context) *ChannelReporter
+func NewChannelReporter(ctx context.Context, opts ...ChannelReporterOption) *ChannelReporter
+
+// WithLogger adds logging for dropped events
+func WithLogger(log logr.Logger) ChannelReporterOption
 
 // Get the events channel (ChannelReporter only)
 func (c *ChannelReporter) Events() <-chan ProgressEvent
