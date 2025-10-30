@@ -176,7 +176,8 @@ func AnalysisCmd() *cobra.Command {
 			})
 
 			// Create progress reporter early so we can report provider initialization
-			progressReporter := createProgressReporter()
+			progressReporter, progressCleanup := createProgressReporter()
+			defer progressCleanup()
 
 			providers := map[string]provider.InternalProviderClient{}
 			providerLocations := []string{}
@@ -422,14 +423,15 @@ func validateFlags() error {
 }
 
 // createProgressReporter creates a progress reporter based on CLI flags
-func createProgressReporter() progress.ProgressReporter {
+func createProgressReporter() (progress.ProgressReporter, func()) {
 	// If no output specified, return noop reporter
 	if progressOutput == "" {
-		return progress.NewNoopReporter()
+		return progress.NewNoopReporter(), func() {}
 	}
 
 	// Determine output writer
 	var writer *os.File
+	cleanup := func() {}
 	switch progressOutput {
 	case "stderr":
 		writer = os.Stderr
@@ -444,18 +446,19 @@ func createProgressReporter() progress.ProgressReporter {
 			writer = os.Stderr
 		} else {
 			writer = file
+			cleanup = func() { _ = file.Close() }
 		}
 	}
 
 	// Create reporter based on format
 	switch progressFormat {
 	case "json":
-		return progress.NewJSONReporter(writer)
+		return progress.NewJSONReporter(writer), cleanup
 	case "text":
-		return progress.NewTextReporter(writer)
+		return progress.NewTextReporter(writer), cleanup
 	default:
 		// Default to text
-		return progress.NewTextReporter(writer)
+		return progress.NewTextReporter(writer), cleanup
 	}
 }
 
