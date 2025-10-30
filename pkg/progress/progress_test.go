@@ -145,6 +145,17 @@ func TestTextReporterStages(t *testing.T) {
 			},
 			shouldContain: []string{"complete"},
 		},
+		{
+			name: "rule execution with both total and message",
+			event: ProgressEvent{
+				Stage:   StageRuleExecution,
+				Current: 10,
+				Total:   45,
+				Percent: 22.2,
+				Message: "test-rule-001",
+			},
+			shouldContain: []string{"Processing rules", "10/45", "22.2", "test-rule-001"},
+		},
 	}
 
 	for _, tt := range tests {

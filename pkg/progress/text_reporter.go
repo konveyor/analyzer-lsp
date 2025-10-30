@@ -76,14 +76,14 @@ func (t *TextReporter) Report(event ProgressEvent) {
 		}
 	case StageRuleExecution:
 		if event.Total > 0 {
-			output = fmt.Sprintf("[%s] Processing rules: %d/%d (%.1f%%)\n",
+			output += fmt.Sprintf("[%s] Processing rules: %d/%d (%.1f%%)\n",
 				event.Timestamp.Format("15:04:05"),
 				event.Current,
 				event.Total,
 				event.Percent)
 		}
 		if event.Message != "" {
-			output = fmt.Sprintf("[%s] Rule: %s\n", event.Timestamp.Format("15:04:05"), event.Message)
+			output += fmt.Sprintf("[%s] Rule: %s\n", event.Timestamp.Format("15:04:05"), event.Message)
 		}
 	case StageDependencyAnalysis:
 		output = fmt.Sprintf("[%s] Analyzing dependencies...\n", event.Timestamp.Format("15:04:05"))
