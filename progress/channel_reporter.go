@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/go-logr/logr"
 )
@@ -103,10 +102,8 @@ func NewChannelReporter(ctx context.Context, opts ...ChannelReporterOption) *Cha
 //
 // If the event's Timestamp is zero, it will be set to the current time.
 func (c *ChannelReporter) Report(event ProgressEvent) {
-	// Set timestamp if not already set
-	if event.Timestamp.IsZero() {
-		event.Timestamp = time.Now()
-	}
+	// Normalize event (set timestamp, calculate percent)
+	event.normalize()
 
 	// Hold read lock during the entire send operation to prevent Close()
 	// from closing the channel while we're sending

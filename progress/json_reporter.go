@@ -5,7 +5,6 @@ import (
 	"io"
 	"runtime"
 	"sync"
-	"time"
 )
 
 // JSONReporter writes progress events as newline-delimited JSON (NDJSON).
@@ -55,10 +54,8 @@ func (j *JSONReporter) Report(event ProgressEvent) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
-	// Set timestamp if not already set
-	if event.Timestamp.IsZero() {
-		event.Timestamp = time.Now()
-	}
+	// Normalize event (set timestamp, calculate percent)
+	event.normalize()
 
 	// Marshal and write
 	data, err := json.Marshal(event)

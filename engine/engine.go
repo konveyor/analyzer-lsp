@@ -269,7 +269,6 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 		Stage:   progress.StageRuleExecution,
 		Current: 0,
 		Total:   totalRules,
-		Percent: 0.0,
 		Message: fmt.Sprintf("Starting rule execution: %d rules to process", totalRules),
 	})
 
@@ -338,7 +337,6 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 						Stage:   progress.StageRuleExecution,
 						Current: completed,
 						Total:   totalRules,
-						Percent: float64(completed) / float64(totalRules) * 100.0,
 						Message: response.Rule.RuleID,
 					})
 
@@ -377,7 +375,6 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 			Stage:   progress.StageComplete,
 			Current: totalRules,
 			Total:   totalRules,
-			Percent: 100.0,
 			Message: "Rule execution complete",
 		})
 	case <-ctx.Done():

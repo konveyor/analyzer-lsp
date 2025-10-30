@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"sync"
-	"time"
 )
 
 // TextReporter writes progress events as human-readable text with timestamps.
@@ -56,10 +55,8 @@ func (t *TextReporter) Report(event ProgressEvent) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// Set timestamp if not already set
-	if event.Timestamp.IsZero() {
-		event.Timestamp = time.Now()
-	}
+	// Normalize event (set timestamp, calculate percent)
+	event.normalize()
 
 	var output string
 
