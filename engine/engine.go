@@ -28,11 +28,21 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
+// RuleEngine is the interface for running analysis rules
 type RuleEngine interface {
+	// RunRules runs the given rulesets with optional selectors
 	RunRules(context context.Context, rules []RuleSet, selectors ...RuleSelector) []konveyor.RuleSet
+
+	// RunRulesWithOptions runs the given rulesets with run-specific options (e.g., progress reporter) and selectors
 	RunRulesWithOptions(context context.Context, rules []RuleSet, opts []RunOption, selectors ...RuleSelector) []konveyor.RuleSet
+
+	// RunRulesScoped runs the given rulesets with a scope and optional selectors
 	RunRulesScoped(ctx context.Context, ruleSets []RuleSet, scopes Scope, selectors ...RuleSelector) []konveyor.RuleSet
+
+	// RunRulesScopedWithOptions runs the given rulesets with a scope, run-specific options, and selectors
 	RunRulesScopedWithOptions(ctx context.Context, ruleSets []RuleSet, scopes Scope, opts []RunOption, selectors ...RuleSelector) []konveyor.RuleSet
+
+	// Stop stops the rule engine and waits for all workers to complete
 	Stop()
 }
 
