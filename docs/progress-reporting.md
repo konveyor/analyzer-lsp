@@ -99,9 +99,12 @@ import (
 )
 
 func main() {
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
     // Create a channel-based reporter
-    reporter := progress.NewChannelReporter()
-    defer reporter.Close()
+    // The reporter automatically closes when ctx is cancelled
+    reporter := progress.NewChannelReporter(ctx)
 
     // Create engine with progress reporter
     eng := engine.CreateRuleEngine(ctx, 10, log,
@@ -359,11 +362,12 @@ func progressHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Cache-Control", "no-cache")
     w.Header().Set("Connection", "keep-alive")
 
-    reporter := progress.NewChannelReporter()
-    defer reporter.Close()
+    // Create context that cancels when request is done
+    ctx := r.Context()
+    reporter := progress.NewChannelReporter(ctx)
 
     // Start analysis in background
-    go runAnalysis(reporter)
+    go runAnalysis(ctx, reporter)
 
     // Stream events to client
     for event := range reporter.Events() {
@@ -453,10 +457,12 @@ jobs:
 
 ### For Programmatic Integration
 
-1. **Always close ChannelReporter**
+1. **Pass a context to ChannelReporter**
    ```go
-   reporter := progress.NewChannelReporter()
-   defer reporter.Close()
+   ctx, cancel := context.WithCancel(context.Background())
+   defer cancel()
+   reporter := progress.NewChannelReporter(ctx)
+   // Reporter automatically closes when ctx is cancelled
    ```
 
 2. **Handle events in separate goroutine**
@@ -546,7 +552,8 @@ func NewJSONReporter(w io.Writer) *JSONReporter
 func NewTextReporter(w io.Writer) *TextReporter
 
 // Create a channel-based reporter for programmatic use
-func NewChannelReporter() *ChannelReporter
+// Automatically closes when the context is cancelled
+func NewChannelReporter(ctx context.Context) *ChannelReporter
 
 // Get the events channel (ChannelReporter only)
 func (c *ChannelReporter) Events() <-chan ProgressEvent

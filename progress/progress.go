@@ -20,8 +20,9 @@
 // For programmatic consumption:
 //
 //	// Use channel-based reporter
-//	reporter := progress.NewChannelReporter()
-//	defer reporter.Close()
+//	ctx, cancel := context.WithCancel(context.Background())
+//	defer cancel()
+//	reporter := progress.NewChannelReporter(ctx)
 //
 //	go func() {
 //	    for event := range reporter.Events() {

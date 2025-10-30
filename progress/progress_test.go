@@ -2,6 +2,7 @@ package progress
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -175,7 +176,8 @@ func TestTextReporterStages(t *testing.T) {
 }
 
 func TestChannelReporter(t *testing.T) {
-	reporter := NewChannelReporter()
+	ctx := context.Background()
+	reporter := NewChannelReporter(ctx)
 	defer reporter.Close()
 
 	event := ProgressEvent{
@@ -210,7 +212,8 @@ func TestChannelReporter(t *testing.T) {
 }
 
 func TestChannelReporterMultipleEvents(t *testing.T) {
-	reporter := NewChannelReporter()
+	ctx := context.Background()
+	reporter := NewChannelReporter(ctx)
 	defer reporter.Close()
 
 	// Send multiple events
@@ -242,7 +245,8 @@ func TestChannelReporterMultipleEvents(t *testing.T) {
 }
 
 func TestChannelReporterClose(t *testing.T) {
-	reporter := NewChannelReporter()
+	ctx := context.Background()
+	reporter := NewChannelReporter(ctx)
 
 	// Send an event
 	reporter.Report(ProgressEvent{Stage: StageInit})
@@ -261,7 +265,8 @@ func TestChannelReporterClose(t *testing.T) {
 }
 
 func TestChannelReporterCloseMultipleTimes(t *testing.T) {
-	reporter := NewChannelReporter()
+	ctx := context.Background()
+	reporter := NewChannelReporter(ctx)
 
 	// Close multiple times should not panic
 	reporter.Close()
@@ -269,9 +274,33 @@ func TestChannelReporterCloseMultipleTimes(t *testing.T) {
 	reporter.Close()
 }
 
+func TestChannelReporterContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	reporter := NewChannelReporter(ctx)
+
+	// Send an event
+	reporter.Report(ProgressEvent{Stage: StageInit})
+
+	// Drain the channel
+	<-reporter.Events()
+
+	// Cancel the context
+	cancel()
+
+	// Give the goroutine time to close the channel
+	time.Sleep(10 * time.Millisecond)
+
+	// Channel should be closed
+	_, ok := <-reporter.Events()
+	if ok {
+		t.Error("Expected channel to be closed after context cancellation")
+	}
+}
+
 func TestChannelReporterRaceCondition(t *testing.T) {
 	// This test verifies that concurrent Report() and Close() calls don't cause a panic
-	reporter := NewChannelReporter()
+	ctx := context.Background()
+	reporter := NewChannelReporter(ctx)
 
 	// Start consuming events
 	done := make(chan struct{})
@@ -312,7 +341,8 @@ func TestChannelReporterRaceCondition(t *testing.T) {
 }
 
 func TestChannelReporterReportAfterClose(t *testing.T) {
-	reporter := NewChannelReporter()
+	ctx := context.Background()
+	reporter := NewChannelReporter(ctx)
 
 	// Drain any existing events
 	go func() {
@@ -329,7 +359,8 @@ func TestChannelReporterReportAfterClose(t *testing.T) {
 }
 
 func TestChannelReporterDroppedEvents(t *testing.T) {
-	reporter := NewChannelReporter()
+	ctx := context.Background()
+	reporter := NewChannelReporter(ctx)
 	defer reporter.Close()
 
 	// Don't consume events, so channel buffer fills up
@@ -479,7 +510,8 @@ func BenchmarkTextReporter(b *testing.B) {
 }
 
 func BenchmarkChannelReporter(b *testing.B) {
-	reporter := NewChannelReporter()
+	ctx := context.Background()
+	reporter := NewChannelReporter(ctx)
 	defer reporter.Close()
 
 	event := ProgressEvent{

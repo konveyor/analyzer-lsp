@@ -1,6 +1,7 @@
 package progress
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,8 +19,9 @@ import (
 //
 // Example:
 //
-//	reporter := progress.NewChannelReporter()
-//	defer reporter.Close()
+//	ctx, cancel := context.WithCancel(context.Background())
+//	defer cancel()
+//	reporter := progress.NewChannelReporter(ctx)
 //
 //	// Start consuming events in a goroutine
 //	go func() {
@@ -45,11 +47,28 @@ type ChannelReporter struct {
 // analysis. If the consumer is slow and the buffer fills up, events will be
 // dropped rather than blocking.
 //
-// Always call Close() when finished to release resources.
-func NewChannelReporter() *ChannelReporter {
-	return &ChannelReporter{
+// The reporter automatically closes when the provided context is cancelled,
+// following the standard Go pattern for shutdown logic. You can also manually
+// call Close() when finished to release resources.
+//
+// Example:
+//
+//	ctx, cancel := context.WithCancel(context.Background())
+//	defer cancel()
+//	reporter := progress.NewChannelReporter(ctx)
+//	// When ctx is cancelled, the channel will automatically close
+func NewChannelReporter(ctx context.Context) *ChannelReporter {
+	r := &ChannelReporter{
 		events: make(chan ProgressEvent, 100), // Buffered to prevent blocking
 	}
+
+	// Monitor context and close when cancelled
+	go func() {
+		<-ctx.Done()
+		r.Close()
+	}()
+
+	return r
 }
 
 // Report sends a progress event to the channel.
@@ -113,13 +132,13 @@ func (c *ChannelReporter) DroppedEvents() uint64 {
 
 // Close closes the events channel, signaling to consumers that no more events will be sent.
 //
-// This should be called when the analysis is complete. It's safe to call Close()
-// multiple times, though subsequent calls have no effect.
+// Note: The reporter automatically closes when the context passed to NewChannelReporter
+// is cancelled, so explicit Close() calls are often unnecessary. However, it's safe to
+// call Close() multiple times, and subsequent calls have no effect.
 //
-// Always defer Close() immediately after creating the reporter:
+// You can still manually close if needed:
 //
-//	reporter := progress.NewChannelReporter()
-//	defer reporter.Close()
+//	reporter.Close()
 func (c *ChannelReporter) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()

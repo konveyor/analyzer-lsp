@@ -69,8 +69,10 @@ For building dashboards or UIs:
 ```go
 import "github.com/konveyor/analyzer-lsp/progress"
 
-reporter := progress.NewChannelReporter()
-defer reporter.Close()
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+reporter := progress.NewChannelReporter(ctx)
 
 eng := engine.CreateRuleEngine(ctx, 10, log,
     engine.WithProgressReporter(reporter),
