@@ -812,6 +812,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 	var selector *labels.LabelSelector[*provider.Dep]
 	// Only set this, if the client has deps.
 	if r.DepLabelSelector != nil && provider.HasCapability(client.Capabilities(), "dependency") {
+		r.Log.V(9).Info("setting dependency label selector for provider", "language", langProvider, "selector", r.DepLabelSelector)
 		selector = r.DepLabelSelector
 	}
 

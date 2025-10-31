@@ -1,0 +1,4 @@
+rootProject.name = 'gradle-multi-project-example'
+
+include 'template-core'
+include 'template-server'
