@@ -45,9 +45,18 @@ func NewProgressBarReporter(w io.Writer) *ProgressBarReporter {
 
 // Report processes a progress event and updates the progress bar.
 //
-// During rule execution (StageRuleExecution), this displays and updates a progress bar.
-// For other stages, it writes simple text messages on new lines.
-// The method is safe for concurrent use.
+// The output format varies by stage:
+//   - Provider init: "<message>\n"
+//   - Rule parsing: "Loaded X rules\n"
+//   - Rule execution: "Processing rules XX% |█████░░░| X/Y  rule-name" (updates in-place)
+//   - Dependency analysis: "Analyzing dependencies...\n"
+//   - Complete: "Analysis complete!\n"
+//
+// During rule execution, the progress bar updates in-place using carriage returns (\r)
+// until reaching 100%, at which point a newline is printed.
+//
+// If the event's Timestamp is zero, it will be set to the current time.
+// This method is safe for concurrent use.
 func (p *ProgressBarReporter) Report(event ProgressEvent) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
