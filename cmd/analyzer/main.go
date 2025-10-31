@@ -396,7 +396,7 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
 	rootCmd.Flags().StringVar(&depOutputFile, "dep-output-file", "", "path to dependency output file")
 	rootCmd.Flags().StringVar(&progressOutput, "progress-output", "", "where to write progress events (stderr, stdout, or file path)")
-	rootCmd.Flags().StringVar(&progressFormat, "progress-format", "text", "format for progress output: text or json")
+	rootCmd.Flags().StringVar(&progressFormat, "progress-format", "bar", "format for progress output: bar, text, or json")
 
 	return rootCmd
 }
@@ -465,9 +465,11 @@ func createProgressReporter() (progress.ProgressReporter, func()) {
 		return progress.NewJSONReporter(writer), cleanup
 	case "text":
 		return progress.NewTextReporter(writer), cleanup
+	case "bar":
+		return progress.NewProgressBarReporter(writer), cleanup
 	default:
-		// Default to text
-		return progress.NewTextReporter(writer), cleanup
+		// Default to progress bar
+		return progress.NewProgressBarReporter(writer), cleanup
 	}
 }
 
