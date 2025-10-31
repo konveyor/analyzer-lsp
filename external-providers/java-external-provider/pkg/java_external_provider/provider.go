@@ -70,6 +70,7 @@ var locationToCode = map[string]int{
 	"type":                 10,
 	"package":              11,
 	"field":                12,
+	"field_declaration":    12,
 	"method":               13,
 	"class":                14,
 }
