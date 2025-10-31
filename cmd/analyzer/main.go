@@ -16,6 +16,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/parser"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/konveyor/analyzer-lsp/tracing"
@@ -50,6 +51,8 @@ var (
 	getOpenAPISpec    string
 	treeOutput        bool
 	depOutputFile     string
+	progressOutput    string
+	progressFormat    string
 )
 
 func AnalysisCmd() *cobra.Command {
@@ -172,6 +175,10 @@ func AnalysisCmd() *cobra.Command {
 				InitConfig: defaultBuiltinConfigs,
 			})
 
+			// Create progress reporter early so we can report provider initialization
+			progressReporter, progressCleanup := createProgressReporter()
+			defer progressCleanup()
+
 			providers := map[string]provider.InternalProviderClient{}
 			providerLocations := []string{}
 			var encoding string
@@ -197,18 +204,49 @@ func AnalysisCmd() *cobra.Command {
 					}
 					config.InitConfig = inits
 				}
+
+				// Report provider initialization starting
+				progressReporter.Report(progress.ProgressEvent{
+					Stage:   progress.StageProviderInit,
+					Message: fmt.Sprintf("Initializing %s provider", config.Name),
+				})
+
 				prov, err := lib.GetProviderClient(config, log)
 				if err != nil {
+					// Report provider initialization failed
+					progressReporter.Report(progress.ProgressEvent{
+						Stage:   progress.StageProviderInit,
+						Message: fmt.Sprintf("Provider %s failed to initialize", config.Name),
+						Metadata: map[string]interface{}{
+							"error": err.Error(),
+						},
+					})
 					errLog.Error(err, "unable to create provider client")
+					progressCleanup()
 					os.Exit(1)
 				}
 				providers[config.Name] = prov
 				if s, ok := prov.(provider.Startable); ok {
 					if err := s.Start(ctx); err != nil {
+						// Report provider startup failed
+						progressReporter.Report(progress.ProgressEvent{
+							Stage:   progress.StageProviderInit,
+							Message: fmt.Sprintf("Provider %s failed to start", config.Name),
+							Metadata: map[string]interface{}{
+								"error": err.Error(),
+							},
+						})
 						errLog.Error(err, "unable to create provider client")
+						progressCleanup()
 						os.Exit(1)
 					}
 				}
+
+				// Report provider ready
+				progressReporter.Report(progress.ProgressEvent{
+					Stage:   progress.StageProviderInit,
+					Message: fmt.Sprintf("Provider %s ready", config.Name),
+				})
 			}
 
 			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
@@ -230,14 +268,17 @@ func AnalysisCmd() *cobra.Command {
 				b, err := json.Marshal(sc)
 				if err != nil {
 					errLog.Error(err, "unable to create inital schema")
+					progressCleanup()
 					os.Exit(1)
 				}
 
 				err = os.WriteFile(getOpenAPISpec, b, 0644)
 				if err != nil {
 					errLog.Error(err, "error writing output file", "file", getOpenAPISpec)
+					progressCleanup()
 					os.Exit(1) // Treat the error as a fatal error
 				}
+				progressCleanup()
 				os.Exit(0)
 			}
 
@@ -273,6 +314,7 @@ func AnalysisCmd() *cobra.Command {
 					additionalBuiltinConfs, err := provider.ProviderInit(initCtx, nil)
 					if err != nil {
 						errLog.Error(err, "unable to init the providers", "provider", name)
+						progressCleanup()
 						os.Exit(1)
 					}
 					if additionalBuiltinConfs != nil {
@@ -285,6 +327,7 @@ func AnalysisCmd() *cobra.Command {
 			if builtinClient, ok := needProviders["builtin"]; ok {
 				if _, err = builtinClient.ProviderInit(ctx, additionalBuiltinConfigs); err != nil {
 					errLog.Error(err, "unable to init builtin provider")
+					progressCleanup()
 					os.Exit(1)
 				}
 			}
@@ -299,7 +342,9 @@ func AnalysisCmd() *cobra.Command {
 			}
 
 			// This will already wait
-			rulesets := eng.RunRules(ctx, ruleSets, selectors...)
+			rulesets := eng.RunRulesWithOptions(ctx, ruleSets, []engine.RunOption{
+				engine.WithProgressReporter(progressReporter),
+			}, selectors...)
 			engineSpan.End()
 			wg.Wait()
 			if depSpan != nil {
@@ -319,12 +364,14 @@ func AnalysisCmd() *cobra.Command {
 			b, _ := yaml.Marshal(rulesets)
 			if errorOnViolations && len(rulesets) != 0 {
 				fmt.Printf("%s", string(b))
+				progressCleanup()
 				os.Exit(EXIT_ON_ERROR_CODE)
 			}
 
 			err = os.WriteFile(outputViolations, b, 0644)
 			if err != nil {
 				errLog.Error(err, "error writing output file", "file", outputViolations)
+				progressCleanup()
 				os.Exit(1) // Treat the error as a fatal error
 			}
 		},
@@ -348,6 +395,8 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&getOpenAPISpec, "get-openapi-spec", "", "Get the openAPI spec for the rulesets, rules and provider capabilities and put in file passed in.")
 	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
 	rootCmd.Flags().StringVar(&depOutputFile, "dep-output-file", "", "path to dependency output file")
+	rootCmd.Flags().StringVar(&progressOutput, "progress-output", "", "where to write progress events (stderr, stdout, or file path)")
+	rootCmd.Flags().StringVar(&progressFormat, "progress-format", "text", "format for progress output: text or json")
 
 	return rootCmd
 }
@@ -380,6 +429,46 @@ func validateFlags() error {
 	}
 
 	return nil
+}
+
+// createProgressReporter creates a progress reporter based on CLI flags
+func createProgressReporter() (progress.ProgressReporter, func()) {
+	// If no output specified, return noop reporter
+	if progressOutput == "" {
+		return progress.NewNoopReporter(), func() {}
+	}
+
+	// Determine output writer
+	var writer *os.File
+	cleanup := func() {}
+	switch progressOutput {
+	case "stderr":
+		writer = os.Stderr
+	case "stdout":
+		writer = os.Stdout
+	default:
+		// It's a file path
+		file, err := os.Create(progressOutput)
+		if err != nil {
+			// If we can't create the file, fallback to stderr
+			fmt.Fprintf(os.Stderr, "Warning: failed to create progress output file %s: %v\n", progressOutput, err)
+			writer = os.Stderr
+		} else {
+			writer = file
+			cleanup = func() { _ = file.Close() }
+		}
+	}
+
+	// Create reporter based on format
+	switch progressFormat {
+	case "json":
+		return progress.NewJSONReporter(writer), cleanup
+	case "text":
+		return progress.NewTextReporter(writer), cleanup
+	default:
+		// Default to text
+		return progress.NewTextReporter(writer), cleanup
+	}
 }
 
 func createOpenAPISchema(providers map[string]provider.InternalProviderClient, log logr.Logger) openapi3.Spec {

@@ -3,12 +3,15 @@ package engine
 import (
 	"context"
 	"fmt"
+	"io"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/sirupsen/logrus"
 )
 
@@ -747,5 +750,247 @@ func Test_parseTagsFromPerformString(t *testing.T) {
 				t.Errorf("parseTagsFromPerformString() = error %v, want %v", err != nil, tt.wantErr)
 			}
 		})
+	}
+}
+
+
+func TestRunRulesWithProgressReporter(t *testing.T) {
+	logrus.SetLevel(logrus.ErrorLevel)
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+	log := logrusr.New(logrusLog)
+
+	ctx := context.Background()
+	ruleEngine := CreateRuleEngine(ctx, 10, log)
+	defer ruleEngine.Stop()
+
+	// Create a channel reporter to capture progress events
+	reporter := progress.NewChannelReporter(ctx)
+	defer reporter.Close()
+
+	// Collect events in background
+	events := []progress.ProgressEvent{}
+	eventsDone := make(chan struct{})
+	go func() {
+		for event := range reporter.Events() {
+			events = append(events, event)
+		}
+		close(eventsDone)
+	}()
+
+	// Create simple test rules
+	msg := "test"
+	rules := []RuleSet{
+		{
+			Name: "test-ruleset",
+			Rules: []Rule{
+				{
+					Perform: Perform{Message: Message{Text: &msg}},
+					When:    createTestConditional(true, nil, false),
+				},
+				{
+					Perform: Perform{Message: Message{Text: &msg}},
+					When:    createTestConditional(true, nil, false),
+				},
+			},
+		},
+	}
+
+	// Run rules with progress reporter
+	ruleEngine.RunRulesWithOptions(ctx, rules, []RunOption{
+		WithProgressReporter(reporter),
+	})
+
+	reporter.Close()
+	<-eventsDone
+
+	// Verify we got progress events
+	if len(events) == 0 {
+		t.Fatal("Expected progress events, got none")
+	}
+
+	// Check for start event
+	foundStart := false
+	for _, event := range events {
+		if event.Stage == progress.StageRuleExecution && event.Current == 0 {
+			foundStart = true
+			break
+		}
+	}
+	if !foundStart {
+		t.Error("Expected start event with Current=0")
+	}
+
+	// Check for completion event
+	foundComplete := false
+	for _, event := range events {
+		if event.Stage == progress.StageComplete {
+			foundComplete = true
+			if event.Percent != 100.0 {
+				t.Errorf("Expected completion event with Percent=100.0, got %f", event.Percent)
+			}
+			break
+		}
+	}
+	if !foundComplete {
+		t.Error("Expected completion event")
+	}
+}
+
+func TestRunRulesWithoutProgressReporter(t *testing.T) {
+	logrus.SetLevel(logrus.ErrorLevel)
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+	log := logrusr.New(logrusLog)
+
+	ctx := context.Background()
+	ruleEngine := CreateRuleEngine(ctx, 10, log)
+	defer ruleEngine.Stop()
+
+	// Create simple test rules
+	msg := "test"
+	rules := []RuleSet{
+		{
+			Name: "test-ruleset",
+			Rules: []Rule{
+				{
+					Perform: Perform{Message: Message{Text: &msg}},
+					When:    createTestConditional(true, nil, false),
+				},
+			},
+		},
+	}
+
+	// Run rules without progress reporter (should not panic)
+	results := ruleEngine.RunRules(ctx, rules)
+
+	if len(results) == 0 {
+		t.Error("Expected results from RunRules")
+	}
+}
+
+func TestConcurrentRunsWithSeparateProgressReporters(t *testing.T) {
+	logrus.SetLevel(logrus.ErrorLevel)
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+	log := logrusr.New(logrusLog)
+
+	ctx := context.Background()
+	ruleEngine := CreateRuleEngine(ctx, 10, log)
+	defer ruleEngine.Stop()
+
+	// Create two separate reporters
+	ctx1, cancel1 := context.WithCancel(ctx)
+	defer cancel1()
+	reporter1 := progress.NewChannelReporter(ctx1)
+
+	ctx2, cancel2 := context.WithCancel(ctx)
+	defer cancel2()
+	reporter2 := progress.NewChannelReporter(ctx2)
+
+	// Collect events separately
+	events1 := []progress.ProgressEvent{}
+	events2 := []progress.ProgressEvent{}
+
+	done1 := make(chan struct{})
+	done2 := make(chan struct{})
+
+	go func() {
+		for event := range reporter1.Events() {
+			events1 = append(events1, event)
+		}
+		close(done1)
+	}()
+
+	go func() {
+		for event := range reporter2.Events() {
+			events2 = append(events2, event)
+		}
+		close(done2)
+	}()
+
+	// Create different test rules for each run
+	msg1 := "rule-1"
+	msg2 := "rule-2"
+	rules1 := []RuleSet{
+		{
+			Name: "ruleset-1",
+			Rules: []Rule{
+				{
+					Perform: Perform{Message: Message{Text: &msg1}},
+					When:    createTestConditional(true, nil, false),
+				},
+			},
+		},
+	}
+
+	rules2 := []RuleSet{
+		{
+			Name: "ruleset-2",
+			Rules: []Rule{
+				{
+					Perform: Perform{Message: Message{Text: &msg2}},
+					When:    createTestConditional(true, nil, false),
+				},
+			},
+		},
+	}
+
+	// Run both concurrently with separate reporters
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		ruleEngine.RunRulesWithOptions(ctx1, rules1, []RunOption{
+			WithProgressReporter(reporter1),
+		})
+		reporter1.Close()
+	}()
+
+	go func() {
+		defer wg.Done()
+		ruleEngine.RunRulesWithOptions(ctx2, rules2, []RunOption{
+			WithProgressReporter(reporter2),
+		})
+		reporter2.Close()
+	}()
+
+	wg.Wait()
+	<-done1
+	<-done2
+
+	// Verify both got events
+	if len(events1) == 0 {
+		t.Error("Expected events for reporter1")
+	}
+	if len(events2) == 0 {
+		t.Error("Expected events for reporter2")
+	}
+
+	// Both should have received completion events since they ran successfully
+	hasComplete1 := false
+	for _, event := range events1 {
+		if event.Stage == progress.StageComplete {
+			hasComplete1 = true
+			break
+		}
+	}
+	if !hasComplete1 {
+		t.Error("Expected reporter1 to receive completion event")
+	}
+
+	hasComplete2 := false
+	for _, event := range events2 {
+		if event.Stage == progress.StageComplete {
+			hasComplete2 = true
+			break
+		}
+	}
+	if !hasComplete2 {
+		t.Error("Expected reporter2 to receive completion event")
 	}
 }
