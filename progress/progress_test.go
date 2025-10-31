@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -593,6 +594,298 @@ func BenchmarkChannelReporter(b *testing.B) {
 			// Consume events
 		}
 	}()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reporter.Report(event)
+	}
+}
+
+func TestProgressBarReporter(t *testing.T) {
+	var buf bytes.Buffer
+	reporter := NewProgressBarReporter(&buf)
+
+	event := ProgressEvent{
+		Stage:   StageRuleExecution,
+		Current: 10,
+		Total:   45,
+		Percent: 22.2,
+		Message: "test-rule-001",
+	}
+
+	reporter.Report(event)
+
+	output := buf.String()
+
+	// Verify output contains expected components
+	if !strings.Contains(output, "Processing rules") {
+		t.Errorf("Expected 'Processing rules' in output, got: %s", output)
+	}
+	if !strings.Contains(output, "22%") {
+		t.Errorf("Expected percentage in output, got: %s", output)
+	}
+	if !strings.Contains(output, "10/45") {
+		t.Errorf("Expected '10/45' in output, got: %s", output)
+	}
+	if !strings.Contains(output, "test-rule-001") {
+		t.Errorf("Expected rule ID in output, got: %s", output)
+	}
+	// Progress bar should use block characters
+	if !strings.Contains(output, "█") && !strings.Contains(output, "░") {
+		t.Errorf("Expected progress bar characters in output, got: %s", output)
+	}
+}
+
+func TestProgressBarReporterProgressPercentages(t *testing.T) {
+	tests := []struct {
+		name           string
+		current        int
+		total          int
+		percent        float64
+		expectFilled   bool // Should have filled portion
+		expectEmpty    bool // Should have empty portion
+	}{
+		{
+			name:         "0 percent",
+			current:      0,
+			total:        100,
+			percent:      0.0,
+			expectFilled: false,
+			expectEmpty:  true,
+		},
+		{
+			name:         "50 percent",
+			current:      50,
+			total:        100,
+			percent:      50.0,
+			expectFilled: true,
+			expectEmpty:  true,
+		},
+		{
+			name:         "100 percent",
+			current:      100,
+			total:        100,
+			percent:      100.0,
+			expectFilled: true,
+			expectEmpty:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			reporter := NewProgressBarReporter(&buf)
+
+			event := ProgressEvent{
+				Stage:   StageRuleExecution,
+				Current: tt.current,
+				Total:   tt.total,
+				Percent: tt.percent,
+			}
+
+			reporter.Report(event)
+
+			output := buf.String()
+
+			hasFilled := strings.Contains(output, "█")
+			hasEmpty := strings.Contains(output, "░")
+
+			if tt.expectFilled && !hasFilled {
+				t.Errorf("Expected filled bar characters (█) in output, got: %s", output)
+			}
+			if !tt.expectFilled && hasFilled {
+				t.Errorf("Did not expect filled bar characters (█) in output, got: %s", output)
+			}
+			if tt.expectEmpty && !hasEmpty {
+				t.Errorf("Expected empty bar characters (░) in output, got: %s", output)
+			}
+			if !tt.expectEmpty && hasEmpty {
+				t.Errorf("Did not expect empty bar characters (░) in output, got: %s", output)
+			}
+
+			// 100% should end with newline
+			if tt.percent >= 100.0 && !strings.HasSuffix(output, "\n") {
+				t.Errorf("Expected output to end with newline at 100%%, got: %s", output)
+			}
+		})
+	}
+}
+
+func TestProgressBarReporterStages(t *testing.T) {
+	tests := []struct {
+		name          string
+		event         ProgressEvent
+		shouldContain []string
+		shouldNotContain []string
+	}{
+		{
+			name: "provider init stage",
+			event: ProgressEvent{
+				Stage:   StageProviderInit,
+				Message: "Initializing java provider",
+			},
+			shouldContain: []string{"Initializing java provider"},
+		},
+		{
+			name: "rule parsing stage",
+			event: ProgressEvent{
+				Stage: StageRuleParsing,
+				Total: 235,
+			},
+			shouldContain: []string{"Loaded 235 rules"},
+		},
+		{
+			name: "dependency analysis stage",
+			event: ProgressEvent{
+				Stage: StageDependencyAnalysis,
+			},
+			shouldContain: []string{"Analyzing dependencies"},
+		},
+		{
+			name: "complete stage",
+			event: ProgressEvent{
+				Stage: StageComplete,
+			},
+			shouldContain: []string{"Analysis complete"},
+		},
+		{
+			name: "rule execution clears previous lines",
+			event: ProgressEvent{
+				Stage:   StageRuleExecution,
+				Current: 10,
+				Total:   45,
+			},
+			shouldContain: []string{"Processing rules", "10/45"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			reporter := NewProgressBarReporter(&buf)
+			reporter.Report(tt.event)
+
+			output := buf.String()
+			for _, expected := range tt.shouldContain {
+				if !strings.Contains(output, expected) {
+					t.Errorf("Expected '%s' in output, got: %s", expected, output)
+				}
+			}
+			for _, notExpected := range tt.shouldNotContain {
+				if strings.Contains(output, notExpected) {
+					t.Errorf("Did not expect '%s' in output, got: %s", notExpected, output)
+				}
+			}
+		})
+	}
+}
+
+func TestProgressBarReporterRuleNameTruncation(t *testing.T) {
+	var buf bytes.Buffer
+	reporter := NewProgressBarReporter(&buf)
+
+	// Very long rule name (over 50 characters)
+	longRuleName := "this-is-a-very-long-rule-name-that-exceeds-the-maximum-display-length-and-should-be-truncated"
+
+	event := ProgressEvent{
+		Stage:   StageRuleExecution,
+		Current: 10,
+		Total:   45,
+		Percent: 22.2,
+		Message: longRuleName,
+	}
+
+	reporter.Report(event)
+
+	output := buf.String()
+
+	// Output should not contain the full long rule name
+	if strings.Contains(output, longRuleName) {
+		t.Errorf("Expected long rule name to be truncated, but found full name in: %s", output)
+	}
+
+	// Should contain truncation indicator (...)
+	if !strings.Contains(output, "...") {
+		t.Errorf("Expected truncation indicator '...' in output, got: %s", output)
+	}
+}
+
+func TestProgressBarReporterMultipleUpdates(t *testing.T) {
+	var buf bytes.Buffer
+	reporter := NewProgressBarReporter(&buf)
+
+	// Simulate progress from 0% to 100%
+	for i := 0; i <= 10; i++ {
+		reporter.Report(ProgressEvent{
+			Stage:   StageRuleExecution,
+			Current: i,
+			Total:   10,
+			Percent: float64(i) * 10.0,
+			Message: fmt.Sprintf("rule-%d", i),
+		})
+	}
+
+	output := buf.String()
+
+	// Should contain carriage returns for in-place updates
+	if !strings.Contains(output, "\r") {
+		t.Errorf("Expected carriage returns for in-place updates, got: %s", output)
+	}
+
+	// Final output at 100% should have a newline
+	if !strings.HasSuffix(output, "\n") {
+		t.Errorf("Expected final output to end with newline, got: %s", output)
+	}
+
+	// Should contain the final rule name
+	if !strings.Contains(output, "rule-10") {
+		t.Errorf("Expected final rule name 'rule-10' in output, got: %s", output)
+	}
+}
+
+func TestProgressBarReporterConcurrency(t *testing.T) {
+	// Verify that concurrent Report() calls don't cause a panic
+	var buf bytes.Buffer
+	reporter := NewProgressBarReporter(&buf)
+
+	// Concurrently send events from multiple goroutines
+	numSenders := 5
+	done := make(chan struct{})
+
+	for i := 0; i < numSenders; i++ {
+		go func(id int) {
+			for j := 0; j < 20; j++ {
+				reporter.Report(ProgressEvent{
+					Stage:   StageRuleExecution,
+					Current: j,
+					Total:   20,
+					Percent: float64(j) * 5.0,
+					Message: fmt.Sprintf("rule-%d-%d", id, j),
+				})
+			}
+			if id == 0 {
+				close(done)
+			}
+		}(i)
+	}
+
+	// Wait for at least one sender to complete
+	<-done
+
+	// If we get here without panicking, the test passes
+}
+
+func BenchmarkProgressBarReporter(b *testing.B) {
+	var buf bytes.Buffer
+	reporter := NewProgressBarReporter(&buf)
+
+	event := ProgressEvent{
+		Stage:   StageRuleExecution,
+		Current: 10,
+		Total:   45,
+		Percent: 22.2,
+		Message: "test-rule",
+	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
