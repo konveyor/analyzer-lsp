@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<jboss-app>
+    <loader-repository>
+    </loader-repository>
+    <module public-id="JBoss DTD Java EE 5">
+        <service>jboss-example-service</service>
+    </module>
+</jboss-app>

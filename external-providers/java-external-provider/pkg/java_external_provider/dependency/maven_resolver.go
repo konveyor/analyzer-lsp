@@ -114,7 +114,7 @@ func (m *mavenDependencyResolver) ResolveSources(ctx context.Context) (string, s
 		jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
 		wg.Add(1)
 		go func() {
-			artifact, err := decompiler.Decompile(decompilerCtx, filepath.Join(m.localRepo, groupDirs, artifact.ArtifactId, jarName))
+			artifact, err := decompiler.Decompile(decompilerCtx, filepath.Join(m.localRepo, groupDirs, artifact.Version, artifact.ArtifactId, jarName))
 			returnChan <- struct {
 				artifact []JavaArtifact
 				err      error

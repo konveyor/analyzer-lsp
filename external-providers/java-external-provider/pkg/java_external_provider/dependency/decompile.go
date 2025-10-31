@@ -66,15 +66,15 @@ type decompileJob interface {
 // It contains shared configuration and helper methods used by jarArtifact, warArtifact,
 // earArtifact, and jarExplodeArtifact implementations.
 type baseArtifact struct {
-	artifactPath        string                    // Absolute path to the artifact file being decompiled
-	m2Repo              string                    // Path to Maven local repository for storing decompiled artifacts
-	decompileTool       string                    // Absolute path to the FernFlower decompiler JAR
-	javaPath            string                    // Path to java executable for running decompiler
-	labeler             labels.Labeler            // Labeler for classifying dependencies
-	mavenIndexPath      string                    // Path to Maven index for artifact lookups
-	decompiler          internalDecompiler        // Reference to decompiler for nested artifact processing
-	decompilerResponses chan DecomplierResponse   // Channel for receiving decompilation results
-	decompilerWG        *sync.WaitGroup           // WaitGroup for coordinating job completion
+	artifactPath        string                  // Absolute path to the artifact file being decompiled
+	m2Repo              string                  // Path to Maven local repository for storing decompiled artifacts
+	decompileTool       string                  // Absolute path to the FernFlower decompiler JAR
+	javaPath            string                  // Path to java executable for running decompiler
+	labeler             labels.Labeler          // Labeler for classifying dependencies
+	mavenIndexPath      string                  // Path to Maven index for artifact lookups
+	decompiler          internalDecompiler      // Reference to decompiler for nested artifact processing
+	decompilerResponses chan DecomplierResponse // Channel for receiving decompilation results
+	decompilerWG        *sync.WaitGroup         // WaitGroup for coordinating job completion
 }
 
 func (b *baseArtifact) getFileName() string {
@@ -114,6 +114,7 @@ type DecomplierResponse struct {
 type internalDecompiler interface {
 	internalDecompileIntoProject(context context.Context, binaryPath, projectPath string, responseChannel chan DecomplierResponse, waitGroup *sync.WaitGroup) error
 	internalDecompile(context context.Context, binaryPath string, responseChannel chan DecomplierResponse, waitGroup *sync.WaitGroup) error
+	internalDecompileClasses(context context.Context, classDirectory, output string, responseChannel chan DecomplierResponse, waitGroup *sync.WaitGroup) error
 }
 
 // Decompiler is the public interface for decompiling Java binary artifacts.
@@ -146,15 +147,15 @@ type Decompiler interface {
 //   - Supports JAR, WAR, and EAR files
 //   - Recursive decompilation of nested archives
 type decompiler struct {
-	decompileTool     string                 // Path to FernFlower decompiler JAR
-	log               logr.Logger            // Logger for decompiler operations
-	workers           int                    // Number of worker goroutines in the pool
-	labeler           labels.Labeler         // Labeler for dependency classification
-	jobs              chan decompileJob      // Channel for distributing decompilation jobs to workers
-	cancelWorkersFunc context.CancelFunc     // Function to cancel all worker goroutines
-	java              string                 // Path to java executable
-	m2Repo            string                 // Path to Maven local repository
-	mavenIndexPath    string                 // Path to Maven index for artifact lookups
+	decompileTool     string             // Path to FernFlower decompiler JAR
+	log               logr.Logger        // Logger for decompiler operations
+	workers           int                // Number of worker goroutines in the pool
+	labeler           labels.Labeler     // Labeler for dependency classification
+	jobs              chan decompileJob  // Channel for distributing decompilation jobs to workers
+	cancelWorkersFunc context.CancelFunc // Function to cancel all worker goroutines
+	java              string             // Path to java executable
+	m2Repo            string             // Path to Maven local repository
+	mavenIndexPath    string             // Path to Maven index for artifact lookups
 }
 
 // DecompilerOpts contains configuration options for creating a Decompiler instance.
@@ -502,6 +503,19 @@ func (d *decompiler) getIntoProjectJobInternal(artifactPath, projectPath string,
 	}
 	return nil, fmt.Errorf("unable to get a job fo rthe artifact")
 
+}
+
+func (d *decompiler) internalDecompileClasses(ctx context.Context, classDirPath, output string, responseChan chan DecomplierResponse, waitGroup *sync.WaitGroup) error {
+	waitGroup.Add(1)
+	d.jobs <- &classDecompileJob{
+		classDirPath:     classDirPath,
+		outputPath:       output,
+		decompileTool:    "",
+		responseChanndel: responseChan,
+		wg:               waitGroup,
+		log:              logr.Logger{},
+	}
+	return nil
 }
 
 func (d *decompiler) decompileWorker(ctx context.Context, workerID int) {

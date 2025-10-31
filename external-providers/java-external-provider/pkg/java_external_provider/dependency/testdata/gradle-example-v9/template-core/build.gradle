@@ -1,0 +1,12 @@
+apply plugin: 'application'
+
+application {
+    mainClass = 'io.jeffchao.template.core.Core'
+}
+
+dependencies {
+}
+
+run.doFirst {
+  // Environment variables go here.
+}
