@@ -100,7 +100,8 @@ func (m *mavenBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pro
 		return nil, err
 	}
 	if ok {
-		return m.depCache.getCachedDeps(), nil
+		ll := m.depCache.getCachedDeps()
+		return ll, nil
 	}
 	ll, err := m.getDependenciesForMaven(ctx)
 	m.depCache.setCachedDeps(ll, err)
