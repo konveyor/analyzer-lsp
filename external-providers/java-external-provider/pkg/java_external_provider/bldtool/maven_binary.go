@@ -59,9 +59,12 @@ func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	}
 	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath()
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
+	// Once we get a binary, we need to wait for resolve to complete before handing back any information.
+	resolveSync := sync.Mutex{}
+	resolveSync.Lock()
 	return &mavenBinaryBuildTool{
 		binaryLocation: opts.Config.Location,
-		resolveSync:    &sync.Mutex{},
+		resolveSync:    &resolveSync,
 		mavenBaseTool:  mavenBaseTool,
 	}
 
@@ -86,7 +89,6 @@ func (m *mavenBinaryBuildTool) GetResolver(decompileTool string) (dependency.Res
 }
 
 func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, string, error) {
-	m.resolveSync.Lock()
 	defer m.resolveSync.Unlock()
 	if m.resolver == nil {
 		return "", "", errors.New("need to get the resolver")
@@ -103,7 +105,7 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 			mvnLocalRepo:    m.mvnLocalRepo,
 			mavenIndexPath:  m.mavenIndexPath,
 			dependencyPath:  depPath,
-			log:             m.log,
+			log:             m.log.WithName("mvn-bldtool"),
 			labeler:         m.labeler,
 		},
 		depCache: &depCache{

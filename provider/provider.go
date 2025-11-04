@@ -694,6 +694,7 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	resp := engine.ConditionResponse{}
 	deps, err := dc.Client.GetDependencies(ctx)
 	if err != nil {
+		log.Error(err, "mvn:// deps here")
 		return resp, err
 	}
 	regex, err := regexp.Compile(dc.NameRegex)
@@ -747,7 +748,6 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 				}
 				cancelFunc()
 			}
-			resp.Matched = true
 			resp.Incidents = append(resp.Incidents, incident)
 			// For now, lets leave this TODO to figure out what we should be setting in the context
 			resp.TemplateContext = map[string]interface{}{
@@ -788,7 +788,11 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			return resp, err
 		}
 
-		resp.Matched = constraints.Check(depVersion)
+		if !constraints.Check(depVersion) {
+			log.V(7).Info("constraints did not pass skipping incident")
+			continue
+		}
+
 		incident := engine.IncidentContext{
 			FileURI: matchedDep.uri,
 			Variables: map[string]interface{}{
@@ -835,6 +839,8 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			"version": matchedDep.dep.Version,
 		}
 	}
+
+	resp.Matched = len(resp.Incidents) > 0
 
 	return resp, nil
 }

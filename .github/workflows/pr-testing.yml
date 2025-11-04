@@ -54,7 +54,7 @@ jobs:
         if: ${{ !startsWith(matrix.goos, 'linux') }}
         run: |
           cd external-providers/java-external-provider/
-          go test -v -skip 'TestConstructArtifactFromSHA' ./... 
+          go test -timeout=20m -v -skip 'TestConstructArtifactFromSHA' ./... 
       
       - name: Build binaries
         env:

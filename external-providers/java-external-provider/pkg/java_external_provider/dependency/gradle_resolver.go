@@ -92,6 +92,7 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 
 	args := []string{
 		"konveyorDownloadSources",
+		"--no-daemon",
 	}
 	cmd := exec.CommandContext(ctx, g.wrapper, args...)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("JAVA_HOME=%s", g.javaHome))

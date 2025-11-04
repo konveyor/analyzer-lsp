@@ -40,12 +40,12 @@ func TestBinaryResolver(t *testing.T) {
 			testProject: testProject{output: warProjectOutputWithPomXML},
 			mavenDir:    testMavenDir{output: warProjectMavenDir},
 		},
-		/*{
+		{
 			Name:        "ear-binary",
 			Location:    "testdata/jee-example-app-1.0.0.ear",
 			testProject: testProject{output: earProjectOutput},
 			mavenDir:    testMavenDir{output: earProjectMavenDir},
-		},*/
+		},
 	}
 
 	for _, test := range testCases {
@@ -205,7 +205,7 @@ func TestMavenResolver(t *testing.T) {
 				}
 				found := false
 				for k := range test.expectedSources {
-					if k == relPath {
+					if k == filepath.ToSlash(relPath) {
 						t.Logf("path: %v", relPath)
 						found = true
 						break
@@ -216,7 +216,7 @@ func TestMavenResolver(t *testing.T) {
 					}
 				}
 				if found {
-					test.expectedSources[relPath] = "a"
+					test.expectedSources[filepath.ToSlash(relPath)] = "a"
 					return nil
 				}
 				return nil
@@ -300,8 +300,9 @@ func TestGradleResolver(t *testing.T) {
 				Labeler:        &testLabeler{},
 				GradleTaskFile: taskFile,
 			})
+			ctx, cancelFunc := context.WithCancel(context.Background())
 
-			projectLocation, gradleCache, err := resolver.ResolveSources(context.Background())
+			projectLocation, gradleCache, err := resolver.ResolveSources(ctx)
 			if err != nil {
 				// Check if this is a Java version compatibility issue with the old Gradle wrapper
 				if contains := regexp.MustCompile("Could not determine java version").MatchString(err.Error()); contains {
@@ -310,6 +311,7 @@ func TestGradleResolver(t *testing.T) {
 				t.Logf("unable to resolve sources: %s", err)
 				t.Fail()
 			}
+			cancelFunc()
 
 			// Verify that the project location is the original location
 			if projectLocation != location {
