@@ -283,7 +283,7 @@ func TestGradleResolver(t *testing.T) {
 				t.Skip("JAVA_HOME not set, skipping gradle resolver test")
 			}
 
-			taskFile, err := filepath.Abs("testdata/task.gradle")
+			taskFile, err := filepath.Abs("../../../gradle/build.gradle")
 			if err != nil {
 				t.Fatalf("unable to get task file path: %s", err)
 			}
