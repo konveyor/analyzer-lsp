@@ -263,6 +263,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	if !ok {
 		globalM2 = ""
 	} else {
+		log.Info("got global M2 using: %v", "m2", globalM2)
 		globalSettingsFile, returnError = p.BuildSettingsFile(globalM2)
 		if returnError != nil {
 			return nil, additionalBuiltinConfig, returnError
@@ -650,7 +651,7 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string) (settingsFile string
 	if err != nil {
 		return "", err
 	}
-	_, err = fmt.Fprint(f, fileContentTemplate, m2CacheDir)
+	_, err = fmt.Fprintf(f, fileContentTemplate, m2CacheDir)
 	if err != nil {
 		return "", err
 	}
