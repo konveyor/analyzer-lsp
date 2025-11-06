@@ -36,7 +36,7 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 	}
 	// If Dep is not valid, then we need to make dummy values.
 	if !dep.IsValid() {
-		log.Info("failed to create maven coordinates -- using file to create dummy values", "file", j.artifactPath)
+		log.Info("failed to create maven coordinates -- using file to create dummy values", "file", j.artifactPath, "dep", fmt.Sprintf("%#v", dep))
 		name := j.getFileName()
 		newDep := JavaArtifact{
 			FoundOnline: false,
@@ -62,34 +62,31 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 		// This will tell fernflower to decompile the jar
 		// into a new jar at the m2Repo for the dependency
 		destinationPath := j.getM2Path(dep)
-		log.Info("getting sources - allready found", "souce-dst", sourceDestPath, "destPath", destinationPath)
+		log.Info("decompiling jar to source", "souce-dst", sourceDestPath, "destPath", destinationPath)
 		if err = os.MkdirAll(destinationPath, DirPermRWXGrp); err != nil {
 			log.Info("getting sources - can not create dir", "souce-dst", sourceDestPath, "destPath", destinationPath)
 			return err
 		}
 
 		cmd := j.getDecompileCommand(jobCtx, j.artifactPath, destinationPath)
-		log.Info("getting sources - allready found", "souce-dst", sourceDestPath, "destPath", destinationPath, "cmd", cmd)
 		err := cmd.Run()
 		if err != nil {
 			log.Error(err, "failed to decompile file", "file", j.artifactPath)
 			return err
 		}
-		err = j.renameSourcesJar(destinationPath, sourceDestPath)
-		if err != nil {
-			log.Info("getting sources rename failure", "souce-dst", sourceDestPath, "destPath", destinationPath, "cmd", cmd, "err", err)
-			return err
-		}
 		log.Info("decompiled sources jar", "artifact", j.artifactPath, "sources", sourceDestPath)
 	}
-	// When we find a jar, and have a dep, we should pre-copy it to m2repo to reduce the network traffic.
-	destPath := j.getJarDestPath(dep)
-	outputLocationBase = filepath.Base(destPath)
-	if err := CopyFile(j.artifactPath, destPath); err != nil {
-		log.Error(err, fmt.Sprintf("failed copying jar to %s", destPath))
-		return err
+	// This will determine if the artifact is already in the m2repo or not. if it is then we don't need to try and copy it.
+	if _, err := filepath.Rel(j.m2Repo, j.artifactPath); err != nil {
+		// When we find a jar, and have a dep, we should pre-copy it to m2repo to reduce the network traffic.
+		destPath := j.getJarDestPath(dep)
+		outputLocationBase = filepath.Base(destPath)
+		if err := CopyFile(j.artifactPath, destPath); err != nil {
+			log.Error(err, fmt.Sprintf("failed copying jar to %s", destPath))
+			return err
+		}
+		log.Info("copied jar file", "src", j.artifactPath, "dest", destPath)
 	}
-	log.Info("copied jar file", "src", j.artifactPath, "dest", destPath)
 
 	span.End()
 	jobCtx.Done()

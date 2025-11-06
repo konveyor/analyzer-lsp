@@ -81,9 +81,10 @@ func ToDependency(_ context.Context, log logr.Logger, labeler labels.Labeler, ja
 	if err == nil {
 		return dep, nil
 	}
-	log.V(3).Error(err, "unable to look up dependency by SHA, falling back to get maven cordinates", "jar", jarFile)
+	log.Error(err, "unable to look up dependency by SHA, falling back to get maven cordinates", "jar", jarFile)
 	dep, err = constructArtifactFromPom(log, jarFile)
 	if err != nil {
+		log.Error(err, "unable to construct artifact from pom file", "jar", jarFile)
 		return JavaArtifact{}, err
 	}
 	return dep, nil
@@ -122,8 +123,7 @@ func constructArtifactFromSHA(log logr.Logger, jarFile string, mavenIndexPath st
 
 	sha1sum := hex.EncodeToString(hash.Sum(nil))
 	dataFilePath := filepath.Join(mavenIndexPath, "maven-index.txt")
-	dep, err = search(log, sha1sum, dataFilePath)
-	return dep, nil
+	return search(log, sha1sum, dataFilePath)
 }
 
 // constructArtifactFromPom extracts Maven coordinates from a JAR's embedded pom.properties file.
@@ -152,8 +152,6 @@ func constructArtifactFromPom(log logr.Logger, jarFile string) (JavaArtifact, er
 			return dep, err
 		}
 
-		log.V(5).Info("match", "match", match, "name", file.Name)
-
 		if match {
 			// Open the file in the ZIP archive
 			rc, err := file.Open()
@@ -177,6 +175,8 @@ func constructArtifactFromPom(log logr.Logger, jarFile string) (JavaArtifact, er
 			if scanner.Err() != nil {
 				return dep, scanner.Err()
 			}
+
+			log.Info("got dep for file", "dep", fmt.Sprintf("%#v", dep), "jar", jarFile, "matched file", file.Name)
 			return dep, err
 		}
 	}
@@ -239,7 +239,8 @@ func search(log logr.Logger, key, dataFile string) (JavaArtifact, error) {
 	}
 	defer data.Close()
 	val, err := searchIndex(log, data, key)
-	if err != nil {
+	log.Info("return of searching index", "val", val, "err", err)
+	if err != nil || val == "" {
 		return JavaArtifact{}, fmt.Errorf("search failed: %w", err)
 	}
 
