@@ -40,6 +40,7 @@ type ReferencedCondition struct {
 // references.
 func EvaluateReferenced[T base](t T, ctx ctx, cap string, info []byte) (resp, error) {
 	sc := t.GetLSPServiceClientBase()
+	sc.Log.Info("Evaluate Call", "cap", cap, "info", info)
 
 	var cond ReferencedCondition
 	err := yaml.Unmarshal(info, &cond)

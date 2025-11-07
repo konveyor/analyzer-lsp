@@ -213,6 +213,9 @@ func NewLSPServiceClientBase(
 	} else {
 		sc.Log.Info("using provided connection", "conn", c.RPC)
 		sc.Conn = c.RPC
+		sc.ServerCapabilities = protocol.ServerCapabilities{
+			AssumeWorks: true,
+		}
 	}
 	// Create the caches for the various handler stuffs
 	sc.PublishDiagnosticsCache = NewAwaitCache[string, []protocol.Diagnostic]()
@@ -353,6 +356,7 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, workspac
 	// Client may or may not support the "workspace/symbol" method, so we must
 	// check before calling.
 
+	sc.Log.Info("server caps", "supports", sc.ServerCapabilities.Supports("workspace/symbol"))
 	if sc.ServerCapabilities.Supports("workspace/symbol") {
 		params := protocol.WorkspaceSymbolParams{
 			Query: query,

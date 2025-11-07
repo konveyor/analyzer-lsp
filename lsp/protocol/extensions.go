@@ -5,6 +5,9 @@ package protocol
 // FIXME: Implement all requests!
 // TODO: Evaluate tradeoffs of turning this into a map?
 func (c *ServerCapabilities) Supports(method string) bool {
+	if c.AssumeWorks {
+		return true
+	}
 	switch method {
 	// case "$/cancelRequest":
 	// case "$/logTrace":
