@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/tracing"
@@ -31,8 +32,7 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 
 	dep, err := ToDependency(ctx, log, j.labeler, j.artifactPath, j.mavenIndexPath)
 	if err != nil {
-		log.Error(err, "failed to add dep", "file", j.artifactPath)
-		return err
+		log.Error(err, "failed to get dependnecy information", "file", j.artifactPath)
 	}
 	// If Dep is not valid, then we need to make dummy values.
 	if !dep.IsValid() {
@@ -65,7 +65,7 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 		destinationPath := filepath.Join(j.getM2Path(dep), "decompile")
 		log.Info("decompiling jar to source", "destPath", destinationPath)
 		if err = os.MkdirAll(destinationPath, DirPermRWXGrp); err != nil {
-			log.Info("getting sources - can not create dir", "souce-dst", sourceDestPath, "destPath", destinationPath)
+			log.Info("getting sources - can not create dir", "destPath", destinationPath)
 			return err
 		}
 
@@ -75,15 +75,17 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 			log.Error(err, "failed to decompile file", "file", j.artifactPath)
 			return err
 		}
-		log.Info("decompiled sources jar", "artifact", j.artifactPath, "sources", sourceDestPath)
-		if err := moveFile(destinationPath, sourceDestPath); err != nil {
-			log.Error(err, fmt.Sprintf("failed to copy jar to %s", sourceDestPath))
+		log.Info("decompiled sources jar", "artifact", j.artifactPath, "source-decomile-dir", destinationPath)
+		// Fernflower as it decompiles, keeps the same name.
+		if err := moveFile(filepath.Join(destinationPath, filepath.Base(j.artifactPath)), sourceDestPath); err != nil {
+			log.Error(err, "unable to move decompiled artifact to correct location", "souce-jar", sourceDestPath)
 			return err
 		}
-		log.Info("copied decompiled sources jar", "source-jar", sourceDestPath)
+		log.Info("decompiled sources jar", "artifact", j.artifactPath, "source-jar", sourceDestPath)
 	}
+
 	// This will determine if the artifact is already in the m2repo or not. if it is then we don't need to try and copy it.
-	if _, err := filepath.Rel(j.m2Repo, j.artifactPath); err != nil {
+	if ok := strings.Contains(j.artifactPath, j.m2Repo); !ok {
 		// When we find a jar, and have a dep, we should pre-copy it to m2repo to reduce the network traffic.
 		destPath := j.getJarDestPath(dep)
 		outputLocationBase = filepath.Base(destPath)
@@ -106,12 +108,4 @@ func (j *jarArtifact) getJarDestPath(dep JavaArtifact) string {
 
 func (j *jarArtifact) getSourcesJarDestPath(dep JavaArtifact) string {
 	return filepath.Join(j.getM2Path(dep), fmt.Sprintf("%s-%s-sources.jar", dep.ArtifactId, dep.Version))
-}
-
-func (j *jarArtifact) renameSourcesJar(destinationPath, sourcesDestPath string) error {
-	// Fernflower keeps the jar name, whatever it is.
-	jarName := filepath.Base(j.artifactPath)
-	// the Director for the output is used as destination for fernflower.
-	sourcesFile := filepath.Join(destinationPath, jarName)
-	return moveFile(sourcesFile, sourcesDestPath)
 }

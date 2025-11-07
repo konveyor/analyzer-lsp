@@ -459,7 +459,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	dialer := base.NewStdDialer(stdin, stdout)
 
 	rpc, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{
-		Handler: base.NewChainHandler(base.LogHandler(log)),
+		Handler: &base.DefaultHandler{},
 	})
 	if err != nil {
 		cancelFunc()
