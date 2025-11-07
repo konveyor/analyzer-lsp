@@ -357,10 +357,13 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				}
 				conditions, provs, err := r.getConditions(m)
 				if err != nil {
-					// Skip logging for missing provider errors - they're already logged at debug level
-					if _, ok := err.(MissingProviderError); !ok {
-						r.Log.V(8).Error(err, "failed parsing conditions in or clause", "ruleID", ruleID, "file", filepath)
+					// If provider is missing, treat as no conditions and skip the rule
+					if _, ok := err.(MissingProviderError); ok {
+						noConditions = true
+						break
 					}
+					// For other errors, log and return as before
+					r.Log.V(8).Error(err, "failed parsing conditions in or clause", "ruleID", ruleID, "file", filepath)
 					return nil, nil, err
 				}
 				if len(conditions) == 0 {
@@ -389,10 +392,13 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				}
 				conditions, provs, err := r.getConditions(m)
 				if err != nil {
-					// Skip logging for missing provider errors - they're already logged at debug level
-					if _, ok := err.(MissingProviderError); !ok {
-						r.Log.V(8).Error(err, "failed parsing conditions in and clause", "ruleID", ruleID, "file", filepath)
+					// If provider is missing, treat as no conditions and skip the rule
+					if _, ok := err.(MissingProviderError); ok {
+						noConditions = true
+						break
 					}
+					// For other errors, log and return as before
+					r.Log.V(8).Error(err, "failed parsing conditions in and clause", "ruleID", ruleID, "file", filepath)
 					return nil, nil, err
 				}
 				if len(conditions) == 0 {
