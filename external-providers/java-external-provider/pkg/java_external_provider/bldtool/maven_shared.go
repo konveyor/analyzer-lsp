@@ -120,7 +120,7 @@ func (m *mavenBaseTool) GetDependenciesFallback(ctx context.Context, location st
 	// recursively find deps in submodules
 	if pom.Modules != nil {
 		for _, mod := range *pom.Modules {
-			mPath := fmt.Sprintf("%s/%s/%s", filepath.Dir(location), mod, dependency.PomXmlFile)
+			mPath := filepath.Join(filepath.Dir(location), mod, dependency.PomXmlFile)
 			moreDeps, err := m.GetDependenciesFallback(ctx, mPath)
 			if err != nil {
 				return nil, err
