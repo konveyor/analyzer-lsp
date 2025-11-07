@@ -361,8 +361,10 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ShouldErr:    true,
-			ErrorMessage: "unable to find provider for: builtin",
+			// With the fix, missing providers are gracefully skipped, not errors
+			// The rule will be skipped since provider is unavailable
+			ShouldErr:    false,
+			ErrorMessage: "",
 		},
 		{
 			Name:         "rule no conditions",

@@ -23,6 +23,15 @@ var defaultRuleSet = &engine.RuleSet{
 	Name: "konveyor-analysis",
 }
 
+// MissingProviderError indicates a rule requires a provider that is not available
+type MissingProviderError struct {
+	Provider string
+}
+
+func (e MissingProviderError) Error() string {
+	return fmt.Sprintf("unable to find provider for: %v", e.Provider)
+}
+
 type parserErrors struct {
 	errs []error
 }
@@ -352,6 +361,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					return nil, nil, err
 				}
 				if len(conditions) == 0 {
+					r.Log.V(5).Info("skipping rule due to missing providers in or clause", "ruleID", ruleID, "expected", len(m), "actual", len(conditions))
 					noConditions = true
 				}
 
@@ -380,7 +390,11 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					r.Log.V(8).Error(err, "failed parsing conditions in and clause", "ruleID", ruleID, "file", filepath)
 					return nil, nil, err
 				}
-				if len(conditions) == 0 {
+				// Skip rule if some or all conditions were filtered due to missing providers
+				if len(conditions) != len(m) {
+					if len(conditions) > 0 {
+						r.Log.V(5).Info("skipping rule due to partial condition filtering in and clause", "ruleID", ruleID, "expected", len(m), "actual", len(conditions))
+					}
 					noConditions = true
 				}
 				rule.When = engine.AndCondition{Conditions: conditions}
@@ -410,6 +424,12 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 
 				condition, provider, err := r.getConditionForProvider(providerKey, capability, value)
 				if err != nil {
+					// If provider is missing, log at debug level and skip this rule
+					if _, ok := err.(MissingProviderError); ok {
+						r.Log.V(5).Info("skipping rule for unavailable provider", "provider", providerKey, "capability", capability, "ruleID", ruleID)
+						continue
+					}
+					// For other errors, log and return as before
 					r.Log.V(8).Error(err, "failed parsing conditions for provider",
 						"provider", providerKey, "capability", capability, "ruleID", ruleID, "file", filepath)
 					return nil, nil, err
@@ -638,10 +658,8 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				// There was no error so the conditions have all been filtered
-				// Return early to prevent constructing an empty rule
-				if len(conds) == 0 && len(conds) != len(iConditions) {
-					return []engine.ConditionEntry{}, nil, nil
+				if len(conds) != len(iConditions) {
+					continue
 				}
 				ce = engine.ConditionEntry{
 					From:      from,
@@ -664,10 +682,8 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				// There was no error so the conditions have all been filtered
-				// Return early to prevent constructing an empty rule
-				if len(conds) == 0 && len(conds) != len(iConditions) {
-					return []engine.ConditionEntry{}, nil, nil
+				if len(conds) == 0 {
+					continue
 				}
 				ce = engine.ConditionEntry{
 					From:      from,
@@ -694,6 +710,12 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 
 				condition, provider, err := r.getConditionForProvider(providerKey, capability, v)
 				if err != nil {
+					// If provider is missing, log at debug level and skip this condition
+					if _, ok := err.(MissingProviderError); ok {
+						r.Log.V(5).Info("skipping condition for unavailable provider", "provider", providerKey, "capability", capability)
+						continue
+					}
+					// For other errors, return as before
 					return nil, nil, err
 				}
 				if condition == nil {
@@ -744,7 +766,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 	// Here there can only be a single provider.
 	client, ok := r.ProviderNameToClient[langProvider]
 	if !ok {
-		return nil, nil, fmt.Errorf("unable to find provider for: %v", langProvider)
+		return nil, nil, MissingProviderError{Provider: langProvider}
 	}
 
 	if !provider.HasCapability(client.Capabilities(), capability) {
