@@ -1,7 +1,6 @@
 DOCKER_IMAGE = test
 TAG_JAVA_BUNDLE ?= latest
 IMG_JAVA_PROVIDER ?= java-provider
-IMG_DOTNET_PROVIDER ?= dotnet-provider
 IMG_GENERIC_PROVIDER ?= generic-provider
 IMG_GO_DEP_PROVIDER ?= golang-dep-provider
 IMG_YQ_PROVIDER ?= yq-provider
@@ -18,8 +17,7 @@ endif
 build-dir:
 	mkdir -p build
 
-build: build-dir analyzer deps golang-dependency-provider external-generic yq-external-provider java-external-provider dotnet-external-provider
-
+build: build-dir analyzer deps golang-dependency-provider external-generic yq-external-provider java-external-provider
 analyzer: build-dir
 	go build -o build/konveyor-analyzer ./cmd/analyzer/main.go
 	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer build/konveyor-analyzer.exe; fi
@@ -40,21 +38,17 @@ java-external-provider: build-dir
 	(cd external-providers/java-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/java-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/java-external-provider build/java-external-provider.exe; fi
 
-dotnet-external-provider: build-dir
-	(cd external-providers/dotnet-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/dotnet-external-provider main.go)
-	if [ "${GOOS}" == "windows" ]; then mv build/dotnet-external-provider build/dotnet-external-provider.exe; fi
-
 deps: build-dir
 	go build -o build/konveyor-analyzer-dep ./cmd/dep/main.go
 	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer-dep build/konveyor-analyzer-dep.exe; fi
 
+uber-image-build:
+	docker build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f uber.Dockerfile . -t $(DOCKER_IMAGE)
+
 image-build:
-	docker build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f Dockerfile . -t $(DOCKER_IMAGE)
+	docker build  -f Dockerfile . -t $(DOCKER_IMAGE)
 
-build-external: build-dotnet-provider build-golang-dep-provider build-generic-provider build-java-provider build-yq-provider
-
-build-dotnet-provider:
-	podman build -f external-providers/dotnet-external-provider/Dockerfile -t $(IMG_DOTNET_PROVIDER) .
+build-external: build-golang-dep-provider build-generic-provider build-java-provider build-yq-provider
 
 build-generic-provider:
 	sed -i 's,quay.io/konveyor/golang-dependency-provider,golang-dep-provider,g' external-providers/generic-external-provider/Dockerfile
@@ -101,10 +95,10 @@ run-external-providers-pod:
 	podman run --entrypoint /usr/local/bin/entrypoint.sh --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14653
 	podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14654 --name nodejs
 	podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
-	podman build -f demo-local.Dockerfile -t localhost/testing:latest
+	podman build -f testing/provider-pod-testing/demo-local.Dockerfile -t localhost/testing:latest .
 
 run-demo-image:
-	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source'
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/testing/provider-pod-testing/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/testing/provider-pod-testing/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source'
 
 stop-external-providers-pod: stop-external-providers
 	podman pod kill analyzer

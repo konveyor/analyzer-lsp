@@ -94,8 +94,8 @@ jobs:
             IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
             IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
             run-external-providers-pod
-          podman build -f demo-local.Dockerfile -t localhost/testing:latest
           make run-demo-image
+          
       
       - name: install yq for testing
         run: go install github.com/mikefarah/yq/v4@latest
