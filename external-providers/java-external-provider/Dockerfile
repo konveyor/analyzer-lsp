@@ -22,6 +22,9 @@ RUN go build -a -o java-external-provider main.go
 FROM base
 
 COPY --from=builder /java-provider/java-external-provider /usr/local/bin/java-external-provider
+RUN mkdir -p /root/.gradle
+COPY external-providers/java-external-provider/gradle/build.gradle /usr/local/etc/task.gradle
+COPY external-providers/java-external-provider/gradle/build-v9.gradle /usr/local/etc/task-v9.gradle
 
 ENV HOME /addon
 EXPOSE 14651

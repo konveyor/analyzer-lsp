@@ -186,7 +186,7 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 			ctx = prop.Extract(ctx, m.carrier)
 
 			bo, err := processRule(ctx, m.rule, m.conditionContext, newLogger)
-			logger.V(5).Info("finished rule", "found", len(bo.Incidents), "error", err, "rule", m.rule.RuleID)
+			logger.V(5).Info("finished rule", "found", len(bo.Incidents), "matched", bo.Matched, "error", err, "rule", m.rule.RuleID)
 			m.returnChan <- response{
 				ConditionResponse: bo,
 				Err:               err,
@@ -286,22 +286,24 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 			select {
 			case response := <-ret:
 				func() {
-					r.logger.Info("rule returned", "ruleID", response.Rule.RuleID)
+					log := r.logger.WithValues("ruleID", response.Rule.RuleID)
+					log.Info("rule returned", "ruleID", response.Rule.RuleID)
 					defer wg.Done()
 					if response.Err != nil {
 						atomic.AddInt32(&failedRules, 1)
-						r.logger.Error(response.Err, "failed to evaluate rule", "ruleID", response.Rule.RuleID)
+						log.Error(response.Err, "failed to evaluate rule")
 
 						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()
 						}
 					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
+						log.Info("rule matched and has incidents, creating violation")
 						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule, scopes)
 						if err != nil {
-							r.logger.Error(err, "unable to create violation from response", "ruleID", response.Rule.RuleID)
+							log.Error(err, "unable to create violation from response")
 						}
 						if len(violation.Incidents) == 0 {
-							r.logger.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched", "ruleID", response.Rule.RuleID)
+							log.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched")
 							atomic.AddInt32(&unmatchedRules, 1)
 							if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 								rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
@@ -310,7 +312,7 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 							atomic.AddInt32(&matchedRules, 1)
 							rs, ok := mapRuleSets[response.RuleSetName]
 							if !ok {
-								r.logger.Info("this should never happen that we don't find the ruleset")
+								log.Info("this should never happen that we don't find the ruleset")
 								return
 							}
 							// when a rule has 0 effort, we should create an insight instead
@@ -645,8 +647,10 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 		limitSnip := (r.codeSnipLimit != 0 && fileCodeSnipCount[string(m.FileURI)] == r.codeSnipLimit)
 		if !limitSnip {
 			codeSnip, err := r.getCodeLocation(ctx, m, rule)
-			if err != nil || codeSnip == "" {
+			if err != nil {
 				r.logger.V(6).Error(err, "unable to get code location")
+			} else if codeSnip == "" {
+				r.logger.V(3).Info("no code snippet returned", "rule", rule)
 			} else {
 				incident.CodeSnip = codeSnip
 			}
@@ -713,10 +717,10 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 			v := internal.VariableLabelSelector(incident.Variables)
 			b, err := incidentSelector.Matches(v)
 			if err != nil {
-				r.logger.Error(err, "unable to determine if incident should filter out, defautl to adding")
+				r.logger.Error(err, "unable to determine if incident should filter out, defautl to adding", "ruleID", rule.RuleID)
 			}
 			if !b {
-				r.logger.V(8).Info("filtering out incident based on incident selector")
+				r.logger.Info("filtering out incident based on incident selector", "ruleID", rule.RuleID)
 				continue
 			}
 		}

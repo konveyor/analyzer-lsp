@@ -1,8 +1,6 @@
 package java
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,16 +9,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/hashicorp/go-version"
-	"github.com/konveyor/analyzer-lsp/engine/labels"
+	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/bldtool"
+	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
 	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -36,27 +32,16 @@ type javaServiceClient struct {
 	cmd                *exec.Cmd
 	bundles            []string
 	workspace          string
-	depToLabels        map[string]*depLabelItem
 	isLocationBinary   bool
-	mvnInsecure        bool
-	mvnSettingsFile    string
-	mvnLocalRepo       string
-	mvnIndexPath       string
 	globalSettings     string
-	depsMutex          sync.RWMutex
-	depsFileHash       *string
-	depsCache          map[uri.URI][]*provider.Dep
-	depsLocationCache  map[string]int
-	depsErrCache       map[string]error
 	includedPaths      []string
 	cleanExplodedBins  []string
 	disableMavenSearch bool
 	activeRPCCalls     sync.WaitGroup
-}
-
-type depLabelItem struct {
-	r      *regexp.Regexp
-	labels map[string]interface{}
+	depsLocationCache  map[string]int
+	buildTool          bldtool.BuildTool
+	mvnIndexPath       string
+	mvnSettingsFile    string
 }
 
 var _ provider.ServiceClient = &javaServiceClient{}
@@ -127,32 +112,26 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
-	argumentsMap := map[string]interface{}{
+	argumentsMap := map[string]any{
 		"query":                      c.Referenced.Pattern,
 		"project":                    "java",
 		"location":                   fmt.Sprintf("%v", locationToCode[strings.ToLower(c.Referenced.Location)]),
 		"analysisMode":               string(p.config.AnalysisMode),
 		"includeOpenSourceLibraries": true,
-		"mavenLocalRepo":             p.mvnLocalRepo,
+		"mavenLocalRepo":             p.buildTool.GetLocalRepoPath(),
 	}
 
 	if p.mvnIndexPath != "" {
 		argumentsMap["mavenIndexPath"] = p.mvnIndexPath
 	}
 
-	depLabelSelector, err := labels.NewLabelSelector[*openSourceLabels](condCTX.DepLabelSelector, nil)
-	if err != nil || depLabelSelector == nil {
-		p.log.Error(err, "could not construct dep label selector from condition context, search scope will not be limited")
-	} else {
-		matcher := openSourceLabels(true)
-		m, err := depLabelSelector.Matches(&matcher)
-		if err != nil {
-			p.log.Error(err, "could not construct dep label selector from condition context, search scope will not be limited")
-		} else if !m {
-			// only set to false, when explicitely set to exclude oss libraries
-			// this makes it backward compatible
-			argumentsMap["includeOpenSourceLibraries"] = false
-		}
+	canRestrict, err := labels.CanRestrictSelector(condCTX.DepLabelSelector)
+	if err != nil {
+		p.log.Error(err, "could not construct dep label selector from condition context, search scope will not be limited", "label selector", condCTX.DepLabelSelector)
+	} else if !canRestrict {
+		// only set to false, when explicitely set to exclude oss libraries
+		// this makes it backward compatible
+		argumentsMap["includeOpenSourceLibraries"] = false
 	}
 
 	if !reflect.DeepEqual(c.Referenced.Annotated, annotated{}) {
@@ -187,7 +166,8 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	p.activeRPCCalls.Add(1)
 	defer p.activeRPCCalls.Done()
 
-	timeOutCtx, _ := context.WithTimeout(ctx, timeout)
+	timeOutCtx, cancelFunc := context.WithTimeout(ctx, timeout)
+	defer cancelFunc()
 	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp).Await(timeOutCtx, &refs)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
@@ -364,31 +344,31 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	params := &protocol.InitializeParams{}
 	params.RootURI = string(uri.File(absLocation))
 	params.Capabilities = protocol.ClientCapabilities{}
-	params.ExtendedClientCapilities = map[string]interface{}{
+	params.ExtendedClientCapilities = map[string]any{
 		"classFileContentsSupport": true,
 	}
 	// See https://github.com/eclipse-jdtls/eclipse.jdt.ls/blob/1a3dd9323756113bf39cfab82746d57a2fd19474/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/preferences/Preferences.java
 	java8home := os.Getenv("JAVA8_HOME")
-	params.InitializationOptions = map[string]interface{}{
+	params.InitializationOptions = map[string]any{
 		"bundles":          absBundles,
 		"workspaceFolders": []string{string(uri.File(absLocation))},
-		"settings": map[string]interface{}{
-			"java": map[string]interface{}{
-				"configuration": map[string]interface{}{
-					"maven": map[string]interface{}{
+		"settings": map[string]any{
+			"java": map[string]any{
+				"configuration": map[string]any{
+					"maven": map[string]any{
 						"userSettings":   p.mvnSettingsFile,
 						"globalSettings": p.globalSettings,
 					},
 				},
-				"autobuild": map[string]interface{}{
+				"autobuild": map[string]any{
 					"enabled": false,
 				},
-				"maven": map[string]interface{}{
+				"maven": map[string]any{
 					"downloadSources": downloadSources,
 				},
-				"import": map[string]interface{}{
-					"gradle": map[string]interface{}{
-						"java": map[string]interface{}{
+				"import": map[string]any{
+					"gradle": map[string]any{
+						"java": map[string]any{
 							"home": java8home,
 						},
 					},
@@ -399,7 +379,8 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 
 	// when neither pom or gradle build is present, the language server cannot initialize project
 	// we have to trick it into initializing it by creating a .classpath and .project file if one doesn't exist
-	if p.GetBuildTool() == "" {
+	//TODO: This needs to happen only when
+	if p.buildTool == nil {
 		err = createProjectAndClasspathFiles(p.config.Location, filepath.Base(p.config.Location))
 		if err != nil {
 			p.log.Error(err, "unable to create .classpath and .project files, analysis may be degraded")
@@ -424,24 +405,6 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	}
 	p.log.V(2).Info("java connection initialized")
 
-}
-
-func (p *javaServiceClient) SetDepLabels(depLabels map[string]*depLabelItem) {
-	if p.depToLabels == nil {
-		p.depToLabels = depLabels
-	} else {
-		for k, v := range depLabels {
-			p.depToLabels[k] = v
-		}
-	}
-}
-
-type openSourceLabels bool
-
-func (o openSourceLabels) GetLabels() []string {
-	return []string{
-		labels.AsString(provider.DepSourceLabel, javaDepSourceOpenSource),
-	}
 }
 
 func createProjectAndClasspathFiles(basePath string, projectName string) error {
@@ -476,76 +439,4 @@ func createProjectAndClasspathFiles(basePath string, projectName string) error {
 		}
 	}
 	return nil
-}
-
-func (s *javaServiceClient) GetGradleWrapper() (string, error) {
-	wrapper := "gradlew"
-	if runtime.GOOS == "windows" {
-		wrapper = "gradlew.bat"
-	}
-	exe, err := filepath.Abs(filepath.Join(s.config.Location, wrapper))
-	if err != nil {
-		return "", fmt.Errorf("error calculating gradle wrapper path")
-	}
-	if _, err = os.Stat(exe); errors.Is(err, os.ErrNotExist) {
-		return "", fmt.Errorf("a gradle wrapper is not present in the project")
-	}
-	return exe, err
-}
-
-func (s *javaServiceClient) GetGradleVersion(ctx context.Context) (version.Version, error) {
-	exe, err := s.GetGradleWrapper()
-	if err != nil {
-		return version.Version{}, err
-	}
-
-	// getting the Gradle version is the first step for guessing compatibility
-	// up to 8.14 is compatible with Java 8, so let's first try to run with that
-	args := []string{
-		"--version",
-	}
-	cmd := exec.CommandContext(ctx, exe, args...)
-	cmd.Dir = s.config.Location
-	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA8_HOME")))
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		// if executing with 8 we get an error, try with 17
-		cmd = exec.CommandContext(ctx, exe, args...)
-		cmd.Dir = s.config.Location
-		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA_HOME")))
-		output, err = cmd.CombinedOutput()
-		if err != nil {
-			return version.Version{}, fmt.Errorf("error trying to get Gradle version: %w - Gradle output: %s", err, string(output))
-		}
-	}
-
-	vRegex := regexp.MustCompile(`Gradle (\d+(\.\d+)*)`)
-	scanner := bufio.NewScanner(bytes.NewReader(output))
-	for scanner.Scan() {
-		line := scanner.Text()
-		if match := vRegex.FindStringSubmatch(line); len(match) != 0 {
-			v, err := version.NewVersion(match[1])
-			if err != nil {
-				return version.Version{}, err
-			}
-			return *v, err
-		}
-	}
-	return version.Version{}, nil
-}
-
-func (s *javaServiceClient) GetJavaHomeForGradle(ctx context.Context) (string, error) {
-	v, err := s.GetGradleVersion(ctx)
-	if err != nil {
-		return "", err
-	}
-	lastVersionForJava8, _ := version.NewVersion("8.14")
-	if v.LessThanOrEqual(lastVersionForJava8) {
-		java8home := os.Getenv("JAVA8_HOME")
-		if java8home == "" {
-			return "", fmt.Errorf("couldn't get JAVA8_HOME environment variable")
-		}
-		return java8home, nil
-	}
-	return os.Getenv("JAVA_HOME"), nil
 }

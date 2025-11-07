@@ -1,6 +1,7 @@
 package io.konveyor;
 
 import java.io.File;
+import io.konveyor.util.FileReader;
 
 public class App 
 {
@@ -11,6 +12,8 @@ public class App
      */
     public static void main( String[] args )
     {
-        File file = new File("/test");
+        if (FileReader.fileExists()) {
+            File file = new File("/test");
+        }
     }
 }
