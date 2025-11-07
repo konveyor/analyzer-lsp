@@ -60,9 +60,10 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 		}
 
 		// This will tell fernflower to decompile the jar
-		// into a new jar at the m2Repo for the dependency
-		destinationPath := j.getM2Path(dep)
-		log.Info("decompiling jar to source", "souce-dst", sourceDestPath, "destPath", destinationPath)
+		// into a new jar at the m2Repo/decompile for the dependency
+		// fernflower keeps the same name, so you have to change it here.
+		destinationPath := filepath.Join(j.getM2Path(dep), "decompile")
+		log.Info("decompiling jar to source", "destPath", destinationPath)
 		if err = os.MkdirAll(destinationPath, DirPermRWXGrp); err != nil {
 			log.Info("getting sources - can not create dir", "souce-dst", sourceDestPath, "destPath", destinationPath)
 			return err
@@ -75,6 +76,11 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 			return err
 		}
 		log.Info("decompiled sources jar", "artifact", j.artifactPath, "sources", sourceDestPath)
+		if err := moveFile(destinationPath, sourceDestPath); err != nil {
+			log.Error(err, fmt.Sprintf("failed to copy jar to %s", sourceDestPath))
+			return err
+		}
+		log.Info("copied decompiled sources jar", "source-jar", sourceDestPath)
 	}
 	// This will determine if the artifact is already in the m2repo or not. if it is then we don't need to try and copy it.
 	if _, err := filepath.Rel(j.m2Repo, j.artifactPath); err != nil {
