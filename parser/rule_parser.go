@@ -357,16 +357,11 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				}
 				conditions, provs, err := r.getConditions(m)
 				if err != nil {
-					// If provider is missing, treat as no conditions and skip the rule
-					if _, ok := err.(MissingProviderError); ok {
-						noConditions = true
-						break
-					}
-					// For other errors, log and return as before
 					r.Log.V(8).Error(err, "failed parsing conditions in or clause", "ruleID", ruleID, "file", filepath)
 					return nil, nil, err
 				}
 				if len(conditions) == 0 {
+					r.Log.V(5).Info("skipping rule due to missing providers in or clause", "ruleID", ruleID, "expected", len(m), "actual", len(conditions))
 					noConditions = true
 				}
 
@@ -392,16 +387,14 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				}
 				conditions, provs, err := r.getConditions(m)
 				if err != nil {
-					// If provider is missing, treat as no conditions and skip the rule
-					if _, ok := err.(MissingProviderError); ok {
-						noConditions = true
-						break
-					}
-					// For other errors, log and return as before
 					r.Log.V(8).Error(err, "failed parsing conditions in and clause", "ruleID", ruleID, "file", filepath)
 					return nil, nil, err
 				}
-				if len(conditions) == 0 {
+				// Skip rule if some or all conditions were filtered due to missing providers
+				if len(conditions) != len(m) {
+					if len(conditions) > 0 {
+						r.Log.V(5).Info("skipping rule due to partial condition filtering in and clause", "ruleID", ruleID, "expected", len(m), "actual", len(conditions))
+					}
 					noConditions = true
 				}
 				rule.When = engine.AndCondition{Conditions: conditions}
@@ -665,10 +658,8 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				// There was no error so the conditions have all been filtered
-				// Return early to prevent constructing an empty rule
-				if len(conds) == 0 && len(conds) != len(iConditions) {
-					return []engine.ConditionEntry{}, nil, nil
+				if len(conds) != len(iConditions) {
+					continue
 				}
 				ce = engine.ConditionEntry{
 					From:      from,
@@ -691,10 +682,8 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				if err != nil {
 					return nil, nil, err
 				}
-				// There was no error so the conditions have all been filtered
-				// Return early to prevent constructing an empty rule
-				if len(conds) == 0 && len(conds) != len(iConditions) {
-					return []engine.ConditionEntry{}, nil, nil
+				if len(conds) == 0 {
+					continue
 				}
 				ce = engine.ConditionEntry{
 					From:      from,
