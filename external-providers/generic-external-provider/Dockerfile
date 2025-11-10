@@ -14,7 +14,7 @@ RUN --mount=type=cache,id=gomod,uid=1001,target=go/pkg/mod cd generic-provider &
 
 RUN --mount=type=cache,id=gomod,uid=1001,target=go/pkg/mod cd generic-provider && go build -o generic-external-provider main.go 
 
-FROM golang-dep-provider as go-dep-provider
+FROM quay.io/konveyor/golang-dependency-provider as go-dep-provider
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
