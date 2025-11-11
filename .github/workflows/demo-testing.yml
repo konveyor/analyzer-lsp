@@ -9,10 +9,10 @@ on:
     - "v*"
 
 jobs:
-  build-java-analyzer:
+  build-base-images:
     runs-on: ubuntu-latest
     outputs:
-      jdtls_server_base_image_fqin: ${{ steps.build-image.outputs.image_fqin }}
+      jdtls_server_base_image_fqin: ${{ steps.build-image.outputs.full_image_name }}
     steps:
       - name: Build java bundle image
         id: bundle-base-image
@@ -21,7 +21,27 @@ jobs:
           repo: "konveyor/java-analyzer-bundle"
           image_name: "quay.io/konveyor/jdtls-server-base"
           image_tag: "analyzer-${{ github.sha}}"
-
+  build-analyzer-images:
+    runs-on: ubuntu-latest
+    needs: build-base-images
+    strategy:
+      matrix:
+        image:
+          - {docker_file: "external-providers/java-external-provider/Dockerfile", image_name: "quay.io/konveyor/java-external-provider", base_image: "${{ needs.build-base-images.outputs.jdtls_server_base_image_fqin }}" }
+          - {docker_file: "external-providers/golang-dependency-provider/Dockerfile", image_name: "quay.io/konveyor/golang-external-provider", base_image: "" }
+          - {docker_file: "external-providers/yq-external-provider/Dockerfile", image_name: "quay.io/konveyor/yq-external-provider", base_image: "" }
+          - {docker_file: "Dockerfile", image_name: "quay.io/konveyor/analyzer-lsp", base_image: "" }
+    steps:
+      - name: Build IMG
+        id: build_image
+        uses: shawn-hurley/ci/build-image@3df2b9316270b5e9c93951b0efb69ba8b88bbfad
+        with:
+          repo: ${{ github.repository }}
+          image: ${{ matrix.image.image_name }}
+          image_tag: "analyzer-${{ github.sha }}"
+          dockerfile_path: ${{ matrix.image.docker_file }}
+          base_image: ${{ matrix.image.base_image }}
+ 
 
 #  test:
 #    runs-on: ubuntu-latest
