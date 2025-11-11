@@ -122,7 +122,6 @@ jobs:
           IMG=ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h make image-podman
           podman push ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h
           podman push ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
-          podman push ${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}
           podman push ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
       
       - name: Make bundle image
