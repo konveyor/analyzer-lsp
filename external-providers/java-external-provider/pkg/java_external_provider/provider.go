@@ -267,10 +267,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		mavenInsecure = false
 	}
 
-	lspServerPath, ok := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
-	if !ok || lspServerPath == "" {
-		return nil, additionalBuiltinConfig, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
-	}
+	lspServerPath, _ := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	fernflower, ok := config.ProviderSpecificConfig[FERN_FLOWER_INIT_OPTION].(string)
 	if !ok {
 		fernflower = "/bin/fernflower.jar"
@@ -347,6 +344,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			mvnIndexPath:      mavenIndexPath,
 			mvnSettingsFile:   mavenSettingsFile,
 		}, provider.InitConfig{}, nil
+	} else if lspServerPath == "" {
+		return nil, additionalBuiltinConfig, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
 	}
 
 	additionalBuiltinConfig.Location = config.Location
