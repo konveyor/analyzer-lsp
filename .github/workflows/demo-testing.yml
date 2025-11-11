@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Build java bundle image
         id: bundle-base-image
-        uses: shawn-hurley/ci/build-image@27771c7e02208f396c94577f9bf590ed196436ff
+        uses: shawn-hurley/ci/build-image@3df2b9316270b5e9c93951b0efb69ba8b88bbfad
         with:
           repo: "konveyor/java-analyzer-bundle"
           image_name: "quay.io/konveyor/jdtls-server-base"
