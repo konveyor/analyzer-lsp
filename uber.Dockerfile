@@ -52,6 +52,10 @@ COPY --from=builder /analyzer-lsp/build/yq-external-provider /usr/local/bin/yq-e
 COPY --from=builder /analyzer-lsp/build/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 COPY --from=builder /analyzer-lsp/build/java-external-provider /usr/local/bin/java-external-provider
 
+RUN mkdir -p /root/.gradle
+COPY external-providers/java-external-provider/gradle/build.gradle /usr/local/etc/task.gradle
+COPY external-providers/java-external-provider/gradle/build-v9.gradle /usr/local/etc/task-v9.gradle
+
 COPY testing/all-in-one-testing/provider_container_settings.json /analyzer-lsp/provider_settings.json
 RUN ln -s /root/go/bin/gopls /usr/local/bin/gopls
 
