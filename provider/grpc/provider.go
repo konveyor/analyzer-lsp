@@ -192,6 +192,10 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, provider.InitConfig{}, err
 	}
 
+	if config.PipeName != "" {
+		config.Initialized = true
+	}
+
 	g.log.Info("provider configuration", "config", config)
 	c := pb.Config{
 		Location:               config.Location,

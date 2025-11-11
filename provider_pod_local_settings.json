@@ -14,8 +14,7 @@
                 "dependencyFolders": [],
 
                 "dependencyProviderPath": "/usr/local/bin/golang-dependency-provider"
-            },
-            "pipeName": "/tmp/go-pls-pipe-test"
+            }
         }]
     },
     {

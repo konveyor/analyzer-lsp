@@ -247,7 +247,7 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 			NoProxy:    config.Proxy.NoProxy,
 		},
 		PipeName:    config.LanguageServerPipe,
-		Initialized: config.Initialized,
+		Initialized: config.LanguageServerPipe != "",
 	}
 
 	newCtx := context.Background()
