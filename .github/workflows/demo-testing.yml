@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Build java bundle image
         id: bundle-base-image
-        uses: shawn-hurley/ci/.github/workflows/build_image.yaml@enhance-composable-actions
+        uses: shawn-hurley/ci/.github/actions/build_image.yaml@enhance-composable-actions
         with:
           repo: "konveyor/java-analyzer-bundle"
           image_name: "quay.io/konveyor/jdtls-server-base"
