@@ -1,12 +1,13 @@
-FROM quay.io/konveyor/analyzer-lsp
+ARG UBER_IMAGE=localhost/uber-analyzer
+FROM ${UBER_IMAGE}
 
 WORKDIR /analyzer-lsp
 
-COPY rule-example.yaml /analyzer-lsp/rule-example.yaml
+COPY testing/rule-example.yaml /analyzer-lsp/rule-example.yaml
 COPY examples /analyzer-lsp/examples
 COPY external-providers/java-external-provider/examples /analyzer-lsp/examples
 
-COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
+COPY testing/all-in-one/provider_container_settings.json /analyzer-lsp/provider_settings.json
 
 RUN python3 -m venv /analyzer-lsp/examples/python/.venv
 RUN yes | python3 -m pip install -r /analyzer-lsp/examples/python/requirements.txt

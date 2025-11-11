@@ -113,3 +113,10 @@ extract-maven-index-files:
 
 run-index-benchmark:
 	cd $(PWD)/external-providers/java-external-provider/pkg/java_external_provider/dependency/ &&  go test -bench=. -benchmem -benchtime=5s
+
+build-uber-image-demo:
+	podman build -f uber.Dockerfile -t localhost/uber-analyzer .
+	podman build -f testing/all-in-one-testing/demo.Dockerfile -t localhost/demo-uber-image .
+
+run-uber-image-demo:
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/testing/provider-pod-testing/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/testing/provider-pod-testing/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/demo-uber-image:latest --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source'

@@ -52,7 +52,7 @@ COPY --from=builder /analyzer-lsp/build/yq-external-provider /usr/local/bin/yq-e
 COPY --from=builder /analyzer-lsp/build/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 COPY --from=builder /analyzer-lsp/build/java-external-provider /usr/local/bin/java-external-provider
 
-COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
+COPY testing/all-in-one-testing/provider_container_settings.json /analyzer-lsp/provider_settings.json
 RUN ln -s /root/go/bin/gopls /usr/local/bin/gopls
 
 WORKDIR /analyzer-lsp
