@@ -1,0 +1,5150 @@
+- fileURI: file:///analyzer-lsp/examples/golang/go.mod
+  provider: go
+  dependencies:
+  - name: github.com/armon/go-socks5
+    version: v0.0.0-20160902184237-e75332964ef5
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/davecgh/go-spew
+    version: v1.1.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/elazarl/goproxy
+    version: v0.0.0-20180725130230-947c36da3153
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/emicklei/go-restful
+    version: v2.9.5+incompatible
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/evanphx/json-patch
+    version: v4.12.0+incompatible
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/go-logr/logr
+    version: v1.2.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/gogo/protobuf
+    version: v1.3.2
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/golang/protobuf
+    version: v1.5.2
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/google/cel-go
+    version: v0.10.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/google/gnostic
+    version: v0.5.7-v3refs
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/google/go-cmp
+    version: v0.5.5
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/google/gofuzz
+    version: v1.0.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/google/gofuzz
+    version: v1.1.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/google/uuid
+    version: v1.1.2
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/json-iterator/go
+    version: v1.1.12
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/json-iterator/go
+    version: v1.1.6
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/kisielk/errcheck
+    version: v1.5.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/kisielk/gotool
+    version: v1.0.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/kr/text
+    version: v0.2.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/mitchellh/mapstructure
+    version: v1.4.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/moby/spdystream
+    version: v0.2.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/modern-go/concurrent
+    version: v0.0.0-20180228061459-e0a39a4cb421
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/modern-go/concurrent
+    version: v0.0.0-20180306012644-bacd9c7ef1dd
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/modern-go/reflect2
+    version: v1.0.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/modern-go/reflect2
+    version: v1.0.2
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/mxk/go-flowrate
+    version: v0.0.0-20140419014527-cca7078d478f
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/niemeyer/pretty
+    version: v0.0.0-20200227124842-a10e7caefd8e
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/onsi/ginkgo
+    version: v1.14.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/pkg/errors
+    version: v0.9.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/spf13/afero
+    version: v1.2.2
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/spf13/cobra
+    version: v1.4.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/spf13/pflag
+    version: v1.0.5
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/stretchr/testify
+    version: v1.3.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: github.com/stretchr/testify
+    version: v1.7.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: go
+    version: "1.18"
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: go.etcd.io/etcd/client/pkg/v3
+    version: v3.5.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: go.etcd.io/etcd/client/v3
+    version: v3.5.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: golang.org/x/net
+    version: v0.0.0-20220127200216-cd36cc0744dd
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: golang.org/x/sys
+    version: v0.0.0-20211216021012-1d35b9e2eb4e
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: golang.org/x/sys
+    version: v0.0.0-20220209214540-3681064d5158
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: golang.org/x/term
+    version: v0.0.0-20210927222741-03fcf44c2211
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: golang.org/x/text
+    version: v0.3.7
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: golang.org/x/tools
+    version: v0.0.0-20180917221912-90fa682c2a6e
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: golang.org/x/tools
+    version: v0.0.0-20210106214847-113979e3529a
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: google.golang.org/genproto
+    version: v0.0.0-20220107163113-42d7afdf6368
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: google.golang.org/grpc
+    version: v1.40.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: google.golang.org/protobuf
+    version: v1.27.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: gopkg.in/check.v1
+    version: v0.0.0-20161208181325-20d25e280405
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: gopkg.in/check.v1
+    version: v1.0.0-20200227125254-8fa46927fb4f
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: gopkg.in/inf.v0
+    version: v0.9.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: gopkg.in/yaml.v2
+    version: v2.2.8
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: gopkg.in/yaml.v2
+    version: v2.4.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/api
+    version: v0.24.4
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/apiextensions-apiserver
+    version: v0.24.4
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/apimachinery
+    version: v0.24.4
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/apiserver
+    version: v0.24.4
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/client-go
+    version: v0.24.4
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/code-generator
+    version: v0.24.4
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/component-base
+    version: v0.24.4
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/klog/v2
+    version: v2.0.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/klog/v2
+    version: v2.60.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/kube-openapi
+    version: v0.0.0-20220328201542-3ee0da9b0b42
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: k8s.io/utils
+    version: v0.0.0-20220210201930-3a6ce19ff2f9
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: sigs.k8s.io/json
+    version: v0.0.0-20211208200746-9f7c6b3444d2
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: sigs.k8s.io/structured-merge-diff/v4
+    version: v4.2.1
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+  - name: sigs.k8s.io/yaml
+    version: v1.2.0
+    labels:
+    - konveyor.io/dep-source=downloadable
+    - konveyor.io/language=go
+- fileURI: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+  provider: java
+  dependencies:
+  - name: antlr.antlr
+    version: 2.7.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 52f15b99911ab8b8bc8744675f5cf1994a626fb8
+    extras:
+      artifactId: antlr
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: antlr
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/antlr/antlr/2.7.7
+  - name: ch.qos.logback.logback-classic
+    version: 1.1.7
+    type: compile
+    resolvedIdentifier: 044c01db0f7d7aac366fb952a89c10251ed86f44
+    extras:
+      artifactId: logback-classic
+      groupId: ch.qos.logback
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/ch/qos/logback/logback-classic/1.1.7
+  - name: ch.qos.logback.logback-core
+    version: 1.1.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 6d1bdb1e28c56a8f989366b339f0f62545696e6d
+    extras:
+      artifactId: logback-core
+      baseDep:
+        extras:
+          artifactId: logback-classic
+          groupId: ch.qos.logback
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: ch.qos.logback.logback-classic
+        version: 1.1.7
+      groupId: ch.qos.logback
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/ch/qos/logback/logback-core/1.1.7
+  - name: com.fasterxml.classmate
+    version: 1.5.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: d5d564526c142037daead331ee5278c088777858
+    extras:
+      artifactId: classmate
+      baseDep:
+        extras:
+          artifactId: hibernate-validator
+          groupId: org.hibernate.validator
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.validator.hibernate-validator
+        version: 6.2.0.Final
+      groupId: com.fasterxml
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/classmate/1.5.1
+  - name: com.fasterxml.jackson.core.jackson-annotations
+    version: 2.12.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 87859f29ceebfab7a873c3b4f4b89c9a594b2842
+    extras:
+      artifactId: jackson-annotations
+      baseDep:
+        extras:
+          artifactId: jackson-databind
+          groupId: com.fasterxml.jackson.core
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: com.fasterxml.jackson.core.jackson-databind
+        version: 2.12.3
+      groupId: com.fasterxml.jackson.core
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.12.3
+  - name: com.fasterxml.jackson.core.jackson-core
+    version: 2.12.3
+    type: compile
+    resolvedIdentifier: ef6abf067337134089d074f411306a51f11a4d62
+    extras:
+      artifactId: jackson-core
+      groupId: com.fasterxml.jackson.core
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.12.3
+  - name: com.fasterxml.jackson.core.jackson-databind
+    version: 2.12.3
+    type: compile
+    resolvedIdentifier: 2b186d9cc73cfb9272171357d17f0979eac44889
+    extras:
+      artifactId: jackson-databind
+      groupId: com.fasterxml.jackson.core
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.12.3
+  - name: com.fasterxml.jackson.datatype.jackson-datatype-jsr310
+    version: 2.12.3
+    type: runtime
+    indirect: true
+    resolvedIdentifier: db7822a553c167e95bdda25d0d6db44bd3abf847
+    extras:
+      artifactId: jackson-datatype-jsr310
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: com.fasterxml.jackson.datatype
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.12.3
+  - name: com.oracle.database.jdbc.ojdbc8
+    version: 21.1.0.0
+    type: compile
+    resolvedIdentifier: dea0cca54c29d3e44167cd80839692b325ae2daf
+    extras:
+      artifactId: ojdbc8
+      groupId: com.oracle.database.jdbc
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/oracle/database/jdbc/ojdbc8/21.1.0.0
+  - name: com.sun.istack.istack-commons-runtime
+    version: 3.0.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 8eb4c6b0e9b0a1fadf53fce8b3fc8415b00469ef
+    extras:
+      artifactId: istack-commons-runtime
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: com.sun.istack
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/sun/istack/istack-commons-runtime/3.0.7
+  - name: com.sun.xml.fastinfoset.FastInfoset
+    version: 1.2.15
+    type: compile
+    indirect: true
+    resolvedIdentifier: 945cf1f4467c72add88309fb05cdf5e340b569f9
+    extras:
+      artifactId: FastInfoset
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: com.sun.xml.fastinfoset
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/sun/xml/fastinfoset/FastInfoset/1.2.15
+  - name: io.konveyor.demo.config-utils
+    version: 1.0.0
+    type: compile
+    resolvedIdentifier: 4010193B2F96CC7B7056C4CD51C3188FBBBC86E0
+    extras:
+      artifactId: config-utils
+      groupId: io.konveyor.demo
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=internal
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/konveyor/demo/config-utils/1.0.0
+  - name: io.micrometer.micrometer-core
+    version: 1.7.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: fd50ef746ed294d4e064c0cd3a14ca08543d139c
+    extras:
+      artifactId: micrometer-core
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: io.micrometer
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/micrometer/micrometer-core/1.7.0
+  - name: jakarta.annotation.jakarta.annotation-api
+    version: 1.3.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: beb7649988a22ea30a17fcaeba8584323e86df74
+    extras:
+      artifactId: jakarta.annotation-api
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: jakarta.annotation
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/annotation/jakarta.annotation-api/1.3.5
+  - name: jakarta.validation.jakarta.validation-api
+    version: 2.0.2
+    type: compile
+    indirect: true
+    resolvedIdentifier: fc029778f5494ed05e5833f8bdb57e36dbda38aa
+    extras:
+      artifactId: jakarta.validation-api
+      baseDep:
+        extras:
+          artifactId: hibernate-validator
+          groupId: org.hibernate.validator
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.validator.hibernate-validator
+        version: 6.2.0.Final
+      groupId: jakarta.validation
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/validation/jakarta.validation-api/2.0.2
+  - name: javax.activation.javax.activation-api
+    version: 1.2.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1aa9ef58e50ba6868b2e955d61fcd73be5b4cea5
+    extras:
+      artifactId: javax.activation-api
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: javax.activation
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/activation/javax.activation-api/1.2.0
+  - name: javax.persistence.javax.persistence-api
+    version: "2.2"
+    type: compile
+    indirect: true
+    resolvedIdentifier: ac7080de51fc0596317c15e12ed441f7c0a84d09
+    extras:
+      artifactId: javax.persistence-api
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: javax.persistence
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/persistence/javax.persistence-api/2.2
+  - name: javax.xml.bind.jaxb-api
+    version: 2.3.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: c42c51ae84892b73ef7de5351188908e673f5c69
+    extras:
+      artifactId: jaxb-api
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: javax.xml.bind
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/xml/bind/jaxb-api/2.3.1
+  - name: net.bytebuddy.byte-buddy
+    version: 1.10.22
+    type: compile
+    indirect: true
+    resolvedIdentifier: 14de25cfee49cd27ae19153674bbb34c04c45d52
+    extras:
+      artifactId: byte-buddy
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: net.bytebuddy
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/net/bytebuddy/byte-buddy/1.10.22
+  - name: org.apache.logging.log4j.log4j-api
+    version: 2.14.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9199a73770616b1ca0b00f576db3231aaab4876a
+    extras:
+      artifactId: log4j-api
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.apache.logging.log4j
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-api/2.14.1
+  - name: org.apache.logging.log4j.log4j-to-slf4j
+    version: 2.14.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: 4638502177d694ad6f429a122e32f84ceba7db41
+    extras:
+      artifactId: log4j-to-slf4j
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.apache.logging.log4j
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.14.1
+  - name: org.apache.tomcat.tomcat-jdbc
+    version: 9.0.46
+    type: runtime
+    resolvedIdentifier: c3b975aba8359ecf35f6fca175c2e843a1d3c107
+    extras:
+      artifactId: tomcat-jdbc
+      groupId: org.apache.tomcat
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/tomcat/tomcat-jdbc/9.0.46
+  - name: org.apache.tomcat.tomcat-juli
+    version: 9.0.46
+    type: runtime
+    indirect: true
+    resolvedIdentifier: 1596051131c8426ebf744e0effed0e0005c87d57
+    extras:
+      artifactId: tomcat-juli
+      baseDep:
+        extras:
+          artifactId: tomcat-jdbc
+          groupId: org.apache.tomcat
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.apache.tomcat.tomcat-jdbc
+        version: 9.0.46
+      groupId: org.apache.tomcat
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/tomcat/tomcat-juli/9.0.46
+  - name: org.apache.tomcat.tomcat-servlet-api
+    version: 9.0.46
+    type: provided
+    resolvedIdentifier: 1f5ec6292bbca9e6c35172044b5fee0b0a97ef24
+    extras:
+      artifactId: tomcat-servlet-api
+      groupId: org.apache.tomcat
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/tomcat/tomcat-servlet-api/9.0.46
+  - name: org.aspectj.aspectjrt
+    version: 1.9.6
+    type: compile
+    indirect: true
+    resolvedIdentifier: 2c4216b8c0f62edf69ec5cdd68619ba2aac5a4a1
+    extras:
+      artifactId: aspectjrt
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.aspectj
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/aspectj/aspectjrt/1.9.6
+  - name: org.checkerframework.checker-qual
+    version: 3.5.0
+    type: runtime
+    indirect: true
+    resolvedIdentifier: 408a4451ff5bdef60400a49657867db100ea0f83
+    extras:
+      artifactId: checker-qual
+      baseDep:
+        extras:
+          artifactId: postgresql
+          groupId: org.postgresql
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.postgresql.postgresql
+        version: 42.2.23
+      groupId: org.checkerframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/checkerframework/checker-qual/3.5.0
+  - name: org.dom4j.dom4j
+    version: 2.1.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 012854caa63db09d82bf973bc37d7226aaaef463
+    extras:
+      artifactId: dom4j
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.dom4j
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/dom4j/dom4j/2.1.3
+  - name: org.glassfish.jaxb.jaxb-runtime
+    version: 2.3.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1856da23a80b9b1374d925d6dcb4a21db2144204
+    extras:
+      artifactId: jaxb-runtime
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.glassfish.jaxb
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/glassfish/jaxb/jaxb-runtime/2.3.1
+  - name: org.glassfish.jaxb.txw2
+    version: 2.3.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: c78aa440484eab1a6e2104e4fe69d0945a3cb3da
+    extras:
+      artifactId: txw2
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.glassfish.jaxb
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/glassfish/jaxb/txw2/2.3.1
+  - name: org.hdrhistogram.HdrHistogram
+    version: 2.1.12
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9797702ee3e52e4be6bfbbc9fd20ac5447e7a541
+    extras:
+      artifactId: HdrHistogram
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.hdrhistogram
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/hdrhistogram/HdrHistogram/2.1.12
+  - name: org.hibernate.common.hibernate-commons-annotations
+    version: 5.1.2.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 573f22ce360cd7a8bcc0dae4deecbe4e8861007d
+    extras:
+      artifactId: hibernate-commons-annotations
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.hibernate.common
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/hibernate/common/hibernate-commons-annotations/5.1.2.Final
+  - name: org.hibernate.hibernate-core
+    version: 5.4.32.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 5be381f7b6f3d4f17ce746e4ff54f4b8cdce40e4
+    extras:
+      artifactId: hibernate-core
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.hibernate
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/hibernate/hibernate-core/5.4.32.Final
+  - name: org.hibernate.hibernate-entitymanager
+    version: 5.4.32.Final
+    type: compile
+    resolvedIdentifier: b315696800e16d33bfb297d66f87a792caa3facc
+    extras:
+      artifactId: hibernate-entitymanager
+      groupId: org.hibernate
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
+  - name: org.hibernate.validator.hibernate-validator
+    version: 6.2.0.Final
+    type: compile
+    resolvedIdentifier: 7f1beda5229a0c99a175603c18b3c66da44f966e
+    extras:
+      artifactId: hibernate-validator
+      groupId: org.hibernate.validator
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/hibernate/validator/hibernate-validator/6.2.0.Final
+  - name: org.javassist.javassist
+    version: 3.27.0-GA
+    type: compile
+    indirect: true
+    resolvedIdentifier: 0b7565662bc91e9648aab437135f32beb040ac15
+    extras:
+      artifactId: javassist
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.javassist
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/javassist/javassist/3.27.0-GA
+  - name: org.jboss.jandex
+    version: 2.2.3.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: c70053a1326428ec641be311ccf5551a8ec76a63
+    extras:
+      artifactId: jandex
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.jboss
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jboss/jandex/2.2.3.Final
+  - name: org.jboss.logging.jboss-logging
+    version: 3.4.1.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9d82f8eea1b5ed484775517d7588e320f9f7797a
+    extras:
+      artifactId: jboss-logging
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.jboss.logging
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jboss/logging/jboss-logging/3.4.1.Final
+  - name: org.jboss.spec.javax.transaction.jboss-transaction-api_1.2_spec
+    version: 1.1.1.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 90823b310c573492696ad7e299b694ca2e70b4c1
+    extras:
+      artifactId: jboss-transaction-api_1.2_spec
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.jboss.spec.javax.transaction
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.1.1.Final
+  - name: org.jvnet.staxex.stax-ex
+    version: "1.8"
+    type: compile
+    indirect: true
+    resolvedIdentifier: cc7022b896125220e51f46fa50f4b68e564ffec1
+    extras:
+      artifactId: stax-ex
+      baseDep:
+        extras:
+          artifactId: hibernate-entitymanager
+          groupId: org.hibernate
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.hibernate.hibernate-entitymanager
+        version: 5.4.32.Final
+      groupId: org.jvnet.staxex
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jvnet/staxex/stax-ex/1.8
+  - name: org.latencyutils.LatencyUtils
+    version: 2.0.3
+    type: runtime
+    indirect: true
+    resolvedIdentifier: 5baec26b6f9e5b17fdd200fc20af85eead4287c4
+    extras:
+      artifactId: LatencyUtils
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.latencyutils
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/latencyutils/LatencyUtils/2.0.3
+  - name: org.postgresql.postgresql
+    version: 42.2.23
+    type: compile
+    resolvedIdentifier: cc8565ec39dbfee32c2c87f125162fe8a3010c28
+    extras:
+      artifactId: postgresql
+      groupId: org.postgresql
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/postgresql/postgresql/42.2.23
+  - name: org.slf4j.jul-to-slf4j
+    version: 1.7.30
+    type: compile
+    indirect: true
+    resolvedIdentifier: f09448bdaeee63bc0644abae571b2d17c83d16c1
+    extras:
+      artifactId: jul-to-slf4j
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.slf4j
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/slf4j/jul-to-slf4j/1.7.30
+  - name: org.slf4j.slf4j-api
+    version: 1.7.26
+    type: compile
+    indirect: true
+    resolvedIdentifier: 4d3419a58d77c07f49185aaa556a787d50508d27
+    extras:
+      artifactId: slf4j-api
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.slf4j
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/slf4j/slf4j-api/1.7.26
+  - name: org.springframework.boot.spring-boot
+    version: 2.5.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 48a6c425a45395e1ccfd99fd815c92d069040e43
+    extras:
+      artifactId: spring-boot
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.springframework.boot
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot/2.5.0
+  - name: org.springframework.boot.spring-boot-actuator
+    version: 2.5.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: ee202daac01b6399b857d187cfdbf6d97d6adc8f
+    extras:
+      artifactId: spring-boot-actuator
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.springframework.boot
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-actuator/2.5.0
+  - name: org.springframework.boot.spring-boot-actuator-autoconfigure
+    version: 2.5.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: c527193b5cc67f7534c27860171e44187746aaf5
+    extras:
+      artifactId: spring-boot-actuator-autoconfigure
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.springframework.boot
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-actuator-autoconfigure/2.5.0
+  - name: org.springframework.boot.spring-boot-autoconfigure
+    version: 2.5.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: da542216009c858c2e8b32cb595578acc19d2df3
+    extras:
+      artifactId: spring-boot-autoconfigure
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.springframework.boot
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.5.0
+  - name: org.springframework.boot.spring-boot-starter
+    version: 2.5.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 391cbf83221ae09c1c0a471b25ab3221dfe46ef1
+    extras:
+      artifactId: spring-boot-starter
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.springframework.boot
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter/2.5.0
+  - name: org.springframework.boot.spring-boot-starter-actuator
+    version: 2.5.0
+    type: compile
+    resolvedIdentifier: 76dd6dea415751e05491337b7ff22bd08ae70c7e
+    extras:
+      artifactId: spring-boot-starter-actuator
+      groupId: org.springframework.boot
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
+  - name: org.springframework.boot.spring-boot-starter-logging
+    version: 2.5.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 60f06908ef3b39d8c8780898e749c4c846fabb84
+    extras:
+      artifactId: spring-boot-starter-logging
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.springframework.boot
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.5.0
+  - name: org.springframework.data.spring-data-commons
+    version: 2.5.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: bceeabb4ef399ba7ff8511f2931e1924a41cc921
+    extras:
+      artifactId: spring-data-commons
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.springframework.data
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/data/spring-data-commons/2.5.1
+  - name: org.springframework.data.spring-data-jpa
+    version: 2.5.1
+    type: compile
+    resolvedIdentifier: 461ebcc9fc00dca10a754b0e96583ce7d281d312
+    extras:
+      artifactId: spring-data-jpa
+      groupId: org.springframework.data
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
+  - name: org.springframework.spring-aop
+    version: 5.3.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 0bf1d9d12108b8ab2d9d71d5fd5fee02d3ee5bde
+    extras:
+      artifactId: spring-aop
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-aop/5.3.7
+  - name: org.springframework.spring-beans
+    version: 5.3.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 654397f55cd4a4734f8b76282e98c88884d0367a
+    extras:
+      artifactId: spring-beans
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-beans/5.3.7
+  - name: org.springframework.spring-context
+    version: 5.3.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 67e3176098c81702c76d20977deec8101b3faf8c
+    extras:
+      artifactId: spring-context
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-context/5.3.7
+  - name: org.springframework.spring-core
+    version: 5.3.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 44ce199d05bb1ce9682621cd18953ea307485fc1
+    extras:
+      artifactId: spring-core
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-core/5.3.7
+  - name: org.springframework.spring-expression
+    version: 5.3.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 30bd0b3e802e5ba4e4d9fc68e57cc0e755ba9f9f
+    extras:
+      artifactId: spring-expression
+      baseDep:
+        extras:
+          artifactId: spring-webmvc
+          groupId: org.springframework
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.spring-webmvc
+        version: 5.3.7
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-expression/5.3.7
+  - name: org.springframework.spring-jcl
+    version: 5.3.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: e1e7c14c73ae5fc616bb941ce8c1e7e62736cadf
+    extras:
+      artifactId: spring-jcl
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-jcl/5.3.7
+  - name: org.springframework.spring-jdbc
+    version: 5.3.7
+    type: compile
+    resolvedIdentifier: a4f87a03116ecde96213642141eb95da05022f51
+    extras:
+      artifactId: spring-jdbc
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-jdbc/5.3.7
+  - name: org.springframework.spring-orm
+    version: 5.3.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: cc6911f3194cb77d493aa626c661789926027446
+    extras:
+      artifactId: spring-orm
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-orm/5.3.7
+  - name: org.springframework.spring-tx
+    version: 5.3.7
+    type: compile
+    indirect: true
+    resolvedIdentifier: c6df78e1d9b50b7063e4a196127d75ee9321f68b
+    extras:
+      artifactId: spring-tx
+      baseDep:
+        extras:
+          artifactId: spring-data-jpa
+          groupId: org.springframework.data
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.data.spring-data-jpa
+        version: 2.5.1
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-tx/5.3.7
+  - name: org.springframework.spring-web
+    version: 5.3.7
+    type: compile
+    resolvedIdentifier: d9f78e0b045d90dc862cd4a39294a468b3cc6ba9
+    extras:
+      artifactId: spring-web
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-web/5.3.7
+  - name: org.springframework.spring-webmvc
+    version: 5.3.7
+    type: compile
+    resolvedIdentifier: d0f042bff56bb90beabc6ed5d062fb87c69e652a
+    extras:
+      artifactId: spring-webmvc
+      groupId: org.springframework
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/springframework/spring-webmvc/5.3.7
+  - name: org.yaml.snakeyaml
+    version: "1.28"
+    type: compile
+    indirect: true
+    resolvedIdentifier: 3e38757e3eaf549cccd9bbdfa74b2930c177b8af
+    extras:
+      artifactId: snakeyaml
+      baseDep:
+        extras:
+          artifactId: spring-boot-starter-actuator
+          groupId: org.springframework.boot
+          pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+        name: org.springframework.boot.spring-boot-starter-actuator
+        version: 2.5.0
+      groupId: org.yaml
+      pomPath: /analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.28
+- fileURI: file:///analyzer-lsp/examples/gradle-multi-project-example/build.gradle
+  provider: java
+  dependencies:
+  - name: antlr.antlr
+    version: 2.7.7
+    indirect: true
+  - name: com.apple.AppleJavaExtensions
+    version: "1.4"
+    indirect: true
+  - name: com.beust.jcommander
+    version: "1.48"
+    indirect: true
+  - name: com.google.code.findbugs.bcel-findbugs
+    version: "6.0"
+    indirect: true
+  - name: com.google.code.findbugs.findbugs
+    version: 3.0.1
+  - name: com.google.code.findbugs.jFormatString
+    version: 2.0.1
+    indirect: true
+  - name: com.google.code.findbugs.jsr305
+    version: 1.3.9
+    indirect: true
+  - name: com.google.code.findbugs.jsr305
+    version: 2.0.1
+    indirect: true
+  - name: com.google.code.gson.gson
+    version: "2.5"
+    indirect: true
+  - name: com.google.errorprone.error_prone_annotations
+    version: 2.0.18
+    indirect: true
+  - name: com.google.guava.guava
+    version: "23.0"
+  - name: com.google.guava.guava
+    version: 23.2-jre
+    indirect: true
+  - name: com.google.j2objc.j2objc-annotations
+    version: "1.1"
+    indirect: true
+  - name: com.puppycrawl.tools.checkstyle
+    version: "8.4"
+  - name: commons-beanutils.commons-beanutils
+    version: 1.9.3
+    indirect: true
+  - name: commons-cli.commons-cli
+    version: "1.4"
+    indirect: true
+  - name: commons-collections.commons-collections
+    version: 3.2.2
+    indirect: true
+  - name: commons-io.commons-io
+    version: "2.4"
+    indirect: true
+  - name: commons-lang.commons-lang
+    version: "2.6"
+    indirect: true
+  - name: dom4j.dom4j
+    version: 1.6.1
+    indirect: true
+  - name: jaxen.jaxen
+    version: 1.1.6
+    indirect: true
+  - name: junit.junit
+    version: "4.12"
+  - name: net.bytebuddy.byte-buddy
+    version: 1.7.4
+    indirect: true
+  - name: net.bytebuddy.byte-buddy-agent
+    version: 1.7.4
+    indirect: true
+  - name: net.java.dev.javacc.javacc
+    version: "5.0"
+    indirect: true
+  - name: net.jcip.jcip-annotations
+    version: "1.0"
+    indirect: true
+  - name: net.sf.saxon.Saxon-HE
+    version: 9.8.0-5
+    indirect: true
+  - name: net.sourceforge.pmd.pmd-core
+    version: 5.6.1
+    indirect: true
+  - name: net.sourceforge.pmd.pmd-java
+    version: 5.6.1
+  - name: net.sourceforge.saxon.saxon
+    version: 9.1.0.8
+    indirect: true
+  - name: org.antlr.antlr4-runtime
+    version: "4.7"
+    indirect: true
+  - name: org.apache.commons.commons-lang3
+    version: "3.4"
+    indirect: true
+  - name: org.apache.logging.log4j.log4j-api
+    version: 2.9.1
+  - name: org.apache.logging.log4j.log4j-core
+    version: 2.9.1
+  - name: org.apache.logging.log4j.log4j-slf4j-impl
+    version: 2.9.1
+  - name: org.codehaus.mojo.animal-sniffer-annotations
+    version: "1.14"
+    indirect: true
+  - name: org.hamcrest.hamcrest-core
+    version: "1.3"
+    indirect: true
+  - name: org.mockito.mockito-core
+    version: 2.11.0
+  - name: org.objenesis.objenesis
+    version: "2.6"
+    indirect: true
+  - name: org.ow2.asm.asm
+    version: 5.0.2
+    indirect: true
+  - name: org.ow2.asm.asm
+    version: 5.0.4
+    indirect: true
+  - name: org.ow2.asm.asm-commons
+    version: 5.0.2
+    indirect: true
+  - name: org.ow2.asm.asm-debug-all
+    version: 5.0.2
+    indirect: true
+  - name: org.ow2.asm.asm-tree
+    version: 5.0.2
+    indirect: true
+  - name: org.slf4j.slf4j-api
+    version: 1.7.25
+    indirect: true
+  - name: xml-apis.xml-apis
+    version: 1.0.b2
+    indirect: true
+- fileURI: file:///analyzer-lsp/examples/inclusion-tests/pom.xml
+  provider: java
+  dependencies: []
+- fileURI: file:///analyzer-lsp/examples/java-project/pom.xml
+  provider: java
+  dependencies:
+  - name: com.fasterxml.jackson.core.jackson-annotations
+    version: 2.11.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: e9d6277a71b2d70d2f8bca72cb6379123ece8dda
+    extras:
+      artifactId: jackson-annotations
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.fasterxml.jackson.core
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.11.3
+  - name: com.fasterxml.jackson.core.jackson-core
+    version: 2.11.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 7cbce59647c9f408b01a0d7f9a266ab801dc8a6e
+    extras:
+      artifactId: jackson-core
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.fasterxml.jackson.core
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.11.3
+  - name: com.fasterxml.jackson.core.jackson-databind
+    version: 2.11.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 3580c45b6e5f2400516c9f9cf65f008b2e882f1b
+    extras:
+      artifactId: jackson-databind
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.fasterxml.jackson.core
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.11.3
+  - name: com.fasterxml.jackson.dataformat.jackson-dataformat-yaml
+    version: 2.11.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 09e2db3ad17ade505935aaa5be4d4d6363fa8a71
+    extras:
+      artifactId: jackson-dataformat-yaml
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.fasterxml.jackson.dataformat
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.11.3
+  - name: com.fasterxml.jackson.datatype.jackson-datatype-jdk8
+    version: 2.11.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9802c9af37a0c4b2d8cfe45d9fdf1015f6c0905c
+    extras:
+      artifactId: jackson-datatype-jdk8
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.fasterxml.jackson.datatype
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.11.3
+  - name: com.fasterxml.jackson.datatype.jackson-datatype-jsr310
+    version: 2.11.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 15eb1b85d23282d895c4539957f6868d8c5b5f52
+    extras:
+      artifactId: jackson-datatype-jsr310
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.fasterxml.jackson.datatype
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.11.3
+  - name: com.fasterxml.jackson.module.jackson-module-jaxb-annotations
+    version: 2.11.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9c861861fba57a2bf6335cf9b5c46f2c09c3fa60
+    extras:
+      artifactId: jackson-module-jaxb-annotations
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.fasterxml.jackson.module
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/module/jackson-module-jaxb-annotations/2.11.3
+  - name: com.fasterxml.jackson.module.jackson-module-parameter-names
+    version: 2.11.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 677ba5b4eeeef2cb5147b74144ee09e9db965a4a
+    extras:
+      artifactId: jackson-module-parameter-names
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.fasterxml.jackson.module
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.11.3
+  - name: com.github.mifmif.generex
+    version: 1.0.2
+    type: compile
+    indirect: true
+    resolvedIdentifier: 4fceed07ef1d51d7f2e564a037211df59e2ff01c
+    extras:
+      artifactId: generex
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.github.mifmif
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/github/mifmif/generex/1.0.2
+  - name: com.google.auto.auto-common
+    version: "0.10"
+    type: compile
+    indirect: true
+    resolvedIdentifier: fae722e761280e51223fdad9bee8a59f276586d2
+    extras:
+      artifactId: auto-common
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.google.auto
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/google/auto/auto-common/0.10
+  - name: com.google.auto.service.auto-service
+    version: 1.0-rc7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 267ac4aac2812a91a24e9b53236d320c1d19054f
+    extras:
+      artifactId: auto-service
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.google.auto.service
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/google/auto/service/auto-service/1.0-rc7
+  - name: com.google.auto.service.auto-service-annotations
+    version: 1.0-rc7
+    type: compile
+    indirect: true
+    resolvedIdentifier: 0a32b4bb516b61ea997c7996b23d0925464bec9c
+    extras:
+      artifactId: auto-service-annotations
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.google.auto.service
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/google/auto/service/auto-service-annotations/1.0-rc7
+  - name: com.google.code.findbugs.jsr305
+    version: 3.0.2
+    type: compile
+    indirect: true
+    resolvedIdentifier: 8d93cdf4d84d7e1de736df607945c6df0730a10f
+    extras:
+      artifactId: jsr305
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.google.code.findbugs
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/google/code/findbugs/jsr305/3.0.2
+  - name: com.google.errorprone.error_prone_annotations
+    version: 2.2.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: e28b5b546020f18ea29e2b4756023f53ee91492b
+    extras:
+      artifactId: error_prone_annotations
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.google.errorprone
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/google/errorprone/error_prone_annotations/2.2.0
+  - name: com.google.guava.failureaccess
+    version: 1.0.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: e8160e78fdaaf7088621dc1649d9dd2dfcf8d0e8
+    extras:
+      artifactId: failureaccess
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.google.guava
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/google/guava/failureaccess/1.0.1
+  - name: com.google.guava.guava
+    version: 30.0-jre
+    type: compile
+    indirect: true
+    resolvedIdentifier: d7239fe628e6e3fbb6734acbc07195435fdac305
+    extras:
+      artifactId: guava
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.google.guava
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/google/guava/guava/30.0-jre
+  - name: com.google.guava.listenablefuture
+    version: 9999.0-empty-to-avoid-conflict-with-guava
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1b77ba79f9b2b7dfd4e15ea7bb0d568d5eb9cb8d
+    extras:
+      artifactId: listenablefuture
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.google.guava
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava
+  - name: com.google.j2objc.j2objc-annotations
+    version: "1.3"
+    type: compile
+    indirect: true
+    resolvedIdentifier: 47e0dd93285dcc6b33181713bc7e8aed66742964
+    extras:
+      artifactId: j2objc-annotations
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.google.j2objc
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/google/j2objc/j2objc-annotations/1.3
+  - name: com.squareup.javapoet
+    version: 1.13.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 17b682b96d0d2abfdd92f6a99fbab40dd4f4d360
+    extras:
+      artifactId: javapoet
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: com.squareup
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/squareup/javapoet/1.13.0
+  - name: com.squareup.okhttp3.logging-interceptor
+    version: 3.14.9
+    type: compile
+    indirect: true
+    resolvedIdentifier: 24b98a2370430a270c92cebb0a78de9f0de15685
+    extras:
+      artifactId: logging-interceptor
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.squareup.okhttp3
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/squareup/okhttp3/logging-interceptor/3.14.9
+  - name: com.squareup.okhttp3.okhttp
+    version: 3.14.9
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9e1332afd90bd8da42160422123341a40cf3644c
+    extras:
+      artifactId: okhttp
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.squareup.okhttp3
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/squareup/okhttp3/okhttp/3.14.9
+  - name: com.squareup.okio.okio
+    version: 1.17.2
+    type: compile
+    indirect: true
+    resolvedIdentifier: abe9c87bf8b3b4e19cabc0014b76fd633fa467a5
+    extras:
+      artifactId: okio
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: com.squareup.okio
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/squareup/okio/okio/1.17.2
+  - name: dk.brics.automaton.automaton
+    version: 1.11-8
+    type: compile
+    indirect: true
+    resolvedIdentifier: 4ee16a70f92991d9d190c9cb4feae07ebd29b2f5
+    extras:
+      artifactId: automaton
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: dk.brics.automaton
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/dk/brics/automaton/automaton/1.11-8
+  - name: io.fabric8.kubernetes-client
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 8b18584de77d9ecb58e348c63cbb9fa11b3a4d7d
+    extras:
+      artifactId: kubernetes-client
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client/4.12.0
+  - name: io.fabric8.kubernetes-model-admissionregistration
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: b513caf5eaa7c153e625317bbe107ea16f3f5d56
+    extras:
+      artifactId: kubernetes-model-admissionregistration
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-admissionregistration/4.12.0
+  - name: io.fabric8.kubernetes-model-apiextensions
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 8f7756ce054c1ff92926db077a83e0c61ea1afaf
+    extras:
+      artifactId: kubernetes-model-apiextensions
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apiextensions/4.12.0
+  - name: io.fabric8.kubernetes-model-apps
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 02ee8c62e8c68e6e7e719665929f3b96dba48f68
+    extras:
+      artifactId: kubernetes-model-apps
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apps/4.12.0
+  - name: io.fabric8.kubernetes-model-autoscaling
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: f370e4490adc9ac4a97f25db3b2a427ce917cbe1
+    extras:
+      artifactId: kubernetes-model-autoscaling
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-autoscaling/4.12.0
+  - name: io.fabric8.kubernetes-model-batch
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: a49cbb09f021b0f70cfcae103d437b0f4989d90e
+    extras:
+      artifactId: kubernetes-model-batch
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-batch/4.12.0
+  - name: io.fabric8.kubernetes-model-certificates
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 3b69109909234a3338f104abec8e6c78c190f8e7
+    extras:
+      artifactId: kubernetes-model-certificates
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-certificates/4.12.0
+  - name: io.fabric8.kubernetes-model-common
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 2185e83932c57e1eae9e4702a408347c940bb838
+    extras:
+      artifactId: kubernetes-model-common
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-common/4.12.0
+  - name: io.fabric8.kubernetes-model-coordination
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: d8f3f48cee5f9ffb833ce5e92122bcfa8257c02d
+    extras:
+      artifactId: kubernetes-model-coordination
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-coordination/4.12.0
+  - name: io.fabric8.kubernetes-model-core
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 3d5dc2fb713169ec5d1e0e15774b92aa760969d4
+    extras:
+      artifactId: kubernetes-model-core
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-core/4.12.0
+  - name: io.fabric8.kubernetes-model-discovery
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 586b6954b36b3e62b89d60d6aa301b0bc61646df
+    extras:
+      artifactId: kubernetes-model-discovery
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-discovery/4.12.0
+  - name: io.fabric8.kubernetes-model-events
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 08fb329cefd71257468040de07078758de7369ff
+    extras:
+      artifactId: kubernetes-model-events
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-events/4.12.0
+  - name: io.fabric8.kubernetes-model-extensions
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: e63ba9711939c4f394e3f335eb72ade58a7a0f97
+    extras:
+      artifactId: kubernetes-model-extensions
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-extensions/4.12.0
+  - name: io.fabric8.kubernetes-model-metrics
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 72020d8a1865487cf83e1070beda924fad3ffab6
+    extras:
+      artifactId: kubernetes-model-metrics
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-metrics/4.12.0
+  - name: io.fabric8.kubernetes-model-networking
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: d34973d21341926380514510f71d1083648e6a47
+    extras:
+      artifactId: kubernetes-model-networking
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-networking/4.12.0
+  - name: io.fabric8.kubernetes-model-policy
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: eded1abd47d17b037e5645f2e0648649395cff5e
+    extras:
+      artifactId: kubernetes-model-policy
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-policy/4.12.0
+  - name: io.fabric8.kubernetes-model-rbac
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: e5640656367cbf3bf011345eb6f8af933889076f
+    extras:
+      artifactId: kubernetes-model-rbac
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-rbac/4.12.0
+  - name: io.fabric8.kubernetes-model-scheduling
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 7828ed70ebd014dd0288fedb7c3e368badf8335e
+    extras:
+      artifactId: kubernetes-model-scheduling
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-scheduling/4.12.0
+  - name: io.fabric8.kubernetes-model-settings
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: f8b9a5ea602aae1d50caf5ecf06a6ec7151f4a19
+    extras:
+      artifactId: kubernetes-model-settings
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-settings/4.12.0
+  - name: io.fabric8.kubernetes-model-storageclass
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: bd00e8364a4f3caf10654cd288f9a77a5528ab81
+    extras:
+      artifactId: kubernetes-model-storageclass
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-storageclass/4.12.0
+  - name: io.fabric8.openshift-client
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 0c2875c1e8b67b9cf25c13dbe88739fb283c3446
+    extras:
+      artifactId: openshift-client
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/openshift-client/4.12.0
+  - name: io.fabric8.openshift-model
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 8e8eb0fcee16b92a6a27d0605ac6e0b1999b9621
+    extras:
+      artifactId: openshift-model
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/openshift-model/4.12.0
+  - name: io.fabric8.openshift-model-console
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: c0ba78ffddc1457b40ff48eaa49d7d56376467c0
+    extras:
+      artifactId: openshift-model-console
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/openshift-model-console/4.12.0
+  - name: io.fabric8.openshift-model-monitoring
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 113521fe4c2a07ceac8357b5a0ef3534acf68261
+    extras:
+      artifactId: openshift-model-monitoring
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/openshift-model-monitoring/4.12.0
+  - name: io.fabric8.openshift-model-operator
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: cdecb8f809c409538bddd81cb3cdade3061c650d
+    extras:
+      artifactId: openshift-model-operator
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/openshift-model-operator/4.12.0
+  - name: io.fabric8.openshift-model-operatorhub
+    version: 4.12.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: e7914c2a65c52c07ce19c252a9b6ebe66c7ba923
+    extras:
+      artifactId: openshift-model-operatorhub
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/openshift-model-operatorhub/4.12.0
+  - name: io.fabric8.zjsonpatch
+    version: 0.3.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1385fb99630e407ae2821c9a16ccff56c879cdc9
+    extras:
+      artifactId: zjsonpatch
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/zjsonpatch/0.3.0
+  - name: io.javaoperatorsdk.operator-framework
+    version: 1.6.2
+    type: compile
+    resolvedIdentifier: 2879b351d99c2834e734642327c127639e8435c3
+    extras:
+      artifactId: operator-framework
+      groupId: io.javaoperatorsdk
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/javaoperatorsdk/operator-framework/1.6.2
+  - name: io.javaoperatorsdk.operator-framework-core
+    version: 1.6.2
+    type: compile
+    indirect: true
+    resolvedIdentifier: e22135701d4d6beb708e91e92fc154824388efae
+    extras:
+      artifactId: operator-framework-core
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.javaoperatorsdk
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/javaoperatorsdk/operator-framework-core/1.6.2
+  - name: io.javaoperatorsdk.operator-framework-quarkus-extension
+    version: 1.6.2
+    type: compile
+    resolvedIdentifier: 00e671ff019c406bf4de179f431d226076339189
+    extras:
+      artifactId: operator-framework-quarkus-extension
+      groupId: io.javaoperatorsdk
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/javaoperatorsdk/operator-framework-quarkus-extension/1.6.2
+  - name: io.javaoperatorsdk.operator-framework-samples-common
+    version: 1.6.2
+    type: compile
+    resolvedIdentifier: 6cac850b750c31e2a70ec5ae28a95c9127fdbb20
+    extras:
+      artifactId: operator-framework-samples-common
+      groupId: io.javaoperatorsdk
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/javaoperatorsdk/operator-framework-samples-common/1.6.2
+  - name: io.netty.netty-buffer
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 75a04c38612458dddf960cda84879b1e0ce52522
+    extras:
+      artifactId: netty-buffer
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-buffer/4.1.49.Final
+  - name: io.netty.netty-codec
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: a19cf499b536e2521241a63dce815e0e44a69132
+    extras:
+      artifactId: netty-codec
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-codec/4.1.49.Final
+  - name: io.netty.netty-codec-dns
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: f4677be8b468edeb61f0649076cdef04904b69e0
+    extras:
+      artifactId: netty-codec-dns
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-codec-dns/4.1.49.Final
+  - name: io.netty.netty-codec-http
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 40e100f69a1633cfcf742d56302dc9622e59b0e4
+    extras:
+      artifactId: netty-codec-http
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-codec-http/4.1.49.Final
+  - name: io.netty.netty-codec-http2
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 511e779226c885f4e3b95e767b4a5fcab0bbc2f1
+    extras:
+      artifactId: netty-codec-http2
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-codec-http2/4.1.49.Final
+  - name: io.netty.netty-codec-socks
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9be5db612c0adbc730be9acbb3c57ba8e29713c7
+    extras:
+      artifactId: netty-codec-socks
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-codec-socks/4.1.49.Final
+  - name: io.netty.netty-common
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: cd0ec91767b25b9633cddbfedbb9dec921b7bbfa
+    extras:
+      artifactId: netty-common
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-common/4.1.49.Final
+  - name: io.netty.netty-handler
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1c632ff424861b3e31bf05a406c0bf2344826748
+    extras:
+      artifactId: netty-handler
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-handler/4.1.49.Final
+  - name: io.netty.netty-handler-proxy
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 97c0adc2c2309bc15cbf70ecdc720da7e2a45d30
+    extras:
+      artifactId: netty-handler-proxy
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-handler-proxy/4.1.49.Final
+  - name: io.netty.netty-resolver
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 60534ff8603fcfa1ac0f2e1a4033655063fac9b6
+    extras:
+      artifactId: netty-resolver
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-resolver/4.1.49.Final
+  - name: io.netty.netty-resolver-dns
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 7d4d97955191927b6b3e86df700db35065ae9445
+    extras:
+      artifactId: netty-resolver-dns
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-resolver-dns/4.1.49.Final
+  - name: io.netty.netty-transport
+    version: 4.1.49.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: c10533286180e46436df52206500cc34ddc81643
+    extras:
+      artifactId: netty-transport
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-transport/4.1.49.Final
+  - name: io.quarkus.arc.arc
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 68367b85e4c9879cc5861132f5cd1c35a74d6eb4
+    extras:
+      artifactId: arc
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus.arc
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/arc/arc/1.10.5.Final
+  - name: io.quarkus.quarkus-arc
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: e35790e2b604a9476ec843850af39f895894a0e6
+    extras:
+      artifactId: quarkus-arc
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-arc/1.10.5.Final
+  - name: io.quarkus.quarkus-bootstrap-runner
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: bd75cbbd4dee08314cc1376a74ea6cbe49f0fa5b
+    extras:
+      artifactId: quarkus-bootstrap-runner
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-bootstrap-runner/1.10.5.Final
+  - name: io.quarkus.quarkus-container-image-jib
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 5167dfcb574ec45d15c998ede0e980cca67d2f7d
+    extras:
+      artifactId: quarkus-container-image-jib
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-container-image-jib/1.10.5.Final
+  - name: io.quarkus.quarkus-core
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: a4cfbbf1f81e1b4e5226ad827edda5e8c13b117a
+    extras:
+      artifactId: quarkus-core
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-core/1.10.5.Final
+  - name: io.quarkus.quarkus-development-mode-spi
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: c39562d75d2886df67f1927c05964d3bb450a392
+    extras:
+      artifactId: quarkus-development-mode-spi
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-development-mode-spi/1.10.5.Final
+  - name: io.quarkus.quarkus-ide-launcher
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 361fa435f1af9dc4af021e1309a8f00d646a9e59
+    extras:
+      artifactId: quarkus-ide-launcher
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-ide-launcher/1.10.5.Final
+  - name: io.quarkus.quarkus-jackson
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 7156f19a4071449430dacfe22dcba55722433478
+    extras:
+      artifactId: quarkus-jackson
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-jackson/1.10.5.Final
+  - name: io.quarkus.quarkus-jsonp
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 6c35e4de00b69bf0eecd3d34bbc120f700be7acd
+    extras:
+      artifactId: quarkus-jsonp
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-jsonp/1.10.5.Final
+  - name: io.quarkus.quarkus-kubernetes
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: ce4ddf664757969c81e67a6b85ee51a18cc50b90
+    extras:
+      artifactId: quarkus-kubernetes
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-kubernetes/1.10.5.Final
+  - name: io.quarkus.quarkus-kubernetes-client
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: f165649c6dccc9d1222945328348c9c15fe166ff
+    extras:
+      artifactId: quarkus-kubernetes-client
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-kubernetes-client/1.10.5.Final
+  - name: io.quarkus.quarkus-kubernetes-client-internal
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: fd90ed104b7953b0742bc4f657bb10cb036eb9cb
+    extras:
+      artifactId: quarkus-kubernetes-client-internal
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-kubernetes-client-internal/1.10.5.Final
+  - name: io.quarkus.quarkus-netty
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: bc486b73aae57174d2a95b01da0223534352b0cb
+    extras:
+      artifactId: quarkus-netty
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-netty/1.10.5.Final
+  - name: io.quarkus.quarkus-security-runtime-spi
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 0a102d93687a0d6012ea967343f6dda9a536c1c8
+    extras:
+      artifactId: quarkus-security-runtime-spi
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-security-runtime-spi/1.10.5.Final
+  - name: io.quarkus.quarkus-smallrye-health
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 02202a13d19c7e1dc2df1ce40f54d847dad8735c
+    extras:
+      artifactId: quarkus-smallrye-health
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-smallrye-health/1.10.5.Final
+  - name: io.quarkus.quarkus-vertx-core
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 21c7aae0ee2b27b7ec2434e17139d218f60a0931
+    extras:
+      artifactId: quarkus-vertx-core
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-vertx-core/1.10.5.Final
+  - name: io.quarkus.quarkus-vertx-http
+    version: 1.10.5.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: cc93a693bc9696fe3cbd0f823c0636a7eaa5a6cb
+    extras:
+      artifactId: quarkus-vertx-http
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/quarkus-vertx-http/1.10.5.Final
+  - name: io.quarkus.security.quarkus-security
+    version: 1.1.3.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 97b707c3e6e7118d0318c0b3b9397e2aee1ba93e
+    extras:
+      artifactId: quarkus-security
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.quarkus.security
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/quarkus/security/quarkus-security/1.1.3.Final
+  - name: io.smallrye.common.smallrye-common-annotation
+    version: 1.4.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1b6ab5ab10b04ad1a8756de45b5eec99d358e779
+    extras:
+      artifactId: smallrye-common-annotation
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.common
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-annotation/1.4.1
+  - name: io.smallrye.common.smallrye-common-classloader
+    version: 1.4.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: 61b5577d8d35a645114ceefeff48e42ca84362e0
+    extras:
+      artifactId: smallrye-common-classloader
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.common
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-classloader/1.4.1
+  - name: io.smallrye.common.smallrye-common-constraint
+    version: 1.4.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: 55a141ea261d4442c51a05446fad77e9bca82ce1
+    extras:
+      artifactId: smallrye-common-constraint
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.common
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-constraint/1.4.1
+  - name: io.smallrye.common.smallrye-common-expression
+    version: 1.4.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: 0cfe4931b7120234f18cc37b50fc5f6d727addf6
+    extras:
+      artifactId: smallrye-common-expression
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.common
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-expression/1.4.1
+  - name: io.smallrye.common.smallrye-common-function
+    version: 1.4.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: dd4c82d02ff557283795d7045b41b742d0891e0c
+    extras:
+      artifactId: smallrye-common-function
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.common
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-function/1.4.1
+  - name: io.smallrye.common.smallrye-common-io
+    version: 1.4.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: 831eb32784145a699c585989169db532dbd85be7
+    extras:
+      artifactId: smallrye-common-io
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.common
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-io/1.4.1
+  - name: io.smallrye.config.smallrye-config
+    version: 1.9.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: d722dac92a497a5be71338e1f296da098eeafb83
+    extras:
+      artifactId: smallrye-config
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.config
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/config/smallrye-config/1.9.3
+  - name: io.smallrye.config.smallrye-config-common
+    version: 1.9.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: da6626736247287f5db69104c6de4224b0fe0fdb
+    extras:
+      artifactId: smallrye-config-common
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.config
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/config/smallrye-config-common/1.9.3
+  - name: io.smallrye.config.smallrye-config-source-yaml
+    version: 1.9.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: f80109d72a2dc9eecd625e2d7e31b1a2ba0f0bff
+    extras:
+      artifactId: smallrye-config-source-yaml
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.config
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/config/smallrye-config-source-yaml/1.9.3
+  - name: io.smallrye.reactive.mutiny
+    version: 0.11.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 906546ad56d1187d3a3688bc69d2787e5ffe094c
+    extras:
+      artifactId: mutiny
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye.reactive
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/reactive/mutiny/0.11.0
+  - name: io.smallrye.smallrye-health
+    version: 2.2.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: c24d04e493e07d8c72e94120e9fed4d90fcd7517
+    extras:
+      artifactId: smallrye-health
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/smallrye-health/2.2.5
+  - name: io.smallrye.smallrye-health-api
+    version: 2.2.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: bcb0b1a8dc22d4f34db21b3633f003f5181f3a46
+    extras:
+      artifactId: smallrye-health-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/smallrye-health-api/2.2.5
+  - name: io.smallrye.smallrye-health-provided-checks
+    version: 2.2.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: 10446cd022ad6e343d9f578ec5e3c02d5a2bf8ea
+    extras:
+      artifactId: smallrye-health-provided-checks
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/smallrye-health-provided-checks/2.2.5
+  - name: io.smallrye.smallrye-health-ui
+    version: 2.2.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: 51d093a39dd896d17679c18a00d4432858a71a5e
+    extras:
+      artifactId: smallrye-health-ui
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.smallrye
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/smallrye/smallrye-health-ui/2.2.5
+  - name: io.vertx.vertx-auth-common
+    version: 3.9.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1ca3bef5fc68e4297f5a670b2535638745d16183
+    extras:
+      artifactId: vertx-auth-common
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.vertx
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/vertx/vertx-auth-common/3.9.5
+  - name: io.vertx.vertx-bridge-common
+    version: 3.9.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: 126b8b90d9142163239797115eaa2afec63bfdf2
+    extras:
+      artifactId: vertx-bridge-common
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.vertx
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/vertx/vertx-bridge-common/3.9.5
+  - name: io.vertx.vertx-core
+    version: 3.9.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: 17baaa802a07b6e40a8928450667915a8a9b4c8b
+    extras:
+      artifactId: vertx-core
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.vertx
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/vertx/vertx-core/3.9.5
+  - name: io.vertx.vertx-web
+    version: 3.9.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: c4013605da3baba2bc319bfd4154ac77e91ad2b7
+    extras:
+      artifactId: vertx-web
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.vertx
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/vertx/vertx-web/3.9.5
+  - name: io.vertx.vertx-web-common
+    version: 3.9.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: 691936cdd02b61230e857fbc24ef5b5b64beb754
+    extras:
+      artifactId: vertx-web-common
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: io.vertx
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/vertx/vertx-web-common/3.9.5
+  - name: jakarta.activation.jakarta.activation-api
+    version: 1.2.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: b9c1b2502949970360efe8d75ec5268d87d38a82
+    extras:
+      artifactId: jakarta.activation-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: jakarta.activation
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/activation/jakarta.activation-api/1.2.1
+  - name: jakarta.annotation.jakarta.annotation-api
+    version: 1.3.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: beb7649988a22ea30a17fcaeba8584323e86df74
+    extras:
+      artifactId: jakarta.annotation-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: jakarta.annotation
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/annotation/jakarta.annotation-api/1.3.5
+  - name: jakarta.el.jakarta.el-api
+    version: 3.0.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 0c2f5001be95fa82802881ece015f36813a2fa80
+    extras:
+      artifactId: jakarta.el-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: jakarta.el
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/el/jakarta.el-api/3.0.3
+  - name: jakarta.enterprise.jakarta.enterprise.cdi-api
+    version: 2.0.2
+    type: compile
+    indirect: true
+    resolvedIdentifier: 20fce5191fd28b75e4eb1ed424120c980b115ab4
+    extras:
+      artifactId: jakarta.enterprise.cdi-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: jakarta.enterprise
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/enterprise/jakarta.enterprise.cdi-api/2.0.2
+  - name: jakarta.inject.jakarta.inject-api
+    version: "1.0"
+    type: compile
+    indirect: true
+    resolvedIdentifier: 65d62247cc4fc1387fa58478c0fa4a4610cc3998
+    extras:
+      artifactId: jakarta.inject-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: jakarta.inject
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/inject/jakarta.inject-api/1.0
+  - name: jakarta.interceptor.jakarta.interceptor-api
+    version: 1.2.5
+    type: compile
+    indirect: true
+    resolvedIdentifier: d5d5dcf21defcfa9012ed26bc28bcaea63528018
+    extras:
+      artifactId: jakarta.interceptor-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: jakarta.interceptor
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/interceptor/jakarta.interceptor-api/1.2.5
+  - name: jakarta.transaction.jakarta.transaction-api
+    version: 1.3.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: bb59787f8216f14f17b55d97ca1e7b551dc357a5
+    extras:
+      artifactId: jakarta.transaction-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: jakarta.transaction
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/transaction/jakarta.transaction-api/1.3.3
+  - name: jakarta.xml.bind.jakarta.xml.bind-api
+    version: 2.3.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 290b87c209b5a03280c41eb32430676d9ecddd2b
+    extras:
+      artifactId: jakarta.xml.bind-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: jakarta.xml.bind
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/2.3.3
+  - name: javax.activation.javax.activation-api
+    version: 1.2.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1aa9ef58e50ba6868b2e955d61fcd73be5b4cea5
+    extras:
+      artifactId: javax.activation-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: javax.activation
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/activation/javax.activation-api/1.2.0
+  - name: javax.annotation.javax.annotation-api
+    version: 1.3.2
+    type: compile
+    indirect: true
+    resolvedIdentifier: 302fe96ef206b17f82893083b51b479541fa25ab
+    extras:
+      artifactId: javax.annotation-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: javax.annotation
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/annotation/javax.annotation-api/1.3.2
+  - name: javax.xml.bind.jaxb-api
+    version: 2.3.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: c42c51ae84892b73ef7de5351188908e673f5c69
+    extras:
+      artifactId: jaxb-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: javax.xml.bind
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/xml/bind/jaxb-api/2.3.1
+  - name: org.apache.commons.commons-compress
+    version: "1.20"
+    type: compile
+    indirect: true
+    resolvedIdentifier: a63d6a48347a2848f6a798c9efad976829011f7c
+    extras:
+      artifactId: commons-compress
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.apache.commons
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/commons/commons-compress/1.20
+  - name: org.apache.commons.commons-lang3
+    version: "3.9"
+    type: compile
+    indirect: true
+    resolvedIdentifier: 2b7f0896fc2f13bbe7b0022c85738e3b6a3f201a
+    extras:
+      artifactId: commons-lang3
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: org.apache.commons
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/commons/commons-lang3/3.9
+  - name: org.apache.logging.log4j.log4j-api
+    version: 2.13.3
+    type: compile
+    resolvedIdentifier: b2e1b4d66685c746d5a14b8370e7d32b0dec6574
+    extras:
+      artifactId: log4j-api
+      groupId: org.apache.logging.log4j
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-api/2.13.3
+  - name: org.apache.logging.log4j.log4j-core
+    version: 2.13.3
+    type: runtime
+    resolvedIdentifier: b73a33bc49d9d4d72adebdd74def2a8a41531e26
+    extras:
+      artifactId: log4j-core
+      groupId: org.apache.logging.log4j
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-core/2.13.3
+  - name: org.apache.logging.log4j.log4j-slf4j-impl
+    version: 2.13.3
+    type: compile
+    resolvedIdentifier: 7d82a3df6c304caaa9c6898cfd2b55d251bf87f9
+    extras:
+      artifactId: log4j-slf4j-impl
+      groupId: org.apache.logging.log4j
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-slf4j-impl/2.13.3
+  - name: org.checkerframework.checker-qual
+    version: 2.5.2
+    type: compile
+    indirect: true
+    resolvedIdentifier: 7cee753353b0fc94e0300ad3dbf155069260c4d7
+    extras:
+      artifactId: checker-qual
+      baseDep:
+        extras:
+          artifactId: operator-framework
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework
+        version: 1.6.2
+      groupId: org.checkerframework
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/checkerframework/checker-qual/2.5.2
+  - name: org.eclipse.microprofile.config.microprofile-config-api
+    version: "1.4"
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1cd3e698e692b144cb099e07c3438d66f7fc6410
+    extras:
+      artifactId: microprofile-config-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.eclipse.microprofile.config
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/eclipse/microprofile/config/microprofile-config-api/1.4
+  - name: org.eclipse.microprofile.context-propagation.microprofile-context-propagation-api
+    version: 1.0.1
+    type: compile
+    indirect: true
+    resolvedIdentifier: c2e5ba9a85d72b10904a38c772a5ce03c91666ed
+    extras:
+      artifactId: microprofile-context-propagation-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.eclipse.microprofile.context-propagation
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/eclipse/microprofile/context-propagation/microprofile-context-propagation-api/1.0.1
+  - name: org.eclipse.microprofile.health.microprofile-health-api
+    version: "2.2"
+    type: compile
+    indirect: true
+    resolvedIdentifier: 50ec2082c7506aa4f5fe7c5924ca1c3a18f58dc9
+    extras:
+      artifactId: microprofile-health-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.eclipse.microprofile.health
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/eclipse/microprofile/health/microprofile-health-api/2.2
+  - name: org.glassfish.jakarta.json
+    version: 1.1.6
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1d07398d06d6842b5c0b38722aad0ebc585ea35e
+    extras:
+      artifactId: jakarta.json
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.glassfish
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/glassfish/jakarta.json/1.1.6
+  - name: org.graalvm.sdk.graal-sdk
+    version: 20.2.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 6dfe63cfe7d8031fad234561578003397b8dcd2d
+    extras:
+      artifactId: graal-sdk
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.graalvm.sdk
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/graalvm/sdk/graal-sdk/20.2.0
+  - name: org.jboss.logging.jboss-logging
+    version: 3.4.1.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9d82f8eea1b5ed484775517d7588e320f9f7797a
+    extras:
+      artifactId: jboss-logging
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.jboss.logging
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jboss/logging/jboss-logging/3.4.1.Final
+  - name: org.jboss.logging.jboss-logging-annotations
+    version: 2.1.0.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: f85ef40fb2f943f014591f0d0f0c396d9574f2b5
+    extras:
+      artifactId: jboss-logging-annotations
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.jboss.logging
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jboss/logging/jboss-logging-annotations/2.1.0.Final
+  - name: org.jboss.logmanager.jboss-logmanager-embedded
+    version: 1.0.6
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9cb39ade6543e96c00504cc0ece1b2dc7ccb2ab7
+    extras:
+      artifactId: jboss-logmanager-embedded
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.jboss.logmanager
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jboss/logmanager/jboss-logmanager-embedded/1.0.6
+  - name: org.jboss.slf4j.slf4j-jboss-logmanager
+    version: 1.1.0.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: f44388c49130e61ed2cdac804d30b9da95b58fcf
+    extras:
+      artifactId: slf4j-jboss-logmanager
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.jboss.slf4j
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jboss/slf4j/slf4j-jboss-logmanager/1.1.0.Final
+  - name: org.jboss.spec.javax.xml.bind.jboss-jaxb-api_2.3_spec
+    version: 2.0.0.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: b0d564d139633b19e647e6268cfdce910cb93b0c
+    extras:
+      artifactId: jboss-jaxb-api_2.3_spec
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.jboss.spec.javax.xml.bind
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jboss/spec/javax/xml/bind/jboss-jaxb-api_2.3_spec/2.0.0.Final
+  - name: org.jboss.threads.jboss-threads
+    version: 3.1.1.Final
+    type: compile
+    indirect: true
+    resolvedIdentifier: e0337c4fa2cbb38d6c88ffefb708bc8a63542360
+    extras:
+      artifactId: jboss-threads
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.jboss.threads
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/jboss/threads/jboss-threads/3.1.1.Final
+  - name: org.ow2.asm.asm
+    version: "9.0"
+    type: compile
+    indirect: true
+    resolvedIdentifier: 938b82b2a78eb9b1d383a5fcb243a1801c6e2ea0
+    extras:
+      artifactId: asm
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.ow2.asm
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/ow2/asm/asm/9.0
+  - name: org.reactivestreams.reactive-streams
+    version: 1.0.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 6c6a88f6bb5071c2490f889309703eb485d1d760
+    extras:
+      artifactId: reactive-streams
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.reactivestreams
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/reactivestreams/reactive-streams/1.0.3
+  - name: org.slf4j.slf4j-api
+    version: 1.7.30
+    type: compile
+    indirect: true
+    resolvedIdentifier: 02013960e5ee7f712d8fa6f2e618a6ff2e8d98a9
+    extras:
+      artifactId: slf4j-api
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.slf4j
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/slf4j/slf4j-api/1.7.30
+  - name: org.wildfly.common.wildfly-common
+    version: 1.5.4.Final-format-001
+    type: compile
+    indirect: true
+    resolvedIdentifier: 190cd1409b271a489a033eb8879d81b3b411c1be
+    extras:
+      artifactId: wildfly-common
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.wildfly.common
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/wildfly/common/wildfly-common/1.5.4.Final-format-001
+  - name: org.yaml.snakeyaml
+    version: "1.27"
+    type: compile
+    indirect: true
+    resolvedIdentifier: cedcc7f40ce3aa17b2498344e5e72fc2e9c11acb
+    extras:
+      artifactId: snakeyaml
+      baseDep:
+        extras:
+          artifactId: operator-framework-quarkus-extension
+          groupId: io.javaoperatorsdk
+          pomPath: /analyzer-lsp/examples/java-project/pom.xml
+        name: io.javaoperatorsdk.operator-framework-quarkus-extension
+        version: 1.6.2
+      groupId: org.yaml
+      pomPath: /analyzer-lsp/examples/java-project/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.27
+- fileURI: file:///analyzer-lsp/examples/java/pom.xml
+  provider: java
+  dependencies:
+  - name: com.fasterxml.jackson.core.jackson-annotations
+    version: 2.13.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 717e3012ee74008533d4e92946ccf49060e84e78
+    extras:
+      artifactId: jackson-annotations
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: com.fasterxml.jackson.core
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.13.3
+  - name: com.fasterxml.jackson.core.jackson-core
+    version: 2.13.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1a9b0ebfcda0063950c35f42c7fdce9a34e8b782
+    extras:
+      artifactId: jackson-core
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: com.fasterxml.jackson.core
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.13.3
+  - name: com.fasterxml.jackson.core.jackson-databind
+    version: 2.13.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 2c0ce6eb612e33616edb250542d0fda62524f717
+    extras:
+      artifactId: jackson-databind
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: com.fasterxml.jackson.core
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.13.3
+  - name: com.fasterxml.jackson.dataformat.jackson-dataformat-yaml
+    version: 2.13.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: 79e3dbba4729d503ce3eef93f68caddf213b678d
+    extras:
+      artifactId: jackson-dataformat-yaml
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: com.fasterxml.jackson.dataformat
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.13.3
+  - name: com.fasterxml.jackson.datatype.jackson-datatype-jsr310
+    version: 2.13.3
+    type: compile
+    indirect: true
+    resolvedIdentifier: b22a52de24b5bd7bcf210f02bd2e75ae1c4a740d
+    extras:
+      artifactId: jackson-datatype-jsr310
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: com.fasterxml.jackson.datatype
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.13.3
+  - name: com.squareup.okhttp3.logging-interceptor
+    version: 3.12.12
+    type: runtime
+    indirect: true
+    resolvedIdentifier: 705a7df4584707ae40db2fb903f921755510567f
+    extras:
+      artifactId: logging-interceptor
+      baseDep:
+        extras:
+          artifactId: kubernetes-client
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client
+        version: 6.0.0
+      groupId: com.squareup.okhttp3
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/squareup/okhttp3/logging-interceptor/3.12.12
+  - name: com.squareup.okhttp3.okhttp
+    version: 3.12.12
+    type: runtime
+    indirect: true
+    resolvedIdentifier: 90c81c59b2eb943ddbe58bc717e3e75bccd518c2
+    extras:
+      artifactId: okhttp
+      baseDep:
+        extras:
+          artifactId: kubernetes-client
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client
+        version: 6.0.0
+      groupId: com.squareup.okhttp3
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/squareup/okhttp3/okhttp/3.12.12
+  - name: com.squareup.okio.okio
+    version: 1.15.0
+    type: runtime
+    indirect: true
+    resolvedIdentifier: 87f1520a39a954a9aa185c7fe8f144fa7d597690
+    extras:
+      artifactId: okio
+      baseDep:
+        extras:
+          artifactId: kubernetes-client
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client
+        version: 6.0.0
+      groupId: com.squareup.okio
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/squareup/okio/okio/1.15.0
+  - name: com.sun.mail.javax.mail
+    version: 1.5.0
+    type: provided
+    indirect: true
+    resolvedIdentifier: 2143163e070fcd301fbf7b3246ca4854caaabacc
+    extras:
+      artifactId: javax.mail
+      baseDep:
+        extras:
+          artifactId: javaee-api
+          groupId: javax
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: javax.javaee-api
+        version: "7.0"
+      groupId: com.sun.mail
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/com/sun/mail/javax.mail/1.5.0
+  - name: io.fabric8.kubernetes-client
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: 738af0538ca0399331e1d5477edc74b19a43d912
+    extras:
+      artifactId: kubernetes-client
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client/6.0.0
+  - name: io.fabric8.kubernetes-client-api
+    version: 6.0.0
+    type: compile
+    resolvedIdentifier: fb7ecaa7697fc3ba4157ab7250c542032b6f3b0f
+    extras:
+      artifactId: kubernetes-client-api
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
+  - name: io.fabric8.kubernetes-httpclient-okhttp
+    version: 6.0.0
+    type: runtime
+    indirect: true
+    resolvedIdentifier: b06ddc26ab91382d2ed02ae6c16f3108a12bef04
+    extras:
+      artifactId: kubernetes-httpclient-okhttp
+      baseDep:
+        extras:
+          artifactId: kubernetes-client
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-httpclient-okhttp/6.0.0
+  - name: io.fabric8.kubernetes-model-admissionregistration
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: dcbf5acf8815378769490abee2170d54ac73732b
+    extras:
+      artifactId: kubernetes-model-admissionregistration
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-admissionregistration/6.0.0
+  - name: io.fabric8.kubernetes-model-apiextensions
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: b053ca57ddd50936e1cfe8e5790b77dd76393944
+    extras:
+      artifactId: kubernetes-model-apiextensions
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apiextensions/6.0.0
+  - name: io.fabric8.kubernetes-model-apps
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: f23c0d497dd0a99f35a06bdd0a04dd8a4ec92dd2
+    extras:
+      artifactId: kubernetes-model-apps
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apps/6.0.0
+  - name: io.fabric8.kubernetes-model-autoscaling
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1d6c9585a5c33cfb19cc0ac3a27bc17b2c7e4922
+    extras:
+      artifactId: kubernetes-model-autoscaling
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-autoscaling/6.0.0
+  - name: io.fabric8.kubernetes-model-batch
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 32e9e912473abdbc8c70484db3ba733bdc4772f0
+    extras:
+      artifactId: kubernetes-model-batch
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-batch/6.0.0
+  - name: io.fabric8.kubernetes-model-certificates
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: aef58e6d3ecff8ab73e92a6a0908159e2956eb91
+    extras:
+      artifactId: kubernetes-model-certificates
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-certificates/6.0.0
+  - name: io.fabric8.kubernetes-model-common
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 5451f267796cd342bf5ce2306657eae6319e95fa
+    extras:
+      artifactId: kubernetes-model-common
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-common/6.0.0
+  - name: io.fabric8.kubernetes-model-coordination
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: b2e8564f0426ba14c96421c9bd611a47431d9618
+    extras:
+      artifactId: kubernetes-model-coordination
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-coordination/6.0.0
+  - name: io.fabric8.kubernetes-model-core
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 9dec469abc198daac6d9260fb432e711dc005655
+    extras:
+      artifactId: kubernetes-model-core
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-core/6.0.0
+  - name: io.fabric8.kubernetes-model-discovery
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: b10bf58ec0ef527e8d5854b209f45917aa64e667
+    extras:
+      artifactId: kubernetes-model-discovery
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-discovery/6.0.0
+  - name: io.fabric8.kubernetes-model-events
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: ea54163696f03b5827d7dcf47a753b638a886b25
+    extras:
+      artifactId: kubernetes-model-events
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-events/6.0.0
+  - name: io.fabric8.kubernetes-model-extensions
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 22f366518f18974400a50a9b18d69d4481b97e2a
+    extras:
+      artifactId: kubernetes-model-extensions
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-extensions/6.0.0
+  - name: io.fabric8.kubernetes-model-flowcontrol
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: a8cce874a1b32d283431966643fdfaa148ede743
+    extras:
+      artifactId: kubernetes-model-flowcontrol
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-flowcontrol/6.0.0
+  - name: io.fabric8.kubernetes-model-metrics
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 7406edacfddc43e81fdca5f6b58f9cffcfd6208a
+    extras:
+      artifactId: kubernetes-model-metrics
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-metrics/6.0.0
+  - name: io.fabric8.kubernetes-model-networking
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 5abd2eb6209f3c8f27be9d9361f02609a51d8e4a
+    extras:
+      artifactId: kubernetes-model-networking
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-networking/6.0.0
+  - name: io.fabric8.kubernetes-model-node
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 29b29db3b39c5240b5eda0e6b2ef42e0254be90b
+    extras:
+      artifactId: kubernetes-model-node
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-node/6.0.0
+  - name: io.fabric8.kubernetes-model-policy
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 2a846f217bd879ecee71c03615c2b714630dca4b
+    extras:
+      artifactId: kubernetes-model-policy
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-policy/6.0.0
+  - name: io.fabric8.kubernetes-model-rbac
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 4d218bb7b4b1f6c76d8cfe4ef136813b73973833
+    extras:
+      artifactId: kubernetes-model-rbac
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-rbac/6.0.0
+  - name: io.fabric8.kubernetes-model-scheduling
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 4cca28ace5b98318415d7ffd75f707820d19bf20
+    extras:
+      artifactId: kubernetes-model-scheduling
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-scheduling/6.0.0
+  - name: io.fabric8.kubernetes-model-storageclass
+    version: 6.0.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: e944960ca3f380afaa39366f37145c5bb617e6ec
+    extras:
+      artifactId: kubernetes-model-storageclass
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-storageclass/6.0.0
+  - name: io.fabric8.zjsonpatch
+    version: 0.3.0
+    type: compile
+    indirect: true
+    resolvedIdentifier: 1385fb99630e407ae2821c9a16ccff56c879cdc9
+    extras:
+      artifactId: zjsonpatch
+      baseDep:
+        extras:
+          artifactId: kubernetes-client
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client
+        version: 6.0.0
+      groupId: io.fabric8
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/fabric8/zjsonpatch/0.3.0
+  - name: io.netty.netty-buffer
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: 453d1177e8b3194ef1111ad72d6d5a245c888975
+    extras:
+      artifactId: netty-buffer
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-buffer/4.1.76.Final
+  - name: io.netty.netty-common
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: 40049284125ae2450120801fe3df7f605ce29ee1
+    extras:
+      artifactId: netty-common
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-common/4.1.76.Final
+  - name: io.netty.netty-resolver
+    version: 4.1.76.Final
+    type: runtime
+    indirect: true
+    resolvedIdentifier: afc436aa5f9368bd10e1653a6531dfda0883fa5f
+    extras:
+      artifactId: netty-resolver
+      baseDep:
+        extras:
+          artifactId: netty-transport
+          groupId: io.netty
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.netty.netty-transport
+        version: 4.1.76.Final
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-resolver/4.1.76.Final
+  - name: io.netty.netty-transport
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: fb77aebb06acd640d8dc2c50dcc531c59c7e1696
+    extras:
+      artifactId: netty-transport
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-transport/4.1.76.Final
+  - name: io.netty.netty-transport-classes-epoll
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: e7b89664fddac0b494a8d3492ac532ccf8ed7c06
+    extras:
+      artifactId: netty-transport-classes-epoll
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-transport-classes-epoll/4.1.76.Final
+  - name: io.netty.netty-transport-native-epoll
+    version: 4.1.76.Final
+    classifier: linux-x86_64
+    type: runtime
+    resolvedIdentifier: e1ee2a9c5f63b1b71260caf127a1e50667d62854
+    extras:
+      artifactId: netty-transport-native-epoll
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-transport-native-epoll/4.1.76.Final
+  - name: io.netty.netty-transport-native-unix-common
+    version: 4.1.76.Final
+    type: runtime
+    resolvedIdentifier: 9c1755c00652bd1d568c49bae7c6da56f5dabac6
+    extras:
+      artifactId: netty-transport-native-unix-common
+      groupId: io.netty
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/io/netty/netty-transport-native-unix-common/4.1.76.Final
+  - name: javax.activation.activation
+    version: "1.1"
+    type: provided
+    indirect: true
+    resolvedIdentifier: fd9dd0faa8f03f3ce0dc4eec22e57e818d8b9897
+    extras:
+      artifactId: activation
+      baseDep:
+        extras:
+          artifactId: javaee-api
+          groupId: javax
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: javax.javaee-api
+        version: "7.0"
+      groupId: javax.activation
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/activation/activation/1.1
+  - name: javax.javaee-api
+    version: "7.0"
+    type: provided
+    resolvedIdentifier: e54c73cdc03722ed6c66d02cf27d10970ca0cec1
+    extras:
+      artifactId: javaee-api
+      groupId: javax
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/javax/javaee-api/7.0
+  - name: junit.junit
+    version: "4.11"
+    type: test
+    resolvedIdentifier: cddf7490ffe839978cf5d6c944c01f2a8cb70a49
+    extras:
+      artifactId: junit
+      groupId: junit
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/junit/junit/4.11
+  - name: org.hamcrest.hamcrest-core
+    version: "1.3"
+    type: test
+    indirect: true
+    resolvedIdentifier: 872e413497b906e7c9fa85ccc96046c5d1ef7ece
+    extras:
+      artifactId: hamcrest-core
+      baseDep:
+        extras:
+          artifactId: junit
+          groupId: junit
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: junit.junit
+        version: "4.11"
+      groupId: org.hamcrest
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/hamcrest/hamcrest-core/1.3
+  - name: org.slf4j.slf4j-api
+    version: 1.7.36
+    type: compile
+    indirect: true
+    resolvedIdentifier: 749f6995b1d6591a417ca4fd19cdbddabae16fd1
+    extras:
+      artifactId: slf4j-api
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: org.slf4j
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/slf4j/slf4j-api/1.7.36
+  - name: org.yaml.snakeyaml
+    version: "1.30"
+    type: compile
+    indirect: true
+    resolvedIdentifier: 767ab0a7a346f60dad0acebe318e335a5d27fe55
+    extras:
+      artifactId: snakeyaml
+      baseDep:
+        extras:
+          artifactId: kubernetes-client-api
+          groupId: io.fabric8
+          pomPath: /analyzer-lsp/examples/java/pom.xml
+        name: io.fabric8.kubernetes-client-api
+        version: 6.0.0
+      groupId: org.yaml
+      pomPath: /analyzer-lsp/examples/java/pom.xml
+    labels:
+    - konveyor.io/dep-source=open-source
+    - konveyor.io/language=java
+    prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.30

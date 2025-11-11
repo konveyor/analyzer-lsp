@@ -43,10 +43,10 @@ deps: build-dir
 	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer-dep build/konveyor-analyzer-dep.exe; fi
 
 uber-image-build:
-	docker build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f uber.Dockerfile . -t $(DOCKER_IMAGE)
+	podman build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f uber.Dockerfile . -t $(DOCKER_IMAGE)
 
 image-build:
-	docker build  -f Dockerfile . -t $(DOCKER_IMAGE)
+	podman build  -f Dockerfile . -t $(DOCKER_IMAGE)
 
 build-external: build-golang-dep-provider build-generic-provider build-java-provider build-yq-provider
 
@@ -119,4 +119,4 @@ build-uber-image-demo:
 	podman build -f testing/all-in-one-testing/demo.Dockerfile -t localhost/demo-uber-image .
 
 run-uber-image-demo:
-	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/testing/provider-pod-testing/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/testing/provider-pod-testing/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/demo-uber-image:latest --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source'
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/testing/provider-pod-testing/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/testing/provider-pod-testing/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/demo-uber-image:latest --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source'

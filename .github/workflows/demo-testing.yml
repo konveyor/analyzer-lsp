@@ -103,11 +103,11 @@ jobs:
       - name: ensure violation and dependency outputs are unchanged
         run: |
           diff \
-            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-output.yaml)) \
-            <(yq -P 'sort_keys(..)' -o=props <(cat demo-output.yaml))
+            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:testing/provider-pod-testing/demo-output.yaml)) \
+            <(yq -P 'sort_keys(..)' -o=props <(cat testing/provider-pod-testing/demo-output.yaml))
           diff \
-            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
-            <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
+            <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:testing/provider-pod-testing/demo-dep-output.yaml)) \
+            <(yq -P 'sort_keys(..)' -o=props <(cat testing/provider-pod-testing/demo-dep-output.yaml))
 
       - uses: actions/checkout@v3
         with:
