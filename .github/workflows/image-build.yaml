@@ -102,7 +102,7 @@ jobs:
       shell: bash
       run: |
         TAG=${GITHUB_REF_NAME/main/latest}
-        IMAGE_NAME=quay.io/konveyor/analyzer-lsp:${TAG}-windowsservercore-ltsc2022
+        IMAGE_NAME=quay.io/konveyor/analyzer-lsp:${TAG}-windowsservercore-ltsc2025
         docker build -t ${IMAGE_NAME} -f ./Dockerfile.windows .
         docker push ${IMAGE_NAME}
 
@@ -122,7 +122,7 @@ jobs:
       shell: bash
       run: |
         TAG=${GITHUB_REF_NAME/main/latest}
-        IMAGE_NAME=quay.io/konveyor/dotnet-external-provider:${TAG}-windowsservercore-ltsc2022
+        IMAGE_NAME=quay.io/konveyor/dotnet-external-provider:${TAG}-windowsservercore-ltsc2025
         docker build -t ${IMAGE_NAME} -f ./external-providers/dotnet-external-provider/Dockerfile.windows .
         docker push ${IMAGE_NAME}
 
@@ -136,7 +136,7 @@ jobs:
       run: |
         podman manifest create temp
         podman manifest add temp --all quay.io/konveyor/analyzer-lsp:${tag}
-        podman manifest add temp --all quay.io/konveyor/analyzer-lsp:${tag}-windowsservercore-ltsc2022
+        podman manifest add temp --all quay.io/konveyor/analyzer-lsp:${tag}-windowsservercore-ltsc2025
         podman tag temp quay.io/konveyor/analyzer-lsp:${tag}
     - name: Push manifest to Quay
       uses: redhat-actions/push-to-registry@main
@@ -159,7 +159,7 @@ jobs:
       run: |
         podman manifest create temp
         podman manifest add temp --all quay.io/konveyor/dotnet-external-provider:${tag}
-        podman manifest add temp --all quay.io/konveyor/dotnet-external-provider:${tag}-windowsservercore-ltsc2022
+        podman manifest add temp --all quay.io/konveyor/dotnet-external-provider:${tag}-windowsservercore-ltsc2025
         podman tag temp quay.io/konveyor/dotnet-external-provider:${tag}
     - name: Push manifest to Quay
       uses: redhat-actions/push-to-registry@main
