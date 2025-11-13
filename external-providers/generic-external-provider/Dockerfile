@@ -10,9 +10,7 @@ COPY external-providers/generic-external-provider/go.sum go.sum
 COPY external-providers/generic-external-provider/main.go main.go
 COPY external-providers/generic-external-provider/pkg/ pkg/
 
-RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
-
-RUN go build -o generic-external-provider main.go && go install golang.org/x/tools/gopls@v0.18.0
+RUN --mount=type=cache,id=gomod,uid=1001,target=go/pkg/mod cd generic-provider && go build -o generic-external-provider main.go 
 
 FROM golang-dep-provider as go-dep-provider
 
