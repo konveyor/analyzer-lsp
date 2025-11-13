@@ -1,25 +1,18 @@
 - name: konveyor-analysis
-  tags:
-  - Backend=Golang
-  - Infra=Kubernetes
-  - Java
-  - Java Operator SDK
-  - Language=Golang
-  - License=Apache
   violations:
     go-lang-ref-001:
-      description: ''
+      description: ""
       category: potential
       incidents:
       - uri: file:///examples/golang/main.go
-        message: 'golang apiextensions/v1/customresourcedefinitions found file:///examples/golang/main.go:11'
+        message: golang apiextensions/v1/customresourcedefinitions found file:///examples/golang/main.go:11
         codeSnip: " 2  \n 3  import (\n 4  \t\"fmt\"\n 5  \n 6  \t\"github.com/konveyor/analyzer-lsp/examples/golang/dummy\"\n 7  \t\"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1\"\n 8  )\n 9  \n10  func main() {\n11  \tfmt.Println(v1beta1.CustomResourceDefinition{})\n12  \n13  \tfmt.Println(dummy.HelloWorld())\n14  }\n"
         lineNumber: 11
         variables:
           file: file:///examples/golang/main.go
       effort: 1
     golang-gomod-dependencies:
-      description: ''
+      description: ""
       category: potential
       incidents:
       - uri: file:///examples/golang/go.mod
@@ -85,7 +78,7 @@
           file: file:///examples/nodejs/test_b.ts
       effort: 1
     python-sample-rule-001:
-      description: ''
+      description: ""
       category: potential
       incidents:
       - uri: file:///examples/python/file_a.py
@@ -96,7 +89,7 @@
           file: file:///examples/python/file_a.py
       effort: 1
     python-sample-rule-002:
-      description: ''
+      description: ""
       category: potential
       incidents:
       - uri: file:///examples/python/file_a.py
@@ -117,3 +110,6 @@
         variables:
           file: file:///examples/nodejs/Component.tsx
       effort: 1
+  unmatched:
+  - node-sample-rule-003
+  - python-sample-rule-003
