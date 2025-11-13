@@ -1,4 +1,4 @@
-DOCKER_IMAGE = test
+IMG_ANALYZER ?= konveyor-analyzer-local
 TAG_JAVA_BUNDLE ?= latest
 IMG_JAVA_PROVIDER ?= java-provider
 IMG_DOTNET_PROVIDER ?= dotnet-provider
@@ -49,7 +49,7 @@ deps: build-dir
 	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer-dep build/konveyor-analyzer-dep.exe; fi
 
 image-build:
-	docker build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f Dockerfile . -t $(DOCKER_IMAGE)
+	docker build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f Dockerfile . -t $(IMG_ANALYZER)
 
 build-external: build-dotnet-provider build-golang-dep-provider build-generic-provider build-java-provider build-yq-provider
 
@@ -101,10 +101,89 @@ run-external-providers-pod:
 	podman run --entrypoint /usr/local/bin/entrypoint.sh --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14653
 	podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14654 --name nodejs
 	podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
-	podman build -f demo-local.Dockerfile -t localhost/testing:latest
 
 run-demo-image:
-	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z localhost/testing:latest --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source'
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z $(IMG_ANALYZER) --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source'
+
+# Provider-specific test targets
+run-java-provider-pod:
+	podman volume create test-data
+	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman pod create --name=analyzer-java
+	podman run --pod analyzer-java --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_JAVA_PROVIDER) --port 14651
+
+run-demo-java:
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-java \
+		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
+		-v $(PWD)/external-providers/java-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
+		-v $(PWD)/external-providers/java-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
+		-v $(PWD)/external-providers/java-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		$(IMG_ANALYZER) \
+		--output-file=/analyzer-lsp/output.yaml \
+		--rules=/analyzer-lsp/rule-example.yaml \
+		--provider-settings=/analyzer-lsp/provider_settings.json
+
+stop-java-provider-pod:
+	podman pod kill analyzer-java || true
+	podman pod rm analyzer-java || true
+	podman volume rm test-data || true
+
+run-generic-provider-pod:
+	podman volume create test-data
+	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman pod create --name=analyzer-generic
+	podman run --entrypoint /usr/local/bin/entrypoint.sh --pod analyzer-generic --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14653
+	podman run --pod analyzer-generic --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14654 --name nodejs
+	podman run --pod analyzer-generic --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
+
+run-demo-generic:
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic \
+		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		$(IMG_ANALYZER) \
+		--output-file=/analyzer-lsp/output.yaml \
+		--rules=/analyzer-lsp/rule-example.yaml \
+		--provider-settings=/analyzer-lsp/provider_settings.json
+
+stop-generic-provider-pod:
+	podman pod kill analyzer-generic || true
+	podman pod rm analyzer-generic || true
+	podman volume rm test-data || true
+
+run-yaml-provider-pod:
+	podman volume create test-data
+	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman pod create --name=analyzer-yaml
+	podman run --pod analyzer-yaml --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_YQ_PROVIDER) --port 14652
+
+run-demo-yaml:
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-yaml \
+		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
+		-v $(PWD)/external-providers/yq-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
+		-v $(PWD)/external-providers/yq-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
+		-v $(PWD)/external-providers/yq-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		$(IMG_ANALYZER) \
+		--output-file=/analyzer-lsp/output.yaml \
+		--rules=/analyzer-lsp/rule-example.yaml \
+		--provider-settings=/analyzer-lsp/provider_settings.json
+
+stop-yaml-provider-pod:
+	podman pod kill analyzer-yaml || true
+	podman pod rm analyzer-yaml || true
+	podman volume rm test-data || true
+
+# Run all provider tests sequentially
+test-all-providers: test-java test-generic test-yaml
+	@echo "All provider tests completed successfully!"
+
+test-java: build-java-provider run-java-provider-pod run-demo-java stop-java-provider-pod
+
+test-generic: build-golang-dep-provider build-generic-provider run-generic-provider-pod run-demo-generic stop-generic-provider-pod
+
+test-yaml: build-yq-provider run-yaml-provider-pod run-demo-yaml stop-yaml-provider-pod
 
 stop-external-providers-pod: stop-external-providers
 	podman pod kill analyzer
