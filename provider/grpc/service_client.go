@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
 	pb "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"go.lsp.dev/uri"
@@ -13,6 +14,7 @@ type grpcServiceClient struct {
 	id     int64
 	config provider.InitConfig
 	client pb.ProviderServiceClient
+	log    logr.Logger
 }
 
 var _ provider.ServiceClient = &grpcServiceClient{}
@@ -25,6 +27,7 @@ func (g *grpcServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}
 
 	r, err := g.client.Evaluate(ctx, &m)
+	g.log.Info("Made call to Evaluate", "err", err)
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, err
 	}

@@ -571,6 +571,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 	span.SetAttributes(attribute.Key("condition").String(string(templatedInfo)))
 	resp, err := p.Client.Evaluate(ctx, p.Capability, templatedInfo)
 	if err != nil {
+		log.Error(err, "unable to make evaluate call", "cap", p.Capability)
 		// If an error always just return the empty
 		return engine.ConditionResponse{}, err
 	}

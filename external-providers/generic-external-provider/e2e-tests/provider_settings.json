@@ -1,0 +1,64 @@
+[
+    {
+        "name": "go",
+        "address": "localhost:14653",
+        "initConfig": [{
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "generic",
+                "lspServerPath": "/root/go/bin/gopls",
+                "lspServerArgs": [],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/golang"],
+                "dependencyFolders": [],
+
+                "dependencyProviderPath": "/usr/local/bin/golang-dependency-provider"
+            }
+        }]
+    },
+    {
+        "name": "python",
+        "address": "localhost:14655",
+        "initConfig": [{
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "pylsp",
+                "lspServerPath": "/usr/local/bin/pylsp",
+                "lspServerArgs": [],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/python"],
+                "dependencyFolders": ["examples/python/__pycache__", "examples/python/.venv"],
+
+                "dependencyProviderPath": ""
+            }
+        }]
+    },
+    {
+        "name": "nodejs",
+        "address": "localhost:14654",
+        "initConfig": [{
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "nodejs",
+                "lspServerPath": "/usr/local/bin/typescript-language-server",
+                "lspServerArgs": ["--stdio"],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/nodejs"],
+                "dependencyFolders": [""],
+
+                "dependencyProviderPath": ""
+            }
+        }]
+    },
+    {
+        "name": "builtin",
+        "initConfig": [
+            {"location": "examples/golang/"},
+            {"location": "examples/nodejs/"},
+            {"location": "examples/python/"}
+        ]
+    }
+]
