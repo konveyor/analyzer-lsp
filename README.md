@@ -8,11 +8,10 @@ One of the primary drivers for this repository is adding providers for specific 
 
 If you would like to run a quick demo we have a Dockerfile that has all the dependencies.
 
-To run this demo build the containers:
+To run this demo build the container:
 
 ```sh
-podman build -f Dockerfile -t quay.io/konveyor/analyzer-lsp
-podman build -f demo.Dockerfile -t test-analyzer-engine
+make image-build
 ```
 
 This will build the engine, and include the current set of rules and examples in the container to be used.
