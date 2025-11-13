@@ -9,8 +9,34 @@ on:
     - "v*"
 
 jobs:
-  test:
+  provider-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [java, generic, yaml]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: build images
+        run: |
+          make build-external
+
+      - name: build analyzer-lsp image
+        run: |
+          make image-build
+
+      - name: run provider-specific test
+        run: |
+          make test-${{ matrix.provider }}
+
+  test:
+    needs: provider-tests
+    runs-on: ubuntu-latest
+    env:
+      IMG_JAVA_PROVIDER: ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
+      IMG_DOTNET_PROVIDER: ttl.sh/konveyor-dotnet-external-provider-${{ github.sha }}:2h
+      IMG_GENERIC_PROVIDER: ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
     outputs:
       api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
       tackle2_hub_tag: ${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}
@@ -20,10 +46,6 @@ jobs:
         env:
           PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: |
-          echo "IMG_JAVA_PROVIDER=ttl.sh/konveyor-java-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
-          echo "IMG_DOTNET_PROVIDER=ttl.sh/konveyor-dotnet-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
-          echo "IMG_GENERIC_PROVIDER=ttl.sh/konveyor-generic-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
-
           echo "BUILD_BUNDLE=false" >> $GITHUB_OUTPUT
           # if this is a PR, we should use the base branch
           # else, use the branch on which this is running
@@ -78,23 +100,14 @@ jobs:
       # build all provider images and the analyzer-lsp image
       - name: build images
         run: |
-          make \
-            IMG_JAVA_PROVIDER=${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}\
-            IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
-            IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
-            TAG_JAVA_BUNDLE=${{steps.extract-info.outputs.BUNDLE_IMAGE_TAG}}\
-            build-external
-          podman build --build-arg JAVA_BUNDLE_TAG=${{steps.extract-info.outputs.BUNDLE_IMAGE_TAG}} -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
+          make TAG_JAVA_BUNDLE=${{ steps.extract-info.outputs.BUNDLE_IMAGE_TAG }} build-external
+          podman build --build-arg JAVA_BUNDLE_TAG=${{ steps.extract-info.outputs.BUNDLE_IMAGE_TAG }} -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 
       # run the demo in a podman pod
       - name: run demo image
         run : |
-          make \
-            IMG_JAVA_PROVIDER=${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}\
-            IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
-            IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
-            run-external-providers-pod
-          podman build -f demo-local.Dockerfile -t localhost/testing:latest
+          make run-external-providers-pod
+          make image-build
           make run-demo-image
       
       - name: install yq for testing
@@ -121,9 +134,9 @@ jobs:
         run: |
           IMG=ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h make image-podman
           podman push ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h
-          podman push ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
-          podman push ${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}
-          podman push ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
+          podman push ${IMG_JAVA_PROVIDER}
+          podman push ${IMG_DOTNET_PROVIDER}
+          podman push ${IMG_GENERIC_PROVIDER}
       
       - name: Make bundle image
         uses: konveyor/operator/.github/actions/make-bundle@main
@@ -131,8 +144,8 @@ jobs:
           operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
           addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
           tackle_hub: "quay.io/konveyor/tackle2-hub:${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}"
-          provider_generic: ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
-          provider_java: ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
+          provider_generic: ${{ env.IMG_GENERIC_PROVIDER }}
+          provider_java: ${{ env.IMG_JAVA_PROVIDER }}
       - name: push bundle image 
         run: |
           docker push ttl.sh/konveyor-operator-bundle-${GITHUB_SHA}:2h
