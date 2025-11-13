@@ -9,68 +9,146 @@ on:
     - "v*"
 
 jobs:
-  provider-tests:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      java: ${{ steps.filter.outputs.java }}
+      generic: ${{ steps.filter.outputs.generic }}
+      yaml: ${{ steps.filter.outputs.yaml }}
+      image_tag: ${{ steps.set-tag.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set image tag
+        id: set-tag
+        run: |
+          echo "image_tag=${{ github.sha }}-${{ github.run_id }}" >> $GITHUB_OUTPUT
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            java:
+              - '**'
+              - '!external-providers/**'
+              - 'external-providers/java-external-provider/**'
+            generic:
+              - '**'
+              - '!external-providers/**'
+              - 'external-providers/generic-external-provider/**'
+            yaml:
+              - '**'
+              - '!external-providers/**'
+              - 'external-providers/yq-external-provider/**'
+
+  build-golang-dep-provider:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build golang-dependency-provider image
+        uses: shawn-hurley/ci/build-image@main
+        with:
+          repo: konveyor/analyzer-lsp
+          checked_out: true
+          image_name: golang-dep-provider
+          image_tag: ${{ needs.detect-changes.outputs.image_tag }}
+          dockerfile_path: external-providers/golang-dependency-provider/Dockerfile
+          build_context: .
+
+  build-all-providers:
+    needs: [detect-changes, build-golang-dep-provider]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        provider: [java, generic, yaml]
+        include:
+          - provider: java
+            image_name: java-provider
+            dockerfile: external-providers/java-external-provider/Dockerfile
+            build_args: JAVA_BUNDLE_TAG=latest
+          - provider: generic
+            image_name: generic-provider
+            dockerfile: external-providers/generic-external-provider/Dockerfile
+            needs_golang_dep: true
+          - provider: yq
+            image_name: yq-provider
+            dockerfile: external-providers/yq-external-provider/Dockerfile
+          - provider: dotnet
+            image_name: dotnet-provider
+            dockerfile: external-providers/dotnet-external-provider/Dockerfile
     steps:
       - uses: actions/checkout@v3
 
-      - name: build images
-        run: |
-          make build-external
+      - name: Build ${{ matrix.provider }} provider image
+        uses: shawn-hurley/ci/build-image@main
+        with:
+          repo: konveyor/analyzer-lsp
+          checked_out: true
+          image_name: ${{ matrix.image_name }}
+          image_tag: ${{ needs.detect-changes.outputs.image_tag }}
+          dockerfile_path: ${{ matrix.dockerfile }}
+          build_context: .
+          base_image: ${{ matrix.needs_golang_dep == true && format('golang-dep-provider--{0}', needs.detect-changes.outputs.image_tag) || '' }}
+          build_args: ${{ matrix.build_args || '' }}
 
-      - name: build analyzer-lsp image
-        run: |
-          make image-build
+  provider-tests:
+    needs: [detect-changes, build-all-providers]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - provider: java
+            artifact_pattern: java-provider
+          - provider: generic
+            artifact_pattern: '*-provider'
+          - provider: yaml
+            artifact_pattern: yq-provider
+    steps:
+      - uses: actions/checkout@v3
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
 
-      - name: run provider-specific test
+      - name: Download provider image artifacts
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ format('{0}--{1}', matrix.artifact_pattern, needs.detect-changes.outputs.image_tag) }}
+          path: /tmp/images
+          merge-multiple: true
+
+      - name: Load images into podman
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+        run: |
+          for image in $(find /tmp/images -type f -name "*.tar"); do
+            echo "Loading image: ${image}"
+            podman load -i "${image}"
+          done
+          echo "Loaded images:"
+          podman images
+
+      - name: Run provider-specific test
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
         run: |
           make test-${{ matrix.provider }}
 
-  test:
-    needs: provider-tests
+  build-analyzer-lsp:
+    needs: detect-changes
     runs-on: ubuntu-latest
-    env:
-      IMG_JAVA_PROVIDER: ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
-      IMG_DOTNET_PROVIDER: ttl.sh/konveyor-dotnet-external-provider-${{ github.sha }}:2h
-      IMG_GENERIC_PROVIDER: ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
-    outputs:
-      api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
-      tackle2_hub_tag: ${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}
     steps:
-      - name: Extract pull request number from inputs or PR description
+      - name: Extract bundle info
         id: extract-info
         env:
           PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: |
           echo "BUILD_BUNDLE=false" >> $GITHUB_OUTPUT
-          # if this is a PR, we should use the base branch
-          # else, use the branch on which this is running
-          if [ ! -z ${GITHUB_BASE_REF} ]; then 
-              echo "Using ${GITHUB_BASE_REF}"
-              echo "API_TESTS_REF=${GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
-              echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
-              echo "JAVA_BUNDLE_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
+          if [ ! -z ${GITHUB_BASE_REF} ]; then
               echo "BUNDLE_IMAGE_TAG=${GITHUB_BASE_REF/main/latest}" >>$GITHUB_OUTPUT
-              echo "TACKLE2_HUB_TAG=${GITHUB_BASE_REF/main/latest}" >> $GITHUB_OUTPUT
+              echo "JAVA_BUNDLE_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
           else
-              echo "Using ${GITHUB_REF_NAME}"
-              echo "API_TESTS_REF=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-              echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
-              echo "JAVA_BUNDLE_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
               echo "BUNDLE_IMAGE_TAG=${GITHUB_REF_NAME/main/latest}" >>$GITHUB_OUTPUT
-              echo "TACKLE2_HUB_TAG=${GITHUB_REF_NAME/main/latest}" >> $GITHUB_OUTPUT
-          fi
-          
-          # override with explicitely set value in PR description
-          echo "${PULL_REQUEST_BODY}"
-          ADDON_PULL_REQUEST_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[A|a]ddon [P|p][R|r]: \K\d+' || true)
-          if [ ! -z "$ADDON_PULL_REQUEST_NUMBER" ]; then
-            echo "Using pull/${ADDON_PULL_REQUEST_NUMBER} for addon"
-            echo "ADDON_REF=refs/pull/$ADDON_PULL_REQUEST_NUMBER/merge" >>$GITHUB_OUTPUT
+              echo "JAVA_BUNDLE_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
           fi
 
           JAVA_BUNDLE_PR_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[B|b]undle [P|p][R|r]: \K\d+' || true)
@@ -88,8 +166,8 @@ jobs:
           repository: konveyor/java-analyzer-bundle
           ref: "${{ steps.extract-info.outputs.JAVA_BUNDLE_REF }}"
           path: java-analyzer-bundle
-      
-      - name: build java analyzer bundle image
+
+      - name: Build java analyzer bundle image
         if: steps.extract-info.outputs.BUILD_BUNDLE == 'true'
         working-directory: java-analyzer-bundle
         run: |
@@ -97,17 +175,97 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      # build all provider images and the analyzer-lsp image
-      - name: build images
+      - name: Build analyzer-lsp image
+        uses: shawn-hurley/ci/build-image@main
+        with:
+          repo: konveyor/analyzer-lsp
+          checked_out: true
+          image_name: quay.io/konveyor/analyzer-lsp
+          image_tag: ${{ needs.detect-changes.outputs.image_tag }}
+          dockerfile_path: Dockerfile
+          build_context: .
+          build_args: JAVA_BUNDLE_TAG=${{ steps.extract-info.outputs.BUNDLE_IMAGE_TAG }}
+
+  test:
+    needs: [detect-changes, build-all-providers, build-analyzer-lsp, provider-tests]
+    runs-on: ubuntu-latest
+    env:
+      IMG_JAVA_PROVIDER: ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
+      IMG_DOTNET_PROVIDER: ttl.sh/konveyor-dotnet-external-provider-${{ github.sha }}:2h
+      IMG_GENERIC_PROVIDER: ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
+    outputs:
+      api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
+      tackle2_hub_tag: ${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}
+    steps:
+      - name: Extract pull request number from inputs or PR description
+        id: extract-info
+        env:
+          PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: |
-          make TAG_JAVA_BUNDLE=${{ steps.extract-info.outputs.BUNDLE_IMAGE_TAG }} build-external
-          podman build --build-arg JAVA_BUNDLE_TAG=${{ steps.extract-info.outputs.BUNDLE_IMAGE_TAG }} -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
+          echo "BUILD_BUNDLE=false" >> $GITHUB_OUTPUT
+          # if this is a PR, we should use the base branch
+          # else, use the branch on which this is running
+          if [ ! -z ${GITHUB_BASE_REF} ]; then
+              echo "Using ${GITHUB_BASE_REF}"
+              echo "API_TESTS_REF=${GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
+              echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
+              echo "JAVA_BUNDLE_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
+              echo "BUNDLE_IMAGE_TAG=${GITHUB_BASE_REF/main/latest}" >>$GITHUB_OUTPUT
+              echo "TACKLE2_HUB_TAG=${GITHUB_BASE_REF/main/latest}" >> $GITHUB_OUTPUT
+          else
+              echo "Using ${GITHUB_REF_NAME}"
+              echo "API_TESTS_REF=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+              echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
+              echo "JAVA_BUNDLE_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
+              echo "BUNDLE_IMAGE_TAG=${GITHUB_REF_NAME/main/latest}" >>$GITHUB_OUTPUT
+              echo "TACKLE2_HUB_TAG=${GITHUB_REF_NAME/main/latest}" >> $GITHUB_OUTPUT
+          fi
+
+          # override with explicitely set value in PR description
+          echo "${PULL_REQUEST_BODY}"
+          ADDON_PULL_REQUEST_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[A|a]ddon [P|p][R|r]: \K\d+' || true)
+          if [ ! -z "$ADDON_PULL_REQUEST_NUMBER" ]; then
+            echo "Using pull/${ADDON_PULL_REQUEST_NUMBER} for addon"
+            echo "ADDON_REF=refs/pull/$ADDON_PULL_REQUEST_NUMBER/merge" >>$GITHUB_OUTPUT
+          fi
+
+          JAVA_BUNDLE_PR_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[B|b]undle [P|p][R|r]: \K\d+' || true)
+          if [ ! -z "$JAVA_BUNDLE_PR_NUMBER" ]; then
+            echo "Using bundle PR pull/${JAVA_BUNDLE_PR_NUMBER}"
+            echo "JAVA_BUNDLE_REF=refs/pull/$JAVA_BUNDLE_PR_NUMBER/merge" >> $GITHUB_OUTPUT
+            echo "BUILD_BUNDLE=true" >>$GITHUB_OUTPUT
+            echo "BUNDLE_IMAGE_TAG=latest" >>$GITHUB_OUTPUT
+          fi
+
+      - uses: actions/checkout@v3
+
+      - name: Download all provider image artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/images
+          pattern: ${{ format('*-provider--{0}', needs.detect-changes.outputs.image_tag) }}
+          merge-multiple: true
+
+      - name: Download analyzer-lsp image artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/images
+          pattern: ${{ format('quay.io_konveyor_analyzer-lsp--{0}', needs.detect-changes.outputs.image_tag) }}
+          merge-multiple: true
+
+      - name: Load images into podman
+        run: |
+          for image in $(find /tmp/images -type f -name "*.tar"); do
+            echo "Loading image: ${image}"
+            podman load -i "${image}"
+          done
+          echo "Loaded images:"
+          podman images
 
       # run the demo in a podman pod
       - name: run demo image
         run : |
           make run-external-providers-pod
-          make image-build
           make run-demo-image
       
       - name: install yq for testing

@@ -15,9 +15,7 @@ COPY external-providers/java-external-provider/go.sum go.sum
 COPY external-providers/java-external-provider/main.go main.go
 COPY external-providers/java-external-provider/pkg/ pkg/
 
-RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
-
-RUN go build -a -o java-external-provider main.go
+RUN --mount=type=cache,id=gomod,uid=1001,target=go/pkg/mod cd java && go build -a -o java-external-provider main.go
 
 FROM base
 

@@ -10,9 +10,7 @@ COPY external-providers/yq-external-provider/go.sum go.sum
 COPY external-providers/yq-external-provider/main.go main.go
 COPY external-providers/yq-external-provider/pkg/ pkg/
 
-RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
-
-RUN go build -o yq-external-provider main.go
+RUN --mount=type=cache,id=gomod,uid=1001,target=go/pkg/mod cd yq && go build -o yq-external-provider main.go
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
