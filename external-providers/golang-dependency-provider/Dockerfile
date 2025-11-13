@@ -9,9 +9,7 @@ COPY external-providers/golang-dependency-provider/go.sum go.sum
 
 COPY external-providers/golang-dependency-provider/main.go main.go
 
-RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
-
-RUN go build -o golang-dependency-provider main.go
+RUN --mount=type=cache,id=gomod,uid=1001,target=go/pkg/mod cd golang-dependency && go build -o golang-dependency-provider main.go
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 

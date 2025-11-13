@@ -19,7 +19,7 @@ COPY go.mod /analyzer-lsp/go.mod
 COPY go.sum /analyzer-lsp/go.sum
 COPY Makefile /analyzer-lsp/Makefile
 
-RUN make build
+RUN --mount=type=cache,id=gomod,uid=1001,target=go/pkg/mod make build
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as yq-builder
 RUN microdnf install -y wget tar xz gzip && \
