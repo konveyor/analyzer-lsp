@@ -278,11 +278,12 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		gradleTaskFile = ""
 	}
 
-	mavenIndexPath, ok := config.ProviderSpecificConfig[MAVEN_INDEX_PATH].(string)
+	mavenSHASearchIndex, ok := config.ProviderSpecificConfig[MAVEN_INDEX_PATH].(string)
 	if !ok {
 		log.Info("unable to find the maven index path in the provider specific config")
 	}
 
+	mavenOpenSourceIndex, ok := config.ProviderSpecificConfig[labels.ProviderSpecificConfigOpenSourceDepListKey].(string)
 	// each service client should have their own context
 	downloadCtx, cancelFunc := context.WithCancel(ctx)
 	// location can be a coordinate to a remote mvn artifact
@@ -309,7 +310,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		Config:          config,
 		MvnSettingsFile: mavenSettingsFile,
 		MvnInsecure:     mavenInsecure,
-		MavenIndexPath:  mavenIndexPath,
+		MavenIndexPath:  mavenSHASearchIndex,
 		Labeler:         openSourceLabeler,
 		GradleTaskFile:  gradleTaskFile,
 	}, log)
@@ -341,7 +342,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			depsLocationCache: make(map[string]int),
 			includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
 			buildTool:         buildTool,
-			mvnIndexPath:      mavenIndexPath,
+			mvnIndexPath:      mavenOpenSourceIndex,
 			mvnSettingsFile:   mavenSettingsFile,
 		}, provider.InitConfig{}, nil
 	} else if lspServerPath == "" {
@@ -481,7 +482,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		depsLocationCache: make(map[string]int),
 		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
 		buildTool:         buildTool,
-		mvnIndexPath:      mavenIndexPath,
+		mvnIndexPath:      mavenOpenSourceIndex,
 		mvnSettingsFile:   mavenSettingsFile,
 	}
 
