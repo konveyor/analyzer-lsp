@@ -1,4 +1,4 @@
-FROM golang:1.22-windowsservercore-ltsc2022 as builder
+FROM golang:1.25-windowsservercore-ltsc2025 as builder
 WORKDIR /analyzer-lsp
 
 COPY cmd /analyzer-lsp/cmd
@@ -17,7 +17,7 @@ COPY go.sum /analyzer-lsp/go.sum
 
 RUN go build -o konveyor-analyzer.exe ./cmd/analyzer/main.go
 
-FROM mcr.microsoft.com/windows/servercore:ltsc2022
+FROM mcr.microsoft.com/windows/servercore:ltsc2025
 
 # Set the working directory inside the container
 WORKDIR C:/app
