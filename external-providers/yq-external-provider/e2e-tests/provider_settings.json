@@ -1,0 +1,20 @@
+[
+    {
+        "name": "yaml",
+        "address": "localhost:14652",
+        "initConfig": [{
+            "location": "/analyzer-lsp/examples/yaml",
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "name": "yq",
+                "lspServerPath": "/usr/local/bin/yq"
+            }
+        }]
+    },
+    {
+        "name": "builtin",
+        "initConfig": [
+            {"location": "examples/yaml/"}
+        ]
+    }
+]

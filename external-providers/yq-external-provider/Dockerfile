@@ -26,14 +26,6 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
 
 USER 1001
 
-# Debug: Check cache mount permissions
-RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod \
-    echo "=== Cache mount debug info ===" && \
-    id && \
-    ls -la /opt/app-root/src/ && \
-    ls -la /opt/app-root/src/go/ && \
-    ls -la /opt/app-root/src/go/pkg/mod/ || echo "mod dir doesn't exist yet"
-
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd yq && go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
 
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd yq && go build -o yq-external-provider main.go

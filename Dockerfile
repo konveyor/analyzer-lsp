@@ -34,15 +34,6 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
 
 USER 1001
 
-# Debug: Check cache mount permissions
-RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod \
-    echo "=== Cache mount debug info ===" && \
-    id && \
-    ls -la /opt/app-root/src/ && \
-    ls -la /opt/app-root/src/go/ && \
-    ls -la /opt/app-root/src/go/pkg/ || echo "pkg dir doesn't exist yet" && \
-    ls -la /opt/app-root/src/go/pkg/mod/ || echo "mod dir doesn't exist yet"
-
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod make build
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as yq-builder
