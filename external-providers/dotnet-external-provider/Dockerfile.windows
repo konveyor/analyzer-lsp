@@ -1,4 +1,4 @@
-FROM golang:1.22-windowsservercore-ltsc2022 as builder
+FROM golang:1.25-windowsservercore-ltsc2025 as builder
 
 COPY / /analyzer-lsp
 WORKDIR /dotnet-provider
@@ -14,7 +14,7 @@ RUN go mod tidy
 
 RUN go build -o bin/dotnet-external-provider.exe main.go
 
-FROM mcr.microsoft.com/dotnet/framework/sdk:4.8
+FROM mcr.microsoft.com/dotnet/framework/sdk:4.8.1
 
 RUN dotnet tool install --global csharp-ls --version 0.11.0
 
