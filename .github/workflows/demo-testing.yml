@@ -141,6 +141,7 @@ jobs:
           done
           echo "Loaded images:"
           podman images
+          rm -rf /tmp/images
 
       - name: Run provider-specific test
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
@@ -215,6 +216,7 @@ jobs:
           done
           echo "Loaded images:"
           podman images
+          rm -rf /tmp/images
 
       # run the demo in a podman pod
       - name: run demo image
