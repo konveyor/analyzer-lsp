@@ -273,7 +273,11 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 	})
 
 	// Need a better name for this thing
-	ret := make(chan response)
+	// Buffer the response channel to prevent workers from blocking when sending responses.
+	// Use the capacity of ruleProcessing channel as a reasonable buffer size since it
+	// corresponds to the max number of rules that can be queued (10 by default).
+	// This prevents deadlock when multiple workers finish simultaneously and try to send.
+	ret := make(chan response, cap(r.ruleProcessing))
 
 	var matchedRules int32
 	var unmatchedRules int32
