@@ -200,44 +200,39 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return sc.Conn.Notify(ctx, "textDocument/didClose", params)
 	}
 
-	BATCH_SIZE := 32
-	batchRight, batchLeft := 0, 0
-	var symbols []protocol.WorkspaceSymbol
-	for batchRight < len(nodeFiles) {
-		for batchRight-batchLeft < BATCH_SIZE && batchRight < len(nodeFiles) {
-			fileInfo := nodeFiles[batchRight]
-			trimmedURI := strings.TrimPrefix(fileInfo.path, "file://")
-			text, err := os.ReadFile(trimmedURI)
-			if err != nil {
-				return provider.ProviderEvaluateResponse{}, err
-			}
-
-			// TODO eemcmullan: look into better solution
-			// didOpen calls conn.Notify, which does not wait for a response
-			// for small apps, this can cause another conn.Notify call before the previous completes
-			// resulting in missing incidents
-			time.Sleep(2 * time.Second)
-			err = didOpen(fileInfo.path, fileInfo.langID, text)
-			if err != nil {
-				return provider.ProviderEvaluateResponse{}, err
-			}
-
-			batchRight++
+	// Open all files first
+	for _, fileInfo := range nodeFiles {
+		trimmedURI := strings.TrimPrefix(fileInfo.path, "file://")
+		text, err := os.ReadFile(trimmedURI)
+		if err != nil {
+			return provider.ProviderEvaluateResponse{}, err
 		}
-		symbols = sc.GetAllDeclarations(ctx, sc.BaseConfig.WorkspaceFolders, query)
-		batchLeft = batchRight
+
+		// didOpen calls conn.Notify, which does not wait for a response
+		err = didOpen(fileInfo.path, fileInfo.langID, text)
+		if err != nil {
+			return provider.ProviderEvaluateResponse{}, err
+		}
 	}
+
+	// Sleep once after all files are opened to allow LSP server to process
+	// all didOpen notifications before querying for symbols.
+	// This prevents the race condition without requiring sleep before each file.
+	time.Sleep(500 * time.Millisecond)
+
+	// Query symbols once after all files are indexed
+	symbols := sc.GetAllDeclarations(ctx, sc.BaseConfig.WorkspaceFolders, query)
 
 	incidentsMap, err := sc.EvaluateSymbols(ctx, symbols)
 	if err != nil {
 		return resp{}, err
 	}
 
-	for batchLeft < batchRight {
-		if err = didClose(nodeFiles[batchLeft].path); err != nil {
+	// Close all opened files
+	for _, fileInfo := range nodeFiles {
+		if err = didClose(fileInfo.path); err != nil {
 			return provider.ProviderEvaluateResponse{}, err
 		}
-		batchLeft++
 	}
 
 	incidents := []provider.IncidentContext{}
