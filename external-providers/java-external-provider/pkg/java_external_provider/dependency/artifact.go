@@ -122,8 +122,7 @@ func constructArtifactFromSHA(log logr.Logger, jarFile string, mavenIndexPath st
 	}
 
 	sha1sum := hex.EncodeToString(hash.Sum(nil))
-	dataFilePath := filepath.Join(mavenIndexPath, "maven-index.txt")
-	return search(log, sha1sum, dataFilePath)
+	return search(log, sha1sum, mavenIndexPath)
 }
 
 // constructArtifactFromPom extracts Maven coordinates from a JAR's embedded pom.properties file.
