@@ -103,7 +103,7 @@ var mavenSearchErrorCache error
 // Parameters:
 //   - log: Logger for error reporting
 //   - jarFile: Absolute path to the JAR file
-//   - mavenIndexPath: Path to directory containing maven-index.txt
+//   - mavenIndexPath: Path to the txt index file
 //
 // Returns JavaArtifact with FoundOnline=true if found, or error if lookup fails.
 func constructArtifactFromSHA(log logr.Logger, jarFile string, mavenIndexPath string) (JavaArtifact, error) {
