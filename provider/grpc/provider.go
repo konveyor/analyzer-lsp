@@ -61,8 +61,17 @@ func convertValue(value interface{}) interface{} {
 	}
 
 	v := reflect.ValueOf(value)
+
+	// Check for typed nil (e.g., nil map, nil slice, nil pointer)
+	// This ensures nil maps are marshaled as null instead of empty structs
+	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		if v.IsNil() {
+			return nil
+		}
+	}
+
 	switch v.Kind() {
-	case reflect.Slice:
+	case reflect.Slice, reflect.Array:
 		// If it's already []interface{}, check if nested conversion is needed
 		if slice, ok := value.([]interface{}); ok {
 			// Check if any element needs conversion to avoid unnecessary allocation
@@ -121,8 +130,16 @@ func requiresConversion(value interface{}) bool {
 	}
 
 	v := reflect.ValueOf(value)
+
+	// Typed nil values don't need conversion
+	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		if v.IsNil() {
+			return false
+		}
+	}
+
 	switch v.Kind() {
-	case reflect.Slice:
+	case reflect.Slice, reflect.Array:
 		// Typed slices need conversion, []interface{} might have nested structures
 		if _, ok := value.([]interface{}); ok {
 			// Check elements for nested structures

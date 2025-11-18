@@ -363,6 +363,37 @@ func TestRequiresConversion(t *testing.T) {
 	}
 }
 
+// TestNilMapSemantics verifies the behavior of nil maps in nested structures
+func TestNilMapSemantics(t *testing.T) {
+	// This test documents the nil map behavior difference from structpb.NewStruct
+	// When a nested map is nil, our implementation returns nil (which becomes null_value:NULL_VALUE)
+	// whereas structpb.NewStruct would create an empty struct {}
+
+	var nilMap map[string]interface{}
+	config := map[string]interface{}{
+		"nested": nilMap,
+		"key":    "value",
+	}
+
+	converted := convertTypedSlices(config)
+
+	// Our implementation returns nil for nil maps
+	if converted["nested"] != nil {
+		t.Errorf("Expected nil for nested nil map, got %v", converted["nested"])
+	}
+
+	// This can still be marshaled by structpb, but will be null instead of {}
+	s, err := structpb.NewStruct(converted)
+	if err != nil {
+		t.Fatalf("structpb.NewStruct failed: %v", err)
+	}
+
+	// The nested field will be null_value instead of empty struct
+	if s.Fields["nested"].GetNullValue().String() != "NULL_VALUE" {
+		t.Errorf("Expected NULL_VALUE for nil map, got %v", s.Fields["nested"])
+	}
+}
+
 // TestConversionOptimization verifies that no-op conversions return the same slice
 func TestConversionOptimization(t *testing.T) {
 	// Create a slice that doesn't need conversion
