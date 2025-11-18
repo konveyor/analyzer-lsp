@@ -31,6 +31,7 @@ type ReferencedCondition struct {
 	Referenced struct {
 		Pattern string `yaml:"pattern"`
 	} `yaml:"referenced"`
+	provider.ProviderContext `yaml:",inline"`
 }
 
 // EvaluateReferenced evaluates references to a given entity based on a query

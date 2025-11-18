@@ -5,7 +5,7 @@ go 1.23.9
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/go-logr/logr v1.4.2
-	github.com/konveyor/analyzer-lsp v0.7.0-alpha.2.0.20250625194402-05dca9b4ac43
+	github.com/konveyor/analyzer-lsp v0.8.1-alpha.2.0.20251114172837-5d44057c274f
 	github.com/sirupsen/logrus v1.9.3
 	github.com/swaggest/openapi-go v0.2.50
 	go.lsp.dev/uri v0.3.0
@@ -30,6 +30,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect

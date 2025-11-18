@@ -52,6 +52,11 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 		sc.Config.WorkspaceFolders = []string{c.Location}
 	}
 
+	if c.ProviderSpecificConfig == nil {
+		c.ProviderSpecificConfig = map[string]interface{}{}
+	}
+	c.ProviderSpecificConfig["workspaceFolders"] = sc.Config.WorkspaceFolders
+
 	if len(sc.Config.WorkspaceFolders) == 0 {
 		params.RootURI = ""
 	} else {
@@ -89,7 +94,7 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	sc.LSPServiceClientBase = scBase
 
 	// Initialize the fancy evaluator (dynamic dispatch ftw)
-	eval, err := base.NewLspServiceClientEvaluator[*NodeServiceClient](sc, n.GetGenericServiceClientCapabilities(log))
+	eval, err := base.NewLspServiceClientEvaluator(sc, n.GetGenericServiceClientCapabilities(log))
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +125,7 @@ type referencedCondition struct {
 	Referenced struct {
 		Pattern string `yaml:"pattern"`
 	} `yaml:"referenced"`
+	provider.ProviderContext `yaml:",inline"`
 }
 
 // Example evaluate
