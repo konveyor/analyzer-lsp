@@ -20,6 +20,10 @@ type testProvider struct {
 	caps []provider.Capability
 }
 
+func (t testProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
 func (t testProvider) Capabilities() []provider.Capability {
 	return t.caps
 }

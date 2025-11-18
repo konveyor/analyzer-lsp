@@ -517,6 +517,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	return &svcClient, additionalBuiltinConfig, nil
 }
 
+func (p *javaProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
 // GetLocation given a dep, attempts to find line number, caches the line number for a given dep
 func (j *javaProvider) GetLocation(ctx context.Context, dep konveyor.Dep, file string) (engine.Location, error) {
 	j.Log.Info("getting dep location", "dep", dep, "file", file)

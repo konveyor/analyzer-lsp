@@ -19,6 +19,9 @@ type fakeClient struct {
 	dependencies []*Dep
 }
 
+func (c *fakeClient) Prepare(ctx context.Context, conditionsByCap []ConditionsByCap) error {
+	return nil
+}
 func (c *fakeClient) Capabilities() []Capability { return nil }
 func (c *fakeClient) HasCapability(string) bool  { return true }
 func (c *fakeClient) Evaluate(context.Context, string, []byte) (ProviderEvaluateResponse, error) {

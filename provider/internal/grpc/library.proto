@@ -124,6 +124,7 @@ service ProviderService {
   rpc GetDependencies (ServiceRequest) returns (DependencyResponse) {};
   rpc GetDependenciesDAG(ServiceRequest) returns (DependencyDAGResponse) {};
   rpc NotifyFileChanges(NotifyFileChangesRequest) returns (NotifyFileChangesResponse) {};
+  rpc Prepare(PrepareRequest) return (PrepareResponse) {};
 }
 
 message Dependency {
@@ -186,5 +187,19 @@ message NotifyFileChangesRequest {
 }
 
 message NotifyFileChangesResponse {
+  string error = 1;
+}
+
+message ConditionsByCapability {
+  string cap = 1;
+  repeated string conditionInfo = 2;
+}
+
+message PrepareRequest {
+  repeated ConditionsByCapability conditions = 1;
+  int64 id = 2;
+}
+
+message PrepareResponse {
   string error = 1;
 }

@@ -197,3 +197,7 @@ func (g *grpcServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 func (g *grpcServiceClient) Stop() {
 	g.client.Stop(context.TODO(), &pb.ServiceRequest{Id: g.id})
 }
+
+func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
