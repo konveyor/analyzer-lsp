@@ -363,6 +363,28 @@ func TestRequiresConversion(t *testing.T) {
 	}
 }
 
+// TestArrayConversion verifies that arrays are properly converted
+func TestArrayConversion(t *testing.T) {
+	// Test with a non-nil array type
+	arr := [2]string{"a", "b"}
+
+	result := convertValue(arr)
+
+	// Should be converted to []interface{}
+	slice, ok := result.([]interface{})
+	if !ok {
+		t.Fatalf("Expected []interface{}, got %T", result)
+	}
+
+	if len(slice) != 2 {
+		t.Errorf("Expected length 2, got %d", len(slice))
+	}
+
+	if slice[0] != "a" || slice[1] != "b" {
+		t.Errorf("Expected [a, b], got %v", slice)
+	}
+}
+
 // TestNilMapSemantics verifies the behavior of nil maps in nested structures
 func TestNilMapSemantics(t *testing.T) {
 	// This test documents the nil map behavior difference from structpb.NewStruct

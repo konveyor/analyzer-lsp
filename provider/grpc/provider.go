@@ -64,7 +64,8 @@ func convertValue(value interface{}) interface{} {
 
 	// Check for typed nil (e.g., nil map, nil slice, nil pointer)
 	// This ensures nil maps are marshaled as null instead of empty structs
-	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+	// Note: Arrays are never nil, so we exclude them from this check
+	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice {
 		if v.IsNil() {
 			return nil
 		}
@@ -132,7 +133,8 @@ func requiresConversion(value interface{}) bool {
 	v := reflect.ValueOf(value)
 
 	// Typed nil values don't need conversion
-	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+	// Note: Arrays are never nil, so we exclude them from this check
+	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice {
 		if v.IsNil() {
 			return false
 		}
