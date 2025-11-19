@@ -112,7 +112,7 @@ func (h *nodejsSymbolCacheHelper) MatchSymbol(symbol protocol.WorkspaceSymbol, q
 	return h.SymbolCacheHelper.MatchSymbol(symbol, filteredQueries...)
 }
 
-func NewNodejsSymbolCacheHelper(log logr.Logger, config provider.InitConfig) *nodejsSymbolCacheHelper {
+func NewNodejsSymbolCacheHelper(log logr.Logger, config provider.InitConfig) base.SymbolCacheHelper {
 	return &nodejsSymbolCacheHelper{
 		SymbolCacheHelper: base.NewDefaultSymbolCacheHelper(log, config),
 		log:               log,

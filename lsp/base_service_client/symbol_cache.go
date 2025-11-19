@@ -167,6 +167,20 @@ func (h *defaultSymbolCacheHelper) GetDocumentUris(conditionsByCap []provider.Co
 	return uris
 }
 
+func (h *defaultSymbolCacheHelper) GetLanguageID(uri string) string {
+	languageIDMap := map[string]string{
+		".ts":   "typescript",
+		".js":   "javascript",
+		".jsx":  "javascriptreact",
+		".tsx":  "typescriptreact",
+		".json": "json",
+		".yaml": "yaml",
+		".yml":  "yaml",
+		".go":   "go",
+	}
+	return languageIDMap[filepath.Ext(filepath.Base(uri))]
+}
+
 func (h *defaultSymbolCacheHelper) MatchSymbol(symbol protocol.WorkspaceSymbol, query ...string) bool {
 	for _, q := range query {
 		regex, err := compileSymbolQueryRegex(q)

@@ -161,6 +161,8 @@ type SymbolCacheHelper interface {
 	// list of document URIs to call documentSymbol against. Each language provider
 	// will have a different set of URIs to call.
 	GetDocumentUris(conditionsByCap []provider.ConditionsByCap) []uri.URI
+	// GetLanguageID returns the language ID for a given URI.
+	GetLanguageID(uri string) string
 	// MatchSymbol is used to determine if a symbol matches either one of the queries.
 	// This is so that different languages can have different FQN semantics to match.
 	// This will be called once in Prepare, and everytime Evaluate() is called.
@@ -492,7 +494,12 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 			},
 		}
 		var symbols []protocol.DocumentSymbol
-		if err := didOpen(string(fileURI), "javascript", []byte{}); err != nil {
+		content, err := os.ReadFile(fileURI.Filename())
+		if err != nil {
+			sc.Log.Error(err, "unable to read file", "uri", fileURI)
+			continue
+		}
+		if err := didOpen(string(fileURI), sc.symbolCacheHelper.GetLanguageID(string(fileURI)), content); err != nil {
 			sc.Log.Error(err, "didOpen request failed", "uri", fileURI)
 		}
 		if err := sc.Conn.Call(ctx, "textDocument/documentSymbol", params).Await(ctx, &symbols); err != nil {
