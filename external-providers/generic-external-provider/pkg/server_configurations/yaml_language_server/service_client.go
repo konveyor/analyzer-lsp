@@ -108,6 +108,7 @@ func (y *YamlServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 			base.LogHandler(log),
 		),
 		params,
+		nil,
 	)
 	if err != nil {
 		return nil, err

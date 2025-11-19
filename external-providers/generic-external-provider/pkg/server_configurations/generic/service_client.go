@@ -95,6 +95,7 @@ func (g *GenericServiceClientBuilder) Init(ctx context.Context, log logr.Logger,
 		ctx, log, c,
 		base.LogHandler(log),
 		params,
+		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("base client initialization error: %w", err)

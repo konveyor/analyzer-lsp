@@ -430,6 +430,16 @@ func FullDepDAGResponse(ctx context.Context, clients []ServiceClient) (map[uri.U
 	return deps, nil
 }
 
+func FullPrepareResponse(ctx context.Context, clients []ServiceClient, conditionsByCap []ConditionsByCap) error {
+	errs := []error{}
+	for _, c := range clients {
+		if err := c.Prepare(ctx, conditionsByCap); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
 // InternalInit interface is going to be used to init the full config of a provider.
 // used by the engine/analyzer to get a provider ready. It takes additional init
 // configs that may be returned by other providers when they are initialized

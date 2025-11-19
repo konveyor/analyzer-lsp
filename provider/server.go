@@ -528,3 +528,52 @@ func (s *server) authUnaryInterceptor(ctx context.Context, req any, info *grpc.U
 
 	return handler(ctx, req)
 }
+
+func (s *server) Prepare(ctx context.Context, in *libgrpc.PrepareRequest) (*libgrpc.PrepareResponse, error) {
+	s.mutex.RLock()
+	client := s.clients[in.Id]
+	s.mutex.RUnlock()
+	conditionsByCap := []ConditionsByCap{}
+	for _, condition := range in.Conditions {
+		conditions := [][]byte{}
+		for _, conditionInfo := range condition.ConditionInfo {
+			conditions = append(conditions, []byte(conditionInfo))
+		}
+		conditionsByCap = append(conditionsByCap, ConditionsByCap{
+			Cap:        condition.Cap,
+			Conditions: conditions,
+		})
+	}
+	err := client.client.Prepare(ctx, conditionsByCap)
+	if err != nil {
+		return &libgrpc.PrepareResponse{
+			Error: err.Error(),
+		}, nil
+	}
+	return &libgrpc.PrepareResponse{
+		Error: "",
+	}, nil
+}
+
+func (s *server) NotifyFileChanges(ctx context.Context, in *libgrpc.NotifyFileChangesRequest) (*libgrpc.NotifyFileChangesResponse, error) {
+	s.mutex.RLock()
+	client := s.clients[in.Id]
+	s.mutex.RUnlock()
+	changes := []FileChange{}
+	for _, change := range in.Changes {
+		changes = append(changes, FileChange{
+			Path:    change.Uri,
+			Content: change.Content,
+			Saved:   change.Saved,
+		})
+	}
+	err := client.client.NotifyFileChanges(ctx, changes...)
+	if err != nil {
+		return &libgrpc.NotifyFileChangesResponse{
+			Error: err.Error(),
+		}, nil
+	}
+	return &libgrpc.NotifyFileChangesResponse{
+		Error: "",
+	}, nil
+}

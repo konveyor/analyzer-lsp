@@ -243,7 +243,7 @@ func (g *grpcProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]pr
 }
 
 func (g *grpcProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
-	return nil
+	return provider.FullPrepareResponse(ctx, g.serviceClients, conditionsByCap)
 }
 
 func (g *grpcProvider) Stop() {
