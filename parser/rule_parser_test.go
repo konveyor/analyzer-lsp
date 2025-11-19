@@ -825,7 +825,7 @@ func TestLoadRules(t *testing.T) {
 				Log:                  logrusr.New(logrusLog),
 			}
 
-			ruleSets, clients, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
+			ruleSets, clients, _, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
 			if err != nil {
 				if tc.ShouldErr && tc.ErrorMessage == err.Error() {
 					return

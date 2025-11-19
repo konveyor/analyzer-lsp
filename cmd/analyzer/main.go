@@ -291,7 +291,7 @@ func AnalysisCmd() *cobra.Command {
 			ruleSets := []engine.RuleSet{}
 			needProviders := map[string]provider.InternalProviderClient{}
 			for _, f := range rulesFile {
-				internRuleSet, internNeedProviders, err := parser.LoadRules(f)
+				internRuleSet, internNeedProviders, _, err := parser.LoadRules(f)
 				if err != nil {
 					errLog.Error(err, "unable to parse all the rules for ruleset", "file", f)
 				}
