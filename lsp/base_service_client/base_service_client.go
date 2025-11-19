@@ -183,6 +183,15 @@ func NewLSPServiceClientBase(
 		initializeParams.RootURI = "file://" + initializeParams.RootURI
 	}
 
+	// Populate WorkspaceFolders from initialize params
+	if len(initializeParams.WorkspaceFolders) > 0 {
+		for _, folder := range initializeParams.WorkspaceFolders {
+			sc.BaseConfig.WorkspaceFolders = append(sc.BaseConfig.WorkspaceFolders, folder.URI)
+		}
+	} else if initializeParams.RootURI != "" {
+		sc.BaseConfig.WorkspaceFolders = append(sc.BaseConfig.WorkspaceFolders, initializeParams.RootURI)
+	}
+
 	if initializeParams.ProcessID == 0 {
 		initializeParams.ProcessID = int32(os.Getpid())
 	}
@@ -281,9 +290,18 @@ func (sc *LSPServiceClientBase) GetDependencies(ctx context.Context) (map[uri.UR
 	if cmdStr == "" {
 		return nil, fmt.Errorf("dependency provider path not set")
 	}
+	if len(sc.BaseConfig.WorkspaceFolders) == 0 {
+		return nil, fmt.Errorf("no workspace folders configured")
+	}
 	// Expects dependency provider to output provider.Dep structs to stdout
 	cmd := exec.Command(cmdStr)
-	cmd.Dir = sc.BaseConfig.WorkspaceFolders[0][7:]
+	workspaceURI := sc.BaseConfig.WorkspaceFolders[0]
+	// Remove file:// prefix if present
+	if strings.HasPrefix(workspaceURI, "file://") {
+		cmd.Dir = workspaceURI[7:]
+	} else {
+		cmd.Dir = workspaceURI
+	}
 	dataR, err := cmd.Output()
 	if err != nil {
 		return nil, err
