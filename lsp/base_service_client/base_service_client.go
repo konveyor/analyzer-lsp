@@ -467,6 +467,8 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 			sc.Log.V(7).Info("workspace/symbol request returned symbols", "totalSymbols", len(symbols), "query", query)
 			return symbols
 		}
+	} else {
+		sc.Log.Info("workspace/symbol not supported by LSP server, using fallback")
 	}
 
 	// wait until pending symbol cache update calls are complete
