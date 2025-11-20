@@ -188,7 +188,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 			statFunc, f.ProviderConfigConstraints.ExcludePathsOrPatterns, finalSearchResult, true)
 	}
 
-	f.Log.V(10).Info("returning file search result", "files", finalSearchResult)
+	f.Log.V(7).Info("returning file search result", "files", finalSearchResult)
 	return finalSearchResult, errors.Join(walkErrors...)
 }
 
