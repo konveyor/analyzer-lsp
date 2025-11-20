@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -428,6 +429,8 @@ func (ac *AsyncCall) Await(ctx context.Context, result interface{}) error {
 	if result == nil {
 		return nil
 	}
+
+	os.WriteFile("/tmp/response.json", ac.response.Result, 0644)
 
 	err := json.Unmarshal(ac.response.Result, result)
 	if err != nil {

@@ -1,6 +1,7 @@
 package nodejs
 
 import (
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -26,10 +27,28 @@ type nodejsSymbolSearchHelper struct {
 // The referenced condition pattern is parsed as "@<package>/<scope>#<type>.<child_type>...". If <package> & <scope>
 // is present, the node_modules/ folder for that package is added to search. If not, only source is searched.
 func (h *nodejsSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.ConditionsByCap) []uri.URI {
+	primaryPath := h.config.Location
+	if after, ok := strings.CutPrefix(primaryPath, fmt.Sprintf("%s://", uri.FileScheme)); ok {
+		primaryPath = after
+	}
+	additionalPaths := []string{}
+	if val, ok := h.config.ProviderSpecificConfig["workspaceFolders"].([]string); ok {
+		for _, path := range val {
+			if after, prefixOk := strings.CutPrefix(path, fmt.Sprintf("%s://", uri.FileScheme)); prefixOk {
+				path = after
+			}
+			if primaryPath == "" {
+				primaryPath = path
+				continue
+			}
+			additionalPaths = append(additionalPaths, path)
+		}
+	}
+
 	// find all files in the source first
 	searcher := provider.FileSearcher{
-		BasePath:        h.config.Location,
-		AdditionalPaths: h.config.ProviderSpecificConfig["workspaceFolders"].([]string),
+		BasePath:        primaryPath,
+		AdditionalPaths: additionalPaths,
 		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
 			IncludePathsOrPatterns: []string{".*\\.(ts|js)(x?)$"}, // only search js files
 			ExcludePathsOrPatterns: []string{
@@ -80,34 +99,56 @@ func (h *nodejsSymbolSearchHelper) MatchFileContentByConditions(content string, 
 }
 
 func (h *nodejsSymbolSearchHelper) MatchSymbolByPatterns(symbol base.WorkspaceSymbolDefinitionsPair, patterns ...string) bool {
-	filteredPatterns := map[string]bool{}
+	simpleQueries := []parsedQuery{}
+	scopedQueries := []parsedQuery{}
 	for _, q := range patterns {
 		parsedQuery := parseQuery(q)
-		if parsedQuery != nil && parsedQuery.Query != nil {
-			filteredPatterns[*parsedQuery.Query] = true
-			// if there is a definition stored with this symbol
-			// make sure the definition comes from the same package scope
-			if symbol.Definitions != nil {
-				for _, definition := range symbol.Definitions {
-					if parsedQuery.Package != nil && parsedQuery.Scope != nil {
-						definitionLoc, ok := definition.Location.Value.(protocol.Location)
-						if !ok || strings.Contains(string(definitionLoc.URI), filepath.Join(*parsedQuery.Package, *parsedQuery.Scope)) {
-							if h.SymbolSearchHelper.MatchSymbolByPatterns(base.WorkspaceSymbolDefinitionsPair{
-								WorkspaceSymbol: definition,
-							}, *parsedQuery.Query) {
-								return true
-							}
-						}
-					}
+		if parsedQuery != nil && parsedQuery.Query != nil && parsedQuery.Package != nil && parsedQuery.Scope != nil {
+			scopedQueries = append(scopedQueries, *parsedQuery)
+		} else if parsedQuery != nil && parsedQuery.Query != nil {
+			simpleQueries = append(simpleQueries, *parsedQuery)
+		}
+	}
+
+	for _, query := range scopedQueries {
+		// when evaluating a scoped query, use the associated definitions of the symbol to check its origin
+		if symbol.Definitions != nil {
+			for _, definition := range symbol.Definitions {
+				definitionLoc, ok := definition.Location.Value.(protocol.Location)
+				if !ok {
+					continue
 				}
+				// if the definition is under @<package>/<scope> && symbol name matches pattern, we have found right symbol
+				if strings.Contains(string(definitionLoc.URI), filepath.Join(*query.Package, *query.Scope)) &&
+					h.SymbolSearchHelper.MatchSymbolByPatterns(base.WorkspaceSymbolDefinitionsPair{WorkspaceSymbol: definition}, *query.Query) {
+					return true
+				}
+			}
+		} else {
+			symbolLoc, ok := symbol.WorkspaceSymbol.Location.Value.(protocol.Location)
+			if !ok {
+				continue
+			}
+			if strings.Contains(string(symbolLoc.URI), filepath.Join(*query.Package, *query.Scope)) &&
+				h.SymbolSearchHelper.MatchSymbolByPatterns(symbol, *query.Query) {
+				return true
 			}
 		}
 	}
-	filteredPatternsList := []string{}
-	for pattern := range filteredPatterns {
-		filteredPatternsList = append(filteredPatternsList, pattern)
+	for _, query := range simpleQueries {
+		if symbol.Definitions != nil {
+			for _, definition := range symbol.Definitions {
+				if h.SymbolSearchHelper.MatchSymbolByPatterns(base.WorkspaceSymbolDefinitionsPair{WorkspaceSymbol: definition}, *query.Query) {
+					return true
+				}
+			}
+		} else {
+			if h.SymbolSearchHelper.MatchSymbolByPatterns(symbol, *query.Query) {
+				return true
+			}
+		}
 	}
-	return h.SymbolSearchHelper.MatchSymbolByPatterns(symbol, filteredPatternsList...)
+	return false
 }
 
 func (h *nodejsSymbolSearchHelper) MatchSymbolByConditions(symbol base.WorkspaceSymbolDefinitionsPair, conditions ...provider.ConditionsByCap) bool {

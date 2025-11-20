@@ -488,50 +488,38 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 		return
 	}
 
-	didOpen := func(uri string, langID string, text []byte) error {
-		params := protocol.DidOpenTextDocumentParams{
-			TextDocument: protocol.TextDocumentItem{
-				URI:        uri,
-				LanguageID: langID,
-				Version:    0,
-				Text:       string(text),
-			},
-		}
-		// typescript server seems to throw "No project" error without notification
-		// perhaps there's a better way to do this
-		return sc.Conn.Notify(ctx, "textDocument/didOpen", params)
-	}
-
-	didClose := func(uri string) error {
-		params := protocol.DidCloseTextDocumentParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: uri,
-			},
-		}
-		return sc.Conn.Notify(ctx, "textDocument/didClose", params)
-	}
-
 	queryDocumentSymbol := func(ctx context.Context, uri uri.URI, content []byte) ([]protocol.DocumentSymbol, error) {
 		if symbols, exists := sc.symbolCache.GetDocumentSymbols(uri); exists {
 			return symbols, nil
 		}
-		var symbols []protocol.DocumentSymbol
+
+		var symbols []struct {
+			protocol.DocumentSymbol
+			Location *protocol.Location `json:"location,omitempty"`
+		}
 		params := protocol.DocumentSymbolParams{
 			TextDocument: protocol.TextDocumentIdentifier{
 				URI: string(uri),
 			},
 		}
-		if err := didOpen(string(uri), sc.symbolSearchHelper.GetLanguageID(string(uri)), content); err != nil {
+		if err := sc.didOpen(ctx, string(uri), sc.symbolSearchHelper.GetLanguageID(string(uri)), content); err != nil {
 			sc.Log.Error(err, "didOpen request failed", "uri", uri)
 		}
 		if err := sc.Conn.Call(ctx, "textDocument/documentSymbol", params).Await(ctx, &symbols); err != nil {
 			return nil, err
 		}
-		if err := didClose(string(uri)); err != nil {
+		if err := sc.didClose(ctx, string(uri)); err != nil {
 			sc.Log.Error(err, "didClose request failed", "uri", uri)
 		}
-		sc.symbolCache.SetDocumentSymbols(uri, symbols)
-		return symbols, nil
+		documentSymbols := []protocol.DocumentSymbol{}
+		for _, symbol := range symbols {
+			if symbol.Location != nil {
+				symbol.DocumentSymbol.Range = symbol.Location.Range
+			}
+			documentSymbols = append(documentSymbols, symbol.DocumentSymbol)
+		}
+		sc.symbolCache.SetDocumentSymbols(uri, documentSymbols)
+		return documentSymbols, nil
 	}
 
 	workspaceSymbolKey := func(symbol protocol.WorkspaceSymbol) string {
@@ -558,7 +546,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 		// definition is found, the symbol will be used as a reference symbol.
 		positions := sc.getMatchingPositions(string(content), fileURI.Filename())
 		for _, position := range positions {
-			definitions := sc.getDefinitionForPosition(ctx, position)
+			definitions := sc.getDefinitionForPosition(ctx, fileURI, position)
 			wsSymbolsForDefinitions := map[string]protocol.WorkspaceSymbol{}
 			for _, definition := range definitions {
 				uri, err := toURI(definition.URI)
@@ -657,6 +645,29 @@ func (sc *LSPServiceClientBase) drainPendingSymbolCacheUpdates() {
 	}
 }
 
+func (sc *LSPServiceClientBase) didOpen(ctx context.Context, uri string, langID string, text []byte) error {
+	params := protocol.DidOpenTextDocumentParams{
+		TextDocument: protocol.TextDocumentItem{
+			URI:        uri,
+			LanguageID: langID,
+			Version:    0,
+			Text:       string(text),
+		},
+	}
+	// typescript server seems to throw "No project" error without notification
+	// perhaps there's a better way to do this
+	return sc.Conn.Notify(ctx, "textDocument/didOpen", params)
+}
+
+func (sc *LSPServiceClientBase) didClose(ctx context.Context, uri string) error {
+	params := protocol.DidCloseTextDocumentParams{
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: uri,
+		},
+	}
+	return sc.Conn.Notify(ctx, "textDocument/didClose", params)
+}
+
 func toURI(path string) (uri.URI, error) {
 	if strings.HasPrefix(path, "file://") {
 		return uri.Parse(path)
@@ -702,11 +713,22 @@ func (sc *LSPServiceClientBase) getMatchingPositions(content string, path string
 	return positions
 }
 
-func (sc *LSPServiceClientBase) getDefinitionForPosition(ctx context.Context, position protocol.TextDocumentPositionParams) []protocol.Location {
+func (sc *LSPServiceClientBase) getDefinitionForPosition(ctx context.Context, uri uri.URI, position protocol.TextDocumentPositionParams) []protocol.Location {
 	res := []protocol.Location{}
 	if sc.ServerCapabilities.Supports("textDocument/definition") {
+		content, err := os.ReadFile(uri.Filename())
+		if err != nil {
+			sc.Log.Error(err, "unable to read file", "uri", uri)
+			return res
+		}
+		if err := sc.didOpen(ctx, string(position.TextDocument.URI), sc.symbolSearchHelper.GetLanguageID(string(position.TextDocument.URI)), content); err != nil {
+			sc.Log.Error(err, "didOpen request failed", "uri", position.TextDocument.URI)
+		}
 		if err := sc.Conn.Call(ctx, "textDocument/definition", position).Await(ctx, &res); err != nil {
 			sc.Log.Error(err, "textDocument/definition request failed", "position", position)
+		}
+		if err := sc.didClose(ctx, string(position.TextDocument.URI)); err != nil {
+			sc.Log.Error(err, "didClose request failed", "uri", position.TextDocument.URI)
 		}
 	}
 	return res

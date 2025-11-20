@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -139,9 +140,26 @@ func (h *defaultSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.
 			}
 		}
 	}
+	primaryPath := h.config.Location
+	if after, ok := strings.CutPrefix(primaryPath, fmt.Sprintf("%s://", uri.FileScheme)); ok {
+		primaryPath = after
+	}
+	additionalPaths := []string{}
+	if val, ok := h.config.ProviderSpecificConfig["workspaceFolders"].([]string); ok {
+		for _, path := range val {
+			if after, prefixOk := strings.CutPrefix(path, fmt.Sprintf("%s://", uri.FileScheme)); prefixOk {
+				path = after
+			}
+			if primaryPath == "" {
+				primaryPath = path
+				continue
+			}
+			additionalPaths = append(additionalPaths, path)
+		}
+	}
 	searcher := provider.FileSearcher{
-		BasePath:        h.config.Location,
-		AdditionalPaths: h.config.ProviderSpecificConfig["workspaceFolders"].([]string),
+		BasePath:        primaryPath,
+		AdditionalPaths: additionalPaths,
 		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
 			ExcludePathsOrPatterns: []string{
 				filepath.Join(h.config.Location, "node_modules"),

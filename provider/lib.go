@@ -303,11 +303,15 @@ func newCachedWalkDir() cachedWalkDir {
 				}
 				// do not recurse into excluded dirs
 				for _, excludedDir := range excludedDirs {
-					if path == excludedDir || strings.HasPrefix(path, excludedDir) {
+					relPath, err := filepath.Rel(basePath, path)
+					if err == nil && (relPath == excludedDir || strings.HasPrefix(relPath, excludedDir)) {
 						return fs.SkipDir
 					}
 				}
 				for _, excludedPattern := range excludedPatterns {
+					if !strings.Contains(excludedPattern, "*") {
+						continue
+					}
 					regex, err := regexp.Compile(excludedPattern)
 					if err != nil {
 						continue
