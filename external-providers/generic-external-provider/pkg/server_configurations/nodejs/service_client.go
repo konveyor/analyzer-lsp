@@ -37,7 +37,8 @@ type NodeServiceClient struct {
 	*base.LSPServiceClientBase
 	*base.LSPServiceClientEvaluator[*NodeServiceClient]
 
-	Config NodeServiceClientConfig
+	Config       NodeServiceClientConfig
+	AnalysisMode provider.AnalysisMode
 }
 
 type NodeServiceClientBuilder struct{}
@@ -98,10 +99,14 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	// This ensures consistency between the two configurations
 	sc.BaseConfig.WorkspaceFolders = sc.Config.WorkspaceFolders
 
+	// Store analysis mode for filtering behavior
+	sc.AnalysisMode = c.AnalysisMode
+
 	// DEBUG: Log LSP initialization details
 	log.Info("NodeJS LSP initialized",
 		"rootURI", params.RootURI,
 		"workspaceFolders", sc.Config.WorkspaceFolders,
+		"analysisMode", sc.AnalysisMode,
 		"lspServerPath", sc.Config.LspServerPath,
 		"lspServerName", sc.Config.LspServerName)
 
@@ -362,27 +367,32 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		}
 	}
 
-	// Filter references to workspace only and convert to incidents
+	// Filter references and convert to incidents
+	// In source-only mode, filter to workspace only
+	// In full mode, include all references
 	incidentsMap := make(map[string]provider.IncidentContext)
 	for _, ref := range allReferences {
-		// Only include references within the workspace
-		if len(sc.BaseConfig.WorkspaceFolders) == 0 {
-			continue
-		}
-		if !strings.Contains(ref.URI, sc.BaseConfig.WorkspaceFolders[0]) {
-			continue
-		}
-
-		// Skip references in dependency folders
-		skip := false
-		for _, depFolder := range sc.BaseConfig.DependencyFolders {
-			if depFolder != "" && strings.Contains(ref.URI, depFolder) {
-				skip = true
-				break
+		// Apply workspace filtering only in source-only analysis mode
+		if sc.AnalysisMode == provider.SourceOnlyAnalysisMode {
+			// Only include references within the workspace
+			if len(sc.BaseConfig.WorkspaceFolders) == 0 {
+				continue
 			}
-		}
-		if skip {
-			continue
+			if !strings.Contains(ref.URI, sc.BaseConfig.WorkspaceFolders[0]) {
+				continue
+			}
+
+			// Skip references in dependency folders
+			skip := false
+			for _, depFolder := range sc.BaseConfig.DependencyFolders {
+				if depFolder != "" && strings.Contains(ref.URI, depFolder) {
+					skip = true
+					break
+				}
+			}
+			if skip {
+				continue
+			}
 		}
 
 		u, err := uri.Parse(ref.URI)
