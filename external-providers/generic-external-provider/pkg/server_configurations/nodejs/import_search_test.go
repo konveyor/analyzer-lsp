@@ -1,16 +1,14 @@
-package nodejs_test
+package nodejs
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/nodejs"
 )
 
 // Test normalizeMultilineImports
 func TestNormalizeMultilineImports(t *testing.T) {
-	sc := &nodejs.NodeServiceClient{}
+	sc := &NodeServiceClient{}
 
 	tests := []struct {
 		name     string
@@ -84,7 +82,7 @@ import { Button } from 'pkg';`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := sc.NormalizeMultilineImportsPublic(tt.input)
+			result := sc.normalizeMultilineImports(tt.input)
 			if result != tt.expected {
 				t.Errorf("normalizeMultilineImports() = %q, want %q", result, tt.expected)
 			}
@@ -382,16 +380,16 @@ export const MyCard = Card;`,
 			}
 
 			// Create NodeServiceClient with test file
-			sc := &nodejs.NodeServiceClient{}
-			files := []nodejs.FileInfo{
+			sc := &NodeServiceClient{}
+			files := []fileInfo{
 				{
-					Path:   "file://" + testFile,
-					LangID: "typescriptreact",
+					path:   "file://" + testFile,
+					langID: "typescriptreact",
 				},
 			}
 
 			// Call findImportStatements
-			locations := sc.FindImportStatementsPublic(tc.pattern, files)
+			locations := sc.findImportStatements(tc.pattern, files)
 
 			// Verify count
 			if len(locations) != tc.expectedCount {
@@ -435,11 +433,9 @@ func TestIsIdentifierChar(t *testing.T) {
 		{'\t', false},
 	}
 
-	sc := &nodejs.NodeServiceClient{}
-
 	for _, tt := range tests {
 		t.Run(string(tt.char), func(t *testing.T) {
-			result := sc.IsIdentifierCharPublic(tt.char)
+			result := isIdentifierChar(tt.char)
 			if result != tt.expected {
 				t.Errorf("isIdentifierChar(%q) = %v, want %v", tt.char, result, tt.expected)
 			}
@@ -512,16 +508,16 @@ func TestImportWordBoundaries(t *testing.T) {
 			}
 
 			// Create NodeServiceClient with test file
-			sc := &nodejs.NodeServiceClient{}
-			files := []nodejs.FileInfo{
+			sc := &NodeServiceClient{}
+			files := []fileInfo{
 				{
-					Path:   "file://" + testFile,
-					LangID: "typescriptreact",
+					path:   "file://" + testFile,
+					langID: "typescriptreact",
 				},
 			}
 
 			// Call findImportStatements
-			locations := sc.FindImportStatementsPublic(tc.pattern, files)
+			locations := sc.findImportStatements(tc.pattern, files)
 
 			matched := len(locations) > 0
 			if matched != tc.shouldMatch {
@@ -598,16 +594,16 @@ const x = 1;`,
 			}
 
 			// Create NodeServiceClient with test file
-			sc := &nodejs.NodeServiceClient{}
-			files := []nodejs.FileInfo{
+			sc := &NodeServiceClient{}
+			files := []fileInfo{
 				{
-					Path:   "file://" + testFile,
-					LangID: "typescriptreact",
+					path:   "file://" + testFile,
+					langID: "typescriptreact",
 				},
 			}
 
 			// Call findImportStatements
-			locations := sc.FindImportStatementsPublic(tc.pattern, files)
+			locations := sc.findImportStatements(tc.pattern, files)
 
 			if len(locations) != tc.expectedLen {
 				t.Errorf("Expected %d locations, got %d", tc.expectedLen, len(locations))
@@ -658,16 +654,16 @@ export const MyComponent = () => {
 		b.Fatalf("Failed to create test file: %v", err)
 	}
 
-	sc := &nodejs.NodeServiceClient{}
-	files := []nodejs.FileInfo{
+	sc := &NodeServiceClient{}
+	files := []fileInfo{
 		{
-			Path:   "file://" + testFile,
-			LangID: "typescriptreact",
+			path:   "file://" + testFile,
+			langID: "typescriptreact",
 		},
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = sc.FindImportStatementsPublic("Button", files)
+		_ = sc.findImportStatements("Button", files)
 	}
 }

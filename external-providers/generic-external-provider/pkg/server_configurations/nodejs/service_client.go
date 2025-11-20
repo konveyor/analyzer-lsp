@@ -847,34 +847,3 @@ func (sc *NodeServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][
 func (sc *NodeServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	return map[uri.URI][]provider.DepDAGItem{}, nil
 }
-
-// Test helper functions - these expose private functions for unit testing
-
-// FileInfo is exported for testing
-type FileInfo struct {
-	Path   string
-	LangID string
-}
-
-// NormalizeMultilineImportsPublic exposes normalizeMultilineImports for testing
-func (sc *NodeServiceClient) NormalizeMultilineImportsPublic(content string) string {
-	return sc.normalizeMultilineImports(content)
-}
-
-// FindImportStatementsPublic exposes findImportStatements for testing
-func (sc *NodeServiceClient) FindImportStatementsPublic(pattern string, files []FileInfo) []ImportLocation {
-	// Convert FileInfo to fileInfo
-	internalFiles := make([]fileInfo, len(files))
-	for i, f := range files {
-		internalFiles[i] = fileInfo{
-			path:   f.Path,
-			langID: f.LangID,
-		}
-	}
-	return sc.findImportStatements(pattern, internalFiles)
-}
-
-// IsIdentifierCharPublic exposes isIdentifierChar for testing
-func (sc *NodeServiceClient) IsIdentifierCharPublic(ch rune) bool {
-	return isIdentifierChar(ch)
-}
