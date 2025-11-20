@@ -163,49 +163,51 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 	incidentsMap := make(map[string]provider.IncidentContext)
 
 	for _, s := range symbols {
-		references := sc.GetAllReferences(ctx, s.Location.Value.(protocol.Location))
-		breakEarly := false
-		for _, ref := range references {
-			// Look for things that are in the location loaded,
-			// Note may need to filter out vendor at some point
-			if !strings.Contains(ref.URI, sc.BaseConfig.WorkspaceFolders[0]) {
+		baseLocation, ok := s.Location.Value.(protocol.Location)
+		if !ok {
+			sc.Log.V(7).Info("unable to get base location", "symbol", s)
+			continue
+		}
+		// Look for things that are in the location loaded,
+		// Note may need to filter out vendor at some point
+		if !strings.Contains(baseLocation.URI, sc.BaseConfig.WorkspaceFolders[0]) {
+			continue
+		}
+
+		for _, substr := range sc.BaseConfig.DependencyFolders {
+			if substr == "" {
 				continue
 			}
 
-			for _, substr := range sc.BaseConfig.DependencyFolders {
-				if substr == "" {
-					continue
-				}
-
-				if strings.Contains(ref.URI, substr) {
-					breakEarly = true
-					break
-				}
-			}
-			if breakEarly {
+			if strings.Contains(baseLocation.URI, substr) {
 				break
 			}
-
-			u, err := uri.Parse(ref.URI)
-			if err != nil {
-				return nil, err
-			}
-			lineNumber := int(ref.Range.Start.Line)
-			incident := provider.IncidentContext{
-				FileURI:    u,
-				LineNumber: &lineNumber,
-				Variables: map[string]interface{}{
-					"file": ref.URI,
-				},
-				CodeLocation: &provider.Location{
-					StartPosition: provider.Position{Line: float64(lineNumber)},
-					EndPosition:   provider.Position{Line: float64(lineNumber)},
-				},
-			}
-			b, _ := json.Marshal(incident)
-
-			incidentsMap[string(b)] = incident
 		}
+		u, err := uri.Parse(baseLocation.URI)
+		if err != nil {
+			return nil, err
+		}
+		lineNumber := int(baseLocation.Range.Start.Line) + 1
+		incident := provider.IncidentContext{
+			FileURI:    u,
+			LineNumber: &lineNumber,
+			Variables: map[string]interface{}{
+				"file": baseLocation.URI,
+			},
+			CodeLocation: &provider.Location{
+				StartPosition: provider.Position{
+					Line:      float64(lineNumber) + 1,
+					Character: float64(baseLocation.Range.Start.Character),
+				},
+				EndPosition: provider.Position{
+					Line:      float64(lineNumber) + 1,
+					Character: float64(baseLocation.Range.End.Character),
+				},
+			},
+		}
+		b, _ := json.Marshal(incident)
+
+		incidentsMap[string(b)] = incident
 	}
 
 	return incidentsMap, nil

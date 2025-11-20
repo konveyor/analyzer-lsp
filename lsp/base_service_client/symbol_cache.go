@@ -13,94 +13,96 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// DocumentSymbolCache stores document symbols keyed by URI and exposes helpers
+// SymbolCache stores document symbols keyed by URI and exposes helpers
 // to retrieve flattened workspace symbols that match a regex. This will be used
 // by the provider to cache the document symbol results for URIs.
-type DocumentSymbolCache struct {
-	mu     sync.RWMutex
-	lookup map[uri.URI][]protocol.DocumentSymbol
+type SymbolCache struct {
+	wsMutex sync.RWMutex
+	dsMutex sync.RWMutex
+	ws      map[uri.URI][]WorkspaceSymbolDefinitionsPair
+	ds      map[uri.URI][]protocol.DocumentSymbol
 }
 
-func NewDocumentSymbolCache() *DocumentSymbolCache {
-	return &DocumentSymbolCache{
-		lookup: make(map[uri.URI][]protocol.DocumentSymbol),
+type WorkspaceSymbolDefinitionsPair struct {
+	WorkspaceSymbol protocol.WorkspaceSymbol
+	Definitions     []protocol.WorkspaceSymbol
+}
+
+func NewDocumentSymbolCache() *SymbolCache {
+	return &SymbolCache{
+		ws: make(map[uri.URI][]WorkspaceSymbolDefinitionsPair),
+		ds: make(map[uri.URI][]protocol.DocumentSymbol),
 	}
 }
 
-func (c *DocumentSymbolCache) Get(u uri.URI) ([]protocol.DocumentSymbol, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	symbols, ok := c.lookup[u]
+func (c *SymbolCache) GetWorkspaceSymbols(u uri.URI) ([]WorkspaceSymbolDefinitionsPair, bool) {
+	c.wsMutex.RLock()
+	defer c.wsMutex.RUnlock()
+	symbols, ok := c.ws[u]
 	return symbols, ok
 }
 
-func (c *DocumentSymbolCache) Set(u uri.URI, symbols []protocol.DocumentSymbol) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.lookup[u] = symbols
+func (c *SymbolCache) SetWorkspaceSymbols(u uri.URI, symbols []WorkspaceSymbolDefinitionsPair) {
+	c.wsMutex.Lock()
+	defer c.wsMutex.Unlock()
+	c.ws[u] = symbols
 }
 
-func (c *DocumentSymbolCache) Invalidate(u uri.URI) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.lookup, u)
+func (c *SymbolCache) GetDocumentSymbols(u uri.URI) ([]protocol.DocumentSymbol, bool) {
+	c.dsMutex.RLock()
+	defer c.dsMutex.RUnlock()
+	symbols, ok := c.ds[u]
+	return symbols, ok
 }
 
-func (c *DocumentSymbolCache) InvalidateAll() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.lookup = make(map[uri.URI][]protocol.DocumentSymbol)
+func (c *SymbolCache) SetDocumentSymbols(u uri.URI, symbols []protocol.DocumentSymbol) {
+	c.dsMutex.Lock()
+	defer c.dsMutex.Unlock()
+	c.ds[u] = symbols
+}
+
+func (c *SymbolCache) Invalidate(u uri.URI) {
+	c.wsMutex.Lock()
+	defer c.wsMutex.Unlock()
+	delete(c.ws, u)
+	c.dsMutex.Lock()
+	defer c.dsMutex.Unlock()
+	delete(c.ds, u)
+}
+
+func (c *SymbolCache) InvalidateAll() {
+	c.wsMutex.Lock()
+	defer c.wsMutex.Unlock()
+	c.ws = make(map[uri.URI][]WorkspaceSymbolDefinitionsPair)
 }
 
 type SymbolMatcherFunc func(symbol protocol.WorkspaceSymbol, query ...string) bool
 
 // GetAllWorkspaceSymbols returns workspace symbols from the cache
-func (c *DocumentSymbolCache) GetAllWorkspaceSymbols() []protocol.WorkspaceSymbol {
+func (c *SymbolCache) GetAllWorkspaceSymbols() []WorkspaceSymbolDefinitionsPair {
 	if c == nil {
 		return nil
 	}
 
-	snapshot := c.snapshot()
-	results := make([]protocol.WorkspaceSymbol, 0)
+	snapshot := c.snapshotWorkspaceSymbols()
+	results := make([]WorkspaceSymbolDefinitionsPair, 0)
 
-	for u, symbols := range snapshot {
-		traverseDocumentSymbolTree(u, symbols, &results, "")
+	for _, symbols := range snapshot {
+		results = append(results, symbols...)
 	}
 
 	return results
 }
 
-func (c *DocumentSymbolCache) snapshot() map[uri.URI][]protocol.DocumentSymbol {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+func (c *SymbolCache) snapshotWorkspaceSymbols() map[uri.URI][]WorkspaceSymbolDefinitionsPair {
+	c.wsMutex.RLock()
+	defer c.wsMutex.RUnlock()
 
-	result := make(map[uri.URI][]protocol.DocumentSymbol, len(c.lookup))
-	for k, v := range c.lookup {
+	result := make(map[uri.URI][]WorkspaceSymbolDefinitionsPair, len(c.ws))
+	for k, v := range c.ws {
 		result[k] = v
 	}
 	return result
-}
-
-func traverseDocumentSymbolTree(docURI uri.URI, symbols []protocol.DocumentSymbol, out *[]protocol.WorkspaceSymbol, containerName string) {
-	for _, symbol := range symbols {
-		*out = append(*out, protocol.WorkspaceSymbol{
-			BaseSymbolInformation: protocol.BaseSymbolInformation{
-				Name:          symbol.Name,
-				Kind:          symbol.Kind,
-				Tags:          symbol.Tags,
-				ContainerName: containerName,
-			},
-			Location: protocol.OrPLocation_workspace_symbol{
-				Value: protocol.Location{
-					URI:   protocol.DocumentURI(docURI),
-					Range: preferredRange(symbol),
-				},
-			},
-		})
-		if len(symbol.Children) > 0 {
-			traverseDocumentSymbolTree(docURI, symbol.Children, out, symbol.Name)
-		}
-	}
 }
 
 func preferredRange(symbol protocol.DocumentSymbol) protocol.Range {
@@ -113,12 +115,14 @@ func preferredRange(symbol protocol.DocumentSymbol) protocol.Range {
 	return symbol.Range
 }
 
-type defaultSymbolCacheHelper struct {
+// defaultSymbolSearchHelper is a default search implementation used for querying document symbols.
+type defaultSymbolSearchHelper struct {
 	log    logr.Logger
 	config provider.InitConfig
 }
 
-func (h *defaultSymbolCacheHelper) GetDocumentUris(conditionsByCap []provider.ConditionsByCap) []uri.URI {
+// GetDocumentUris returns the URIs of all documents in workspace with some common excluded paths
+func (h *defaultSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.ConditionsByCap) []uri.URI {
 	included, excluded := []string{}, []string{}
 	for _, conditions := range conditionsByCap {
 		if conditions.Cap == "referenced" {
@@ -167,7 +171,7 @@ func (h *defaultSymbolCacheHelper) GetDocumentUris(conditionsByCap []provider.Co
 	return uris
 }
 
-func (h *defaultSymbolCacheHelper) GetLanguageID(uri string) string {
+func (h *defaultSymbolSearchHelper) GetLanguageID(uri string) string {
 	languageIDMap := map[string]string{
 		".ts":   "typescript",
 		".js":   "javascript",
@@ -181,22 +185,64 @@ func (h *defaultSymbolCacheHelper) GetLanguageID(uri string) string {
 	return languageIDMap[filepath.Ext(filepath.Base(uri))]
 }
 
-func (h *defaultSymbolCacheHelper) MatchSymbol(symbol protocol.WorkspaceSymbol, query ...string) bool {
-	for _, q := range query {
-		regex, err := compileSymbolQueryRegex(q)
+func (h *defaultSymbolSearchHelper) MatchSymbolByPatterns(symbol WorkspaceSymbolDefinitionsPair, patterns ...string) bool {
+	for _, p := range patterns {
+		regex, err := compileSymbolQueryRegex(p)
 		if err != nil {
 			h.log.Error(err, "error compiling symbol query regex")
 			continue
 		}
-		if regex.MatchString(symbol.Name) {
+		if regex.MatchString(symbol.WorkspaceSymbol.Name) {
 			return true
 		}
 	}
 	return false
 }
 
-func NewDefaultSymbolCacheHelper(log logr.Logger, config provider.InitConfig) SymbolCacheHelper {
-	return &defaultSymbolCacheHelper{
+func (h *defaultSymbolSearchHelper) MatchFileContent(content string, conditionsByCap ...provider.ConditionsByCap) [][]int {
+	matches := [][]int{}
+	for _, condition := range conditionsByCap {
+		if condition.Cap == "referenced" {
+			for _, condition := range condition.Conditions {
+				var cond ReferencedCondition
+				err := yaml.Unmarshal(condition, &cond)
+				if err != nil {
+					h.log.Error(err, "error unmarshaling referenced condition")
+					continue
+				}
+				regex, err := compileSymbolQueryRegex(cond.Referenced.Pattern)
+				if err != nil {
+					h.log.Error(err, "error compiling symbol query regex")
+					continue
+				}
+				matches = append(matches, regex.FindAllStringIndex(content, -1)...)
+			}
+		}
+	}
+	return matches
+}
+
+func (h *defaultSymbolSearchHelper) MatchSymbolByConditions(symbol WorkspaceSymbolDefinitionsPair, conditions ...provider.ConditionsByCap) bool {
+	for _, condition := range conditions {
+		if condition.Cap == "referenced" {
+			for _, condition := range condition.Conditions {
+				var cond ReferencedCondition
+				err := yaml.Unmarshal(condition, &cond)
+				if err != nil {
+					h.log.Error(err, "error unmarshaling referenced condition")
+					continue
+				}
+				if h.MatchSymbolByPatterns(symbol, cond.Referenced.Pattern) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func NewDefaultSymbolCacheHelper(log logr.Logger, config provider.InitConfig) SymbolSearchHelper {
+	return &defaultSymbolSearchHelper{
 		log:    log,
 		config: config,
 	}

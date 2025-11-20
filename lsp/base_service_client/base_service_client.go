@@ -1,6 +1,7 @@
 package base
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -139,13 +140,15 @@ type LSPServiceClientBase struct {
 	PublishDiagnosticsCache *AwaitCache[string, []protocol.Diagnostic]
 
 	// symbolCache is used to cache the document symbols for the workspace.
-	symbolCache *DocumentSymbolCache
+	symbolCache *SymbolCache
 	// symbolCacheHelper is used to provide logic to work with symbol cache of the generic provider.
-	symbolCacheHelper SymbolCacheHelper
+	symbolCacheHelper SymbolSearchHelper
 	// symbolCacheUpdateChan is a channel to send file URIs to update the symbol cache.
 	symbolCacheUpdateChan chan uri.URI
 	// symbolCacheUpdateWaitGroup wait group to wait for all symbol cache updates to complete.
 	symbolCacheUpdateWaitGroup sync.WaitGroup
+	// allConditions list of all conditions we are mainting symbols for
+	allConditions []provider.ConditionsByCap
 
 	ServerCapabilities protocol.ServerCapabilities
 	ServerInfo         *protocol.PServerInfoMsg_initialize
@@ -154,26 +157,37 @@ type LSPServiceClientBase struct {
 	handler jsonrpc2.Handler
 }
 
-// SymbolCacheHelper is a helper interface that can be implemented by a language
-// provider to provide logic to work with symbol cache of the generic provider.
-type SymbolCacheHelper interface {
+// SymbolSearchHelper is used by the generic service client to work with symbols
+// Each language client using generic service client can change the search logic
+// There are two stages where helper functions are called:
+// 1. Prepare() - To prepare symbol cache ahead of time
+// 2. Evaluate() - To perform the actual matching of symbols in the cache
+type SymbolSearchHelper interface {
 	// GetDocumentUris given a set of queries, this function should return the final
-	// list of document URIs to call documentSymbol against. Each language provider
-	// will have a different set of URIs to call.
-	GetDocumentUris(conditionsByCap []provider.ConditionsByCap) []uri.URI
-	// GetLanguageID returns the language ID for a given URI.
+	// list of document URIs to search symbols in.
+	GetDocumentUris(quries ...provider.ConditionsByCap) []uri.URI
+	// GetLanguageID returns the language ID for a given URI. Required in didOpen() notification
 	GetLanguageID(uri string) string
-	// MatchSymbol is used to determine if a symbol matches either one of the queries.
-	// This is so that different languages can have different FQN semantics to match.
-	// This will be called once in Prepare, and everytime Evaluate() is called.
-	MatchSymbol(symbol protocol.WorkspaceSymbol, query ...string) bool
+
+	// MatchFileContent given a content and list of all conditions available for the provider
+	// returns the positions of the matched queries in the content. Used in Prepare() to find
+	// all locations in a file which match any of our conditions.
+	MatchFileContent(content string, queries ...provider.ConditionsByCap) [][]int
+	// MatchSymbolByConditions given a workspace symbol and a list of all conditions available
+	// returns true if symbol matches any of the conditions. Used in Prepare() to determine which
+	// symbols we should be storing in the symbol cache.
+	MatchSymbolByConditions(symbol WorkspaceSymbolDefinitionsPair, conditions ...provider.ConditionsByCap) bool
+
+	// MatchSymbolByPatterns is used to determine if a symbol matches either one of the queries.
+	// This is so that different languages can have different FQN semantics to match. Used in Evaluate().
+	MatchSymbolByPatterns(symbol WorkspaceSymbolDefinitionsPair, patterns ...string) bool
 }
 
 func NewLSPServiceClientBase(
 	ctx context.Context, log logr.Logger, c provider.InitConfig,
 	initializeHandler jsonrpc2.Handler,
 	initializeParams protocol.InitializeParams,
-	symbolCacheHelper SymbolCacheHelper,
+	symbolCacheHelper SymbolSearchHelper,
 ) (*LSPServiceClientBase, error) {
 	sc := LSPServiceClientBase{}
 
@@ -246,7 +260,7 @@ func NewLSPServiceClientBase(
 	if sc.symbolCacheHelper == nil {
 		sc.symbolCacheHelper = NewDefaultSymbolCacheHelper(sc.Log, c)
 	}
-	sc.symbolCacheUpdateChan = make(chan uri.URI, 4)
+	sc.symbolCacheUpdateChan = make(chan uri.URI, 10)
 	go sc.symbolCacheUpdateHandler()
 	// Create a connection to the lsp server
 	if !c.Initialized {
@@ -317,11 +331,14 @@ func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes .
 }
 
 func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
-	uris := sc.symbolCacheHelper.GetDocumentUris(conditionsByCap)
-	sc.symbolCacheUpdateWaitGroup.Add(len(uris))
-	for _, uri := range uris {
-		sc.symbolCacheUpdateChan <- uri
-	}
+	sc.allConditions = conditionsByCap
+	go func() {
+		uris := sc.symbolCacheHelper.GetDocumentUris(conditionsByCap...)
+		sc.symbolCacheUpdateWaitGroup.Add(len(uris))
+		for _, uri := range uris {
+			sc.symbolCacheUpdateChan <- uri
+		}
+	}()
 	return nil
 }
 
@@ -401,6 +418,7 @@ func (sc *LSPServiceClientBase) Handle(ctx context.Context, req *jsonrpc2.Reques
 func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query string) []protocol.WorkspaceSymbol {
 	var symbols []protocol.WorkspaceSymbol
 
+	// prefer actual workspace/symbol request if supported
 	if sc.ServerCapabilities.Supports("workspace/symbol") {
 		params := protocol.WorkspaceSymbolParams{
 			Query: query,
@@ -415,16 +433,16 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 		}
 	}
 
-	// wait until pending NotifyFileChanges calls are complete
+	// wait until pending symbol cache update calls are complete
 	sc.symbolCacheUpdateWaitGroup.Wait()
 
-	symbols = sc.symbolCache.GetAllWorkspaceSymbols()
+	symbolsDefinitionPairs := sc.symbolCache.GetAllWorkspaceSymbols()
 
 	filteredSymbols := []protocol.WorkspaceSymbol{}
 	if sc.symbolCacheHelper != nil {
-		for _, symbol := range symbols {
-			if sc.symbolCacheHelper.MatchSymbol(symbol, query) {
-				filteredSymbols = append(filteredSymbols, symbol)
+		for _, symbol := range symbolsDefinitionPairs {
+			if sc.symbolCacheHelper.MatchSymbolByPatterns(symbol, query) {
+				filteredSymbols = append(filteredSymbols, symbol.WorkspaceSymbol)
 			}
 		}
 	}
@@ -481,37 +499,102 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 		return sc.Conn.Notify(ctx, "textDocument/didClose", params)
 	}
 
+	queryDocumentSymbol := func(ctx context.Context, uri uri.URI, content []byte) ([]protocol.DocumentSymbol, error) {
+		if symbols, exists := sc.symbolCache.GetDocumentSymbols(uri); exists {
+			return symbols, nil
+		}
+		var symbols []protocol.DocumentSymbol
+		params := protocol.DocumentSymbolParams{
+			TextDocument: protocol.TextDocumentIdentifier{
+				URI: string(uri),
+			},
+		}
+		if err := didOpen(string(uri), sc.symbolCacheHelper.GetLanguageID(string(uri)), content); err != nil {
+			sc.Log.Error(err, "didOpen request failed", "uri", uri)
+		}
+		if err := sc.Conn.Call(ctx, "textDocument/documentSymbol", params).Await(ctx, &symbols); err != nil {
+			return nil, err
+		}
+		if err := didClose(string(uri)); err != nil {
+			sc.Log.Error(err, "didClose request failed", "uri", uri)
+		}
+		sc.symbolCache.SetDocumentSymbols(uri, symbols)
+		return symbols, nil
+	}
+
+	workspaceSymbolKey := func(symbol protocol.WorkspaceSymbol) string {
+		return fmt.Sprintf("%s:%d:%d", symbol.Location.Value.(protocol.Location).URI, symbol.Location.Value.(protocol.Location).Range.Start.Line, symbol.Location.Value.(protocol.Location).Range.Start.Character)
+	}
+
 	for _, fileURI := range uris {
 		if ctx.Err() != nil {
 			return
 		}
-		if _, exists := sc.symbolCache.Get(fileURI); exists {
+		if _, exists := sc.symbolCache.GetWorkspaceSymbols(fileURI); exists {
 			continue
 		}
-		params := protocol.DocumentSymbolParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: string(fileURI),
-			},
-		}
-		var symbols []protocol.DocumentSymbol
+		workspaceSymbols := map[string]WorkspaceSymbolDefinitionsPair{}
 		content, err := os.ReadFile(fileURI.Filename())
 		if err != nil {
 			sc.Log.Error(err, "unable to read file", "uri", fileURI)
 			continue
 		}
-		if err := didOpen(string(fileURI), sc.symbolCacheHelper.GetLanguageID(string(fileURI)), content); err != nil {
-			sc.Log.Error(err, "didOpen request failed", "uri", fileURI)
+		// perform a text search to find all positions in the doc that match rules
+		// for each position, get definition of the symbol at that position. From
+		// the found definitions, store the actual position where text match as
+		// workspace symbol and store any definitions found for that symbol. If a
+		// definition is found, the symbol will be used as a reference symbol.
+		positions := sc.getMatchingPositions(string(content), fileURI.Filename())
+		for _, position := range positions {
+			definitions := sc.getDefinitionForPosition(ctx, position)
+			wsSymbolsForDefinitions := map[string]protocol.WorkspaceSymbol{}
+			for _, definition := range definitions {
+				uri, err := toURI(definition.URI)
+				if err != nil {
+					sc.Log.Error(err, "unable to parse definition URI", "uri", definition.URI)
+					continue
+				}
+				content, err := os.ReadFile(uri.Filename())
+				if err != nil {
+					sc.Log.Error(err, "unable to read file", "uri", uri)
+					continue
+				}
+				documentSymbols, err := queryDocumentSymbol(ctx, uri, content)
+				if err != nil {
+					sc.Log.Error(err, "documentSymbol request failed", "uri", uri)
+					continue
+				}
+				for _, symbol := range findDocumentSymbolsAtLocation(uri, documentSymbols, definition) {
+					wsSymbolsForDefinitions[workspaceSymbolKey(symbol)] = symbol
+				}
+			}
+			definitionSymbols := []protocol.WorkspaceSymbol{}
+			for _, symbol := range wsSymbolsForDefinitions {
+				definitionSymbols = append(definitionSymbols, symbol)
+			}
+			// attach all definitions found with the original match, so that
+			// we can determine it as a referenced symbol
+			pair := WorkspaceSymbolDefinitionsPair{
+				WorkspaceSymbol: protocol.WorkspaceSymbol{
+					Location: protocol.OrPLocation_workspace_symbol{
+						Value: protocol.Location{
+							URI: protocol.DocumentURI(fileURI),
+							Range: protocol.Range{
+								Start: position.Position,
+								End:   position.Position,
+							},
+						},
+					},
+				},
+				Definitions: definitionSymbols,
+			}
+			workspaceSymbols[workspaceSymbolKey(pair.WorkspaceSymbol)] = pair
 		}
-		if err := sc.Conn.Call(ctx, "textDocument/documentSymbol", params).Await(ctx, &symbols); err != nil {
-			sc.Log.Error(err, "documentSymbol request failed", "uri", fileURI)
+		workspaceSymbolsList := []WorkspaceSymbolDefinitionsPair{}
+		for _, pair := range workspaceSymbols {
+			workspaceSymbolsList = append(workspaceSymbolsList, pair)
 		}
-		if err := didClose(string(fileURI)); err != nil {
-			sc.Log.Error(err, "didClose request failed", "uri", fileURI)
-		}
-		if len(symbols) == 0 {
-			continue
-		}
-		sc.symbolCache.Set(fileURI, symbols)
+		sc.symbolCache.SetWorkspaceSymbols(fileURI, workspaceSymbolsList)
 	}
 }
 
@@ -577,4 +660,96 @@ func toURI(path string) (uri.URI, error) {
 	}
 
 	return uri.File(absPath), nil
+}
+
+func (sc *LSPServiceClientBase) getMatchingPositions(content string, path string) []protocol.TextDocumentPositionParams {
+	positions := []protocol.TextDocumentPositionParams{}
+	if sc.symbolCacheHelper != nil {
+		scanner := bufio.NewScanner(strings.NewReader(string(content)))
+		lineNumber := 0
+		for scanner.Scan() {
+			matchLocations := sc.symbolCacheHelper.MatchFileContent(scanner.Text(), sc.allConditions...)
+			for _, loc := range matchLocations {
+				absPath, err := filepath.Abs(path)
+				if err != nil {
+					return positions
+				}
+				positions = append(positions, protocol.TextDocumentPositionParams{
+					TextDocument: protocol.TextDocumentIdentifier{
+						URI: string(uri.File(absPath)),
+					},
+					Position: protocol.Position{
+						Line:      uint32(lineNumber),
+						Character: uint32(loc[1]),
+					},
+				})
+			}
+			lineNumber++
+		}
+	}
+	return positions
+}
+
+func (sc *LSPServiceClientBase) getDefinitionForPosition(ctx context.Context, position protocol.TextDocumentPositionParams) []protocol.Location {
+	res := []protocol.Location{}
+	if sc.ServerCapabilities.Supports("textDocument/definition") {
+		if err := sc.Conn.Call(ctx, "textDocument/definition", position).Await(ctx, &res); err != nil {
+			sc.Log.Error(err, "textDocument/definition request failed", "position", position)
+		}
+	}
+	return res
+}
+
+func findDocumentSymbolsAtLocation(docURI uri.URI, symbols []protocol.DocumentSymbol, defLoc protocol.Location) []protocol.WorkspaceSymbol {
+	var out []protocol.WorkspaceSymbol
+	findSymbolsAtLocationRecursive(docURI, symbols, defLoc, "", &out)
+	return out
+}
+
+func findSymbolsAtLocationRecursive(docURI uri.URI, symbols []protocol.DocumentSymbol, defLoc protocol.Location, containerName string, out *[]protocol.WorkspaceSymbol) {
+	for _, symbol := range symbols {
+		symRange := preferredRange(symbol)
+		if rangeOverlaps(symRange, defLoc.Range) {
+			ws := protocol.WorkspaceSymbol{
+				BaseSymbolInformation: protocol.BaseSymbolInformation{
+					Name:          symbol.Name,
+					Kind:          symbol.Kind,
+					Tags:          symbol.Tags,
+					ContainerName: containerName,
+				},
+				Location: protocol.OrPLocation_workspace_symbol{
+					Value: protocol.Location{
+						URI:   protocol.DocumentURI(docURI),
+						Range: symRange,
+					},
+				},
+			}
+			*out = append(*out, ws)
+		}
+		// Traverse children
+		if len(symbol.Children) > 0 {
+			findSymbolsAtLocationRecursive(docURI, symbol.Children, defLoc, symbol.Name, out)
+		}
+	}
+}
+
+func rangeOverlaps(r1, r2 protocol.Range) bool {
+	start1 := r1.Start
+	end1 := r1.End
+	start2 := r2.Start
+	end2 := r2.End
+
+	if positionLessEqual(start1, end2) && positionLessEqual(start2, end1) {
+		return true
+	}
+	return false
+}
+
+func positionLessEqual(p1, p2 protocol.Position) bool {
+	if p1.Line < p2.Line {
+		return true
+	} else if p1.Line == p2.Line {
+		return p1.Character <= p2.Character
+	}
+	return false
 }
