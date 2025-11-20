@@ -1,10 +1,11 @@
 TAG ?= latest
-IMG_ANALYZER ?= konveyor-analyzer-lsp:$(TAG)
+IMG_ANALYZER ?= analyzer-lsp:$(TAG)
 TAG_JAVA_BUNDLE ?= latest
 IMG_JAVA_PROVIDER ?= java-provider:$(TAG)
 IMG_GENERIC_PROVIDER ?= generic-provider:$(TAG)
 IMG_GO_DEP_PROVIDER ?= golang-dep-provider:$(TAG)
 IMG_YQ_PROVIDER ?= yq-provider:$(TAG)
+IMG_C_SHARP_PROVIDER ?= quay.io/konveyor/c-sharp-provider:$(TAG)
 OS := $(shell uname -s)
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
@@ -47,7 +48,7 @@ deps: build-dir
 image-build:
 	podman build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f Dockerfile . -t $(IMG_ANALYZER)
 
-build-external: build-generic-provider build-java-provider build-yq-provider
+build-external:image-build build-generic-provider build-java-provider build-yq-provider
 
 build-generic-provider: build-golang-dep-provider 
 	podman build --build-arg GOLANG_DEP_IMAGE=$(IMG_GO_DEP_PROVIDER) -f external-providers/generic-external-provider/Dockerfile -t $(IMG_GENERIC_PROVIDER) .
@@ -89,12 +90,13 @@ run-external-providers-pod:
 	podman pod create --name=analyzer
 	podman run --pod analyzer --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_JAVA_PROVIDER) --port 14651
 	podman run --pod analyzer --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_YQ_PROVIDER) --port 14652
+	podman run --pod analyzer --name c-sharp -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_C_SHARP_PROVIDER) --port 14656
 	podman run --entrypoint /usr/local/bin/entrypoint.sh --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_GENERIC_PROVIDER) --port 14653
 	podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_GENERIC_PROVIDER) --port 14654 --name nodejs
 	podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
 
 run-demo-image:
-	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z -v $(PWD)/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z -v $(PWD)/provider_pod_local_settings.json:/analyzer-lsp/provider_settings.json:Z localhost/$(IMG_ANALYZER) --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source' --rules=/analyzer-lsp/rule-example.yaml --provider-settings=/analyzer-lsp/provider_settings.json
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z -v $(PWD)/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z -v $(PWD)/provider_pod_local_settings.json:/analyzer-lsp/provider_settings.json:Z $(IMG_ANALYZER) --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source' --rules=/analyzer-lsp/rule-example.yaml --provider-settings=/analyzer-lsp/provider_settings.json
 
 # Provider-specific test targets
 run-java-provider-pod:
