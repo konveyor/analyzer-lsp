@@ -19,6 +19,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var (
+	// fromKeywordRegex matches "from" as a standalone keyword followed by a quote
+	fromKeywordRegex = regexp.MustCompile(`\bfrom\s+["']`)
+)
+
 type NodeServiceClientConfig struct {
 	base.LSPServiceClientConfig `yaml:",inline"`
 
@@ -685,11 +690,12 @@ func (sc *NodeServiceClient) normalizeMultilineImports(content string) string {
 				} else if ch == '\n' || ch == '\r' {
 					// Replace newlines with spaces, but check if import is complete
 					if braceDepth == 0 && i > importStart+6 {
-						// Check if we've seen "from" - if so, import might be complete
+						// Check if we've seen "from" as a standalone word followed by a quote
 						recentContent := result.String()
 						if len(recentContent) > 10 {
 							last50 := recentContent[len(recentContent)-min(50, len(recentContent)):]
-							if strings.Contains(last50, "from") && (strings.Contains(last50, "\"") || strings.Contains(last50, "'")) {
+							// Match "from" as a standalone word followed by a quote
+							if fromKeywordRegex.MatchString(last50) {
 								// Import statement is complete
 								result.WriteByte('\n')
 								i++
