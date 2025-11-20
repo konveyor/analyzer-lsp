@@ -130,6 +130,20 @@
         ]
     },
     {
+        "name": "c-sharp",
+        "address": "localhost:14656",
+        "initConfig": [
+            {
+                "analysisMode": "source-only",
+                "location": "analyzer-lsp/examples/c-sharp-dummy-example",
+                "providerSpecificConfig": {
+                    "ilspy_cmd": "/root/.dotnet/tools/ilspycmd",
+                    "paket_cmd": "/root/.dotnet/tools/paket"
+                }
+            }
+        ]
+    },
+    {
         "name": "builtin",
         "initConfig": [
             {"location": "examples/java/"},

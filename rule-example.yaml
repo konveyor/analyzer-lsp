@@ -201,3 +201,10 @@
     builtin.filecontent:
       pattern: "--pf-"
       filePattern: "\\.(css|scss)$"
+- message: 'System.Net.WebClient found. Consider replacing with System.Net.Http.HttpClient.'
+  ruleID: dotnet-deprecated-001
+  effort: 2
+  when:
+    c-sharp.referenced:
+      pattern: "System.Console"
+      location: CLASS

@@ -45,7 +45,7 @@ RUN python3 -m ensurepip --upgrade
 RUN python3 -m pip install 'python-lsp-server>=1.8.2'
 RUN npm install -g typescript-language-server typescript
 
-RUN go install golang.org/x/tools/gopls@v0.18.0
+RUN go install golang.org/x/tools/gopls@v0.20.0
 
 COPY --from=go-builder /opt/app-root/src/generic-provider/generic-external-provider /usr/local/bin/generic-external-provider
 COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider

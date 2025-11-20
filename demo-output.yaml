@@ -315,6 +315,53 @@
           innerText: "\n      io.netty\n      netty-transport-native-epoll\n      4.1.76.Final\n      linux-x86_64\n      runtime\n    "
           matchingXML: <groupId>io.netty</groupId><artifactId>netty-transport-native-epoll</artifactId><version>4.1.76.Final</version><classifier>linux-x86_64</classifier><scope>runtime</scope>
       effort: 1
+    dotnet-deprecated-001:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///examples/c-sharp-dummy-example/Program.cs
+        message: System.Net.WebClient found. Consider replacing with System.Net.Http.HttpClient.
+        codeSnip: |
+          6     public static async Task Main(string[] args)
+          7     {
+          8         using (HttpClient client = new HttpClient())
+          9         {
+          10             try
+          11             {
+          12                 string url = "https://jsonplaceholder.typicode.com/todos/1";
+          13                 HttpResponseMessage response = await client.GetAsync(url);
+          14                 response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP status code is not 2xx
+          15                 string responseBody = await response.Content.ReadAsStringAsync();
+        lineNumber: 16
+        variables:
+          file: file:///examples/c-sharp-dummy-example/Program.cs
+          fqdn_class: Console
+          fqdn_method: WriteLine
+          fqdn_namespace: System
+          symbol: Console.WriteLine
+          syntax_type: method_reference
+      - uri: file:///examples/c-sharp-dummy-example/Program.cs
+        message: System.Net.WebClient found. Consider replacing with System.Net.Http.HttpClient.
+        codeSnip: |
+          10             try
+          11             {
+          12                 string url = "https://jsonplaceholder.typicode.com/todos/1";
+          13                 HttpResponseMessage response = await client.GetAsync(url);
+          14                 response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP status code is not 2xx
+          15                 string responseBody = await response.Content.ReadAsStringAsync();
+          16                 Console.WriteLine(responseBody);
+          17             }
+          18             catch (HttpRequestException e)
+          19             {
+        lineNumber: 20
+        variables:
+          file: file:///examples/c-sharp-dummy-example/Program.cs
+          fqdn_class: Console
+          fqdn_method: WriteLine
+          fqdn_namespace: System
+          symbol: Console.WriteLine
+          syntax_type: method_reference
+      effort: 2
     file-001:
       description: Testing that we can get all the go files in the project
       category: potential
@@ -879,12 +926,14 @@
       incidents:
       - uri: ""
         message: Tags [Golang Kubernetes] found
+        lineNumber: 0
         variables:
           tags:
           - Golang
           - Kubernetes
       - uri: ""
         message: Tags [Java] found
+        lineNumber: 0
         variables:
           tags:
           - Java

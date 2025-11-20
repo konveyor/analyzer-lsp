@@ -15,6 +15,7 @@ jobs:
       java: ${{ steps.filter.outputs.java }}
       generic: ${{ steps.filter.outputs.generic }}
       yaml: ${{ steps.filter.outputs.yaml }}
+      c-sharp: ${{ steps.filter.outputs.c-sharp }}
       image_tag: ${{ steps.set-tag.outputs.image_tag }}
     steps:
       - uses: actions/checkout@v3
@@ -54,7 +55,7 @@ jobs:
           - provider: golang-dep-provider
             image_name: golang-dep-provider
             dockerfile: external-providers/golang-dependency-provider/Dockerfile
-          - provider: anayzer-lsp
+          - provider: analyzer-lsp
             image_name: konveyor-analyzer-lsp
             dockerfile: Dockerfile
             build_args: JAVA_BUNDLE_TAG=latest
@@ -82,21 +83,22 @@ jobs:
             image_name: java-provider
             dockerfile: external-providers/java-external-provider/Dockerfile
             build_args: JAVA_BUNDLE_TAG=latest
+            checked_out: true
           - provider: generic
             image_name: generic-provider
             dockerfile: external-providers/generic-external-provider/Dockerfile
             needs_golang_dep: true
             build_args: GOLANG_DEP_IMAGE=localhost/golang-dep-provider:${{ needs.detect-changes.outputs.image_tag }}
+            checked_out: true
           - provider: yq
             image_name: yq-provider
             dockerfile: external-providers/yq-external-provider/Dockerfile
-          - provider: dotnet
-            image_name: dotnet-provider
-            dockerfile: external-providers/dotnet-external-provider/Dockerfile
+            checked_out: true
           - provider: c-sharp
             image_name: c-sharp-provider
             dockerfile: Dockerfile
             repo: konveyor/c-sharp-analyzer-provider
+            checked_out: false
     steps:
       - uses: actions/checkout@v3
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
@@ -106,7 +108,7 @@ jobs:
         uses: shawn-hurley/ci/build-image@main
         with:
           repo: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
-          checked_out: true
+          checked_out: ${{ matrix.checked_out }}
           image_name: ${{ matrix.image_name }}
           image_tag: ${{ needs.detect-changes.outputs.image_tag }}
           dockerfile_path: ${{ matrix.dockerfile }}
@@ -124,14 +126,34 @@ jobs:
       matrix:
         include:
           - provider: java
-            artifact_pattern: "*(konveyor-analyzer-lsp|java-provider)"
+            artifact_pattern: "{konveyor-analyzer-lsp,java-provider}"
+            test-data: external-providers/java-external-provider/examples
+            image_name: java-provider
+            demo-output-path: external-providers/java-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/java-external-provider/e2e-tests/provider_settings.json
+            testing-rules: external-providers/java-external-provider/e2e-tests/rule-example.yaml
           - provider: generic
-            artifact_pattern: "*({konveyor-analyzer-lsp,generic-provider,golang-dep-provider})"
+            artifact_pattern: "{konveyor-analyzer-lsp,generic-provider,golang-dep-provider}"
+            test-data: examples
+            image_name: generic-provider
+            demo-output-path: external-providers/generic-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/generic-external-provider/e2e-tests/provider_settings.json
+            testing-rules: external-providers/generic-external-provider/e2e-tests/rule-example.yaml
           - provider: yaml
-            artifact_pattern: "*(konveyor-analyzer-lsp|yq-provider)"
+            artifact_pattern: "{konveyor-analyzer-lsp,yq-provider}"
+            test-data: examples
+            image_name: yq-provider
+            demo-output-path: external-providers/yq-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/yq-external-provider/e2e-tests/provider_settings.json
+            testing-rules: external-providers/yq-external-provider/e2e-tests/rule-example.yaml
           - provider: c-sharp
             repo: "konveyor/c-sharp-analyzer-provider"
-            artifact_pattern: "*(konveyor-analyzer|c-sharp-provider)"
+            artifact_pattern: "{konveyor-analyzer-lsp,c-sharp-provider}"
+            test-data: testdata
+            image_name: c-sharp-provider
+            demo-output-path: e2e-tests/demo-output.yaml
+            provider_settings-path: e2e-tests/provider_settings.json
+            testing-rules: rulesets
     steps:
       - uses: actions/checkout@v3
         with:
@@ -161,16 +183,16 @@ jobs:
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
         run: |
           podman volume create test-data
-          podman run --rm -v test-data:/target:z -v $(PWD)/${{ matrix.test-data }}:z --entrypoint=cp alpine -a /src/. /target/
+          podman run --rm -v test-data:/target:Z -v $(pwd)/${{ matrix.test-data }}:/src/:Z --entrypoint=cp alpine -a /src/. /target/
           podman pod create --name=analyzer-${{ matrix.provider }}
-          podman run --pod analyzer-${{ matrix.provider }} --name ${{ matrix.provider }}-provider -d -v test-data:/analyzer-lsp/examples:z localhost/${{ matrix.image_name }}:${{ needs.detect-changes.outputs.image_tag }} --port 14651
+          podman run --pod analyzer-${{ matrix.provider }} --name ${{ matrix.provider }}-provider -d -v test-data:/analyzer-lsp/examples:Z localhost/${{ matrix.image_name }}:${{ needs.detect-changes.outputs.image_tag }} --port 14651
           podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-${{ matrix.provider }} \
-            -v test-data:/analyzer-lsp/examples:z \
-            -v ${{ matrix.demo-output-path }}:/analyzer-lsp/output.yaml:z \
-            -v ${{ matrix.provider_settings-path }}:/analyzer-lsp/provider_settings.json:z \
-            -v ${{ matrix.testing-rules }}:/analyzer-lsp/rules:z \
+            -v test-data:/analyzer-lsp/examples:Z \
+            -v $(pwd)/${{ matrix.demo-output-path }}:/analyzer-lsp/output.yaml:Z \
+            -v $(pwd)/${{ matrix.provider_settings-path }}:/analyzer-lsp/provider_settings.json:Z \
+            -v $(pwd)/${{ matrix.testing-rules }}:/analyzer-lsp/rules:Z \
             localhost/konveyor-analyzer-lsp:${{ needs.detect-changes.outputs.image_tag }} \
-            --output=/analzyer-lsp/output.yaml \
+            --output-file=/analyzer-lsp/output.yaml \
             --rules=/analyzer-lsp/rules \
             --provider-settings=/analyzer-lsp/provider_settings.json
 
@@ -272,10 +294,8 @@ jobs:
         run: |
           podman tag localhost/java-provider:${{ needs.detect-changes.outputs.image_tag }} ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
           podman tag localhost/generic-provider:${{ needs.detect-changes.outputs.image_tag }} ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
-          podman tag localhost/dotnet-provider:${{ needs.detect-changes.outputs.image_tag }} ttl.sh/konveyor-dotnet-external-provider-${{ github.sha }}:2h
           podman push ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
           podman push ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
-          podman push ttl.sh/konveyor-dotnet-external-provider-${{ github.sha }}:2h
 
       - uses: actions/checkout@v3
         with:
