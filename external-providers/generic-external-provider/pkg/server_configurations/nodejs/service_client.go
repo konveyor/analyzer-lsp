@@ -692,12 +692,13 @@ func (sc *NodeServiceClient) normalizeMultilineImports(content string) string {
 					result.WriteByte(ch)
 					i++
 				} else if ch == '\n' || ch == '\r' {
-					// Replace newlines with spaces, but check if import is complete
+					// Replace newlines with spaces, but check if this import is complete
 					if braceDepth == 0 && i > importStart+6 {
-						// Check if we've seen "from" as a standalone word followed by a quote
-						recentContent := result.String()
-						if len(recentContent) > 10 {
-							last50 := recentContent[len(recentContent)-min(50, len(recentContent)):]
+						// Restrict "from" detection to just the current import statement
+						snippet := content[importStart:min(i+1, len(content))]
+						if len(snippet) > 10 {
+							start := len(snippet) - min(50, len(snippet))
+							last50 := snippet[start:]
 							// Match "from" as a standalone word followed by a quote
 							if fromKeywordRegex.MatchString(last50) {
 								// Import statement is complete
