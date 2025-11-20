@@ -133,6 +133,7 @@ jobs:
           tackle_hub: "quay.io/konveyor/tackle2-hub:${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}"
           provider_generic: ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
           provider_java: ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
+          operator: quay.io/konveyor/tackle2-operator:release-0.8
       - name: push bundle image 
         run: |
           docker push ttl.sh/konveyor-operator-bundle-${GITHUB_SHA}:2h
