@@ -94,6 +94,10 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	}
 	sc.LSPServiceClientBase = scBase
 
+	// Synchronize BaseConfig.WorkspaceFolders with Config.WorkspaceFolders
+	// This ensures consistency between the two configurations
+	sc.BaseConfig.WorkspaceFolders = sc.Config.WorkspaceFolders
+
 	// DEBUG: Log LSP initialization details
 	log.Info("NodeJS LSP initialized",
 		"rootURI", params.RootURI,
