@@ -193,12 +193,15 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return resp{}, fmt.Errorf("unable to get query info")
 	}
 
-	// get all ts/js files
+	// Find all import statements containing the pattern during file walk
 	if len(sc.Config.WorkspaceFolders) == 0 {
 		return resp{}, fmt.Errorf("no workspace folders configured")
 	}
 	folder := strings.TrimPrefix(sc.Config.WorkspaceFolders[0], "file://")
-	var nodeFiles []fileInfo
+
+	var importLocations []ImportLocation
+	filesProcessed := 0
+
 	err = filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -208,24 +211,31 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		if info.IsDir() && info.Name() == "node_modules" {
 			return filepath.SkipDir
 		}
+
 		if !info.IsDir() {
 			ext := filepath.Ext(path)
-			if ext == ".ts" || ext == ".tsx" {
-				langID := "typescript"
-				if ext == ".tsx" {
-					langID = "typescriptreact"
-				}
-				path = "file://" + path
-				nodeFiles = append(nodeFiles, fileInfo{path: path, langID: langID})
+			var langID string
+
+			// Determine language ID based on extension
+			switch ext {
+			case ".ts":
+				langID = "typescript"
+			case ".tsx":
+				langID = "typescriptreact"
+			case ".js":
+				langID = "javascript"
+			case ".jsx":
+				langID = "javascriptreact"
+			default:
+				return nil // Not a TypeScript/JavaScript file
 			}
-			if ext == ".js" || ext == ".jsx" {
-				langID := "javascript"
-				if ext == ".jsx" {
-					langID = "javascriptreact"
-				}
-				path = "file://" + path
-				nodeFiles = append(nodeFiles, fileInfo{path: path, langID: langID})
-			}
+
+			filesProcessed++
+			fileURI := "file://" + path
+
+			// Search this file immediately for import statements
+			locations := sc.findImportStatementsInFile(query, fileURI, langID)
+			importLocations = append(importLocations, locations...)
 		}
 
 		return nil
@@ -236,10 +246,8 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 	sc.Log.Info("Scanning for import statements",
 		"query", query,
-		"totalFiles", len(nodeFiles))
-
-	// FAST: Find all import statements containing the pattern (no LSP needed)
-	importLocations := sc.findImportStatements(query, nodeFiles)
+		"filesProcessed", filesProcessed,
+		"importsFound", len(importLocations))
 
 	if len(importLocations) == 0 {
 		sc.Log.Info("No imports found for symbol",
@@ -493,16 +501,133 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 	return incidentsMap, nil
 }
 
+// findImportStatementsInFile searches a single file for import statements containing the given pattern.
+//
+// This method performs a fast regex-based search without requiring LSP. It processes
+// multiline imports by normalizing them first, then uses regex to match import patterns.
+//
+// Parameters:
+//   - pattern: The symbol name to search for (e.g., "Button", "Card")
+//   - fileURI: The file URI (e.g., "file:///path/to/file.tsx")
+//   - langID: The language ID (e.g., "typescriptreact", "javascript")
+//
+// Returns:
+//   - Slice of ImportLocation structs for this file
+func (sc *NodeServiceClient) findImportStatementsInFile(pattern string, fileURI string, langID string) []ImportLocation {
+	trimmedPath := strings.TrimPrefix(fileURI, "file://")
+	content, err := os.ReadFile(trimmedPath)
+	if err != nil {
+		return nil
+	}
+
+	// Regex to match all valid import statement patterns
+	importRegex := regexp.MustCompile(
+		`import\s+(?:type\s+)?(?:(\w+)\s*,\s*)?(?:\{([^}]*)\}|(\w+)|\*\s+as\s+(\w+))\s+from\s+['"]([^'"]+)['"]`,
+	)
+
+	var locations []ImportLocation
+	lines := strings.Split(string(content), "\n")
+
+	// Normalize multiline imports to single line for regex matching
+	normalized := sc.normalizeMultilineImports(string(content))
+
+	// Find all imports in the normalized content
+	allMatches := importRegex.FindAllStringSubmatchIndex(normalized, -1)
+
+	for _, matchIdx := range allMatches {
+		if len(matchIdx) < 4 {
+			continue
+		}
+
+		var defaultImport string
+		var namedImports string
+		var namespaceImport string
+
+		// Extract default import (group 1 for mixed, group 3 for standalone)
+		if matchIdx[2] != -1 && matchIdx[3] != -1 {
+			defaultImport = normalized[matchIdx[2]:matchIdx[3]]
+		} else if matchIdx[6] != -1 && matchIdx[7] != -1 {
+			defaultImport = normalized[matchIdx[6]:matchIdx[7]]
+		}
+
+		// Extract named imports (group 2)
+		if matchIdx[4] != -1 && matchIdx[5] != -1 {
+			namedImports = normalized[matchIdx[4]:matchIdx[5]]
+		}
+
+		// Extract namespace import (group 4)
+		if matchIdx[8] != -1 && matchIdx[9] != -1 {
+			namespaceImport = normalized[matchIdx[8]:matchIdx[9]]
+		}
+
+		// Check if pattern matches any import type
+		patternFound := false
+		if defaultImport == pattern {
+			patternFound = true
+		} else if namedImports != "" && strings.Contains(namedImports, pattern) {
+			patternFound = true
+		} else if namespaceImport == pattern {
+			patternFound = true
+		}
+
+		if !patternFound {
+			continue
+		}
+
+		// Find the pattern in the original (non-normalized) content
+		importStart := matchIdx[0]
+
+		// Find which line this corresponds to in the original content
+		charCount := 0
+		for lineNum, line := range lines {
+			if charCount <= importStart && charCount+len(line)+1 > importStart {
+				// Search for the pattern in this and subsequent lines
+				found := false
+				for searchLine := lineNum; searchLine < len(lines) && searchLine < lineNum+20 && !found; searchLine++ {
+					searchContent := lines[searchLine]
+
+					// Look for the pattern as a complete word
+					for searchStart := 0; ; {
+						patternPos := strings.Index(searchContent[searchStart:], pattern)
+						if patternPos == -1 {
+							break
+						}
+						patternPos += searchStart
+
+						// Verify it's a complete word (not part of a larger identifier)
+						isWordStart := patternPos == 0 || !isIdentifierChar(rune(searchContent[patternPos-1]))
+						isWordEnd := patternPos+len(pattern) >= len(searchContent) || !isIdentifierChar(rune(searchContent[patternPos+len(pattern)]))
+
+						if isWordStart && isWordEnd {
+							locations = append(locations, ImportLocation{
+								FileURI:  fileURI,
+								LangID:   langID,
+								Position: protocol.Position{
+									Line:      uint32(searchLine),
+									Character: uint32(patternPos),
+								},
+								Line: searchContent,
+							})
+							found = true
+							break
+						}
+
+						searchStart = patternPos + len(pattern)
+					}
+				}
+				break
+			}
+			charCount += len(line) + 1 // +1 for newline
+		}
+	}
+
+	return locations
+}
+
 // findImportStatements searches for import statements containing the given pattern.
 //
-// This method performs a fast regex-based search without requiring LSP, making it much
-// more efficient than workspace/symbol search. It handles both named and default imports,
-// and correctly processes multiline imports by normalizing them first.
-//
-// Supported import patterns:
-//   - Named imports: import { Button, Card } from "@patternfly/react-core"
-//   - Default imports: import Button from "@patternfly/react-core"
-//   - Multiline imports: import {\n  Button,\n  Card\n} from "..."
+// This method is used by tests and provides backward compatibility.
+// It delegates to findImportStatementsInFile for each file.
 //
 // Parameters:
 //   - pattern: The symbol name to search for (e.g., "Button", "Card")
@@ -510,141 +635,12 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 //
 // Returns:
 //   - Slice of ImportLocation structs containing file URI, language ID, and position
-//     where the symbol appears in the import statement
-//
-// The returned locations can be used with LSP textDocument/definition to find where
-// the symbol is actually defined, enabling efficient reference lookup.
 func (sc *NodeServiceClient) findImportStatements(pattern string, files []fileInfo) []ImportLocation {
-	// Regex to match all valid import statement patterns:
-	// - import { Card } from "pkg"              (named only)
-	// - import Card from "pkg"                  (default only)
-	// - import * as Card from "pkg"             (namespace only)
-	// - import React, { useState } from "pkg"   (default + named)
-	// - import React, * as All from "pkg"       (default + namespace - rare but valid)
-	// - import type { Card } from "pkg"         (TypeScript type-only import)
-	// - import type Card from "pkg"             (TypeScript type-only default import)
-	//
-	// The optional "type" keyword is supported but ignored (TypeScript type-only imports).
-	//
-	// Capture groups:
-	// 1: Default import (when mixed with named/namespace)
-	// 2: Named imports (braced list)
-	// 3: Default import (when standalone)
-	// 4: Namespace import (standalone or after default)
-	// 5: Package name
-	importRegex := regexp.MustCompile(
-		`import\s+(?:type\s+)?(?:(\w+)\s*,\s*)?(?:\{([^}]*)\}|(\w+)|\*\s+as\s+(\w+))\s+from\s+['"]([^'"]+)['"]`,
-	)
-
 	var locations []ImportLocation
 
 	for _, file := range files {
-		trimmedPath := strings.TrimPrefix(file.path, "file://")
-		content, err := os.ReadFile(trimmedPath)
-		if err != nil {
-			continue
-		}
-
-		lines := strings.Split(string(content), "\n")
-
-		// Normalize multiline imports to single line for regex matching
-		normalized := sc.normalizeMultilineImports(string(content))
-
-		// Find all imports in the normalized content
-		allMatches := importRegex.FindAllStringSubmatchIndex(normalized, -1)
-
-		for _, matchIdx := range allMatches {
-			if len(matchIdx) < 4 {
-				continue
-			}
-
-			var defaultImport string
-			var namedImports string
-			var namespaceImport string
-
-			// Extract default import (group 1 for mixed, group 3 for standalone)
-			if matchIdx[2] != -1 && matchIdx[3] != -1 {
-				// Default import in mixed form: import React, { ... }
-				defaultImport = normalized[matchIdx[2]:matchIdx[3]]
-			} else if matchIdx[6] != -1 && matchIdx[7] != -1 {
-				// Default import standalone: import React from "..."
-				defaultImport = normalized[matchIdx[6]:matchIdx[7]]
-			}
-
-			// Extract named imports (group 2)
-			if matchIdx[4] != -1 && matchIdx[5] != -1 {
-				namedImports = normalized[matchIdx[4]:matchIdx[5]]
-			}
-
-			// Extract namespace import (group 4)
-			if matchIdx[8] != -1 && matchIdx[9] != -1 {
-				namespaceImport = normalized[matchIdx[8]:matchIdx[9]]
-			}
-
-			// Check if pattern matches any import type
-			// - Default and namespace imports use exact match (single identifier)
-			// - Named imports use substring match (comma-separated list may contain the pattern)
-			patternFound := false
-			if defaultImport == pattern {
-				patternFound = true
-			} else if namedImports != "" && strings.Contains(namedImports, pattern) {
-				patternFound = true
-			} else if namespaceImport == pattern {
-				patternFound = true
-			}
-
-			if !patternFound {
-				continue
-			}
-
-			// Find the pattern in the original (non-normalized) content
-			// We need to search for it starting near the import statement
-			importStart := matchIdx[0]
-
-			// Find which line this corresponds to in the original content
-			charCount := 0
-			for lineNum, line := range lines {
-				if charCount <= importStart && charCount+len(line)+1 > importStart {
-					// This line (or nearby lines) contains the import
-					// Search for the pattern in this and subsequent lines
-					found := false
-					for searchLine := lineNum; searchLine < len(lines) && searchLine < lineNum+20 && !found; searchLine++ {
-						searchContent := lines[searchLine]
-
-						// Look for the pattern as a complete word; there may be multiple occurrences
-						for searchStart := 0; ; {
-							patternPos := strings.Index(searchContent[searchStart:], pattern)
-							if patternPos == -1 {
-								break
-							}
-							patternPos += searchStart
-
-							// Verify it's a complete word (not part of a larger identifier)
-							isWordStart := patternPos == 0 || !isIdentifierChar(rune(searchContent[patternPos-1]))
-							isWordEnd := patternPos+len(pattern) >= len(searchContent) || !isIdentifierChar(rune(searchContent[patternPos+len(pattern)]))
-
-							if isWordStart && isWordEnd {
-								locations = append(locations, ImportLocation{
-									FileURI:  file.path,
-									LangID:   file.langID,
-									Position: protocol.Position{
-										Line:      uint32(searchLine),
-										Character: uint32(patternPos),
-									},
-									Line: searchContent,
-								})
-								found = true
-								break
-							}
-
-							searchStart = patternPos + len(pattern)
-						}
-					}
-					break
-				}
-				charCount += len(line) + 1 // +1 for newline
-			}
-		}
+		fileLocations := sc.findImportStatementsInFile(pattern, file.path, file.langID)
+		locations = append(locations, fileLocations...)
 	}
 
 	return locations
