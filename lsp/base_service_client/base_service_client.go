@@ -141,8 +141,8 @@ type LSPServiceClientBase struct {
 
 	// symbolCache is used to cache the document symbols for the workspace.
 	symbolCache *SymbolCache
-	// symbolCacheHelper is used to provide logic to work with symbol cache of the generic provider.
-	symbolCacheHelper SymbolSearchHelper
+	// symbolSearchHelper is used to provide logic to work with symbol cache of the generic provider.
+	symbolSearchHelper SymbolSearchHelper
 	// symbolCacheUpdateChan is a channel to send file URIs to update the symbol cache.
 	symbolCacheUpdateChan chan uri.URI
 	// symbolCacheUpdateWaitGroup wait group to wait for all symbol cache updates to complete.
@@ -164,15 +164,16 @@ type LSPServiceClientBase struct {
 // 2. Evaluate() - To perform the actual matching of symbols in the cache
 type SymbolSearchHelper interface {
 	// GetDocumentUris given a set of queries, this function should return the final
-	// list of document URIs to search symbols in.
+	// list of document URIs to search symbols in. The search will be made using a
+	// combination of text search and textDocument/documentSymbol requests.
 	GetDocumentUris(quries ...provider.ConditionsByCap) []uri.URI
 	// GetLanguageID returns the language ID for a given URI. Required in didOpen() notification
 	GetLanguageID(uri string) string
 
-	// MatchFileContent given a content and list of all conditions available for the provider
+	// MatchFileContentByConditions given a content and list of all conditions available for the provider
 	// returns the positions of the matched queries in the content. Used in Prepare() to find
 	// all locations in a file which match any of our conditions.
-	MatchFileContent(content string, queries ...provider.ConditionsByCap) [][]int
+	MatchFileContentByConditions(content string, queries ...provider.ConditionsByCap) [][]int
 	// MatchSymbolByConditions given a workspace symbol and a list of all conditions available
 	// returns true if symbol matches any of the conditions. Used in Prepare() to determine which
 	// symbols we should be storing in the symbol cache.
@@ -256,9 +257,9 @@ func NewLSPServiceClientBase(
 	// Create the caches for the various handler stuffs
 	sc.PublishDiagnosticsCache = NewAwaitCache[string, []protocol.Diagnostic]()
 	sc.symbolCache = NewDocumentSymbolCache()
-	sc.symbolCacheHelper = symbolCacheHelper
-	if sc.symbolCacheHelper == nil {
-		sc.symbolCacheHelper = NewDefaultSymbolCacheHelper(sc.Log, c)
+	sc.symbolSearchHelper = symbolCacheHelper
+	if sc.symbolSearchHelper == nil {
+		sc.symbolSearchHelper = NewDefaultSymbolCacheHelper(sc.Log, c)
 	}
 	sc.symbolCacheUpdateChan = make(chan uri.URI, 10)
 	go sc.symbolCacheUpdateHandler()
@@ -310,6 +311,7 @@ func (sc *LSPServiceClientBase) Stop() {
 	}
 }
 
+// NotifyFileChanges when a workspace file is modified, we invalidate the previous symbols we stored in the cache and query new symbols
 func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
 	if sc.symbolCache == nil {
 		return nil
@@ -330,10 +332,13 @@ func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes .
 	return nil
 }
 
+// Prepare is called before Evaluate() with all rules. We prepare the symbol cache during this step.
 func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
 	sc.allConditions = conditionsByCap
+	sc.symbolCacheUpdateWaitGroup.Add(1)
 	go func() {
-		uris := sc.symbolCacheHelper.GetDocumentUris(conditionsByCap...)
+		defer sc.symbolCacheUpdateWaitGroup.Done()
+		uris := sc.symbolSearchHelper.GetDocumentUris(conditionsByCap...)
 		sc.symbolCacheUpdateWaitGroup.Add(len(uris))
 		for _, uri := range uris {
 			sc.symbolCacheUpdateChan <- uri
@@ -439,9 +444,9 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 	symbolsDefinitionPairs := sc.symbolCache.GetAllWorkspaceSymbols()
 
 	filteredSymbols := []protocol.WorkspaceSymbol{}
-	if sc.symbolCacheHelper != nil {
+	if sc.symbolSearchHelper != nil {
 		for _, symbol := range symbolsDefinitionPairs {
-			if sc.symbolCacheHelper.MatchSymbolByPatterns(symbol, query) {
+			if sc.symbolSearchHelper.MatchSymbolByPatterns(symbol, query) {
 				filteredSymbols = append(filteredSymbols, symbol.WorkspaceSymbol)
 			}
 		}
@@ -471,6 +476,13 @@ func (sc *LSPServiceClientBase) GetAllReferences(ctx context.Context, location p
 	return res
 }
 
+// populateDocumentSymbolCache is called to populate the document symbol cache for a given set of URIs
+// For each URI, we perform a text search to find all positions that match *any* of the conditions passed to Prepare()
+// For each position found, we perform a textDocument/definition request to find the symbol's definition
+// For each definition, we perform textDocument/documentSymbol on the URI to get actual symbols in that file
+// We then find out the actual symbol for that definition by looking up the symbol tree of that file
+// Finally, we store the original match found as well as the definition as workspace symbols in the cache
+// This info is later used in EvaluateReferenced() to search symbols for a query
 func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context, uris []uri.URI) {
 	if sc.symbolCache == nil {
 		return
@@ -509,7 +521,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 				URI: string(uri),
 			},
 		}
-		if err := didOpen(string(uri), sc.symbolCacheHelper.GetLanguageID(string(uri)), content); err != nil {
+		if err := didOpen(string(uri), sc.symbolSearchHelper.GetLanguageID(string(uri)), content); err != nil {
 			sc.Log.Error(err, "didOpen request failed", "uri", uri)
 		}
 		if err := sc.Conn.Call(ctx, "textDocument/documentSymbol", params).Await(ctx, &symbols); err != nil {
@@ -664,11 +676,11 @@ func toURI(path string) (uri.URI, error) {
 
 func (sc *LSPServiceClientBase) getMatchingPositions(content string, path string) []protocol.TextDocumentPositionParams {
 	positions := []protocol.TextDocumentPositionParams{}
-	if sc.symbolCacheHelper != nil {
+	if sc.symbolSearchHelper != nil {
 		scanner := bufio.NewScanner(strings.NewReader(string(content)))
 		lineNumber := 0
 		for scanner.Scan() {
-			matchLocations := sc.symbolCacheHelper.MatchFileContent(scanner.Text(), sc.allConditions...)
+			matchLocations := sc.symbolSearchHelper.MatchFileContentByConditions(scanner.Text(), sc.allConditions...)
 			for _, loc := range matchLocations {
 				absPath, err := filepath.Abs(path)
 				if err != nil {

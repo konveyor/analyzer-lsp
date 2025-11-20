@@ -199,7 +199,7 @@ func (h *defaultSymbolSearchHelper) MatchSymbolByPatterns(symbol WorkspaceSymbol
 	return false
 }
 
-func (h *defaultSymbolSearchHelper) MatchFileContent(content string, conditionsByCap ...provider.ConditionsByCap) [][]int {
+func (h *defaultSymbolSearchHelper) MatchFileContentByConditions(content string, conditionsByCap ...provider.ConditionsByCap) [][]int {
 	matches := [][]int{}
 	for _, condition := range conditionsByCap {
 		if condition.Cap == "referenced" {

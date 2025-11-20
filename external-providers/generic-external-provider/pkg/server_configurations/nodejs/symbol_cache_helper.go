@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
+	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
@@ -52,7 +53,7 @@ func (h *nodejsSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.C
 	return uris
 }
 
-func (h *nodejsSymbolSearchHelper) MatchFileContent(content string, conditionsByCap ...provider.ConditionsByCap) [][]int {
+func (h *nodejsSymbolSearchHelper) MatchFileContentByConditions(content string, conditionsByCap ...provider.ConditionsByCap) [][]int {
 	matches := [][]int{}
 	for _, condition := range conditionsByCap {
 		if condition.Cap == "referenced" {
@@ -79,24 +80,34 @@ func (h *nodejsSymbolSearchHelper) MatchFileContent(content string, conditionsBy
 }
 
 func (h *nodejsSymbolSearchHelper) MatchSymbolByPatterns(symbol base.WorkspaceSymbolDefinitionsPair, patterns ...string) bool {
-	filteredPatterns := []string{}
+	filteredPatterns := map[string]bool{}
 	for _, q := range patterns {
 		parsedQuery := parseQuery(q)
 		if parsedQuery != nil && parsedQuery.Query != nil {
-			filteredPatterns = append(filteredPatterns, *parsedQuery.Query)
-		}
-	}
-	// if there is a definition stored with this symbol, match the definition against the patterns
-	if symbol.Definitions != nil {
-		for _, definition := range symbol.Definitions {
-			if h.SymbolSearchHelper.MatchSymbolByPatterns(base.WorkspaceSymbolDefinitionsPair{
-				WorkspaceSymbol: definition,
-			}, filteredPatterns...) {
-				return true
+			filteredPatterns[*parsedQuery.Query] = true
+			// if there is a definition stored with this symbol
+			// make sure the definition comes from the same package scope
+			if symbol.Definitions != nil {
+				for _, definition := range symbol.Definitions {
+					if parsedQuery.Package != nil && parsedQuery.Scope != nil {
+						definitionLoc, ok := definition.Location.Value.(protocol.Location)
+						if !ok || strings.Contains(string(definitionLoc.URI), filepath.Join(*parsedQuery.Package, *parsedQuery.Scope)) {
+							if h.SymbolSearchHelper.MatchSymbolByPatterns(base.WorkspaceSymbolDefinitionsPair{
+								WorkspaceSymbol: definition,
+							}, *parsedQuery.Query) {
+								return true
+							}
+						}
+					}
+				}
 			}
 		}
 	}
-	return h.SymbolSearchHelper.MatchSymbolByPatterns(symbol, filteredPatterns...)
+	filteredPatternsList := []string{}
+	for pattern := range filteredPatterns {
+		filteredPatternsList = append(filteredPatternsList, pattern)
+	}
+	return h.SymbolSearchHelper.MatchSymbolByPatterns(symbol, filteredPatternsList...)
 }
 
 func (h *nodejsSymbolSearchHelper) MatchSymbolByConditions(symbol base.WorkspaceSymbolDefinitionsPair, conditions ...provider.ConditionsByCap) bool {
