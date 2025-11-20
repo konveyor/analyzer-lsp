@@ -71,7 +71,7 @@ func (j JavaArtifact) ToPomDep() gopom.Dependency {
 //
 // Parameters:
 //   - jarFile: Absolute path to the JAR file to identify
-//   - mavenIndexPath: Path to Maven index directory for SHA1 lookups
+//   - mavenIndexPath: Path to the txt index file
 //   - log: Logger for progress and error reporting
 //   - labeler: Used to determine if dependency is open source (unused in current implementation)
 //

@@ -76,13 +76,14 @@ func (m *mavenBaseTool) ShouldResolve() bool {
 
 func (m *mavenBinaryBuildTool) GetResolver(decompileTool string) (dependency.Resolver, error) {
 	opts := dependency.ResolverOptions{
-		Log:           m.log,
-		Location:      m.binaryLocation,
-		BuildFile:     m.mvnSettingsFile,
-		LocalRepo:     m.mvnLocalRepo,
-		Insecure:      m.mvnInsecure,
-		DecompileTool: decompileTool,
-		Labeler:       m.labeler,
+		Log:            m.log,
+		Location:       m.binaryLocation,
+		BuildFile:      m.mvnSettingsFile,
+		LocalRepo:      m.mvnLocalRepo,
+		Insecure:       m.mvnInsecure,
+		DecompileTool:  decompileTool,
+		Labeler:        m.labeler,
+		MavenIndexPath: m.mavenIndexPath,
 	}
 	m.resolver = dependency.GetBinaryResolver(opts)
 	return m, nil
