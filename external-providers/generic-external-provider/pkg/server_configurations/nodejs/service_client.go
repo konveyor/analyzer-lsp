@@ -665,6 +665,9 @@ func (sc *NodeServiceClient) findImportStatements(pattern string, files []fileIn
 // Returns:
 //   - Normalized content with multiline imports converted to single lines
 func (sc *NodeServiceClient) normalizeMultilineImports(content string) string {
+	// Normalize Windows line endings to Unix for consistent processing
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+
 	var result strings.Builder
 	result.Grow(len(content))
 
@@ -673,91 +676,19 @@ func (sc *NodeServiceClient) normalizeMultilineImports(content string) string {
 		// Look for "import" keyword
 		if i+6 <= len(content) && content[i:i+6] == "import" {
 			// Check if this is actually the start of an import statement
-			// (not part of a larger word)
+			// (not part of a larger word like "myimport")
 			if i > 0 && isIdentifierChar(rune(content[i-1])) {
 				result.WriteByte(content[i])
 				i++
 				continue
 			}
 
-			// Start of import statement - find the end
 			importStart := i
-			braceDepth := 0
-			inString := false
-			stringChar := byte(0)
-
-			// Copy "import" and continue
 			result.WriteString("import")
 			i += 6
 
-			// Process until we find the end of the import statement
-			for i < len(content) {
-				ch := content[i]
-
-				// Handle strings
-				if !inString && (ch == '"' || ch == '\'' || ch == '`') {
-					inString = true
-					stringChar = ch
-					result.WriteByte(ch)
-					i++
-					continue
-				} else if inString && ch == stringChar {
-					// Count preceding backslashes to determine if quote is escaped
-					escapeCount := 0
-					for j := i - 1; j >= 0 && content[j] == '\\'; j-- {
-						escapeCount++
-					}
-					// If even number of backslashes (including 0), quote is not escaped
-					if escapeCount%2 == 0 {
-						inString = false
-					}
-					result.WriteByte(ch)
-					i++
-					continue
-				} else if inString {
-					result.WriteByte(ch)
-					i++
-					continue
-				}
-
-				// Track braces (not in strings)
-				if ch == '{' {
-					braceDepth++
-					result.WriteByte(ch)
-					i++
-				} else if ch == '}' {
-					braceDepth--
-					result.WriteByte(ch)
-					i++
-				} else if ch == '\n' || ch == '\r' {
-					// Replace newlines with spaces, but check if this import is complete
-					if braceDepth == 0 && i > importStart+6 {
-						// Restrict "from" detection to just the current import statement
-						snippet := content[importStart:min(i+1, len(content))]
-						if len(snippet) > 10 {
-							start := len(snippet) - min(50, len(snippet))
-							last50 := snippet[start:]
-							// Match "from" as a standalone word followed by a quote
-							if fromKeywordRegex.MatchString(last50) {
-								// Import statement is complete
-								result.WriteByte('\n')
-								i++
-								break
-							}
-						}
-					}
-					result.WriteByte(' ')
-					i++
-				} else if ch == ';' {
-					result.WriteByte(ch)
-					i++
-					// Semicolon ends the import
-					break
-				} else {
-					result.WriteByte(ch)
-					i++
-				}
-			}
+			// Process the import statement, normalizing multiline to single line
+			i = sc.normalizeImportStatement(&result, content, i, importStart)
 		} else {
 			result.WriteByte(content[i])
 			i++
@@ -767,9 +698,133 @@ func (sc *NodeServiceClient) normalizeMultilineImports(content string) string {
 	return result.String()
 }
 
+// normalizeImportStatement processes a single import statement, normalizing
+// multiline imports to a single line while preserving string literals and structure.
+//
+// It handles:
+//   - String literals (quoted strings are not modified)
+//   - Brace depth tracking (handles destructuring)
+//   - Line breaks within import statements
+//   - Import statement termination (semicolon or "from" clause completion)
+//
+// Parameters:
+//   - result: StringBuilder to write the normalized output
+//   - content: Full source file content
+//   - pos: Current position in content (after "import" keyword)
+//   - importStart: Position where "import" keyword started
+//
+// Returns:
+//   - New position after the import statement ends
+func (sc *NodeServiceClient) normalizeImportStatement(result *strings.Builder, content string, pos, importStart int) int {
+	braceDepth := 0
+	inString := false
+	stringChar := byte(0)
+	i := pos
+
+	for i < len(content) {
+		ch := content[i]
+
+		// Handle string entry/exit
+		if !inString && isStringDelimiter(ch) {
+			inString = true
+			stringChar = ch
+			result.WriteByte(ch)
+			i++
+			continue
+		} else if inString && ch == stringChar && !isEscapedQuote(content, i) {
+			inString = false
+			result.WriteByte(ch)
+			i++
+			continue
+		} else if inString {
+			// Inside string - copy as-is
+			result.WriteByte(ch)
+			i++
+			continue
+		}
+
+		// Handle import statement structure (not in strings)
+		switch ch {
+		case '{':
+			braceDepth++
+			result.WriteByte(ch)
+			i++
+		case '}':
+			braceDepth--
+			result.WriteByte(ch)
+			i++
+		case '\n':
+			// Handle line breaks - check if import is complete
+			// JavaScript/TypeScript files typically use \n (normalized above)
+			if braceDepth == 0 && sc.hasCompletedImportStatement(content, importStart, i) {
+				// Import statement is complete, preserve the newline
+				result.WriteByte('\n')
+				i++
+				return i
+			}
+			// Within import statement, replace newline with space
+			result.WriteByte(' ')
+			i++
+		case ';':
+			// Semicolon always ends the import statement
+			result.WriteByte(ch)
+			i++
+			return i
+		default:
+			result.WriteByte(ch)
+			i++
+		}
+	}
+
+	return i
+}
+
 // isIdentifierChar checks if a character can be part of a JavaScript identifier
 func isIdentifierChar(ch rune) bool {
 	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '$'
+}
+
+// isStringDelimiter checks if a character is a string delimiter (quote or backtick)
+func isStringDelimiter(ch byte) bool {
+	return ch == '"' || ch == '\'' || ch == '`'
+}
+
+// isEscapedQuote determines if a quote at the given position is escaped by backslashes.
+// It counts preceding backslashes - if there's an odd number, the quote is escaped.
+func isEscapedQuote(content string, pos int) bool {
+	if pos == 0 {
+		return false
+	}
+	escapeCount := 0
+	for j := pos - 1; j >= 0 && content[j] == '\\'; j-- {
+		escapeCount++
+	}
+	// Odd number of backslashes means the quote is escaped
+	return escapeCount%2 == 1
+}
+
+// hasCompletedImportStatement checks if we've seen a complete import statement
+// by looking for the "from" keyword followed by a quote within the current import scope.
+//
+// This prevents treating incomplete imports as complete when encountering newlines.
+func (sc *NodeServiceClient) hasCompletedImportStatement(content string, importStart, currentPos int) bool {
+	if currentPos <= importStart+6 {
+		return false
+	}
+
+	// Look at just the current import statement (from "import" to current position)
+	snippet := content[importStart:min(currentPos+1, len(content))]
+	if len(snippet) <= 10 {
+		return false
+	}
+
+	// Check the last ~50 chars for "from" keyword followed by a quote
+	// This avoids false matches from "from" in other parts of the file
+	start := len(snippet) - min(50, len(snippet))
+	last50 := snippet[start:]
+
+	// Use the fromKeywordRegex which matches "from" as a standalone word followed by a quote
+	return fromKeywordRegex.MatchString(last50)
 }
 
 // min returns the minimum of two integers

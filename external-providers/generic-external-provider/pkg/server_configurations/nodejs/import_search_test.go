@@ -55,6 +55,31 @@ import { Button } from 'pkg';`,
 } from '@patternfly/react-core';`,
 			expected: `import {   Button, // Main button   Card    // Card component } from '@patternfly/react-core';`,
 		},
+		{
+			name: "Windows line endings (CRLF) normalized",
+			input: "import {\r\n  Button,\r\n  Card\r\n} from 'pkg';",
+			expected: `import {   Button,   Card } from 'pkg';`,
+		},
+		{
+			name: "Mixed line endings normalized",
+			input: "import {\r\n  Button,\n  Card\r\n} from 'pkg';",
+			expected: `import {   Button,   Card } from 'pkg';`,
+		},
+		{
+			name: "Escaped quotes in import string",
+			input: `import { Button } from "my\"quoted\"package";`,
+			expected: `import { Button } from "my\"quoted\"package";`,
+		},
+		{
+			name: "Double backslash before quote",
+			input: `import { Button } from "my\\\"path";`,
+			expected: `import { Button } from "my\\\"path";`,
+		},
+		{
+			name: "Template literals with backticks",
+			input: "import { Button } from `@patternfly/react-core`;",
+			expected: "import { Button } from `@patternfly/react-core`;",
+		},
 	}
 
 	for _, tt := range tests {
