@@ -34,8 +34,8 @@ PROVIDER_BIN="${ANALYZER_LSP_DIR}/build/generic-external-provider"
 # Test configuration
 PROVIDER_PORT=14654
 PROVIDER_SETTINGS="/tmp/patternfly-provider-settings.json"
-LOG_FILE="${OUTPUT_DIR}/analysis.log"
 PROVIDER_LOG="${OUTPUT_DIR}/provider.log"
+CONSOLE_LOG="${OUTPUT_DIR}/console.log"
 OUTPUT_FILE="${OUTPUT_DIR}/output.yaml"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
@@ -183,7 +183,7 @@ START_TIME=$(date +%s)
   --rules="${RULESET_DIR}" \
   --provider-settings="${PROVIDER_SETTINGS}" \
   --output-file="${OUTPUT_FILE}" \
-  --verbose=5 2>&1 | tee "${OUTPUT_DIR}/console.log"
+  --verbose=5 2>&1 | tee "${CONSOLE_LOG}"
 
 EXIT_CODE=$?
 END_TIME=$(date +%s)
@@ -194,7 +194,7 @@ if [ ${EXIT_CODE} -eq 0 ]; then
     echo -e "  ${GREEN}✓${NC} Analysis completed successfully in ${DURATION} seconds"
 else
     echo -e "  ${RED}✗${NC} Analysis failed with exit code ${EXIT_CODE}"
-    echo "Check logs at: ${LOG_FILE}"
+    echo "Check logs at: ${CONSOLE_LOG}"
     kill ${PROVIDER_PID} 2>/dev/null || true
     exit ${EXIT_CODE}
 fi
@@ -225,7 +225,7 @@ if [ -f "${OUTPUT_FILE}" ]; then
     echo -e "${BLUE}║${NC} Output files:"
     echo -e "${BLUE}║${NC}   - Analysis results: ${OUTPUT_FILE}"
     echo -e "${BLUE}║${NC}   - Provider log:     ${PROVIDER_LOG}"
-    echo -e "${BLUE}║${NC}   - Console output:   ${OUTPUT_DIR}/console.log"
+    echo -e "${BLUE}║${NC}   - Console output:   ${CONSOLE_LOG}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
@@ -253,7 +253,7 @@ else
     echo -e "${RED}ERROR: Output file not found at ${OUTPUT_FILE}${NC}"
     echo "Check logs:"
     echo "  Provider log: ${PROVIDER_LOG}"
-    echo "  Console log: ${OUTPUT_DIR}/console.log"
+    echo "  Console log: ${CONSOLE_LOG}"
     exit 1
 fi
 
