@@ -132,10 +132,10 @@ type referencedCondition struct {
 
 // ImportLocation tracks where a symbol is imported
 type ImportLocation struct {
-	fileURI  string
-	langID   string
-	position protocol.Position
-	line     string
+	FileURI  string
+	LangID   string
+	Position protocol.Position
+	Line     string
 }
 
 // fileInfo tracks a source file
@@ -262,20 +262,20 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	// Process each import location
 	for _, importLoc := range importLocations {
 		// Open the file if not already open
-		if !openedFiles[importLoc.fileURI] {
-			trimmedURI := strings.TrimPrefix(importLoc.fileURI, "file://")
+		if !openedFiles[importLoc.FileURI] {
+			trimmedURI := strings.TrimPrefix(importLoc.FileURI, "file://")
 			text, err := os.ReadFile(trimmedURI)
 			if err != nil {
-				sc.Log.V(1).Info("Failed to read file", "file", importLoc.fileURI, "error", err)
+				sc.Log.V(1).Info("Failed to read file", "file", importLoc.FileURI, "error", err)
 				continue
 			}
 
-			err = didOpen(importLoc.fileURI, importLoc.langID, text)
+			err = didOpen(importLoc.FileURI, importLoc.LangID, text)
 			if err != nil {
-				sc.Log.V(1).Info("Failed to open file in LSP", "file", importLoc.fileURI, "error", err)
+				sc.Log.V(1).Info("Failed to open file in LSP", "file", importLoc.FileURI, "error", err)
 				continue
 			}
-			openedFiles[importLoc.fileURI] = true
+			openedFiles[importLoc.FileURI] = true
 		}
 
 		// Small delay to let LSP index the file
@@ -285,9 +285,9 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		params := protocol.DefinitionParams{
 			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 				TextDocument: protocol.TextDocumentIdentifier{
-					URI: importLoc.fileURI,
+					URI: importLoc.FileURI,
 				},
-				Position: importLoc.position,
+				Position: importLoc.Position,
 			},
 		}
 
@@ -295,16 +295,16 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		err = sc.Conn.Call(ctx, "textDocument/definition", params).Await(ctx, &definitions)
 		if err != nil {
 			sc.Log.V(1).Info("Failed to get definition",
-				"file", importLoc.fileURI,
-				"position", importLoc.position,
+				"file", importLoc.FileURI,
+				"position", importLoc.Position,
 				"error", err)
 			continue
 		}
 
 		sc.Log.V(1).Info("Got definitions for import",
 			"query", query,
-			"file", importLoc.fileURI,
-			"line", importLoc.line,
+			"file", importLoc.FileURI,
+			"line", importLoc.Line,
 			"definitionCount", len(definitions))
 
 		// For each definition, get all references
@@ -548,13 +548,13 @@ func (sc *NodeServiceClient) findImportStatements(pattern string, files []fileIn
 
 							if isWordStart && isWordEnd {
 								locations = append(locations, ImportLocation{
-									fileURI:  file.path,
-									langID:   file.langID,
-									position: protocol.Position{
+									FileURI:  file.path,
+									LangID:   file.langID,
+									Position: protocol.Position{
 										Line:      uint32(searchLine),
 										Character: uint32(patternPos),
 									},
-									line: searchContent,
+									Line: searchContent,
 								})
 								break
 							}
@@ -714,4 +714,35 @@ func (sc *NodeServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][
 // does not use external dependency providers.
 func (sc *NodeServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
 	return map[uri.URI][]provider.DepDAGItem{}, nil
+}
+
+// Test helper functions - these expose private functions for unit testing
+
+// FileInfo is exported for testing
+type FileInfo struct {
+	Path   string
+	LangID string
+}
+
+// NormalizeMultilineImportsPublic exposes normalizeMultilineImports for testing
+func (sc *NodeServiceClient) NormalizeMultilineImportsPublic(content string) string {
+	return sc.normalizeMultilineImports(content)
+}
+
+// FindImportStatementsPublic exposes findImportStatements for testing
+func (sc *NodeServiceClient) FindImportStatementsPublic(pattern string, files []FileInfo) []ImportLocation {
+	// Convert FileInfo to fileInfo
+	internalFiles := make([]fileInfo, len(files))
+	for i, f := range files {
+		internalFiles[i] = fileInfo{
+			path:   f.Path,
+			langID: f.LangID,
+		}
+	}
+	return sc.findImportStatements(pattern, internalFiles)
+}
+
+// IsIdentifierCharPublic exposes isIdentifierChar for testing
+func (sc *NodeServiceClient) IsIdentifierCharPublic(ch rune) bool {
+	return isIdentifierChar(ch)
 }
