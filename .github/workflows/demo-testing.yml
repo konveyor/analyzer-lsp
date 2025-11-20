@@ -40,6 +40,9 @@ jobs:
               - '**'
               - '!external-providers/**'
               - 'external-providers/yq-external-provider/**'
+            c-sharp:
+              - '**'
+              - '!external-providers/**'
 
   build-bases:
     needs: detect-changes
@@ -90,13 +93,19 @@ jobs:
           - provider: dotnet
             image_name: dotnet-provider
             dockerfile: external-providers/dotnet-external-provider/Dockerfile
+          - provider: c-sharp
+            image_name: c-sharp-provider
+            dockerfile: Dockerfile
+            repo: konveyor/c-sharp-analyzer-provider
     steps:
       - uses: actions/checkout@v3
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
 
       - name: Build ${{ matrix.provider }} provider image
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
         uses: shawn-hurley/ci/build-image@main
         with:
-          repo: konveyor/analyzer-lsp
+          repo: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
           checked_out: true
           image_name: ${{ matrix.image_name }}
           image_tag: ${{ needs.detect-changes.outputs.image_tag }}
@@ -120,8 +129,13 @@ jobs:
             artifact_pattern: "*({konveyor-analyzer-lsp,generic-provider,golang-dep-provider})"
           - provider: yaml
             artifact_pattern: "*(konveyor-analyzer-lsp|yq-provider)"
+          - provider: c-sharp
+            repo: "konveyor/c-sharp-analyzer-provider"
+            artifact_pattern: "*(konveyor-analyzer|c-sharp-provider)"
     steps:
       - uses: actions/checkout@v3
+        with:
+          repository: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
 
       - name: Download provider image artifacts
@@ -146,7 +160,25 @@ jobs:
       - name: Run provider-specific test
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
         run: |
-          make test-${{ matrix.provider }}
+          podman volume create test-data
+          podman run --rm -v test-data:/target:z -v $(PWD)/${{ matrix.test-data }}:z --entrypoint=cp alpine -a /src/. /target/
+          podman pod create --name=analyzer-${{ matrix.provider }}
+          podman run --pod analyzer-${{ matrix.provider }} --name ${{ matrix.provider }}-provider -d -v test-data:/analyzer-lsp/examples:z localhost/${{ matrix.image_name }}:${{ needs.detect-changes.outputs.image_tag }} --port 14651
+          podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-${{ matrix.provider }} \
+            -v test-data:/analyzer-lsp/examples:z \
+            -v ${{ matrix.demo-output-path }}:/analyzer-lsp/output.yaml:z \
+            -v ${{ matrix.provider_settings-path }}:/analyzer-lsp/provider_settings.json:z \
+            -v ${{ matrix.testing-rules }}:/analyzer-lsp/rules:z \
+            localhost/konveyor-analyzer-lsp:${{ needs.detect-changes.outputs.image_tag }} \
+            --output=/analzyer-lsp/output.yaml \
+            --rules=/analyzer-lsp/rules \
+            --provider-settings=/analyzer-lsp/provider_settings.json
+
+      - name: Run e2e verification
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+        shell: bash
+        run: |
+          git diff --exit-code HEAD -- ${{ matrix.demo-output-path }}
 
 
   test:
