@@ -357,6 +357,9 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	incidentsMap := make(map[string]provider.IncidentContext)
 	for _, ref := range allReferences {
 		// Only include references within the workspace
+		if len(sc.BaseConfig.WorkspaceFolders) == 0 {
+			continue
+		}
 		if !strings.Contains(ref.URI, sc.BaseConfig.WorkspaceFolders[0]) {
 			continue
 		}
@@ -425,6 +428,9 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 		for _, ref := range references {
 			// Look for things that are in the location loaded,
 			// Note may need to filter out vendor at some point
+			if len(sc.BaseConfig.WorkspaceFolders) == 0 {
+				continue
+			}
 			if !strings.Contains(ref.URI, sc.BaseConfig.WorkspaceFolders[0]) {
 				continue
 			}
