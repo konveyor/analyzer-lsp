@@ -180,6 +180,9 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	}
 
 	// get all ts/js files
+	if len(sc.Config.WorkspaceFolders) == 0 {
+		return resp{}, fmt.Errorf("no workspace folders configured")
+	}
 	folder := strings.TrimPrefix(sc.Config.WorkspaceFolders[0], "file://")
 	var nodeFiles []fileInfo
 	err = filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
