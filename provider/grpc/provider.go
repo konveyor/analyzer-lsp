@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"reflect"
 	"strings"
 	"time"
 
@@ -37,6 +38,133 @@ type grpcProvider struct {
 }
 
 var _ provider.InternalProviderClient = &grpcProvider{}
+
+// convertTypedSlices recursively converts typed slices (e.g., []string, []int) to []interface{}
+// to ensure compatibility with structpb.NewStruct() which only accepts []interface{}.
+// This allows callers to use natural Go types without needing to know about protobuf marshaling internals.
+func convertTypedSlices(data map[string]interface{}) map[string]interface{} {
+	if data == nil {
+		return nil
+	}
+
+	result := make(map[string]interface{}, len(data))
+	for key, value := range data {
+		result[key] = convertValue(value)
+	}
+	return result
+}
+
+// convertValue recursively converts a value, handling slices, maps, and primitive types.
+func convertValue(value interface{}) interface{} {
+	if value == nil {
+		return nil
+	}
+
+	v := reflect.ValueOf(value)
+
+	// Check for typed nil (e.g., nil map, nil slice, nil pointer)
+	// This ensures nil maps are marshaled as null instead of empty structs
+	// Note: Arrays are never nil, so we exclude them from this check
+	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice {
+		if v.IsNil() {
+			return nil
+		}
+	}
+
+	switch v.Kind() {
+	case reflect.Slice, reflect.Array:
+		// If it's already []interface{}, check if nested conversion is needed
+		if slice, ok := value.([]interface{}); ok {
+			// Check if any element needs conversion to avoid unnecessary allocation
+			needsConversion := false
+			for _, elem := range slice {
+				if requiresConversion(elem) {
+					needsConversion = true
+					break
+				}
+			}
+			if !needsConversion {
+				return slice
+			}
+			// Convert elements that need it
+			result := make([]interface{}, len(slice))
+			for i, elem := range slice {
+				result[i] = convertValue(elem)
+			}
+			return result
+		}
+
+		// Convert typed slice to []interface{}
+		length := v.Len()
+		result := make([]interface{}, length)
+		for i := 0; i < length; i++ {
+			result[i] = convertValue(v.Index(i).Interface())
+		}
+		return result
+
+	case reflect.Map:
+		// Handle nested maps
+		if m, ok := value.(map[string]interface{}); ok {
+			return convertTypedSlices(m)
+		}
+		// Handle other map types (rare, as ProviderSpecificConfig is map[string]interface{})
+		// Convert keys to strings using fmt.Sprintf for consistency with protobuf expectations
+		result := make(map[string]interface{})
+		iter := v.MapRange()
+		for iter.Next() {
+			key := iter.Key().Interface()
+			keyStr := fmt.Sprintf("%v", key)
+			result[keyStr] = convertValue(iter.Value().Interface())
+		}
+		return result
+
+	default:
+		// Primitive types and other values pass through unchanged
+		return value
+	}
+}
+
+// requiresConversion checks if a value needs type conversion for protobuf compatibility.
+func requiresConversion(value interface{}) bool {
+	if value == nil {
+		return false
+	}
+
+	v := reflect.ValueOf(value)
+
+	// Typed nil values don't need conversion
+	// Note: Arrays are never nil, so we exclude them from this check
+	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice {
+		if v.IsNil() {
+			return false
+		}
+	}
+
+	switch v.Kind() {
+	case reflect.Slice, reflect.Array:
+		// Typed slices need conversion, []interface{} might have nested structures
+		if _, ok := value.([]interface{}); ok {
+			// Check elements for nested structures
+			slice := value.([]interface{})
+			for _, elem := range slice {
+				if requiresConversion(elem) {
+					return true
+				}
+			}
+			return false
+		}
+		// Any other slice type needs conversion
+		return true
+
+	case reflect.Map:
+		// Maps always need recursive processing
+		return true
+
+	default:
+		// Primitives don't need conversion
+		return false
+	}
+}
 
 func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalProviderClient, error) {
 	log = log.WithName(config.Name)
@@ -187,7 +315,9 @@ func (g *grpcProvider) Capabilities() []provider.Capability {
 }
 
 func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
-	s, err := structpb.NewStruct(config.ProviderSpecificConfig)
+	// Convert typed slices to []interface{} for protobuf compatibility
+	convertedConfig := convertTypedSlices(config.ProviderSpecificConfig)
+	s, err := structpb.NewStruct(convertedConfig)
 	if err != nil {
 		return nil, provider.InitConfig{}, err
 	}
