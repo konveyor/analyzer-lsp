@@ -112,7 +112,7 @@ func (h *nodejsSymbolSearchHelper) MatchSymbolByPatterns(symbol base.WorkspaceSy
 
 	for _, query := range scopedQueries {
 		// when evaluating a scoped query, use the associated definitions of the symbol to check its origin
-		if symbol.Definitions != nil {
+		if len(symbol.Definitions) > 0 {
 			for _, definition := range symbol.Definitions {
 				definitionLoc, ok := definition.Location.Value.(protocol.Location)
 				if !ok {
@@ -136,7 +136,7 @@ func (h *nodejsSymbolSearchHelper) MatchSymbolByPatterns(symbol base.WorkspaceSy
 		}
 	}
 	for _, query := range simpleQueries {
-		if symbol.Definitions != nil {
+		if len(symbol.Definitions) > 0 {
 			for _, definition := range symbol.Definitions {
 				if h.SymbolSearchHelper.MatchSymbolByPatterns(base.WorkspaceSymbolDefinitionsPair{WorkspaceSymbol: definition}, *query.Query) {
 					return true
