@@ -136,11 +136,13 @@ export const MyCard = Card;`,
 			expectedColumn: 9,
 		},
 		{
-			name: "Type import (not currently supported, but shouldn't crash)",
+			name: "TypeScript type import - named",
 			fileContent: `import type { Button } from '@patternfly/react-core';
 export const MyButton = Button;`,
-			pattern:       "Button",
-			expectedCount: 0, // Not matched by current regex
+			pattern:        "Button",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 14,
 		},
 		{
 			name: "Mixed imports",
@@ -151,6 +153,180 @@ import { useState } from 'react';`,
 			expectedCount:  1,
 			expectedLine:   1,
 			expectedColumn: 9,
+		},
+		{
+			name: "Namespace import",
+			fileContent: `import * as PatternFly from '@patternfly/react-core';
+export const MyCard = PatternFly.Card;`,
+			pattern:        "PatternFly",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 12,
+		},
+		{
+			name: "Namespace import - multiline",
+			fileContent: `import * as
+PatternFly
+from '@patternfly/react-core';`,
+			pattern:        "PatternFly",
+			expectedCount:  1,
+			expectedLine:   1,
+			expectedColumn: 0,
+		},
+		{
+			name: "Default + named import (mixed)",
+			fileContent: `import React, { useState, useEffect } from 'react';
+export const Component = () => {};`,
+			pattern:        "React",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 7,
+		},
+		{
+			name: "Default + named import - search named",
+			fileContent: `import React, { useState, useEffect } from 'react';
+export const Component = () => {};`,
+			pattern:        "useState",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 16,
+		},
+		{
+			name: "Default + namespace import (rare)",
+			fileContent: `import React, * as ReactAll from 'react';
+export const Component = () => {};`,
+			pattern:        "ReactAll",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 19,
+		},
+		{
+			name: "Side-effect import - no symbols",
+			fileContent: `import '@patternfly/react-core/dist/styles/base.css';
+export const Component = () => {};`,
+			pattern:       "Card",
+			expectedCount: 0,
+		},
+		{
+			name: "Namespace import - pattern not found",
+			fileContent: `import * as PatternFly from '@patternfly/react-core';
+export const MyCard = PatternFly.Card;`,
+			pattern:       "Card",
+			expectedCount: 0, // "Card" is not the namespace identifier
+		},
+		{
+			name: "Default + named - search default part",
+			fileContent: `import React, { useState } from 'react';
+const x = useState();`,
+			pattern:        "React",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 7,
+		},
+		{
+			name: "Default + namespace - search default part",
+			fileContent: `import React, * as ReactAll from 'react';
+const x = ReactAll.useState();`,
+			pattern:        "React",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 7,
+		},
+		{
+			name: "Multiline default + named",
+			fileContent: `import React, {
+  useState,
+  useEffect
+} from 'react';`,
+			pattern:        "useEffect",
+			expectedCount:  1,
+			expectedLine:   2,
+			expectedColumn: 2,
+		},
+		{
+			name: "Multiple namespace imports in file",
+			fileContent: `import * as PF from '@patternfly/react-core';
+import * as Icons from '@patternfly/react-icons';
+import * as Hooks from '@patternfly/react-hooks';`,
+			pattern:        "Icons",
+			expectedCount:  1,
+			expectedLine:   1,
+			expectedColumn: 12,
+		},
+		{
+			name: "Namespace with special chars in package name",
+			fileContent: `import * as Util from '@company/util-package';
+export const test = Util.helper();`,
+			pattern:        "Util",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 12,
+		},
+		{
+			name: "Word boundary in namespace import",
+			fileContent: `import * as Card from '@patternfly/react-core';
+import * as CardHelper from './helpers';`,
+			pattern:        "Card",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 12, // Should only match first, not CardHelper
+		},
+		{
+			name: "Stress test - very long multiline import",
+			fileContent: `import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  CardTitle,
+  Chip,
+  ChipGroup,
+  Label,
+  Badge,
+  Alert,
+  AlertGroup,
+  Modal,
+  ModalVariant,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
+  Select,
+  SelectOption,
+  SelectVariant
+} from '@patternfly/react-core';`,
+			pattern:        "ModalVariant",
+			expectedCount:  1,
+			expectedLine:   13,
+			expectedColumn: 2,
+		},
+		{
+			name: "TypeScript type import - default",
+			fileContent: `import type React from 'react';
+type Props = { children: React.ReactNode };`,
+			pattern:        "React",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 12,
+		},
+		{
+			name: "TypeScript type import - namespace",
+			fileContent: `import type * as Types from './types';
+type MyType = Types.User;`,
+			pattern:        "Types",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 17,
+		},
+		{
+			name: "TypeScript type import - multiline",
+			fileContent: `import type {
+  ButtonProps,
+  CardProps
+} from '@patternfly/react-core';`,
+			pattern:        "CardProps",
+			expectedCount:  1,
+			expectedLine:   2,
+			expectedColumn: 2,
 		},
 	}
 

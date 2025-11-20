@@ -505,10 +505,25 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 // The returned locations can be used with LSP textDocument/definition to find where
 // the symbol is actually defined, enabling efficient reference lookup.
 func (sc *NodeServiceClient) findImportStatements(pattern string, files []fileInfo) []ImportLocation {
-	// Regex to match: import { Pattern, ... } from "package"
-	// Captures both named imports and default imports
+	// Regex to match all valid import statement patterns:
+	// - import { Card } from "pkg"              (named only)
+	// - import Card from "pkg"                  (default only)
+	// - import * as Card from "pkg"             (namespace only)
+	// - import React, { useState } from "pkg"   (default + named)
+	// - import React, * as All from "pkg"       (default + namespace - rare but valid)
+	// - import type { Card } from "pkg"         (TypeScript type-only import)
+	// - import type Card from "pkg"             (TypeScript type-only default import)
+	//
+	// The optional "type" keyword is supported but ignored (TypeScript type-only imports).
+	//
+	// Capture groups:
+	// 1: Default import (when mixed with named/namespace)
+	// 2: Named imports (braced list)
+	// 3: Default import (when standalone)
+	// 4: Namespace import (standalone or after default)
+	// 5: Package name
 	importRegex := regexp.MustCompile(
-		`import\s+(?:\{([^}]*)\}|(\w+))\s+from\s+['"]([^'"]+)['"]`,
+		`import\s+(?:type\s+)?(?:(\w+)\s*,\s*)?(?:\{([^}]*)\}|(\w+)|\*\s+as\s+(\w+))\s+from\s+['"]([^'"]+)['"]`,
 	)
 
 	var locations []ImportLocation
@@ -533,24 +548,38 @@ func (sc *NodeServiceClient) findImportStatements(pattern string, files []fileIn
 				continue
 			}
 
-			var namedImports string
 			var defaultImport string
+			var namedImports string
+			var namespaceImport string
 
-			// Extract named imports (group 1)
+			// Extract default import (group 1 for mixed, group 3 for standalone)
 			if matchIdx[2] != -1 && matchIdx[3] != -1 {
-				namedImports = normalized[matchIdx[2]:matchIdx[3]]
+				// Default import in mixed form: import React, { ... }
+				defaultImport = normalized[matchIdx[2]:matchIdx[3]]
+			} else if matchIdx[6] != -1 && matchIdx[7] != -1 {
+				// Default import standalone: import React from "..."
+				defaultImport = normalized[matchIdx[6]:matchIdx[7]]
 			}
 
-			// Extract default import (group 2)
+			// Extract named imports (group 2)
 			if matchIdx[4] != -1 && matchIdx[5] != -1 {
-				defaultImport = normalized[matchIdx[4]:matchIdx[5]]
+				namedImports = normalized[matchIdx[4]:matchIdx[5]]
 			}
 
-			// Check if pattern appears in named imports or is the default import
+			// Extract namespace import (group 4)
+			if matchIdx[8] != -1 && matchIdx[9] != -1 {
+				namespaceImport = normalized[matchIdx[8]:matchIdx[9]]
+			}
+
+			// Check if pattern matches any import type
+			// - Default and namespace imports use exact match (single identifier)
+			// - Named imports use substring match (comma-separated list may contain the pattern)
 			patternFound := false
-			if namedImports != "" && strings.Contains(namedImports, pattern) {
+			if defaultImport == pattern {
 				patternFound = true
-			} else if defaultImport != "" && defaultImport == pattern {
+			} else if namedImports != "" && strings.Contains(namedImports, pattern) {
+				patternFound = true
+			} else if namespaceImport == pattern {
 				patternFound = true
 			}
 
