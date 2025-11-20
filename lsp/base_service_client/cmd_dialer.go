@@ -69,6 +69,12 @@ func (rwc *CmdDialer) Write(p []byte) (int, error) {
 }
 
 func (rwc *CmdDialer) Close() error {
+	// Check if process was started before trying to kill it
+	if rwc.Cmd.Process == nil {
+		// Process was never started or already exited
+		return nil
+	}
+
 	err := rwc.Cmd.Process.Kill()
 	if err != nil {
 		return err

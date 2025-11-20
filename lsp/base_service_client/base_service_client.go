@@ -382,8 +382,17 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, workspac
 
 		err := sc.Conn.Call(ctx, "workspace/symbol", params).Await(ctx, &symbols)
 		if err != nil {
-			fmt.Printf("error: %v\n", err)
+			sc.Log.Error(err, "workspace/symbol call failed", "query", query)
+		} else {
+			sc.Log.Info("workspace/symbol results",
+				"query", query,
+				"symbolsFound", len(symbols))
+			if len(symbols) == 0 {
+				sc.Log.Info("No symbols found via workspace/symbol, will try fallback method if available")
+			}
 		}
+	} else {
+		sc.Log.Info("workspace/symbol not supported by LSP server, using fallback")
 	}
 
 	if regexErr != nil {

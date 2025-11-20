@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,6 +17,11 @@ import (
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	// fromKeywordRegex matches "from" as a standalone keyword followed by a quote
+	fromKeywordRegex = regexp.MustCompile(`\bfrom\s+["']`)
 )
 
 type NodeServiceClientConfig struct {
@@ -31,7 +37,8 @@ type NodeServiceClient struct {
 	*base.LSPServiceClientBase
 	*base.LSPServiceClientEvaluator[*NodeServiceClient]
 
-	Config NodeServiceClientConfig
+	Config       NodeServiceClientConfig
+	AnalysisMode provider.AnalysisMode
 }
 
 type NodeServiceClientBuilder struct{}
@@ -88,6 +95,21 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	}
 	sc.LSPServiceClientBase = scBase
 
+	// Synchronize BaseConfig.WorkspaceFolders with Config.WorkspaceFolders
+	// This ensures consistency between the two configurations
+	sc.BaseConfig.WorkspaceFolders = sc.Config.WorkspaceFolders
+
+	// Store analysis mode for filtering behavior
+	sc.AnalysisMode = c.AnalysisMode
+
+	// DEBUG: Log LSP initialization details
+	log.Info("NodeJS LSP initialized",
+		"rootURI", params.RootURI,
+		"workspaceFolders", sc.Config.WorkspaceFolders,
+		"analysisMode", sc.AnalysisMode,
+		"lspServerPath", sc.Config.LspServerPath,
+		"lspServerName", sc.Config.LspServerName)
+
 	// Initialize the fancy evaluator (dynamic dispatch ftw)
 	eval, err := base.NewLspServiceClientEvaluator[*NodeServiceClient](sc, n.GetGenericServiceClientCapabilities(log))
 	if err != nil {
@@ -122,7 +144,43 @@ type referencedCondition struct {
 	} `yaml:"referenced"`
 }
 
-// Example evaluate
+// ImportLocation tracks where a symbol is imported
+type ImportLocation struct {
+	FileURI  string
+	LangID   string
+	Position protocol.Position
+	Line     string
+}
+
+// fileInfo tracks a source file
+type fileInfo struct {
+	path   string
+	langID string
+}
+
+// EvaluateReferenced implements nodejs.referenced capability using import-based search.
+//
+// Algorithm:
+// 1. Scans all TypeScript/JavaScript files for import statements containing the pattern
+// 2. For each import found, uses LSP textDocument/definition to get the symbol's definition location
+// 3. For each definition, uses LSP textDocument/references to find all usage locations
+// 4. Returns deduplicated incidents for all references within the workspace
+//
+// This approach is much faster than workspace/symbol search and correctly handles:
+// - Multiline import statements
+// - Named imports: import { Card } from "package"
+// - Default imports: import Card from "package"
+// - Multiple symbols in one import: import { Card, CardBody } from "package"
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts
+//   - cap: Capability name ("referenced")
+//   - info: YAML-encoded referencedCondition with pattern to search
+//
+// Returns:
+//   - ProviderEvaluateResponse with Matched=true and incidents if symbol is found
+//   - ProviderEvaluateResponse with Matched=false if symbol is not imported anywhere
+//   - Error if processing fails
 func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string, info []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond referencedCondition
 	err := yaml.Unmarshal(info, &cond)
@@ -135,40 +193,49 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return resp{}, fmt.Errorf("unable to get query info")
 	}
 
-	// get all ts files
-	folder := strings.TrimPrefix(sc.Config.WorkspaceFolders[0], "file://")
-	type fileInfo struct {
-		path   string
-		langID string
+	// Find all import statements containing the pattern during file walk
+	if len(sc.Config.WorkspaceFolders) == 0 {
+		return resp{}, fmt.Errorf("no workspace folders configured")
 	}
-	var nodeFiles []fileInfo
+	folder := strings.TrimPrefix(sc.Config.WorkspaceFolders[0], "file://")
+
+	var importLocations []ImportLocation
+	filesProcessed := 0
+
 	err = filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// TODO source-only mode
+		// Skip node_modules
 		if info.IsDir() && info.Name() == "node_modules" {
 			return filepath.SkipDir
 		}
+
 		if !info.IsDir() {
 			ext := filepath.Ext(path)
-			if ext == ".ts" || ext == ".tsx" {
-				langID := "typescript"
-				if ext == ".tsx" {
-					langID = "typescriptreact"
-				}
-				path = "file://" + path
-				nodeFiles = append(nodeFiles, fileInfo{path: path, langID: langID})
+			var langID string
+
+			// Determine language ID based on extension
+			switch ext {
+			case ".ts":
+				langID = "typescript"
+			case ".tsx":
+				langID = "typescriptreact"
+			case ".js":
+				langID = "javascript"
+			case ".jsx":
+				langID = "javascriptreact"
+			default:
+				return nil // Not a TypeScript/JavaScript file
 			}
-			if ext == ".js" || ext == ".jsx" {
-				langID := "javascript"
-				if ext == ".jsx" {
-					langID = "javascriptreact"
-				}
-				path = "file://" + path
-				nodeFiles = append(nodeFiles, fileInfo{path: path, langID: langID})
-			}
+
+			filesProcessed++
+			fileURI := "file://" + path
+
+			// Search this file immediately for import statements
+			locations := sc.findImportStatementsInFile(query, fileURI, langID)
+			importLocations = append(importLocations, locations...)
 		}
 
 		return nil
@@ -176,6 +243,21 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, err
 	}
+
+	sc.Log.Info("Scanning for import statements",
+		"query", query,
+		"filesProcessed", filesProcessed,
+		"importsFound", len(importLocations))
+
+	if len(importLocations) == 0 {
+		sc.Log.Info("No imports found for symbol",
+			"query", query)
+		return resp{Matched: false}, nil
+	}
+
+	sc.Log.Info("Found imports for symbol",
+		"query", query,
+		"importCount", len(importLocations))
 
 	didOpen := func(uri string, langID string, text []byte) error {
 		params := protocol.DidOpenTextDocumentParams{
@@ -186,8 +268,6 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 				Text:       string(text),
 			},
 		}
-		// typescript server seems to throw "No project" error without notification
-		// perhaps there's a better way to do this
 		return sc.Conn.Notify(ctx, "textDocument/didOpen", params)
 	}
 
@@ -200,48 +280,166 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return sc.Conn.Notify(ctx, "textDocument/didClose", params)
 	}
 
-	// Open all files first
-	for _, fileInfo := range nodeFiles {
-		trimmedURI := strings.TrimPrefix(fileInfo.path, "file://")
-		text, err := os.ReadFile(trimmedURI)
-		if err != nil {
-			return provider.ProviderEvaluateResponse{}, err
+	var allReferences []protocol.Location
+	processedDefinitions := make(map[string]bool) // Avoid processing same definition multiple times
+	openedFiles := make(map[string]bool)
+
+	// Process each import location
+	for _, importLoc := range importLocations {
+		// Open the file if not already open
+		if !openedFiles[importLoc.FileURI] {
+			trimmedURI := strings.TrimPrefix(importLoc.FileURI, "file://")
+			text, err := os.ReadFile(trimmedURI)
+			if err != nil {
+				sc.Log.V(1).Info("Failed to read file", "file", importLoc.FileURI, "error", err)
+				continue
+			}
+
+			err = didOpen(importLoc.FileURI, importLoc.LangID, text)
+			if err != nil {
+				sc.Log.V(1).Info("Failed to open file in LSP", "file", importLoc.FileURI, "error", err)
+				continue
+			}
+			openedFiles[importLoc.FileURI] = true
 		}
 
-		// didOpen calls conn.Notify, which does not wait for a response
-		err = didOpen(fileInfo.path, fileInfo.langID, text)
-		if err != nil {
-			return provider.ProviderEvaluateResponse{}, err
+		// Get definition of the imported symbol using textDocument/definition
+		// Use retry logic with exponential backoff to handle LSP indexing delays
+		params := protocol.DefinitionParams{
+			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+				TextDocument: protocol.TextDocumentIdentifier{
+					URI: importLoc.FileURI,
+				},
+				Position: importLoc.Position,
+			},
 		}
-	}
 
-	// Sleep once after all files are opened to allow LSP server to process
-	// all didOpen notifications before querying for symbols.
-	// This prevents the race condition without requiring sleep before each file.
-	time.Sleep(500 * time.Millisecond)
+		var definitions []protocol.Location
+		var err error
 
-	// Query symbols once after all files are indexed
-	symbols := sc.GetAllDeclarations(ctx, sc.BaseConfig.WorkspaceFolders, query)
+		// Retry up to 3 times with exponential backoff (50ms, 100ms, 200ms)
+		// This handles cases where the LSP server needs time to index newly opened files
+		maxRetries := 3
+		for attempt := 0; attempt < maxRetries; attempt++ {
+			err = sc.Conn.Call(ctx, "textDocument/definition", params).Await(ctx, &definitions)
+			if err == nil && len(definitions) > 0 {
+				break
+			}
 
-	incidentsMap, err := sc.EvaluateSymbols(ctx, symbols)
-	if err != nil {
-		return resp{}, err
+			if attempt < maxRetries-1 {
+				delay := time.Duration(50*(1<<uint(attempt))) * time.Millisecond
+				time.Sleep(delay)
+			}
+		}
+
+		if err != nil {
+			sc.Log.V(1).Info("Failed to get definition",
+				"file", importLoc.FileURI,
+				"position", importLoc.Position,
+				"error", err)
+			continue
+		}
+
+		sc.Log.V(1).Info("Got definitions for import",
+			"query", query,
+			"file", importLoc.FileURI,
+			"line", importLoc.Line,
+			"definitionCount", len(definitions))
+
+		// For each definition, get all references
+		for _, def := range definitions {
+			defKey := fmt.Sprintf("%s:%d:%d", def.URI, def.Range.Start.Line, def.Range.Start.Character)
+			if processedDefinitions[defKey] {
+				continue // Already processed this definition
+			}
+			processedDefinitions[defKey] = true
+
+			sc.Log.V(1).Info("Getting references for definition",
+				"definitionURI", def.URI)
+
+			// Get all references to this definition
+			references := sc.GetAllReferences(ctx, def)
+			allReferences = append(allReferences, references...)
+
+			sc.Log.V(1).Info("Got references",
+				"definitionURI", def.URI,
+				"referenceCount", len(references))
+		}
 	}
 
 	// Close all opened files
-	for _, fileInfo := range nodeFiles {
-		if err = didClose(fileInfo.path); err != nil {
-			return provider.ProviderEvaluateResponse{}, err
+	for fileURI := range openedFiles {
+		err = didClose(fileURI)
+		if err != nil {
+			sc.Log.V(1).Info("Failed to close file", "file", fileURI, "error", err)
 		}
+	}
+
+	// Filter references and convert to incidents
+	// In source-only mode, filter to workspace only
+	// In full mode, include all references
+	incidentsMap := make(map[string]provider.IncidentContext)
+	for _, ref := range allReferences {
+		// Apply workspace filtering only in source-only analysis mode
+		if sc.AnalysisMode == provider.SourceOnlyAnalysisMode {
+			// Only include references within the workspace
+			if len(sc.BaseConfig.WorkspaceFolders) == 0 {
+				continue
+			}
+			if !strings.Contains(ref.URI, sc.BaseConfig.WorkspaceFolders[0]) {
+				continue
+			}
+
+			// Skip references in dependency folders
+			skip := false
+			for _, depFolder := range sc.BaseConfig.DependencyFolders {
+				if depFolder != "" && strings.Contains(ref.URI, depFolder) {
+					skip = true
+					break
+				}
+			}
+			if skip {
+				continue
+			}
+		}
+
+		u, err := uri.Parse(ref.URI)
+		if err != nil {
+			continue
+		}
+
+		lineNumber := int(ref.Range.Start.Line)
+		incident := provider.IncidentContext{
+			FileURI:    u,
+			LineNumber: &lineNumber,
+			Variables: map[string]interface{}{
+				"file": ref.URI,
+			},
+			CodeLocation: &provider.Location{
+				StartPosition: provider.Position{Line: float64(lineNumber)},
+				EndPosition:   provider.Position{Line: float64(lineNumber)},
+			},
+		}
+		b, _ := json.Marshal(incident)
+		incidentsMap[string(b)] = incident
 	}
 
 	incidents := []provider.IncidentContext{}
 	for _, incident := range incidentsMap {
 		incidents = append(incidents, incident)
 	}
+
+	sc.Log.Info("nodejs.referenced import-based search complete",
+		"query", query,
+		"importsFound", len(importLocations),
+		"definitionsProcessed", len(processedDefinitions),
+		"totalReferences", len(allReferences),
+		"incidentsFound", len(incidents))
+
 	if len(incidents) == 0 {
 		return resp{Matched: false}, nil
 	}
+
 	return resp{
 		Matched:   true,
 		Incidents: incidents,
@@ -257,6 +455,9 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 		for _, ref := range references {
 			// Look for things that are in the location loaded,
 			// Note may need to filter out vendor at some point
+			if len(sc.BaseConfig.WorkspaceFolders) == 0 {
+				continue
+			}
 			if !strings.Contains(ref.URI, sc.BaseConfig.WorkspaceFolders[0]) {
 				continue
 			}
@@ -298,4 +499,357 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 	}
 
 	return incidentsMap, nil
+}
+
+// findImportStatementsInFile searches a single file for import statements containing the given pattern.
+//
+// This method performs a fast regex-based search without requiring LSP. It processes
+// multiline imports by normalizing them first, then uses regex to match import patterns.
+//
+// Parameters:
+//   - pattern: The symbol name to search for (e.g., "Button", "Card")
+//   - fileURI: The file URI (e.g., "file:///path/to/file.tsx")
+//   - langID: The language ID (e.g., "typescriptreact", "javascript")
+//
+// Returns:
+//   - Slice of ImportLocation structs for this file
+func (sc *NodeServiceClient) findImportStatementsInFile(pattern string, fileURI string, langID string) []ImportLocation {
+	trimmedPath := strings.TrimPrefix(fileURI, "file://")
+	content, err := os.ReadFile(trimmedPath)
+	if err != nil {
+		return nil
+	}
+
+	// Regex to match all valid import statement patterns
+	importRegex := regexp.MustCompile(
+		`import\s+(?:type\s+)?(?:(\w+)\s*,\s*)?(?:\{([^}]*)\}|(\w+)|\*\s+as\s+(\w+))\s+from\s+['"]([^'"]+)['"]`,
+	)
+
+	var locations []ImportLocation
+	lines := strings.Split(string(content), "\n")
+
+	// Normalize multiline imports to single line for regex matching
+	normalized := sc.normalizeMultilineImports(string(content))
+
+	// Find all imports in the normalized content
+	allMatches := importRegex.FindAllStringSubmatchIndex(normalized, -1)
+
+	for _, matchIdx := range allMatches {
+		if len(matchIdx) < 4 {
+			continue
+		}
+
+		var defaultImport string
+		var namedImports string
+		var namespaceImport string
+
+		// Extract default import (group 1 for mixed, group 3 for standalone)
+		if matchIdx[2] != -1 && matchIdx[3] != -1 {
+			defaultImport = normalized[matchIdx[2]:matchIdx[3]]
+		} else if matchIdx[6] != -1 && matchIdx[7] != -1 {
+			defaultImport = normalized[matchIdx[6]:matchIdx[7]]
+		}
+
+		// Extract named imports (group 2)
+		if matchIdx[4] != -1 && matchIdx[5] != -1 {
+			namedImports = normalized[matchIdx[4]:matchIdx[5]]
+		}
+
+		// Extract namespace import (group 4)
+		if matchIdx[8] != -1 && matchIdx[9] != -1 {
+			namespaceImport = normalized[matchIdx[8]:matchIdx[9]]
+		}
+
+		// Check if pattern matches any import type
+		patternFound := false
+		if defaultImport == pattern {
+			patternFound = true
+		} else if namedImports != "" && strings.Contains(namedImports, pattern) {
+			patternFound = true
+		} else if namespaceImport == pattern {
+			patternFound = true
+		}
+
+		if !patternFound {
+			continue
+		}
+
+		// Find the pattern in the original (non-normalized) content
+		importStart := matchIdx[0]
+
+		// Find which line this corresponds to in the original content
+		charCount := 0
+		for lineNum, line := range lines {
+			if charCount <= importStart && charCount+len(line)+1 > importStart {
+				// Search for the pattern in this and subsequent lines
+				found := false
+				for searchLine := lineNum; searchLine < len(lines) && searchLine < lineNum+20 && !found; searchLine++ {
+					searchContent := lines[searchLine]
+
+					// Look for the pattern as a complete word
+					for searchStart := 0; ; {
+						patternPos := strings.Index(searchContent[searchStart:], pattern)
+						if patternPos == -1 {
+							break
+						}
+						patternPos += searchStart
+
+						// Verify it's a complete word (not part of a larger identifier)
+						isWordStart := patternPos == 0 || !isIdentifierChar(rune(searchContent[patternPos-1]))
+						isWordEnd := patternPos+len(pattern) >= len(searchContent) || !isIdentifierChar(rune(searchContent[patternPos+len(pattern)]))
+
+						if isWordStart && isWordEnd {
+							locations = append(locations, ImportLocation{
+								FileURI:  fileURI,
+								LangID:   langID,
+								Position: protocol.Position{
+									Line:      uint32(searchLine),
+									Character: uint32(patternPos),
+								},
+								Line: searchContent,
+							})
+							found = true
+							break
+						}
+
+						searchStart = patternPos + len(pattern)
+					}
+				}
+				break
+			}
+			charCount += len(line) + 1 // +1 for newline
+		}
+	}
+
+	return locations
+}
+
+// findImportStatements searches for import statements containing the given pattern.
+//
+// This method is used by tests and provides backward compatibility.
+// It delegates to findImportStatementsInFile for each file.
+//
+// Parameters:
+//   - pattern: The symbol name to search for (e.g., "Button", "Card")
+//   - files: List of TypeScript/JavaScript files to search
+//
+// Returns:
+//   - Slice of ImportLocation structs containing file URI, language ID, and position
+func (sc *NodeServiceClient) findImportStatements(pattern string, files []fileInfo) []ImportLocation {
+	var locations []ImportLocation
+
+	for _, file := range files {
+		fileLocations := sc.findImportStatementsInFile(pattern, file.path, file.langID)
+		locations = append(locations, fileLocations...)
+	}
+
+	return locations
+}
+
+// normalizeMultilineImports converts multiline import statements to single lines.
+//
+// This preprocessing step allows the import regex to match imports that span multiple
+// lines, which is common in formatted TypeScript/JavaScript code.
+//
+// Example transformation:
+//   Before: import {\n  Card,\n  CardBody\n} from "..."
+//   After:  import { Card, CardBody } from "..."
+//
+// The method preserves:
+//   - String literals (quoted strings are not modified)
+//   - Brace depth tracking (handles nested structures)
+//   - Semicolons and statement boundaries
+//
+// Edge cases handled:
+//   - The word "import" within larger identifiers (e.g., "myimport") is not matched
+//   - Escape sequences in strings are preserved
+//   - Both single and double quoted strings are supported
+//
+// Parameters:
+//   - content: Source file content as a string
+//
+// Returns:
+//   - Normalized content with multiline imports converted to single lines
+func (sc *NodeServiceClient) normalizeMultilineImports(content string) string {
+	// Normalize Windows line endings to Unix for consistent processing
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+
+	var result strings.Builder
+	result.Grow(len(content))
+
+	i := 0
+	for i < len(content) {
+		// Look for "import" keyword
+		if i+6 <= len(content) && content[i:i+6] == "import" {
+			// Check if this is actually the start of an import statement
+			// (not part of a larger word like "myimport")
+			if i > 0 && isIdentifierChar(rune(content[i-1])) {
+				result.WriteByte(content[i])
+				i++
+				continue
+			}
+
+			importStart := i
+			result.WriteString("import")
+			i += 6
+
+			// Process the import statement, normalizing multiline to single line
+			i = sc.normalizeImportStatement(&result, content, i, importStart)
+		} else {
+			result.WriteByte(content[i])
+			i++
+		}
+	}
+
+	return result.String()
+}
+
+// normalizeImportStatement processes a single import statement, normalizing
+// multiline imports to a single line while preserving string literals and structure.
+//
+// It handles:
+//   - String literals (quoted strings are not modified)
+//   - Brace depth tracking (handles destructuring)
+//   - Line breaks within import statements
+//   - Import statement termination (semicolon or "from" clause completion)
+//
+// Parameters:
+//   - result: StringBuilder to write the normalized output
+//   - content: Full source file content
+//   - pos: Current position in content (after "import" keyword)
+//   - importStart: Position where "import" keyword started
+//
+// Returns:
+//   - New position after the import statement ends
+func (sc *NodeServiceClient) normalizeImportStatement(result *strings.Builder, content string, pos, importStart int) int {
+	braceDepth := 0
+	inString := false
+	stringChar := byte(0)
+	i := pos
+
+	for i < len(content) {
+		ch := content[i]
+
+		// Handle string entry/exit
+		if !inString && isStringDelimiter(ch) {
+			inString = true
+			stringChar = ch
+			result.WriteByte(ch)
+			i++
+			continue
+		} else if inString && ch == stringChar && !isEscapedQuote(content, i) {
+			inString = false
+			result.WriteByte(ch)
+			i++
+			continue
+		} else if inString {
+			// Inside string - copy as-is
+			result.WriteByte(ch)
+			i++
+			continue
+		}
+
+		// Handle import statement structure (not in strings)
+		switch ch {
+		case '{':
+			braceDepth++
+			result.WriteByte(ch)
+			i++
+		case '}':
+			braceDepth--
+			result.WriteByte(ch)
+			i++
+		case '\n':
+			// Handle line breaks - check if import is complete
+			// JavaScript/TypeScript files typically use \n (normalized above)
+			if braceDepth == 0 && sc.hasCompletedImportStatement(content, importStart, i) {
+				// Import statement is complete, preserve the newline
+				result.WriteByte('\n')
+				i++
+				return i
+			}
+			// Within import statement, replace newline with space
+			result.WriteByte(' ')
+			i++
+		case ';':
+			// Semicolon always ends the import statement
+			result.WriteByte(ch)
+			i++
+			return i
+		default:
+			result.WriteByte(ch)
+			i++
+		}
+	}
+
+	return i
+}
+
+// isIdentifierChar checks if a character can be part of a JavaScript identifier
+func isIdentifierChar(ch rune) bool {
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '$'
+}
+
+// isStringDelimiter checks if a character is a string delimiter (quote or backtick)
+func isStringDelimiter(ch byte) bool {
+	return ch == '"' || ch == '\'' || ch == '`'
+}
+
+// isEscapedQuote determines if a quote at the given position is escaped by backslashes.
+// It counts preceding backslashes - if there's an odd number, the quote is escaped.
+func isEscapedQuote(content string, pos int) bool {
+	if pos == 0 {
+		return false
+	}
+	escapeCount := 0
+	for j := pos - 1; j >= 0 && content[j] == '\\'; j-- {
+		escapeCount++
+	}
+	// Odd number of backslashes means the quote is escaped
+	return escapeCount%2 == 1
+}
+
+// hasCompletedImportStatement checks if we've seen a complete import statement
+// by looking for the "from" keyword followed by a quote within the current import scope.
+//
+// This prevents treating incomplete imports as complete when encountering newlines.
+func (sc *NodeServiceClient) hasCompletedImportStatement(content string, importStart, currentPos int) bool {
+	if currentPos <= importStart+6 {
+		return false
+	}
+
+	// Look at just the current import statement (from "import" to current position)
+	snippet := content[importStart:min(currentPos+1, len(content))]
+	if len(snippet) <= 10 {
+		return false
+	}
+
+	// Check the last ~50 chars for "from" keyword followed by a quote
+	// This avoids false matches from "from" in other parts of the file
+	start := len(snippet) - min(50, len(snippet))
+	last50 := snippet[start:]
+
+	// Use the fromKeywordRegex which matches "from" as a standalone word followed by a quote
+	return fromKeywordRegex.MatchString(last50)
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// GetDependencies returns an empty dependency map as the nodejs provider
+// does not use external dependency providers. This overrides the base
+// implementation which would return "dependency provider path not set" error.
+func (sc *NodeServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	return map[uri.URI][]*provider.Dep{}, nil
+}
+
+// GetDependenciesDAG returns an empty dependency DAG as the nodejs provider
+// does not use external dependency providers.
+func (sc *NodeServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	return map[uri.URI][]provider.DepDAGItem{}, nil
 }
