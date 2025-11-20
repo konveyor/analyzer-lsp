@@ -145,16 +145,21 @@ func (h *defaultSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.
 		primaryPath = after
 	}
 	additionalPaths := []string{}
-	if val, ok := h.config.ProviderSpecificConfig["workspaceFolders"].([]string); ok {
+	val, ok := h.config.ProviderSpecificConfig["workspaceFolders"].([]interface{})
+	if ok {
 		for _, path := range val {
-			if after, prefixOk := strings.CutPrefix(path, fmt.Sprintf("%s://", uri.FileScheme)); prefixOk {
-				path = after
-			}
-			if primaryPath == "" {
-				primaryPath = path
+			pathStr, ok := path.(string)
+			if !ok {
 				continue
 			}
-			additionalPaths = append(additionalPaths, path)
+			if after, prefixOk := strings.CutPrefix(pathStr, fmt.Sprintf("%s://", uri.FileScheme)); prefixOk {
+				pathStr = after
+			}
+			if primaryPath == "" {
+				primaryPath = pathStr
+				continue
+			}
+			additionalPaths = append(additionalPaths, pathStr)
 		}
 	}
 	searcher := provider.FileSearcher{
@@ -228,7 +233,7 @@ func (h *defaultSymbolSearchHelper) MatchFileContentByConditions(content string,
 					h.log.Error(err, "error unmarshaling referenced condition")
 					continue
 				}
-				regex, err := compileSymbolQueryRegex(cond.Referenced.Pattern)
+				regex, err := regexp.Compile(cond.Referenced.Pattern)
 				if err != nil {
 					h.log.Error(err, "error compiling symbol query regex")
 					continue

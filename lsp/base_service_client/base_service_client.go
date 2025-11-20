@@ -510,7 +510,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 		// the found definitions, store the actual position where text match as
 		// workspace symbol and store any definitions found for that symbol. If a
 		// definition is found, the symbol will be used as a reference symbol.
-		matchedSymbols := sc.getMatchingPositions(ctx, string(content), fileURI)
+		matchedSymbols := sc.searchContentForWorkspaceSymbols(ctx, string(content), fileURI)
 		for _, matchedSymbol := range matchedSymbols {
 			location, ok := matchedSymbol.Location.Value.(protocol.Location)
 			if !ok {
@@ -693,7 +693,7 @@ func toURI(path string) (uri.URI, error) {
 	return uri.File(absPath), nil
 }
 
-func (sc *LSPServiceClientBase) getMatchingPositions(ctx context.Context, content string, fileURI uri.URI) []protocol.WorkspaceSymbol {
+func (sc *LSPServiceClientBase) searchContentForWorkspaceSymbols(ctx context.Context, content string, fileURI uri.URI) []protocol.WorkspaceSymbol {
 	positions := []protocol.WorkspaceSymbol{}
 	symbols := []protocol.DocumentSymbol{}
 	if val, err := sc.queryDocumentSymbol(ctx, fileURI, []byte(content)); err != nil {
@@ -726,23 +726,18 @@ func (sc *LSPServiceClientBase) getMatchingPositions(ctx context.Context, conten
 					},
 				}
 				matchingSymbols := findDocumentSymbolsAtLocation(fileURI, symbols, protoLoc)
-				for _, symbol := range matchingSymbols {
-					positions = append(positions, symbol)
-				}
-				if len(matchingSymbols) == 0 && len(loc) > 1 {
-					positions = append(positions, protocol.WorkspaceSymbol{
-						Location: protocol.OrPLocation_workspace_symbol{
-							Value: protoLoc,
-						},
-						BaseSymbolInformation: protocol.BaseSymbolInformation{
-							Name:          scanner.Text()[loc[0]:loc[1]],
-							Kind:          0,
-							Tags:          []protocol.SymbolTag{},
-							ContainerName: "",
-						},
-					})
-				}
-
+				positions = append(positions, matchingSymbols...)
+				positions = append(positions, protocol.WorkspaceSymbol{
+					Location: protocol.OrPLocation_workspace_symbol{
+						Value: protoLoc,
+					},
+					BaseSymbolInformation: protocol.BaseSymbolInformation{
+						Name:          scanner.Text()[loc[0]:loc[1]],
+						Kind:          0,
+						Tags:          []protocol.SymbolTag{},
+						ContainerName: "",
+					},
+				})
 			}
 			lineNumber++
 		}
