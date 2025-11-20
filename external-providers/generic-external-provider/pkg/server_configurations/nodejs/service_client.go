@@ -281,10 +281,8 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 			openedFiles[importLoc.FileURI] = true
 		}
 
-		// Small delay to let LSP index the file
-		time.Sleep(100 * time.Millisecond)
-
 		// Get definition of the imported symbol using textDocument/definition
+		// Use retry logic with exponential backoff to handle LSP indexing delays
 		params := protocol.DefinitionParams{
 			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 				TextDocument: protocol.TextDocumentIdentifier{
@@ -295,7 +293,23 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		}
 
 		var definitions []protocol.Location
-		err = sc.Conn.Call(ctx, "textDocument/definition", params).Await(ctx, &definitions)
+		var err error
+
+		// Retry up to 3 times with exponential backoff (50ms, 100ms, 200ms)
+		// This handles cases where the LSP server needs time to index newly opened files
+		maxRetries := 3
+		for attempt := 0; attempt < maxRetries; attempt++ {
+			err = sc.Conn.Call(ctx, "textDocument/definition", params).Await(ctx, &definitions)
+			if err == nil && len(definitions) > 0 {
+				break
+			}
+
+			if attempt < maxRetries-1 {
+				delay := time.Duration(50*(1<<uint(attempt))) * time.Millisecond
+				time.Sleep(delay)
+			}
+		}
+
 		if err != nil {
 			sc.Log.V(1).Info("Failed to get definition",
 				"file", importLoc.FileURI,
