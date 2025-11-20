@@ -90,9 +90,6 @@ jobs:
           - provider: yq
             image_name: yq-provider
             dockerfile: external-providers/yq-external-provider/Dockerfile
-          - provider: dotnet
-            image_name: dotnet-provider
-            dockerfile: external-providers/dotnet-external-provider/Dockerfile
           - provider: c-sharp
             image_name: c-sharp-provider
             dockerfile: Dockerfile
@@ -272,10 +269,8 @@ jobs:
         run: |
           podman tag localhost/java-provider:${{ needs.detect-changes.outputs.image_tag }} ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
           podman tag localhost/generic-provider:${{ needs.detect-changes.outputs.image_tag }} ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
-          podman tag localhost/dotnet-provider:${{ needs.detect-changes.outputs.image_tag }} ttl.sh/konveyor-dotnet-external-provider-${{ github.sha }}:2h
           podman push ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
           podman push ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
-          podman push ttl.sh/konveyor-dotnet-external-provider-${{ github.sha }}:2h
 
       - uses: actions/checkout@v3
         with:

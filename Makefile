@@ -2,7 +2,6 @@ TAG ?= latest
 IMG_ANALYZER ?= konveyor-analyzer-lsp:$(TAG)
 TAG_JAVA_BUNDLE ?= latest
 IMG_JAVA_PROVIDER ?= java-provider:$(TAG)
-IMG_DOTNET_PROVIDER ?= dotnet-provider:$(TAG)
 IMG_GENERIC_PROVIDER ?= generic-provider:$(TAG)
 IMG_GO_DEP_PROVIDER ?= golang-dep-provider:$(TAG)
 IMG_YQ_PROVIDER ?= yq-provider:$(TAG)
@@ -19,7 +18,7 @@ endif
 build-dir:
 	mkdir -p build
 
-build: build-dir analyzer deps golang-dependency-provider external-generic yq-external-provider java-external-provider dotnet-external-provider
+build: build-dir analyzer deps golang-dependency-provider external-generic yq-external-provider java-external-provider
 
 analyzer: build-dir
 	go build -o build/konveyor-analyzer ./cmd/analyzer/main.go
@@ -41,10 +40,6 @@ java-external-provider: build-dir
 	(cd external-providers/java-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/java-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/java-external-provider build/java-external-provider.exe; fi
 
-dotnet-external-provider: build-dir
-	(cd external-providers/dotnet-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/dotnet-external-provider main.go)
-	if [ "${GOOS}" == "windows" ]; then mv build/dotnet-external-provider build/dotnet-external-provider.exe; fi
-
 deps: build-dir
 	go build -o build/konveyor-analyzer-dep ./cmd/dep/main.go
 	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer-dep build/konveyor-analyzer-dep.exe; fi
@@ -52,10 +47,7 @@ deps: build-dir
 image-build:
 	podman build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f Dockerfile . -t $(IMG_ANALYZER)
 
-build-external: build-dotnet-provider build-generic-provider build-java-provider build-yq-provider
-
-build-dotnet-provider:
-	podman build -f external-providers/dotnet-external-provider/Dockerfile -t $(IMG_DOTNET_PROVIDER) .
+build-external: build-generic-provider build-java-provider build-yq-provider
 
 build-generic-provider: build-golang-dep-provider 
 	podman build --build-arg GOLANG_DEP_IMAGE=$(IMG_GO_DEP_PROVIDER) -f external-providers/generic-external-provider/Dockerfile -t $(IMG_GENERIC_PROVIDER) .
