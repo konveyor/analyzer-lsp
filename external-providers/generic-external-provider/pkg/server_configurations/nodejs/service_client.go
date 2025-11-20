@@ -655,8 +655,13 @@ func (sc *NodeServiceClient) normalizeMultilineImports(content string) string {
 					i++
 					continue
 				} else if inString && ch == stringChar {
-					// Check for escape
-					if i > 0 && content[i-1] != '\\' {
+					// Count preceding backslashes to determine if quote is escaped
+					escapeCount := 0
+					for j := i - 1; j >= 0 && content[j] == '\\'; j-- {
+						escapeCount++
+					}
+					// If even number of backslashes (including 0), quote is not escaped
+					if escapeCount%2 == 0 {
 						inString = false
 					}
 					result.WriteByte(ch)
