@@ -328,6 +328,23 @@ type MyType = Types.User;`,
 			expectedLine:   2,
 			expectedColumn: 2,
 		},
+		{
+			name: "Pattern as prefix of another symbol on same line",
+			fileContent: `import { CardFooter, Card } from '@patternfly/react-core';
+export const MyCard = Card;`,
+			pattern:        "Card",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 21, // Should find standalone "Card", not "Card" in "CardFooter"
+		},
+		{
+			name: "Pattern in middle of other symbols",
+			fileContent: `import { Button, Card, CardBody } from '@patternfly/react-core';`,
+			pattern:        "Card",
+			expectedCount:  1,
+			expectedLine:   0,
+			expectedColumn: 17, // Should find standalone "Card", not "Card" in "CardBody"
+		},
 	}
 
 	for _, tc := range testCases {

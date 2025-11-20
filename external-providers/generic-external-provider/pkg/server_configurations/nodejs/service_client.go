@@ -597,12 +597,18 @@ func (sc *NodeServiceClient) findImportStatements(pattern string, files []fileIn
 				if charCount <= importStart && charCount+len(line)+1 > importStart {
 					// This line (or nearby lines) contains the import
 					// Search for the pattern in this and subsequent lines
-					for searchLine := lineNum; searchLine < len(lines) && searchLine < lineNum+20; searchLine++ {
+					found := false
+					for searchLine := lineNum; searchLine < len(lines) && searchLine < lineNum+20 && !found; searchLine++ {
 						searchContent := lines[searchLine]
 
-						// Look for the pattern as a complete word
-						patternPos := strings.Index(searchContent, pattern)
-						if patternPos != -1 {
+						// Look for the pattern as a complete word; there may be multiple occurrences
+						for searchStart := 0; ; {
+							patternPos := strings.Index(searchContent[searchStart:], pattern)
+							if patternPos == -1 {
+								break
+							}
+							patternPos += searchStart
+
 							// Verify it's a complete word (not part of a larger identifier)
 							isWordStart := patternPos == 0 || !isIdentifierChar(rune(searchContent[patternPos-1]))
 							isWordEnd := patternPos+len(pattern) >= len(searchContent) || !isIdentifierChar(rune(searchContent[patternPos+len(pattern)]))
@@ -617,8 +623,11 @@ func (sc *NodeServiceClient) findImportStatements(pattern string, files []fileIn
 									},
 									Line: searchContent,
 								})
+								found = true
 								break
 							}
+
+							searchStart = patternPos + len(pattern)
 						}
 					}
 					break
