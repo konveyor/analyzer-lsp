@@ -290,8 +290,9 @@ func AnalysisCmd() *cobra.Command {
 			}
 			ruleSets := []engine.RuleSet{}
 			needProviders := map[string]provider.InternalProviderClient{}
+			providerConditions := map[string][]provider.ConditionsByCap{}
 			for _, f := range rulesFile {
-				internRuleSet, internNeedProviders, _, err := parser.LoadRules(f)
+				internRuleSet, internNeedProviders, provConditions, err := parser.LoadRules(f)
 				if err != nil {
 					errLog.Error(err, "unable to parse all the rules for ruleset", "file", f)
 				}
@@ -299,7 +300,14 @@ func AnalysisCmd() *cobra.Command {
 				for k, v := range internNeedProviders {
 					needProviders[k] = v
 				}
+				for k, v := range provConditions {
+					if _, ok := providerConditions[k]; !ok {
+						providerConditions[k] = []provider.ConditionsByCap{}
+					}
+					providerConditions[k] = append(providerConditions[k], v...)
+				}
 			}
+
 			// Now that we have all the providers, we need to start them.
 			additionalBuiltinConfigs := []provider.InitConfig{}
 			for name, provider := range needProviders {
@@ -329,6 +337,15 @@ func AnalysisCmd() *cobra.Command {
 					errLog.Error(err, "unable to init builtin provider")
 					progressCleanup()
 					os.Exit(1)
+				}
+			}
+
+			// Call Prepare() on all providers
+			for name, conditions := range providerConditions {
+				if provider, ok := needProviders[name]; ok {
+					if err := provider.Prepare(ctx, conditions); err != nil {
+						errLog.Error(err, "unable to prepare provider", "provider", name)
+					}
 				}
 			}
 
