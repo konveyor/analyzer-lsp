@@ -535,7 +535,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 					sc.Log.Error(err, "documentSymbol request failed", "uri", uri)
 					continue
 				}
-				for _, symbol := range findDocumentSymbolsAtLocation(uri, documentSymbols, definition) {
+				if symbol, ok := findDocumentSymbolAtLocation(uri, documentSymbols, definition); ok {
 					wsSymbolsForDefinitions[workspaceSymbolKey(symbol)] = symbol
 				}
 			}
@@ -543,8 +543,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 			for _, symbol := range wsSymbolsForDefinitions {
 				definitionSymbols = append(definitionSymbols, symbol)
 			}
-			// attach all definitions found with the original match, so that
-			// we can determine it as a referenced symbol
+			// attach all definitions found with the original match
 			pair := WorkspaceSymbolDefinitionsPair{
 				WorkspaceSymbol: protocol.WorkspaceSymbol{
 					Location: protocol.OrPLocation_workspace_symbol{
@@ -564,6 +563,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 			}
 			workspaceSymbols[workspaceSymbolKey(pair.WorkspaceSymbol)] = pair
 		}
+
 		workspaceSymbolsList := []WorkspaceSymbolDefinitionsPair{}
 		for _, pair := range workspaceSymbols {
 			workspaceSymbolsList = append(workspaceSymbolsList, pair)
@@ -725,19 +725,19 @@ func (sc *LSPServiceClientBase) searchContentForWorkspaceSymbols(ctx context.Con
 						},
 					},
 				}
-				matchingSymbols := findDocumentSymbolsAtLocation(fileURI, symbols, protoLoc)
-				positions = append(positions, matchingSymbols...)
-				positions = append(positions, protocol.WorkspaceSymbol{
-					Location: protocol.OrPLocation_workspace_symbol{
-						Value: protoLoc,
-					},
-					BaseSymbolInformation: protocol.BaseSymbolInformation{
-						Name:          scanner.Text()[loc[0]:loc[1]],
-						Kind:          0,
-						Tags:          []protocol.SymbolTag{},
-						ContainerName: "",
-					},
-				})
+				if symbol, ok := findDocumentSymbolAtLocation(fileURI, symbols, protoLoc); ok {
+					positions = append(positions, symbol)
+				} else {
+					positions = append(positions, protocol.WorkspaceSymbol{
+						Location: protocol.OrPLocation_workspace_symbol{
+							Value: protoLoc,
+						},
+						BaseSymbolInformation: protocol.BaseSymbolInformation{
+							Name: scanner.Text()[loc[0]:loc[1]],
+							Kind: 0,
+						},
+					})
+				}
 			}
 			lineNumber++
 		}
@@ -772,37 +772,44 @@ func (sc *LSPServiceClientBase) getDefinitionForPosition(ctx context.Context, ur
 	return res
 }
 
-func findDocumentSymbolsAtLocation(docURI uri.URI, symbols []protocol.DocumentSymbol, defLoc protocol.Location) []protocol.WorkspaceSymbol {
-	var out []protocol.WorkspaceSymbol
-	findSymbolsAtLocationRecursive(docURI, symbols, defLoc, "", &out)
-	return out
-}
+func findDocumentSymbolAtLocation(docURI uri.URI, symbols []protocol.DocumentSymbol, defLoc protocol.Location) (protocol.WorkspaceSymbol, bool) {
+	var bestSymbol protocol.WorkspaceSymbol
+	var bestLength uint64
+	found := false
 
-func findSymbolsAtLocationRecursive(docURI uri.URI, symbols []protocol.DocumentSymbol, defLoc protocol.Location, containerName string, out *[]protocol.WorkspaceSymbol) {
-	for _, symbol := range symbols {
-		symRange := preferredRange(symbol)
-		if rangeOverlaps(symRange, defLoc.Range) {
-			ws := protocol.WorkspaceSymbol{
-				BaseSymbolInformation: protocol.BaseSymbolInformation{
-					Name:          symbol.Name,
-					Kind:          symbol.Kind,
-					Tags:          symbol.Tags,
-					ContainerName: containerName,
-				},
-				Location: protocol.OrPLocation_workspace_symbol{
-					Value: protocol.Location{
-						URI:   protocol.DocumentURI(docURI),
-						Range: symRange,
-					},
-				},
+	var traverse func([]protocol.DocumentSymbol, string)
+	traverse = func(symbols []protocol.DocumentSymbol, containerName string) {
+		for _, symbol := range symbols {
+			symRange := preferredRange(symbol)
+			if rangeOverlaps(symRange, defLoc.Range) {
+				length := rangeLength(symRange)
+				if !found || length < bestLength {
+					bestSymbol = protocol.WorkspaceSymbol{
+						BaseSymbolInformation: protocol.BaseSymbolInformation{
+							Name:          symbol.Name,
+							Kind:          symbol.Kind,
+							Tags:          symbol.Tags,
+							ContainerName: containerName,
+						},
+						Location: protocol.OrPLocation_workspace_symbol{
+							Value: protocol.Location{
+								URI:   protocol.DocumentURI(docURI),
+								Range: symRange,
+							},
+						},
+					}
+					bestLength = length
+					found = true
+				}
 			}
-			*out = append(*out, ws)
-		}
-		// Traverse children
-		if len(symbol.Children) > 0 {
-			findSymbolsAtLocationRecursive(docURI, symbol.Children, defLoc, symbol.Name, out)
+			if len(symbol.Children) > 0 {
+				traverse(symbol.Children, symbol.Name)
+			}
 		}
 	}
+
+	traverse(symbols, "")
+	return bestSymbol, found
 }
 
 func rangeOverlaps(r1, r2 protocol.Range) bool {
@@ -824,4 +831,16 @@ func positionLessEqual(p1, p2 protocol.Position) bool {
 		return p1.Character <= p2.Character
 	}
 	return false
+}
+
+func rangeLength(r protocol.Range) uint64 {
+	lineDiff := int64(r.End.Line) - int64(r.Start.Line)
+	if lineDiff < 0 {
+		lineDiff = 0
+	}
+	charDiff := int64(r.End.Character) - int64(r.Start.Character)
+	if charDiff < 0 {
+		charDiff = 0
+	}
+	return (uint64(lineDiff) << 32) | uint64(charDiff)
 }
