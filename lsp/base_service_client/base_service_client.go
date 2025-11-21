@@ -656,13 +656,13 @@ func (sc *LSPServiceClientBase) queryDocumentSymbol(ctx context.Context, uri uri
 			URI: string(uri),
 		},
 	}
-	if err := sc.didOpen(ctx, string(uri), sc.symbolSearchHelper.GetLanguageID(string(uri)), content); err != nil {
+	if err := sc.didOpen(ctx, string(uri.Filename()), sc.symbolSearchHelper.GetLanguageID(string(uri)), content); err != nil {
 		sc.Log.Error(err, "didOpen request failed", "uri", uri)
 	}
 	if err := sc.Conn.Call(ctx, "textDocument/documentSymbol", params).Await(ctx, &symbols); err != nil {
 		return nil, err
 	}
-	if err := sc.didClose(ctx, string(uri)); err != nil {
+	if err := sc.didClose(ctx, string(uri.Filename())); err != nil {
 		sc.Log.Error(err, "didClose request failed", "uri", uri)
 	}
 	documentSymbols := []protocol.DocumentSymbol{}
@@ -696,18 +696,31 @@ func toURI(path string) (uri.URI, error) {
 func (sc *LSPServiceClientBase) searchContentForWorkspaceSymbols(ctx context.Context, content string, fileURI uri.URI) []protocol.WorkspaceSymbol {
 	positions := []protocol.WorkspaceSymbol{}
 	symbols := []protocol.DocumentSymbol{}
-	if val, err := sc.queryDocumentSymbol(ctx, fileURI, []byte(content)); err != nil {
-		sc.Log.Error(err, "queryDocumentSymbol request failed", "uri", fileURI)
-	} else {
-		symbols = val
-	}
 
+	dsCalled := false
 	if sc.symbolSearchHelper != nil {
 		scanner := bufio.NewScanner(strings.NewReader(string(content)))
 		lineNumber := 0
 		for scanner.Scan() {
 			matchLocations := sc.symbolSearchHelper.MatchFileContentByConditions(scanner.Text(), sc.allConditions...)
+			matchLocationKey := func(loc []int) string {
+				return fmt.Sprintf("%d:%d:%d", lineNumber, loc[0], loc[1])
+			}
+			dedupedMatchLocations := map[string]bool{}
+			if len(matchLocations) > 0 && !dsCalled {
+				ds, err := sc.queryDocumentSymbol(ctx, fileURI, []byte(content))
+				if err != nil {
+					sc.Log.Error(err, "queryDocumentSymbol request failed", "uri", fileURI)
+				}
+				symbols = ds
+				dsCalled = true
+			}
 			for _, loc := range matchLocations {
+				key := matchLocationKey(loc)
+				if _, ok := dedupedMatchLocations[key]; ok {
+					continue
+				}
+				dedupedMatchLocations[key] = true
 				absPath, err := filepath.Abs(fileURI.Filename())
 				if err != nil {
 					return positions
@@ -759,14 +772,14 @@ func (sc *LSPServiceClientBase) getDefinitionForPosition(ctx context.Context, ur
 			sc.Log.Error(err, "unable to read file", "uri", uri)
 			return res
 		}
-		if err := sc.didOpen(ctx, string(position.TextDocument.URI), sc.symbolSearchHelper.GetLanguageID(string(position.TextDocument.URI)), content); err != nil {
-			sc.Log.Error(err, "didOpen request failed", "uri", position.TextDocument.URI)
+		if err := sc.didOpen(ctx, uri.Filename(), sc.symbolSearchHelper.GetLanguageID(string(uri)), content); err != nil {
+			sc.Log.Error(err, "didOpen request failed", "uri", uri)
 		}
 		if err := sc.Conn.Call(ctx, "textDocument/definition", position).Await(ctx, &res); err != nil {
-			sc.Log.Error(err, "textDocument/definition request failed", "position", position)
+			sc.Log.Error(err, "textDocument/definition request failed", "uri", uri)
 		}
-		if err := sc.didClose(ctx, string(position.TextDocument.URI)); err != nil {
-			sc.Log.Error(err, "didClose request failed", "uri", position.TextDocument.URI)
+		if err := sc.didClose(ctx, uri.Filename()); err != nil {
+			sc.Log.Error(err, "didClose request failed", "uri", uri)
 		}
 	}
 	return res

@@ -85,7 +85,12 @@ func (h *nodejsSymbolSearchHelper) MatchFileContentByConditions(content string, 
 				}
 				query := parseQuery(cond.Referenced.Pattern)
 				if query != nil && query.Query != nil {
-					regex, err := regexp.Compile(*query.Query)
+					query := *query.Query
+					if !hasRegexMeta(query) {
+						matches = append(matches, findWholeWordMatches(content, query)...)
+						continue
+					}
+					regex, err := regexp.Compile(query)
 					if err != nil {
 						h.log.Error(err, "error compiling query regex")
 						continue
@@ -221,4 +226,60 @@ func parseQuery(pattern string) *parsedQuery {
 		result.Scope = &scope
 	}
 	return result
+}
+
+func hasRegexMeta(value string) bool {
+	for _, ch := range value {
+		switch ch {
+		case '.', '*', '?', '+', '[', ']', '(', ')', '{', '}', '|', '^', '$', '\\':
+			return true
+		}
+	}
+	return false
+}
+
+func findWholeWordMatches(content, query string) [][]int {
+	if query == "" {
+		return nil
+	}
+	matches := [][]int{}
+	searchStart := 0
+	for searchStart <= len(content) {
+		idx := strings.Index(content[searchStart:], query)
+		if idx == -1 {
+			break
+		}
+		start := searchStart + idx
+		end := start + len(query)
+		if isTokenBoundary(content, start, end) {
+			matches = append(matches, []int{start, end})
+		}
+		searchStart = end
+	}
+	return matches
+}
+
+func isTokenBoundary(content string, start, end int) bool {
+	if start > 0 && isIdentifierChar(content[start-1]) {
+		return false
+	}
+	if end < len(content) && isIdentifierChar(content[end]) {
+		return false
+	}
+	return true
+}
+
+func isIdentifierChar(b byte) bool {
+	switch {
+	case b >= '0' && b <= '9':
+		return true
+	case b >= 'A' && b <= 'Z':
+		return true
+	case b >= 'a' && b <= 'z':
+		return true
+	case b == '_', b == '$', b == '#':
+		return true
+	default:
+		return false
+	}
 }
