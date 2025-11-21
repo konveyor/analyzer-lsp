@@ -108,6 +108,10 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}, nil
 }
 
+func (p *javaServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
 func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, condCTX *provider.ProviderContext) ([]protocol.WorkspaceSymbol, error) {
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above

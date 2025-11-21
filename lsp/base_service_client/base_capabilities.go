@@ -31,6 +31,7 @@ type ReferencedCondition struct {
 	Referenced struct {
 		Pattern string `yaml:"pattern"`
 	} `yaml:"referenced"`
+	provider.ProviderContext `yaml:",inline"`
 }
 
 // EvaluateReferenced evaluates references to a given entity based on a query
@@ -53,7 +54,7 @@ func EvaluateReferenced[T base](t T, ctx ctx, cap string, info []byte) (resp, er
 		return resp{}, fmt.Errorf("unable to get query info")
 	}
 
-	symbols := sc.GetAllDeclarations(ctx, sc.BaseConfig.WorkspaceFolders, query)
+	symbols := sc.GetAllDeclarations(ctx, query)
 
 	incidents := []provider.IncidentContext{}
 	incidentsMap := make(map[string]provider.IncidentContext) // Remove duplicates

@@ -51,6 +51,10 @@ type fileTemplateContext struct {
 
 var _ provider.ServiceClient = &builtinServiceClient{}
 
+func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
 func (b *builtinServiceClient) openFileWithEncoding(filePath string) (io.Reader, error) {
 	var content []byte
 	var err error

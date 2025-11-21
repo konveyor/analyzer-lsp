@@ -125,3 +125,7 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 func (p *yqProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
 	return nil
 }
+
+func (p *yqProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}

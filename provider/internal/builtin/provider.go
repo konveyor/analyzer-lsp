@@ -146,6 +146,11 @@ func (p *builtinProvider) NotifyFileChanges(ctx context.Context, changes ...prov
 	return provider.FullNotifyFileChangesResponse(ctx, p.clients, changes...)
 }
 
+// TODO: This function will be used to pre-process file content searches
+func (p *builtinProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
 // We don't need to init anything
 func (p *builtinProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 	if config.AnalysisMode != provider.AnalysisMode("") {

@@ -179,12 +179,13 @@ func (g *grpcServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 
 	for _, change := range changes {
 		fileChanges = append(fileChanges, &pb.FileChange{
+			Saved:   change.Saved,
 			Uri:     change.Path,
 			Content: change.Content,
 		})
 	}
 
-	fileChangeResponse, err := g.client.NotifyFileChanges(ctx, &pb.NotifyFileChangesRequest{Changes: fileChanges})
+	fileChangeResponse, err := g.client.NotifyFileChanges(ctx, &pb.NotifyFileChangesRequest{Changes: fileChanges, Id: g.id})
 	if err != nil {
 		return err
 	}
@@ -196,4 +197,30 @@ func (g *grpcServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 
 func (g *grpcServiceClient) Stop() {
 	g.client.Stop(context.TODO(), &pb.ServiceRequest{Id: g.id})
+}
+
+func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	conditionsByCapability := []*pb.ConditionsByCapability{}
+	for _, condition := range conditionsByCap {
+		conditions := []string{}
+		for _, conditionInfo := range condition.Conditions {
+			conditions = append(conditions, string(conditionInfo))
+		}
+		conditionsByCapability = append(conditionsByCapability, &pb.ConditionsByCapability{
+			Cap:           condition.Cap,
+			ConditionInfo: conditions,
+		})
+	}
+	prepareRequest := &pb.PrepareRequest{
+		Conditions: conditionsByCapability,
+		Id:         g.id,
+	}
+	prepareResponse, err := g.client.Prepare(ctx, prepareRequest)
+	if err != nil {
+		return err
+	}
+	if prepareResponse.Error != "" {
+		return fmt.Errorf(prepareResponse.Error)
+	}
+	return nil
 }

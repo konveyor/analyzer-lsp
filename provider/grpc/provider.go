@@ -372,6 +372,10 @@ func (g *grpcProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]pr
 	return provider.FullDepDAGResponse(ctx, g.serviceClients)
 }
 
+func (g *grpcProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return provider.FullPrepareResponse(ctx, g.serviceClients, conditionsByCap)
+}
+
 func (g *grpcProvider) Stop() {
 	for _, c := range g.serviceClients {
 		c.Stop()

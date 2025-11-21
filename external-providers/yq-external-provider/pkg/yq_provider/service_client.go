@@ -56,6 +56,10 @@ func (p *yqServiceClient) NotifyFileChanges(ctx context.Context, changes ...prov
 	return nil
 }
 
+func (p *yqServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
 func (p *yqServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond yqCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
