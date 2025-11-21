@@ -1,25 +1,25 @@
-using System;
-using System.Net;
-using System.IO;
+﻿using System;
+using System.Net.Http;
+using System.Threading.Tasks;
 
-// Copied from https://learn.microsoft.com/en-us/dotnet/api/system.net.webclient?view=net-8.0
-public class Test
+public class HttpClientExample
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
-        if (args == null || args.Length == 0)
+        using (HttpClient client = new HttpClient())
         {
-            throw new ApplicationException("Specify the URI of the resource to retrieve.");
+            try
+            {
+                string url = "https://jsonplaceholder.typicode.com/todos/1";
+                HttpResponseMessage response = await client.GetAsync(url);
+                response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP status code is not 2xx
+                string responseBody = await response.Content.ReadAsStringAsync();
+                Console.WriteLine(responseBody);
+            }
+            catch (HttpRequestException e)
+            {
+                Console.WriteLine($"Request exception: {e.Message}");
+            }
         }
-        using WebClient client = new WebClient();
-        
-        // Add a user agent header in case the
-        // requested URI contains a query.
-        client.Headers.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)");
-    
-        using Stream data = client.OpenRead(args[0]);
-        using StreamReader reader = new StreamReader(data);
-        string s = reader.ReadToEnd();
-        Console.WriteLine(s);
     }
 }
