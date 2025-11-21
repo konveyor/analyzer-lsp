@@ -287,6 +287,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// each service client should have their own context
 	downloadCtx, cancelFunc := context.WithCancel(ctx)
 	// location can be a coordinate to a remote mvn artifact
+	//
 	if downloader, ok := bldtool.GetDownloader(config.Location, mavenSettingsFile, mavenInsecure, log); ok {
 		downloadPath, err := downloader.Download(downloadCtx)
 		if err != nil {
