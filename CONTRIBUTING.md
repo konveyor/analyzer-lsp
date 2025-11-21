@@ -161,8 +161,8 @@ podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 # 3. Run external providers pod
 make run-external-providers-pod
 
-# 4. Build demo container image
-podman build -f demo-local.Dockerfile -t localhost/testing:latest .
+# 4. Build analyzer container image
+make image-build
 
 # 5. Run demo image to generate output
 make run-demo-image
@@ -602,7 +602,7 @@ podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 make run-external-providers-pod
 
 # 3. Build and run demo
-podman build -f demo-local.Dockerfile -t localhost/testing:latest .
+make image-build
 make run-demo-image
 
 # 4. Verify output

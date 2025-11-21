@@ -1,7 +1,0 @@
-- message: HttpNotFound was replaced with NotFound in .NET Core
-  ruleID: lang-ref-example-001
-  when:
-    or:
-    - dotnet.referenced:
-        pattern: "HttpNotFound"
-        namespace: "System.Web.Mvc"

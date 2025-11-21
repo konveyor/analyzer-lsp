@@ -1,0 +1,201 @@
+- message: 'java found apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
+  ruleID: lang-ref-003
+  effort: 1
+  when:
+    java.referenced:
+      pattern: "*apiextensions.v1beta1.CustomResourceDefinition*"
+      location: TYPE
+- message: "dependency {{name}} with {{version}} is bad and you should feel bad for using it"
+  ruleID: java-pomxml-dependencies
+  effort: 1
+  when:
+    and:
+      - java.dependency:
+          name: junit.junit
+          upperbound: 4.12.2
+          lowerbound: 4.4.0
+      - java.dependency:
+          name: io.fabric8.kubernetes-client
+          lowerbound: 5.0.100
+- message: "found generic call"
+  ruleID: lang-ref-004
+  effort: 1
+  customVariables:
+   - pattern: '([A-z]+)\.get\(\)'
+     name: VariableName
+  when:
+    java.referenced:
+      location: METHOD_CALL
+      pattern: com.example.apps.GenericClass.get
+- message: condition entries should evaluate out of order
+  ruleID: singleton-sessionbean-00001
+  effort: 1
+  when:
+    or:
+    - as: sessionbean
+      from: singleton
+      java.referenced:
+        location: IMPLEMENTS_TYPE
+        pattern: javax.ejb.SessionBean
+    - as: singleton
+      java.referenced:
+        location: ANNOTATION
+        pattern: javax.ejb.Singleton
+- message: condition entries should evaluate in order
+  ruleID: singleton-sessionbean-00002
+  effort: 1
+  when:
+    or:
+    - as: singleton
+      java.referenced:
+        location: ANNOTATION
+        pattern: javax.ejb.Singleton
+    - as: sessionbean
+      from: singleton
+      java.referenced:
+        location: IMPLEMENTS_TYPE
+        pattern: javax.ejb.SessionBean
+- category: potential
+  description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
+  effort: 1
+  message: If you migrate your application to JBoss EAP 7.3, or later, and want to
+    ensure its Maven building, running or testing works as expected, use instead the
+    Jakarta EE dependency with groupId `com.sun.activation`
+  ruleID: maven-javax-to-jakarta-00002
+  when:
+    java.dependency:
+      lowerbound: 0.0.0
+      name: javax.activation.activation
+- category: mandatory
+  description: |
+    This rule tests includedPaths config of the java provider. There should be two instances of this issue in the example app.
+    We are filtering one of them using includedPaths in provider config.
+  effort: 3
+  message: Only incidents in util/FileReader.java should be found
+  ruleID: java-inclusion-test
+  when:
+    java.referenced:
+      pattern: io.konveyor.util.FileReader
+- category: mandatory
+  description: |
+    This rule looks for a class only present in the gradle project
+  effort: 3
+  message: Only incidents in gradle project should appear
+  ruleID: java-gradle-project
+  when:
+    java.referenced:
+      pattern: com.sun.net.httpserver.HttpExchange
+- category: mandatory
+  description: |
+    This rule tests the application downloaded from maven artifact
+  tag:
+  - Java Operator SDK
+  ruleID: java-downloaded-maven-artifact
+  when:
+    java.referenced:
+      pattern: io.javaoperatorsdk.operator.Operator
+- category: mandatory
+  description: Sample field declaration rule
+  message: "Field found"
+  ruleID: field-rule-00001
+  when:
+    java.referenced:
+      pattern: io.konveyor.demo.ordermanagement.repository.CustomerRepository
+      location: FIELD
+
+- category: mandatory
+  description: |
+    This rule looks for a given class annotated with a given annotation
+  message: "Annotation inspection 01"
+  ruleID: java-annotation-inspection-01
+  when:
+    java.referenced:
+      pattern: io.konveyor.demo.ordermanagement.config.PersistenceConfig
+      location: TYPE
+      annotated:
+        pattern: org.springframework.data.jpa.repository.config.EnableJpaRepositories
+        elements:
+          - name: basePackages
+            value: "io.konveyor.demo.ordermanagement.repository"
+- category: mandatory
+  description: |
+    This rule looks for a given method annotated with a given annotation
+  message: "Annotation inspection 02"
+  ruleID: java-annotation-inspection-02
+  when:
+    java.referenced:
+      pattern: entityManagerFactory()
+      location: METHOD_DECLARATION
+      annotated:
+        pattern: org.springframework.context.annotation.Bean
+- category: mandatory
+  description: |
+    This rule looks for a given field annotated with a given annotation
+  message: "Annotation inspection 03"
+  ruleID: java-annotation-inspection-03
+  when:
+    java.referenced:
+      pattern: io.konveyor.demo.ordermanagement.service.CustomerService
+      location: FIELD
+      annotated:
+        pattern: org.springframework.beans.factory.annotation.Autowired
+- category: mandatory
+  description: |
+    This rule looks for a given annotation used with some given properties (elements)
+  message: "Annotation inspection 04"
+  ruleID: java-annotation-inspection-04
+  when:
+    java.referenced:
+      pattern: org.springframework.web.bind.annotation.GetMapping
+      location: ANNOTATION
+      annotated:
+        elements:
+          - name: value
+            value: "id"
+- category: mandatory
+  description: |
+    This rule looks for a given annotation used with another annotation
+  message: "Annotation inspection 05"
+  ruleID: java-annotation-inspection-05
+  when:
+    java.referenced:
+      pattern: org.springframework.context.annotation.Configuration
+      location: ANNOTATION
+      annotated:
+        pattern: org.springframework.data.jpa.repository.config.EnableJpaRepositories
+        elements:
+          - name: basePackages
+            value: "io.konveyor.demo.ordermanagement.repository"
+- ruleID: java-chaining-01
+  category: mandatory
+  description: "There should only be one instance of this rule"
+  message: |
+    Sample message. This rule checks that the chaining conditions are working. Should only get a single issue.
+  when:
+    and:
+      - java.referenced:
+          pattern: java.lang.Override
+          location: ANNOTATION
+        as: class
+        ignore: true
+      - java.referenced:
+          pattern: org.springframework.web.WebApplicationInitializer
+          location: IMPLEMENTS_TYPE
+          filepaths: "{{class.Filepaths}}"
+        from: class
+
+- ruleID: annotation-on-any-class-01
+  category: mandatory
+  effort: 1
+  labels:
+    - konveyor.io/source=spring-boot2
+    - konveyor.io/target=spring-boot3+
+  when:
+    java.referenced:
+      pattern: '*'
+      location: CLASS
+      annotated:
+        pattern: javax.ejb.Singleton
+  description: "@Singleton found at class level"
+  message: |
+    A `@Singleton` annotation has been found annotating some class.
