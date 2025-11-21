@@ -32,21 +32,16 @@ func (h *nodejsSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.C
 		primaryPath = after
 	}
 	additionalPaths := []string{}
-	val, ok := h.config.ProviderSpecificConfig["workspaceFolders"].([]interface{})
-	if ok {
+	if val, ok := h.config.ProviderSpecificConfig["workspaceFolders"].([]string); ok {
 		for _, path := range val {
-			pathStr, ok := path.(string)
-			if !ok {
-				continue
-			}
-			if after, prefixOk := strings.CutPrefix(pathStr, fmt.Sprintf("%s://", uri.FileScheme)); prefixOk {
-				pathStr = after
+			if after, prefixOk := strings.CutPrefix(path, fmt.Sprintf("%s://", uri.FileScheme)); prefixOk {
+				path = after
 			}
 			if primaryPath == "" {
-				primaryPath = pathStr
+				primaryPath = path
 				continue
 			}
-			additionalPaths = append(additionalPaths, pathStr)
+			additionalPaths = append(additionalPaths, path)
 		}
 	}
 
