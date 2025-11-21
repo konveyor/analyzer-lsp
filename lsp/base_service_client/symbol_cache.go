@@ -73,8 +73,11 @@ func (c *SymbolCache) Invalidate(u uri.URI) {
 
 func (c *SymbolCache) InvalidateAll() {
 	c.wsMutex.Lock()
+	c.dsMutex.Lock()
 	defer c.wsMutex.Unlock()
+	defer c.dsMutex.Unlock()
 	c.ws = make(map[uri.URI][]WorkspaceSymbolDefinitionsPair)
+	c.ds = make(map[uri.URI][]protocol.DocumentSymbol)
 }
 
 type SymbolMatcherFunc func(symbol protocol.WorkspaceSymbol, query ...string) bool
@@ -167,14 +170,14 @@ func (h *defaultSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.
 		AdditionalPaths: additionalPaths,
 		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
 			ExcludePathsOrPatterns: []string{
-				filepath.Join(h.config.Location, "node_modules"),
-				filepath.Join(h.config.Location, "vendor"),
-				filepath.Join(h.config.Location, ".git"),
-				filepath.Join(h.config.Location, "dist"),
-				filepath.Join(h.config.Location, "build"),
-				filepath.Join(h.config.Location, "target"),
-				filepath.Join(h.config.Location, ".venv"),
-				filepath.Join(h.config.Location, "venv"),
+				filepath.Join(primaryPath, "node_modules"),
+				filepath.Join(primaryPath, "vendor"),
+				filepath.Join(primaryPath, ".git"),
+				filepath.Join(primaryPath, "dist"),
+				filepath.Join(primaryPath, "build"),
+				filepath.Join(primaryPath, "target"),
+				filepath.Join(primaryPath, ".venv"),
+				filepath.Join(primaryPath, "venv"),
 			},
 		},
 		RuleScopeConstraints: provider.IncludeExcludeConstraints{

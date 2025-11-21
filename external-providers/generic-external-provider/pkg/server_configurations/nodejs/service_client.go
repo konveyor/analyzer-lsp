@@ -170,19 +170,25 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 		}
 		// Look for things that are in the location loaded,
 		// Note may need to filter out vendor at some point
-		if !strings.Contains(baseLocation.URI, sc.BaseConfig.WorkspaceFolders[0]) {
+		if len(sc.BaseConfig.WorkspaceFolders) < 1 || !strings.Contains(baseLocation.URI, sc.BaseConfig.WorkspaceFolders[0]) {
 			continue
 		}
 
+		skip := false
 		for _, substr := range sc.BaseConfig.DependencyFolders {
 			if substr == "" {
 				continue
 			}
 
 			if strings.Contains(baseLocation.URI, substr) {
+				skip = true
 				break
 			}
 		}
+		if skip {
+			continue
+		}
+
 		u, err := uri.Parse(baseLocation.URI)
 		if err != nil {
 			return nil, err
@@ -196,11 +202,11 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 			},
 			CodeLocation: &provider.Location{
 				StartPosition: provider.Position{
-					Line:      float64(lineNumber) + 1,
+					Line:      float64(lineNumber),
 					Character: float64(baseLocation.Range.Start.Character),
 				},
 				EndPosition: provider.Position{
-					Line:      float64(lineNumber) + 1,
+					Line:      float64(lineNumber),
 					Character: float64(baseLocation.Range.End.Character),
 				},
 			},

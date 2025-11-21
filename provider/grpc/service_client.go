@@ -179,12 +179,13 @@ func (g *grpcServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 
 	for _, change := range changes {
 		fileChanges = append(fileChanges, &pb.FileChange{
+			Saved:   change.Saved,
 			Uri:     change.Path,
 			Content: change.Content,
 		})
 	}
 
-	fileChangeResponse, err := g.client.NotifyFileChanges(ctx, &pb.NotifyFileChangesRequest{Changes: fileChanges})
+	fileChangeResponse, err := g.client.NotifyFileChanges(ctx, &pb.NotifyFileChangesRequest{Changes: fileChanges, Id: g.id})
 	if err != nil {
 		return err
 	}

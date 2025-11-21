@@ -24,7 +24,7 @@ type nodejsSymbolSearchHelper struct {
 }
 
 // GetDocumentUris returns URIs of all nodejs related files that we need dependending on what is queried in rules.
-// The referenced condition pattern is parsed as "@<package>/<scope>#<type>.<child_type>...". If <package> & <scope>
+// The referenced condition pattern is parsed as "<package>/<scope>#<type>.<child_type>...". If <package> & <scope>
 // is present, the node_modules/ folder for that package is added to search. If not, only source is searched.
 func (h *nodejsSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.ConditionsByCap) []uri.URI {
 	primaryPath := h.config.Location
@@ -32,16 +32,21 @@ func (h *nodejsSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.C
 		primaryPath = after
 	}
 	additionalPaths := []string{}
-	if val, ok := h.config.ProviderSpecificConfig["workspaceFolders"].([]string); ok {
+	val, ok := h.config.ProviderSpecificConfig["workspaceFolders"].([]interface{})
+	if ok {
 		for _, path := range val {
-			if after, prefixOk := strings.CutPrefix(path, fmt.Sprintf("%s://", uri.FileScheme)); prefixOk {
-				path = after
-			}
-			if primaryPath == "" {
-				primaryPath = path
+			pathStr, ok := path.(string)
+			if !ok {
 				continue
 			}
-			additionalPaths = append(additionalPaths, path)
+			if after, prefixOk := strings.CutPrefix(pathStr, fmt.Sprintf("%s://", uri.FileScheme)); prefixOk {
+				pathStr = after
+			}
+			if primaryPath == "" {
+				primaryPath = pathStr
+				continue
+			}
+			additionalPaths = append(additionalPaths, pathStr)
 		}
 	}
 
@@ -52,10 +57,10 @@ func (h *nodejsSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.C
 		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
 			IncludePathsOrPatterns: []string{".*\\.(ts|js)(x?)$"}, // only search js files
 			ExcludePathsOrPatterns: []string{
-				filepath.Join(h.config.Location, ".git"),
-				filepath.Join(h.config.Location, "dist"),
-				filepath.Join(h.config.Location, ".vscode"),
-				filepath.Join(h.config.Location, ".husky"),
+				filepath.Join(primaryPath, ".git"),
+				filepath.Join(primaryPath, "dist"),
+				filepath.Join(primaryPath, ".vscode"),
+				filepath.Join(primaryPath, ".husky"),
 				".*node_modules.*",
 			},
 		},
@@ -99,17 +104,17 @@ func (h *nodejsSymbolSearchHelper) MatchFileContentByConditions(content string, 
 }
 
 func (h *nodejsSymbolSearchHelper) MatchSymbolByPatterns(symbol base.WorkspaceSymbolDefinitionsPair, patterns ...string) bool {
-	simpleQueries := []parsedQuery{}
+	unscopedQueries := []parsedQuery{}
 	scopedQueries := []parsedQuery{}
 	for _, q := range patterns {
 		parsedQuery := parseQuery(q)
 		if parsedQuery != nil && parsedQuery.Query != nil && parsedQuery.Package != nil && parsedQuery.Scope != nil {
 			scopedQueries = append(scopedQueries, *parsedQuery)
 		} else if parsedQuery != nil && parsedQuery.Query != nil {
-			simpleQueries = append(simpleQueries, *parsedQuery)
+			unscopedQueries = append(unscopedQueries, *parsedQuery)
 		}
 	}
-
+	// apply stricter queries first
 	for _, query := range scopedQueries {
 		// when evaluating a scoped query, use the associated definitions of the symbol to check its origin
 		if len(symbol.Definitions) > 0 {
@@ -118,8 +123,8 @@ func (h *nodejsSymbolSearchHelper) MatchSymbolByPatterns(symbol base.WorkspaceSy
 				if !ok {
 					continue
 				}
-				// if the definition is under @<package>/<scope> && symbol name matches pattern, we have found right symbol
-				if strings.Contains(string(definitionLoc.URI), filepath.Join(*query.Package, *query.Scope)) &&
+				// if the definition is under <package>/<scope> && definition name matches pattern, we have found right symbol
+				if strings.Contains(string(definitionLoc.URI), fmt.Sprintf("%s/%s", *query.Package, *query.Scope)) &&
 					h.SymbolSearchHelper.MatchSymbolByPatterns(base.WorkspaceSymbolDefinitionsPair{WorkspaceSymbol: definition}, *query.Query) {
 					return true
 				}
@@ -129,13 +134,13 @@ func (h *nodejsSymbolSearchHelper) MatchSymbolByPatterns(symbol base.WorkspaceSy
 			if !ok {
 				continue
 			}
-			if strings.Contains(string(symbolLoc.URI), filepath.Join(*query.Package, *query.Scope)) &&
+			if strings.Contains(string(symbolLoc.URI), fmt.Sprintf("%s/%s", *query.Package, *query.Scope)) &&
 				h.SymbolSearchHelper.MatchSymbolByPatterns(symbol, *query.Query) {
 				return true
 			}
 		}
 	}
-	for _, query := range simpleQueries {
+	for _, query := range unscopedQueries {
 		if len(symbol.Definitions) > 0 {
 			for _, definition := range symbol.Definitions {
 				if h.SymbolSearchHelper.MatchSymbolByPatterns(base.WorkspaceSymbolDefinitionsPair{WorkspaceSymbol: definition}, *query.Query) {
@@ -185,7 +190,7 @@ type parsedQuery struct {
 }
 
 // parseQuery extracts the top level package from a pattern.
-// The pattern is parsed as "@<package>/<scope>#<type>.<child_type>...".
+// The pattern is parsed as "<package>/<scope>#<type>.<child_type>...".
 func parseQuery(pattern string) *parsedQuery {
 	result := &parsedQuery{}
 
@@ -208,17 +213,12 @@ func parseQuery(pattern string) *parsedQuery {
 		q := queryPart
 		result.Query = &q
 	}
-	if prefix == "" || !strings.HasPrefix(prefix, "@") {
-		return result
-	}
-	// remove the leading @
-	rest := prefix[1:]
-	slashIdx := strings.IndexRune(rest, '/')
+	slashIdx := strings.IndexRune(prefix, '/')
 	if slashIdx == -1 {
 		return result
 	}
-	pkg := rest[:slashIdx]
-	scope := rest[slashIdx+1:]
+	pkg := prefix[:slashIdx]
+	scope := prefix[slashIdx+1:]
 	if pkg != "" {
 		result.Package = &pkg
 	}
