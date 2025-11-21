@@ -314,6 +314,53 @@
           innerText: "\n      junit\n      junit\n      4.11\n      test\n    "
           matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
       effort: 1
+    dotnet-deprecated-001:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///examples/c-sharp-dummy-example/Program.cs
+        message: System.Net.WebClient found. Consider replacing with System.Net.Http.HttpClient.
+        codeSnip: |
+          10             try
+          11             {
+          12                 string url = "https://jsonplaceholder.typicode.com/todos/1";
+          13                 HttpResponseMessage response = await client.GetAsync(url);
+          14                 response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP status code is not 2xx
+          15                 string responseBody = await response.Content.ReadAsStringAsync();
+          16                 Console.WriteLine(responseBody);
+          17             }
+          18             catch (HttpRequestException e)
+          19             {
+        lineNumber: 20
+        variables:
+          file: file:///examples/c-sharp-dummy-example/Program.cs
+          fqdn_class: Console
+          fqdn_method: WriteLine
+          fqdn_namespace: System
+          symbol: Console.WriteLine
+          syntax_type: method_reference
+      - uri: file:///examples/c-sharp-dummy-example/Program.cs
+        message: System.Net.WebClient found. Consider replacing with System.Net.Http.HttpClient.
+        codeSnip: |
+          6     public static async Task Main(string[] args)
+          7     {
+          8         using (HttpClient client = new HttpClient())
+          9         {
+          10             try
+          11             {
+          12                 string url = "https://jsonplaceholder.typicode.com/todos/1";
+          13                 HttpResponseMessage response = await client.GetAsync(url);
+          14                 response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP status code is not 2xx
+          15                 string responseBody = await response.Content.ReadAsStringAsync();
+        lineNumber: 16
+        variables:
+          file: file:///examples/c-sharp-dummy-example/Program.cs
+          fqdn_class: Console
+          fqdn_method: WriteLine
+          fqdn_namespace: System
+          symbol: Console.WriteLine
+          syntax_type: method_reference
+      effort: 2
     file-001:
       description: Testing that we can get all the go files in the project
       category: potential

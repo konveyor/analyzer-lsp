@@ -206,5 +206,5 @@
   effort: 2
   when:
     c-sharp.referenced:
-      pattern: "System.Net.WebClient"
+      pattern: "System.Console"
       location: CLASS

@@ -75,11 +75,13 @@ stop-external-providers:
 	podman kill  golang-provider || true
 	podman kill  nodejs || true
 	podman kill  python || true
+	podman kill  c-sharp || true
 	podman rm java-provider || true
 	podman rm yq || true
 	podman rm golang-provider || true
 	podman rm nodejs || true
 	podman rm python || true
+	podman rm c-sharp || true
 
 run-external-providers-pod:
 	podman volume create test-data
