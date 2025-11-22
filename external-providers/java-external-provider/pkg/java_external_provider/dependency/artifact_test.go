@@ -21,7 +21,7 @@ func TestConstructArtifactFromSHA(t *testing.T) {
 		{
 			name:           "InIndex",
 			jarFile:        "testdata/should_find_in_index.jar",
-			mavenIndexPath: "testdata",
+			mavenIndexPath: "testdata/maven-index.txt",
 			shouldFind:     true,
 			value: JavaArtifact{
 				FoundOnline: true,
@@ -34,7 +34,7 @@ func TestConstructArtifactFromSHA(t *testing.T) {
 		{
 			name:           "NotInIndex",
 			jarFile:        "testdata/will_not_find.jar.jar",
-			mavenIndexPath: "testdata",
+			mavenIndexPath: "testdata/maven-index.txt",
 			shouldFind:     false,
 		},
 	}
