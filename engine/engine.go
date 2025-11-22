@@ -70,6 +70,9 @@ type ruleEngine struct {
 
 	wg *sync.WaitGroup
 
+	// Number of worker goroutines processing rules
+	workers int
+
 	incidentLimit    int
 	codeSnipLimit    int
 	contextLines     int
@@ -150,6 +153,7 @@ func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger, options
 		cancelFunc:     cancelFunc,
 		logger:         log,
 		wg:             wg,
+		workers:        workers,
 	}
 	for _, o := range options {
 		o(r)
@@ -273,7 +277,10 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 	})
 
 	// Need a better name for this thing
-	ret := make(chan response)
+	// Buffer the response channel to prevent workers from blocking when sending responses.
+	// Buffer size equals worker count to allow all workers to send responses without blocking,
+	// preventing deadlock when multiple workers finish simultaneously.
+	ret := make(chan response, r.workers)
 
 	var matchedRules int32
 	var unmatchedRules int32
