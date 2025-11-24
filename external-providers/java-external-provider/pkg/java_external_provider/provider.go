@@ -288,6 +288,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	disableMavenSearch, ok := config.ProviderSpecificConfig[DISABLE_MAVEN_SEARCH].(bool)
 	mavenIndexPath, ok := config.ProviderSpecificConfig[providerSpecificConfigMavenIndexPath].(string)
 
+	mavenOpenSourceIndex, ok := config.ProviderSpecificConfig[providerSpecificConfigOpenSourceDepListKey].(string)
+
 	isBinary := false
 	var returnErr error
 	// each service client should have their own context
@@ -520,7 +522,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		mvnInsecure:        mavenInsecure,
 		mvnSettingsFile:    mavenSettingsFile,
 		mvnLocalRepo:       m2Repo,
-		mvnIndexPath:       mavenIndexPath,
+		mvnIndexPath:       mavenOpenSourceIndex,
 		globalSettings:     globalSettingsFile,
 		depsLocationCache:  make(map[string]int),
 		includedPaths:      provider.GetIncludedPathsFromConfig(config, false),
