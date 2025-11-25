@@ -42,6 +42,7 @@ type javaServiceClient struct {
 	mvnSettingsFile    string
 	mvnLocalRepo       string
 	mvnIndexPath       string
+	mvnOpenSourceIndex string
 	globalSettings     string
 	depsMutex          sync.RWMutex
 	depsFileHash       *string
@@ -136,8 +137,8 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		"mavenLocalRepo":             p.mvnLocalRepo,
 	}
 
-	if p.mvnIndexPath != "" {
-		argumentsMap["mavenIndexPath"] = p.mvnIndexPath
+	if p.mvnOpenSourceIndex != "" {
+		argumentsMap["mavenIndexPath"] = p.mvnOpenSourceIndex
 	}
 
 	depLabelSelector, err := labels.NewLabelSelector[*openSourceLabels](condCTX.DepLabelSelector, nil)
