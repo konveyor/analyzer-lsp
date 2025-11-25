@@ -194,6 +194,7 @@ func (h *defaultSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.
 	for _, file := range files {
 		uris = append(uris, uri.File(file))
 	}
+	h.log.V(9).Info("Found files for symbol search", "totalFiles", len(uris))
 	return uris
 }
 

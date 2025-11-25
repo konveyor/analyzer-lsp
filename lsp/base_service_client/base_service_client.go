@@ -461,6 +461,7 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 		}
 
 		if len(symbols) > 0 {
+			sc.Log.V(7).Info("workspace/symbol request returned symbols", "totalSymbols", len(symbols), "query", query)
 			return symbols
 		}
 	}
@@ -478,6 +479,7 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 			}
 		}
 	}
+	sc.Log.V(7).Info("Returning symbols from symbol cache", "totalSymbols", len(filteredSymbols), "query", query)
 	return filteredSymbols
 }
 
@@ -496,9 +498,10 @@ func (sc *LSPServiceClientBase) GetAllReferences(ctx context.Context, location p
 
 	res := []protocol.Location{}
 	if err := sc.Conn.Call(ctx, "textDocument/references", params).Await(ctx, &res); err != nil {
-		fmt.Printf("Error rpc: %v", err)
+		sc.Log.Error(err, "textDocument/references request failed", "uri", location.URI)
+		return nil
 	}
-
+	sc.Log.V(7).Info("textDocument/references request returned locations", "totalLocations", len(res), "uri", location.URI)
 	return res
 }
 
@@ -526,6 +529,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 			return
 		}
 		if _, exists := sc.symbolCache.GetWorkspaceSymbols(fileURI); exists {
+			sc.Log.V(9).Info("Skipping symbol cache update; symbols already exist for file", "uri", fileURI)
 			continue
 		}
 		workspaceSymbols := map[string]WorkspaceSymbolDefinitionsPair{}
@@ -540,6 +544,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 		// workspace symbol and store any definitions found for that symbol. If a
 		// definition is found, the symbol will be used as a reference symbol.
 		matchedSymbols := sc.searchContentForWorkspaceSymbols(ctx, string(content), fileURI)
+		sc.Log.V(9).Info("Found matched symbol by text search", "totalMatchedSymbols", len(matchedSymbols), "uri", fileURI)
 		for _, matchedSymbol := range matchedSymbols {
 			location, ok := matchedSymbol.Location.Value.(protocol.Location)
 			if !ok {
@@ -547,6 +552,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 				continue
 			}
 			definitions := sc.getDefinitionForPosition(ctx, fileURI, location)
+			sc.Log.V(11).Info("Found definitions for matched symbol", "totalDefinitions", len(definitions), "uri", fileURI, "matchedSymbol", matchedSymbol)
 			wsSymbolsForDefinitions := map[string]protocol.WorkspaceSymbol{}
 			for _, definition := range definitions {
 				uri, err := toURI(definition.URI)
@@ -600,6 +606,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 				},
 				Definitions: definitionSymbols,
 			}
+			sc.Log.V(11).Info("Preparing workspace symbol pair", "workspaceSymbol", pair.WorkspaceSymbol, "uri", fileURI, "definitions", pair.Definitions)
 			workspaceSymbols[workspaceSymbolKey(pair.WorkspaceSymbol)] = pair
 		}
 
@@ -727,6 +734,7 @@ func (sc *LSPServiceClientBase) queryDocumentSymbol(ctx context.Context, uri uri
 				documentSymbols = append(documentSymbols, symbol.DocumentSymbol)
 			}
 			sc.symbolCache.SetDocumentSymbols(uri, documentSymbols)
+			sc.Log.V(11).Info("Returning document symbols", "uri", uri, "totalDocumentSymbols", len(documentSymbols))
 			return documentSymbols, nil
 		}
 		if ctx.Err() != nil {
@@ -736,7 +744,7 @@ func (sc *LSPServiceClientBase) queryDocumentSymbol(ctx context.Context, uri uri
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
-	sc.Log.V(4).Info("textDocument/documentSymbol failed", "uri", uri, "error", lastErr)
+	sc.Log.V(7).Info("textDocument/documentSymbol failed", "uri", uri, "error", lastErr)
 	return nil, nil
 }
 
@@ -861,7 +869,7 @@ func (sc *LSPServiceClientBase) getDefinitionForPosition(ctx context.Context, ur
 		}
 		content, err := os.ReadFile(uri.Filename())
 		if err != nil {
-			sc.Log.Error(err, "unable to read file", "uri", uri)
+			sc.Log.Error(err, "unable to read file for getting definitions", "uri", uri)
 			return nil
 		}
 		if err := sc.didOpen(ctx, uri, content); err != nil {
