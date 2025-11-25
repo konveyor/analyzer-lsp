@@ -54,7 +54,7 @@ func EvaluateReferenced[T base](t T, ctx ctx, cap string, info []byte) (resp, er
 		return resp{}, fmt.Errorf("unable to get query info")
 	}
 
-	symbols := sc.GetAllDeclarations(ctx, query)
+	symbols := sc.GetAllDeclarations(ctx, query, true)
 
 	incidents := []provider.IncidentContext{}
 	incidentsMap := make(map[string]provider.IncidentContext) // Remove duplicates

@@ -197,7 +197,7 @@ func (h *defaultSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.
 	return uris
 }
 
-func (h *defaultSymbolSearchHelper) GetLanguageID(uri string) string {
+func (h *defaultSymbolSearchHelper) GetLanguageID(u uri.URI) string {
 	languageIDMap := map[string]string{
 		".ts":   "typescript",
 		".js":   "javascript",
@@ -208,7 +208,10 @@ func (h *defaultSymbolSearchHelper) GetLanguageID(uri string) string {
 		".yml":  "yaml",
 		".go":   "go",
 	}
-	return languageIDMap[filepath.Ext(filepath.Base(uri))]
+	if strings.HasPrefix(string(u), fmt.Sprintf("%s://", uri.FileScheme)) {
+		return languageIDMap[filepath.Ext(filepath.Base(u.Filename()))]
+	}
+	return ""
 }
 
 func (h *defaultSymbolSearchHelper) MatchSymbolByPatterns(symbol WorkspaceSymbolDefinitionsPair, patterns ...string) bool {
