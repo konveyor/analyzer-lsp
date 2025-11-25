@@ -218,3 +218,11 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 
 	return incidentsMap, nil
 }
+
+func (sc *NodeServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	return nil, nil
+}
+
+func (sc *NodeServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	return nil, nil
+}
