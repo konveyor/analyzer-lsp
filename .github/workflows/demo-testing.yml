@@ -140,6 +140,7 @@ jobs:
     needs: test
     uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
+      base_tag: "release-0.8"
       operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
       tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"
