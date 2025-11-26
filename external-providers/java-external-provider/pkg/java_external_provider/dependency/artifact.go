@@ -121,6 +121,14 @@ func constructArtifactFromSHA(log logr.Logger, jarFile string, mavenIndexPath st
 		return dep, err
 	}
 
+	stat, err := os.Stat(mavenIndexPath)
+	if err != nil {
+		log.Error(err, "error while reading mavenIndexPath", "path", mavenIndexPath)
+		return JavaArtifact{}, err
+	}
+	if stat.IsDir() {
+		mavenIndexPath = filepath.Join(mavenIndexPath, "maven-index.txt")
+	}
 	sha1sum := hex.EncodeToString(hash.Sum(nil))
 	return search(log, sha1sum, mavenIndexPath)
 }
