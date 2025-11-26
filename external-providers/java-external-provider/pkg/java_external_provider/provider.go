@@ -430,8 +430,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		"--add-modules=ALL-SYSTEM",
 		"--add-opens", "java.base/java.util=ALL-UNNAMED",
 		"--add-opens", "java.base/java.lang=ALL-UNNAMED",
-		"-jar", jarPath,
 		"-Djava.net.useSystemProxies=true",
+		"-jar", jarPath,
 		"-configuration", "./",
 		"-data", workspace,
 	}
