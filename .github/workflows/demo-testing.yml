@@ -32,6 +32,7 @@ jobs:
               echo "API_TESTS_REF=${GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
               echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
               echo "JAVA_BUNDLE_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
+              echo "OPERATOR_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
               echo "BUNDLE_IMAGE_TAG=${GITHUB_BASE_REF/main/latest}" >>$GITHUB_OUTPUT
               echo "TACKLE2_HUB_TAG=${GITHUB_BASE_REF/main/latest}" >> $GITHUB_OUTPUT
           else
@@ -39,6 +40,7 @@ jobs:
               echo "API_TESTS_REF=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
               echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
               echo "JAVA_BUNDLE_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
+              echo "OPERATOR_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
               echo "BUNDLE_IMAGE_TAG=${GITHUB_REF_NAME/main/latest}" >>$GITHUB_OUTPUT
               echo "TACKLE2_HUB_TAG=${GITHUB_REF_NAME/main/latest}" >> $GITHUB_OUTPUT
           fi
@@ -129,6 +131,7 @@ jobs:
         uses: konveyor/operator/.github/actions/make-bundle@main
         with:
           operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
+          operator: "quay.io/konveyor/tackle2-operator:${{ steps.extract-info.outputs.OPERATOR_REF }}"
           addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
           tackle_hub: "quay.io/konveyor/tackle2-hub:${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}"
           provider_generic: ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
@@ -140,6 +143,7 @@ jobs:
     needs: test
     uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
+      base_tag: "release-0.8"
       operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
       tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"
