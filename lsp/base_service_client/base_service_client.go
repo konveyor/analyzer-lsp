@@ -148,6 +148,7 @@ type LSPServiceClientBase struct {
 	// symbolCacheUpdateWaitGroup wait group to wait for all symbol cache updates to complete.
 	symbolCacheUpdateWaitGroup sync.WaitGroup
 	openedFiles                map[uri.URI]bool
+	openedFilesMutex           sync.Mutex
 	// allConditions list of all conditions we are mainting symbols for
 	allConditions      []provider.ConditionsByCap
 	allConditionsMutex sync.RWMutex
@@ -274,7 +275,9 @@ func NewLSPServiceClientBase(
 	}
 	sc.symbolCacheUpdateChan = make(chan uri.URI, 10)
 	go sc.symbolCacheUpdateHandler()
+	sc.openedFilesMutex.Lock()
 	sc.openedFiles = make(map[uri.URI]bool)
+	sc.openedFilesMutex.Unlock()
 
 	// Create a connection to the lsp server
 	if !c.Initialized {
@@ -545,13 +548,41 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 		// definition is found, the symbol will be used as a reference symbol.
 		matchedSymbols := sc.searchContentForWorkspaceSymbols(ctx, string(content), fileURI)
 		sc.Log.V(9).Info("Found matched symbol by text search", "totalMatchedSymbols", len(matchedSymbols), "uri", fileURI)
+
+		// get definitions for matched symbols in parallel
+		type defResult struct {
+			matchedSymbol protocol.WorkspaceSymbol
+			definitions   []protocol.Location
+		}
+		results := make(chan defResult, len(matchedSymbols))
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, 10) // limit concurrency to 10
 		for _, matchedSymbol := range matchedSymbols {
-			location, ok := matchedSymbol.Location.Value.(protocol.Location)
-			if !ok {
-				sc.Log.V(7).Info("unable to get location from workspace symbol", "workspace symbol", matchedSymbol)
-				continue
-			}
-			definitions := sc.getDefinitionForPosition(ctx, fileURI, location)
+			wg.Add(1)
+			go func(ms protocol.WorkspaceSymbol) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+
+				location, ok := ms.Location.Value.(protocol.Location)
+				if !ok {
+					sc.Log.V(7).Info("unable to get location from workspace symbol", "workspace symbol", ms)
+					return
+				}
+				defs := sc.getDefinitionForPosition(ctx, fileURI, location)
+				if len(defs) > 0 {
+					results <- defResult{matchedSymbol: ms, definitions: defs}
+				}
+			}(matchedSymbol)
+		}
+		go func() {
+			wg.Wait()
+			close(results)
+		}()
+
+		for res := range results {
+			matchedSymbol := res.matchedSymbol
+			definitions := res.definitions
 			sc.Log.V(11).Info("Found definitions for matched symbol", "totalDefinitions", len(definitions), "uri", fileURI, "matchedSymbol", matchedSymbol)
 			wsSymbolsForDefinitions := map[string]protocol.WorkspaceSymbol{}
 			for _, definition := range definitions {
@@ -666,10 +697,13 @@ func (sc *LSPServiceClientBase) drainPendingSymbolCacheUpdates() {
 }
 
 func (sc *LSPServiceClientBase) didOpen(ctx context.Context, uri uri.URI, text []byte) error {
+	sc.openedFilesMutex.Lock()
 	if _, exists := sc.openedFiles[uri]; exists {
+		sc.openedFilesMutex.Unlock()
 		return nil
 	}
 	sc.openedFiles[uri] = true
+	sc.openedFilesMutex.Unlock()
 	params := protocol.DidOpenTextDocumentParams{
 		TextDocument: protocol.TextDocumentItem{
 			URI:        string(uri),
@@ -684,10 +718,13 @@ func (sc *LSPServiceClientBase) didOpen(ctx context.Context, uri uri.URI, text [
 }
 
 func (sc *LSPServiceClientBase) didClose(ctx context.Context, uri uri.URI) error {
+	sc.openedFilesMutex.Lock()
 	if _, exists := sc.openedFiles[uri]; !exists {
+		sc.openedFilesMutex.Unlock()
 		return nil
 	}
 	delete(sc.openedFiles, uri)
+	sc.openedFilesMutex.Unlock()
 	params := protocol.DidCloseTextDocumentParams{
 		TextDocument: protocol.TextDocumentIdentifier{
 			URI: string(uri),
@@ -768,65 +805,105 @@ func toURI(path string) (uri.URI, error) {
 func (sc *LSPServiceClientBase) searchContentForWorkspaceSymbols(ctx context.Context, content string, fileURI uri.URI) []protocol.WorkspaceSymbol {
 	positions := []protocol.WorkspaceSymbol{}
 	symbols := []protocol.DocumentSymbol{}
+	var symbolsMutex sync.RWMutex
 
-	dsCalled := false
 	if sc.symbolSearchHelper != nil {
 		scanner := bufio.NewScanner(strings.NewReader(string(content)))
-		lineNumber := 0
+		var lines []string
 		for scanner.Scan() {
-			sc.allConditionsMutex.RLock()
-			allConditions := sc.allConditions
-			sc.allConditionsMutex.RUnlock()
-			matchLocations := sc.symbolSearchHelper.MatchFileContentByConditions(scanner.Text(), allConditions...)
+			lines = append(lines, scanner.Text())
+		}
+
+		type matchResult struct {
+			locs       [][]int
+			lineNumber int
+		}
+		results := make(chan matchResult, len(lines))
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, 20)
+
+		for i, line := range lines {
+			wg.Add(1)
+			go func(line string, lineNumber int) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+
+				sc.allConditionsMutex.RLock()
+				allConditions := sc.allConditions
+				sc.allConditionsMutex.RUnlock()
+
+				matchLocations := sc.symbolSearchHelper.MatchFileContentByConditions(line, allConditions...)
+				if len(matchLocations) > 0 {
+					results <- matchResult{locs: matchLocations, lineNumber: lineNumber}
+				}
+			}(line, i)
+		}
+
+		go func() {
+			wg.Wait()
+			close(results)
+		}()
+
+		dsCalled := false
+		for res := range results {
+			matchLocations := res.locs
+			lineNumber := res.lineNumber
+
 			matchLocationKey := func(loc []int) string {
 				return fmt.Sprintf("%d:%d:%d", lineNumber, loc[0], loc[1])
 			}
 			dedupedMatchLocations := map[string]bool{}
-			if len(matchLocations) > 0 && !dsCalled {
-				ds, err := sc.queryDocumentSymbol(ctx, fileURI, []byte(content))
-				if err != nil {
-					sc.Log.Error(err, "queryDocumentSymbol request failed", "uri", fileURI)
+			if len(matchLocations) > 0 {
+				symbolsMutex.Lock()
+				if !dsCalled {
+					ds, err := sc.queryDocumentSymbol(ctx, fileURI, []byte(content))
+					if err != nil {
+						sc.Log.Error(err, "queryDocumentSymbol request failed", "uri", fileURI)
+					}
+					symbols = ds
+					dsCalled = true
 				}
-				symbols = ds
-				dsCalled = true
-			}
-			for _, loc := range matchLocations {
-				key := matchLocationKey(loc)
-				if _, ok := dedupedMatchLocations[key]; ok {
-					continue
-				}
-				dedupedMatchLocations[key] = true
-				absPath, err := filepath.Abs(fileURI.Filename())
-				if err != nil {
-					return positions
-				}
-				wsForMatch := protocol.WorkspaceSymbol{
-					BaseSymbolInformation: protocol.BaseSymbolInformation{
-						Name: scanner.Text()[loc[0]:loc[1]],
-					},
-					Location: protocol.OrPLocation_workspace_symbol{
-						Value: protocol.Location{
-							URI: string(uri.File(absPath)),
-							Range: protocol.Range{
-								Start: protocol.Position{
-									Line:      uint32(lineNumber),
-									Character: uint32(loc[0]),
-								},
-								End: protocol.Position{
-									Line:      uint32(lineNumber),
-									Character: uint32(loc[1]),
+				currentSymbols := symbols
+				symbolsMutex.Unlock()
+
+				for _, loc := range matchLocations {
+					key := matchLocationKey(loc)
+					if _, ok := dedupedMatchLocations[key]; ok {
+						continue
+					}
+					dedupedMatchLocations[key] = true
+					absPath, err := filepath.Abs(fileURI.Filename())
+					if err != nil {
+						return positions
+					}
+					wsForMatch := protocol.WorkspaceSymbol{
+						BaseSymbolInformation: protocol.BaseSymbolInformation{
+							Name: lines[lineNumber][loc[0]:loc[1]],
+						},
+						Location: protocol.OrPLocation_workspace_symbol{
+							Value: protocol.Location{
+								URI: string(uri.File(absPath)),
+								Range: protocol.Range{
+									Start: protocol.Position{
+										Line:      uint32(lineNumber),
+										Character: uint32(loc[0]),
+									},
+									End: protocol.Position{
+										Line:      uint32(lineNumber),
+										Character: uint32(loc[1]),
+									},
 								},
 							},
 						},
-					},
-				}
-				if symbol, ok := sc.findDocumentSymbolAtLocation(fileURI, symbols, wsForMatch); ok {
-					positions = append(positions, symbol)
-				} else {
-					positions = append(positions, wsForMatch)
+					}
+					if symbol, ok := sc.findDocumentSymbolAtLocation(fileURI, currentSymbols, wsForMatch); ok {
+						positions = append(positions, symbol)
+					} else {
+						positions = append(positions, wsForMatch)
+					}
 				}
 			}
-			lineNumber++
 		}
 	}
 	return positions
