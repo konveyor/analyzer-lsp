@@ -82,14 +82,22 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	params.Capabilities = protocol.ClientCapabilities{
 		Workspace: &protocol.WorkspaceClientCapabilities{
 			WorkspaceFolders: true,
+			// enables the server to refresh diagnostics on-demand, useful in agent mode
 			Diagnostics: &protocol.DiagnosticWorkspaceClientCapabilities{
 				RefreshSupport: true,
 			},
 		},
 		TextDocument: &protocol.TextDocumentClientCapabilities{
+			// this enables the textDocument/definition responses to be
+			// LocationLink[] instead of Location[]. LocationLink contains
+			// source -> target mapping of symbols which gives us more information
 			Definition: &protocol.DefinitionClientCapabilities{
 				LinkSupport: true,
 			},
+			// this enables the documentSymbol responses to be a tree instead of a flat list
+			// this allows us to understand enclosed symbols better. Right now, we use this
+			// information to find a concrete symbol at a location. While a flat list could
+			// work, but in future, the tree will help us with advanced queries.
 			DocumentSymbol: &protocol.DocumentSymbolClientCapabilities{
 				HierarchicalDocumentSymbolSupport: true,
 			},
