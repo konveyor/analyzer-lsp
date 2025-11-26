@@ -147,8 +147,11 @@ type LSPServiceClientBase struct {
 	symbolCacheUpdateChan chan uri.URI
 	// symbolCacheUpdateWaitGroup wait group to wait for all symbol cache updates to complete.
 	symbolCacheUpdateWaitGroup sync.WaitGroup
+	openedFiles                map[uri.URI]bool
+	openedFilesMutex           sync.Mutex
 	// allConditions list of all conditions we are mainting symbols for
-	allConditions []provider.ConditionsByCap
+	allConditions      []provider.ConditionsByCap
+	allConditionsMutex sync.RWMutex
 
 	ServerCapabilities protocol.ServerCapabilities
 	ServerInfo         *protocol.PServerInfoMsg_initialize
@@ -168,7 +171,7 @@ type SymbolSearchHelper interface {
 	// combination of text search and textDocument/documentSymbol requests.
 	GetDocumentUris(quries ...provider.ConditionsByCap) []uri.URI
 	// GetLanguageID returns the language ID for a given URI. Required in didOpen() notification
-	GetLanguageID(uri string) string
+	GetLanguageID(uri uri.URI) string
 
 	// MatchFileContentByConditions given a content and list of all conditions available for the provider
 	// returns the positions of the matched queries in the content. Used in Prepare() to find
@@ -272,6 +275,10 @@ func NewLSPServiceClientBase(
 	}
 	sc.symbolCacheUpdateChan = make(chan uri.URI, 10)
 	go sc.symbolCacheUpdateHandler()
+	sc.openedFilesMutex.Lock()
+	sc.openedFiles = make(map[uri.URI]bool)
+	sc.openedFilesMutex.Unlock()
+
 	// Create a connection to the lsp server
 	if !c.Initialized {
 		var result json.RawMessage
@@ -334,6 +341,9 @@ func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes .
 			sc.Log.Error(err, "unable to parse file change path", "path", change.Path)
 			continue
 		}
+		if err := sc.didClose(ctx, fileURI); err != nil {
+			sc.Log.Error(err, "didClose request failed", "uri", fileURI)
+		}
 		sc.symbolCache.Invalidate(fileURI)
 		sc.symbolCacheUpdateWaitGroup.Add(1)
 		sc.symbolCacheUpdateChan <- fileURI
@@ -343,7 +353,9 @@ func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes .
 
 // Prepare is called before Evaluate() with all rules. We prepare the symbol cache during this step.
 func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	sc.allConditionsMutex.Lock()
 	sc.allConditions = conditionsByCap
+	sc.allConditionsMutex.Unlock()
 	sc.symbolCacheUpdateWaitGroup.Add(1)
 	go func() {
 		defer sc.symbolCacheUpdateWaitGroup.Done()
@@ -438,11 +450,11 @@ func (sc *LSPServiceClientBase) Handle(ctx context.Context, req *jsonrpc2.Reques
 // - pylsp: https://jedi.readthedocs.io/en/latest/docs/api.html#jedi.Project.search
 //
 // [^1]: https://github.com/golang/tools/blob/ecbfa885b278478686e8b8efb52535e934c53ec5/gopls/internal/lsp/cache/symbols.go#L72
-func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query string) []protocol.WorkspaceSymbol {
+func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query string, useWorkspaceSymbol bool) []protocol.WorkspaceSymbol {
 	var symbols []protocol.WorkspaceSymbol
 
 	// prefer actual workspace/symbol request if supported
-	if sc.ServerCapabilities.Supports("workspace/symbol") {
+	if useWorkspaceSymbol && sc.ServerCapabilities.Supports("workspace/symbol") {
 		params := protocol.WorkspaceSymbolParams{
 			Query: query,
 		}
@@ -452,6 +464,7 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 		}
 
 		if len(symbols) > 0 {
+			sc.Log.V(7).Info("workspace/symbol request returned symbols", "totalSymbols", len(symbols), "query", query)
 			return symbols
 		}
 	}
@@ -469,7 +482,7 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 			}
 		}
 	}
-
+	sc.Log.V(7).Info("Returning symbols from symbol cache", "totalSymbols", len(filteredSymbols), "query", query)
 	return filteredSymbols
 }
 
@@ -488,9 +501,10 @@ func (sc *LSPServiceClientBase) GetAllReferences(ctx context.Context, location p
 
 	res := []protocol.Location{}
 	if err := sc.Conn.Call(ctx, "textDocument/references", params).Await(ctx, &res); err != nil {
-		fmt.Printf("Error rpc: %v", err)
+		sc.Log.Error(err, "textDocument/references request failed", "uri", location.URI)
+		return nil
 	}
-
+	sc.Log.V(7).Info("textDocument/references request returned locations", "totalLocations", len(res), "uri", location.URI)
 	return res
 }
 
@@ -507,7 +521,10 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 	}
 
 	workspaceSymbolKey := func(symbol protocol.WorkspaceSymbol) string {
-		return fmt.Sprintf("%s:%d:%d", symbol.Location.Value.(protocol.Location).URI, symbol.Location.Value.(protocol.Location).Range.Start.Line, symbol.Location.Value.(protocol.Location).Range.Start.Character)
+		return fmt.Sprintf("%s:%d:%d",
+			symbol.Location.Value.(protocol.Location).URI,
+			symbol.Location.Value.(protocol.Location).Range.Start.Line,
+			symbol.Location.Value.(protocol.Location).Range.Start.Character)
 	}
 
 	for _, fileURI := range uris {
@@ -515,6 +532,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 			return
 		}
 		if _, exists := sc.symbolCache.GetWorkspaceSymbols(fileURI); exists {
+			sc.Log.V(9).Info("Skipping symbol cache update; symbols already exist for file", "uri", fileURI)
 			continue
 		}
 		workspaceSymbols := map[string]WorkspaceSymbolDefinitionsPair{}
@@ -529,13 +547,43 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 		// workspace symbol and store any definitions found for that symbol. If a
 		// definition is found, the symbol will be used as a reference symbol.
 		matchedSymbols := sc.searchContentForWorkspaceSymbols(ctx, string(content), fileURI)
+		sc.Log.V(9).Info("Found matched symbol by text search", "totalMatchedSymbols", len(matchedSymbols), "uri", fileURI)
+
+		// get definitions for matched symbols in parallel
+		type defResult struct {
+			matchedSymbol protocol.WorkspaceSymbol
+			definitions   []protocol.Location
+		}
+		results := make(chan defResult, len(matchedSymbols))
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, 10) // limit concurrency to 10
 		for _, matchedSymbol := range matchedSymbols {
-			location, ok := matchedSymbol.Location.Value.(protocol.Location)
-			if !ok {
-				sc.Log.V(7).Info("unable to get location from workspace symbol", "workspace symbol", matchedSymbol)
-				continue
-			}
-			definitions := sc.getDefinitionForPosition(ctx, fileURI, location)
+			wg.Add(1)
+			go func(ms protocol.WorkspaceSymbol) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+
+				location, ok := ms.Location.Value.(protocol.Location)
+				if !ok {
+					sc.Log.V(7).Info("unable to get location from workspace symbol", "workspace symbol", ms)
+					return
+				}
+				defs := sc.getDefinitionForPosition(ctx, fileURI, location)
+				if len(defs) > 0 {
+					results <- defResult{matchedSymbol: ms, definitions: defs}
+				}
+			}(matchedSymbol)
+		}
+		go func() {
+			wg.Wait()
+			close(results)
+		}()
+
+		for res := range results {
+			matchedSymbol := res.matchedSymbol
+			definitions := res.definitions
+			sc.Log.V(11).Info("Found definitions for matched symbol", "totalDefinitions", len(definitions), "uri", fileURI, "matchedSymbol", matchedSymbol)
 			wsSymbolsForDefinitions := map[string]protocol.WorkspaceSymbol{}
 			for _, definition := range definitions {
 				uri, err := toURI(definition.URI)
@@ -553,8 +601,18 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 					sc.Log.Error(err, "documentSymbol request failed", "uri", uri)
 					continue
 				}
-				if symbol, ok := findDocumentSymbolAtLocation(uri, documentSymbols, definition); ok {
+				wsForDefinition := protocol.WorkspaceSymbol{
+					Location: protocol.OrPLocation_workspace_symbol{
+						Value: definition,
+					},
+					BaseSymbolInformation: protocol.BaseSymbolInformation{
+						Name: matchedSymbol.Name,
+					},
+				}
+				if symbol, ok := sc.findDocumentSymbolAtLocation(uri, documentSymbols, wsForDefinition); ok {
 					wsSymbolsForDefinitions[workspaceSymbolKey(symbol)] = symbol
+				} else {
+					wsSymbolsForDefinitions[workspaceSymbolKey(wsForDefinition)] = wsForDefinition
 				}
 			}
 			definitionSymbols := []protocol.WorkspaceSymbol{}
@@ -579,6 +637,7 @@ func (sc *LSPServiceClientBase) populateDocumentSymbolCache(ctx context.Context,
 				},
 				Definitions: definitionSymbols,
 			}
+			sc.Log.V(11).Info("Preparing workspace symbol pair", "workspaceSymbol", pair.WorkspaceSymbol, "uri", fileURI, "definitions", pair.Definitions)
 			workspaceSymbols[workspaceSymbolKey(pair.WorkspaceSymbol)] = pair
 		}
 
@@ -637,11 +696,18 @@ func (sc *LSPServiceClientBase) drainPendingSymbolCacheUpdates() {
 	}
 }
 
-func (sc *LSPServiceClientBase) didOpen(ctx context.Context, uri string, langID string, text []byte) error {
+func (sc *LSPServiceClientBase) didOpen(ctx context.Context, uri uri.URI, text []byte) error {
+	sc.openedFilesMutex.Lock()
+	if _, exists := sc.openedFiles[uri]; exists {
+		sc.openedFilesMutex.Unlock()
+		return nil
+	}
+	sc.openedFiles[uri] = true
+	sc.openedFilesMutex.Unlock()
 	params := protocol.DidOpenTextDocumentParams{
 		TextDocument: protocol.TextDocumentItem{
-			URI:        uri,
-			LanguageID: langID,
+			URI:        string(uri),
+			LanguageID: sc.symbolSearchHelper.GetLanguageID(uri),
 			Version:    0,
 			Text:       string(text),
 		},
@@ -651,10 +717,17 @@ func (sc *LSPServiceClientBase) didOpen(ctx context.Context, uri string, langID 
 	return sc.Conn.Notify(ctx, "textDocument/didOpen", params)
 }
 
-func (sc *LSPServiceClientBase) didClose(ctx context.Context, uri string) error {
+func (sc *LSPServiceClientBase) didClose(ctx context.Context, uri uri.URI) error {
+	sc.openedFilesMutex.Lock()
+	if _, exists := sc.openedFiles[uri]; !exists {
+		sc.openedFilesMutex.Unlock()
+		return nil
+	}
+	delete(sc.openedFiles, uri)
+	sc.openedFilesMutex.Unlock()
 	params := protocol.DidCloseTextDocumentParams{
 		TextDocument: protocol.TextDocumentIdentifier{
-			URI: uri,
+			URI: string(uri),
 		},
 	}
 	return sc.Conn.Notify(ctx, "textDocument/didClose", params)
@@ -674,24 +747,42 @@ func (sc *LSPServiceClientBase) queryDocumentSymbol(ctx context.Context, uri uri
 			URI: string(uri),
 		},
 	}
-	if err := sc.didOpen(ctx, string(uri.Filename()), sc.symbolSearchHelper.GetLanguageID(string(uri)), content); err != nil {
+	if err := sc.didOpen(ctx, uri, content); err != nil {
 		sc.Log.Error(err, "didOpen request failed", "uri", uri)
 	}
-	if err := sc.Conn.Call(ctx, "textDocument/documentSymbol", params).Await(ctx, &symbols); err != nil {
-		return nil, err
-	}
-	if err := sc.didClose(ctx, string(uri.Filename())); err != nil {
-		sc.Log.Error(err, "didClose request failed", "uri", uri)
-	}
-	documentSymbols := []protocol.DocumentSymbol{}
-	for _, symbol := range symbols {
-		if symbol.Location != nil {
-			symbol.DocumentSymbol.Range = symbol.Location.Range
+
+	const maxAttempts = 2
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		symbols = nil
+		err := sc.Conn.Call(ctx, "textDocument/documentSymbol", params).Await(ctx, &symbols)
+		if err != nil {
+			lastErr = err
+		} else if len(symbols) == 0 {
+			lastErr = fmt.Errorf("textDocument/documentSymbol returned zero symbols")
+		} else {
+			documentSymbols := make([]protocol.DocumentSymbol, 0, len(symbols))
+			// typescript-language-server seems to return workspaceSymbol types even for document symbols
+			// we need to normalize them back into document symbol types by copying the range
+			for _, symbol := range symbols {
+				if symbol.Location != nil {
+					symbol.DocumentSymbol.Range = symbol.Location.Range
+				}
+				documentSymbols = append(documentSymbols, symbol.DocumentSymbol)
+			}
+			sc.symbolCache.SetDocumentSymbols(uri, documentSymbols)
+			sc.Log.V(11).Info("Returning document symbols", "uri", uri, "totalDocumentSymbols", len(documentSymbols))
+			return documentSymbols, nil
 		}
-		documentSymbols = append(documentSymbols, symbol.DocumentSymbol)
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if attempt < maxAttempts {
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
-	sc.symbolCache.SetDocumentSymbols(uri, documentSymbols)
-	return documentSymbols, nil
+	sc.Log.V(7).Info("textDocument/documentSymbol failed", "uri", uri, "error", lastErr)
+	return nil, nil
 }
 
 func toURI(path string) (uri.URI, error) {
@@ -714,70 +805,139 @@ func toURI(path string) (uri.URI, error) {
 func (sc *LSPServiceClientBase) searchContentForWorkspaceSymbols(ctx context.Context, content string, fileURI uri.URI) []protocol.WorkspaceSymbol {
 	positions := []protocol.WorkspaceSymbol{}
 	symbols := []protocol.DocumentSymbol{}
+	var symbolsMutex sync.RWMutex
 
-	dsCalled := false
 	if sc.symbolSearchHelper != nil {
 		scanner := bufio.NewScanner(strings.NewReader(string(content)))
-		lineNumber := 0
+		var lines []string
 		for scanner.Scan() {
-			matchLocations := sc.symbolSearchHelper.MatchFileContentByConditions(scanner.Text(), sc.allConditions...)
+			lines = append(lines, scanner.Text())
+		}
+
+		type matchResult struct {
+			locs       [][]int
+			lineNumber int
+		}
+		results := make(chan matchResult, len(lines))
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, 20)
+
+		for i, line := range lines {
+			wg.Add(1)
+			go func(line string, lineNumber int) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+
+				sc.allConditionsMutex.RLock()
+				allConditions := sc.allConditions
+				sc.allConditionsMutex.RUnlock()
+
+				matchLocations := sc.symbolSearchHelper.MatchFileContentByConditions(line, allConditions...)
+				if len(matchLocations) > 0 {
+					results <- matchResult{locs: matchLocations, lineNumber: lineNumber}
+				}
+			}(line, i)
+		}
+
+		go func() {
+			wg.Wait()
+			close(results)
+		}()
+
+		dsCalled := false
+		for res := range results {
+			matchLocations := res.locs
+			lineNumber := res.lineNumber
+
 			matchLocationKey := func(loc []int) string {
 				return fmt.Sprintf("%d:%d:%d", lineNumber, loc[0], loc[1])
 			}
 			dedupedMatchLocations := map[string]bool{}
-			if len(matchLocations) > 0 && !dsCalled {
-				ds, err := sc.queryDocumentSymbol(ctx, fileURI, []byte(content))
-				if err != nil {
-					sc.Log.Error(err, "queryDocumentSymbol request failed", "uri", fileURI)
+			if len(matchLocations) > 0 {
+				symbolsMutex.Lock()
+				if !dsCalled {
+					ds, err := sc.queryDocumentSymbol(ctx, fileURI, []byte(content))
+					if err != nil {
+						sc.Log.Error(err, "queryDocumentSymbol request failed", "uri", fileURI)
+					}
+					symbols = ds
+					dsCalled = true
 				}
-				symbols = ds
-				dsCalled = true
-			}
-			for _, loc := range matchLocations {
-				key := matchLocationKey(loc)
-				if _, ok := dedupedMatchLocations[key]; ok {
-					continue
-				}
-				dedupedMatchLocations[key] = true
-				absPath, err := filepath.Abs(fileURI.Filename())
-				if err != nil {
-					return positions
-				}
-				protoLoc := protocol.Location{
-					URI: string(uri.File(absPath)),
-					Range: protocol.Range{
-						Start: protocol.Position{
-							Line:      uint32(lineNumber),
-							Character: uint32(loc[0]),
-						},
-						End: protocol.Position{
-							Line:      uint32(lineNumber),
-							Character: uint32(loc[1]),
-						},
-					},
-				}
-				if symbol, ok := findDocumentSymbolAtLocation(fileURI, symbols, protoLoc); ok {
-					positions = append(positions, symbol)
-				} else {
-					positions = append(positions, protocol.WorkspaceSymbol{
-						Location: protocol.OrPLocation_workspace_symbol{
-							Value: protoLoc,
-						},
+				currentSymbols := symbols
+				symbolsMutex.Unlock()
+
+				for _, loc := range matchLocations {
+					key := matchLocationKey(loc)
+					if _, ok := dedupedMatchLocations[key]; ok {
+						continue
+					}
+					dedupedMatchLocations[key] = true
+					absPath, err := filepath.Abs(fileURI.Filename())
+					if err != nil {
+						sc.Log.Error(err, "unable to get absolute path for file", "uri", fileURI)
+						continue
+					}
+					wsForMatch := protocol.WorkspaceSymbol{
 						BaseSymbolInformation: protocol.BaseSymbolInformation{
-							Name: scanner.Text()[loc[0]:loc[1]],
-							Kind: 0,
+							Name: lines[lineNumber][loc[0]:loc[1]],
 						},
-					})
+						Location: protocol.OrPLocation_workspace_symbol{
+							Value: protocol.Location{
+								URI: string(uri.File(absPath)),
+								Range: protocol.Range{
+									Start: protocol.Position{
+										Line:      uint32(lineNumber),
+										Character: uint32(loc[0]),
+									},
+									End: protocol.Position{
+										Line:      uint32(lineNumber),
+										Character: uint32(loc[1]),
+									},
+								},
+							},
+						},
+					}
+					if symbol, ok := sc.findDocumentSymbolAtLocation(fileURI, currentSymbols, wsForMatch); ok {
+						positions = append(positions, symbol)
+					} else {
+						positions = append(positions, wsForMatch)
+					}
 				}
 			}
-			lineNumber++
 		}
 	}
 	return positions
 }
 
 func (sc *LSPServiceClientBase) getDefinitionForPosition(ctx context.Context, uri uri.URI, location protocol.Location) []protocol.Location {
-	res := []protocol.Location{}
+	unmarshalLocations := func(raw json.RawMessage) ([]protocol.Location, bool) {
+		var links []protocol.LocationLink
+		if err := json.Unmarshal(raw, &links); err == nil {
+			if len(links) == 0 {
+				return []protocol.Location{}, true
+			}
+			if links[0].TargetURI != "" {
+				locs := make([]protocol.Location, len(links))
+				for i, link := range links {
+					locs[i] = protocol.Location{
+						URI:   link.TargetURI,
+						Range: link.TargetRange,
+					}
+				}
+				return locs, true
+			}
+		}
+		var loc protocol.Location
+		if err := json.Unmarshal(raw, &loc); err == nil && loc.URI != "" {
+			return []protocol.Location{loc}, true
+		}
+		var locs []protocol.Location
+		if err := json.Unmarshal(raw, &locs); err == nil {
+			return locs, true
+		}
+		return nil, false
+	}
 	if sc.ServerCapabilities.Supports("textDocument/definition") {
 		position := protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{
@@ -787,23 +947,42 @@ func (sc *LSPServiceClientBase) getDefinitionForPosition(ctx context.Context, ur
 		}
 		content, err := os.ReadFile(uri.Filename())
 		if err != nil {
-			sc.Log.Error(err, "unable to read file", "uri", uri)
-			return res
+			sc.Log.Error(err, "unable to read file for getting definitions", "uri", uri)
+			return nil
 		}
-		if err := sc.didOpen(ctx, uri.Filename(), sc.symbolSearchHelper.GetLanguageID(string(uri)), content); err != nil {
+		if err := sc.didOpen(ctx, uri, content); err != nil {
 			sc.Log.Error(err, "didOpen request failed", "uri", uri)
 		}
-		if err := sc.Conn.Call(ctx, "textDocument/definition", position).Await(ctx, &res); err != nil {
-			sc.Log.Error(err, "textDocument/definition request failed", "uri", uri)
+		const maxAttempts = 2
+		var lastErr error
+		for attempt := 1; attempt <= maxAttempts; attempt++ {
+			var tmp json.RawMessage
+			err := sc.Conn.Call(ctx, "textDocument/definition", position).Await(ctx, &tmp)
+			if err != nil {
+				lastErr = err
+			} else if len(tmp) == 0 {
+				lastErr = fmt.Errorf("textDocument/definition returned zero locations")
+			} else {
+				locations, ok := unmarshalLocations(tmp)
+				if ok && len(locations) > 0 {
+					return locations
+				}
+			}
+			if ctx.Err() != nil {
+				return nil
+			}
+			if attempt < maxAttempts {
+				time.Sleep(100 * time.Millisecond)
+			}
 		}
-		if err := sc.didClose(ctx, uri.Filename()); err != nil {
-			sc.Log.Error(err, "didClose request failed", "uri", uri)
+		if lastErr != nil {
+			sc.Log.Error(lastErr, "textDocument/definition request failed", "uri", uri)
 		}
 	}
-	return res
+	return nil
 }
 
-func findDocumentSymbolAtLocation(docURI uri.URI, symbols []protocol.DocumentSymbol, defLoc protocol.Location) (protocol.WorkspaceSymbol, bool) {
+func (sc *LSPServiceClientBase) findDocumentSymbolAtLocation(docURI uri.URI, symbols []protocol.DocumentSymbol, defSymbol protocol.WorkspaceSymbol) (protocol.WorkspaceSymbol, bool) {
 	var bestSymbol protocol.WorkspaceSymbol
 	var bestLength uint64
 	found := false
@@ -812,23 +991,30 @@ func findDocumentSymbolAtLocation(docURI uri.URI, symbols []protocol.DocumentSym
 	traverse = func(symbols []protocol.DocumentSymbol, containerName string) {
 		for _, symbol := range symbols {
 			symRange := preferredRange(symbol)
-			if rangeOverlaps(symRange, defLoc.Range) {
+			defLoc, ok := defSymbol.Location.Value.(protocol.Location)
+			if !ok {
+				continue
+			}
+			ws := protocol.WorkspaceSymbol{
+				BaseSymbolInformation: protocol.BaseSymbolInformation{
+					Name:          symbol.Name,
+					Kind:          symbol.Kind,
+					Tags:          symbol.Tags,
+					ContainerName: containerName,
+				},
+				Location: protocol.OrPLocation_workspace_symbol{
+					Value: protocol.Location{
+						URI:   protocol.DocumentURI(docURI),
+						Range: symRange,
+					},
+				},
+			}
+			if rangeOverlaps(symRange, defLoc.Range) && sc.symbolSearchHelper.MatchSymbolByPatterns(WorkspaceSymbolDefinitionsPair{
+				WorkspaceSymbol: ws,
+			}, defSymbol.Name) {
 				length := rangeLength(symRange)
 				if !found || length < bestLength {
-					bestSymbol = protocol.WorkspaceSymbol{
-						BaseSymbolInformation: protocol.BaseSymbolInformation{
-							Name:          symbol.Name,
-							Kind:          symbol.Kind,
-							Tags:          symbol.Tags,
-							ContainerName: containerName,
-						},
-						Location: protocol.OrPLocation_workspace_symbol{
-							Value: protocol.Location{
-								URI:   protocol.DocumentURI(docURI),
-								Range: symRange,
-							},
-						},
-					}
+					bestSymbol = ws
 					bestLength = length
 					found = true
 				}

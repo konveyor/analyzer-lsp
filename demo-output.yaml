@@ -803,6 +803,12 @@
         lineNumber: 1
         variables:
           file: file:///examples/nodejs/Component.tsx
+      - uri: file:///examples/nodejs/Component.tsx
+        message: Found React reference using nodejs provider
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        lineNumber: 3
+        variables:
+          file: file:///examples/nodejs/Component.tsx
       - uri: file:///examples/nodejs/LegacyComponent.jsx
         message: Found React reference using nodejs provider
         codeSnip: " 1  import React from 'react';\n 2  \n 3  export const LegacyComponent = () => {\n 4    return <div>Hello from JavaScript React</div>;\n 5  };\n"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -45,7 +46,11 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 
 	params := protocol.InitializeParams{}
 
+	// treat location as the only workspace folder
 	if c.Location != "" {
+		if !strings.HasPrefix(c.Location, "file://") {
+			c.Location = "file://" + c.Location
+		}
 		sc.Config.WorkspaceFolders = []string{c.Location}
 	}
 
@@ -59,16 +64,45 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	} else {
 		params.RootURI = sc.Config.WorkspaceFolders[0]
 	}
-	// var workspaceFolders []protocol.WorkspaceFolder
-	// for _, f := range sc.Config.WorkspaceFolders {
-	// 	workspaceFolders = append(workspaceFolders, protocol.WorkspaceFolder{
-	// 		URI:  f,
-	// 		Name: f,
-	// 	})
-	// }
-	// params.WorkspaceFolders = workspaceFolders
 
-	params.Capabilities = protocol.ClientCapabilities{}
+	var workspaceFolders []protocol.WorkspaceFolder
+	seen := make(map[string]bool)
+	for _, f := range sc.Config.WorkspaceFolders {
+		if seen[f] {
+			continue
+		}
+		seen[f] = true
+		workspaceFolders = append(workspaceFolders, protocol.WorkspaceFolder{
+			URI:  f,
+			Name: filepath.Base(strings.ReplaceAll(f, "file://", "")),
+		})
+	}
+	params.WorkspaceFolders = workspaceFolders
+
+	params.Capabilities = protocol.ClientCapabilities{
+		Workspace: &protocol.WorkspaceClientCapabilities{
+			WorkspaceFolders: true,
+			// enables the server to refresh diagnostics on-demand, useful in agent mode
+			Diagnostics: &protocol.DiagnosticWorkspaceClientCapabilities{
+				RefreshSupport: true,
+			},
+		},
+		TextDocument: &protocol.TextDocumentClientCapabilities{
+			// this enables the textDocument/definition responses to be
+			// LocationLink[] instead of Location[]. LocationLink contains
+			// source -> target mapping of symbols which gives us more information
+			Definition: &protocol.DefinitionClientCapabilities{
+				LinkSupport: true,
+			},
+			// this enables the documentSymbol responses to be a tree instead of a flat list
+			// this allows us to understand enclosed symbols better. Right now, we use this
+			// information to find a concrete symbol at a location. While a flat list could
+			// work, but in future, the tree will help us with advanced queries.
+			DocumentSymbol: &protocol.DocumentSymbolClientCapabilities{
+				HierarchicalDocumentSymbolSupport: true,
+			},
+		},
+	}
 
 	var InitializationOptions map[string]any
 	err = json.Unmarshal([]byte(sc.Config.LspServerInitializationOptions), &InitializationOptions)
@@ -140,7 +174,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	}
 
 	// Query symbols once after all files are indexed
-	symbols := sc.GetAllDeclarations(ctx, query)
+	symbols := sc.GetAllDeclarations(ctx, query, false)
 	incidentsMap, err := sc.EvaluateSymbols(ctx, symbols)
 	if err != nil {
 		return resp{}, err
