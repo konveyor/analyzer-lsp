@@ -14,6 +14,7 @@ jobs:
     outputs:
       api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
       tackle2_hub_tag: ${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}
+      img_operator_bundle: ${{ steps.extract-info.outputs.IMG_OPERATOR_BUNDLE }}
     steps:
       - name: Extract pull request number from inputs or PR description
         id: extract-info
@@ -29,18 +30,24 @@ jobs:
           # else, use the branch on which this is running
           if [ ! -z ${GITHUB_BASE_REF} ]; then 
               echo "Using ${GITHUB_BASE_REF}"
-              echo "API_TESTS_REF=${GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
+              API_TESTS_REF=${GITHUB_BASE_REF}
+              echo "API_TESTS_REF=${API_TESTS_REF}" >> $GITHUB_OUTPUT
               echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
               echo "JAVA_BUNDLE_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
               echo "BUNDLE_IMAGE_TAG=${GITHUB_BASE_REF/main/latest}" >>$GITHUB_OUTPUT
               echo "TACKLE2_HUB_TAG=${GITHUB_BASE_REF/main/latest}" >> $GITHUB_OUTPUT
+              echo "IMG_ADDON_ANALYZER=ttl.sh/konveyor-tackle2-addon-analyzer-${API_TESTS_REF}:2h" >>$GITHUB_OUTPUT
+              echo "IMG_OPERATOR_BUNDLE=ttl.sh/konveyor-operator-bundle-${API_TESTS_REF}:2h" >>$GITHUB_OUTPUT
           else
               echo "Using ${GITHUB_REF_NAME}"
-              echo "API_TESTS_REF=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+              API_TESTS_REF=${GITHUB_REF_NAME}
+              echo "API_TESTS_REF=${API_TESTS_REF}" >> $GITHUB_OUTPUT
               echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
               echo "JAVA_BUNDLE_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
               echo "BUNDLE_IMAGE_TAG=${GITHUB_REF_NAME/main/latest}" >>$GITHUB_OUTPUT
               echo "TACKLE2_HUB_TAG=${GITHUB_REF_NAME/main/latest}" >> $GITHUB_OUTPUT
+              echo "IMG_ADDON_ANALYZER=ttl.sh/konveyor-tackle2-addon-analyzer-${API_TESTS_REF}:2h" >>$GITHUB_OUTPUT
+              echo "IMG_OPERATOR_BUNDLE=ttl.sh/konveyor-operator-bundle-${API_TESTS_REF}:2h" >>$GITHUB_OUTPUT
           fi
           
           # override with explicitely set value in PR description
@@ -119,8 +126,8 @@ jobs:
       - name: Build addon and push images
         working-directory: tackle2-addon-analyzer
         run: |
-          IMG=ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h make image-podman
-          podman push ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h
+          IMG=${{steps.extract-info.outputs.IMG_ADDON_ANALYZER}} make image-podman
+          podman push ${{steps.extract-info.outputs.IMG_ADDON_ANALYZER}}
           podman push ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
           podman push ${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}
           podman push ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
@@ -128,18 +135,18 @@ jobs:
       - name: Make bundle image
         uses: konveyor/operator/.github/actions/make-bundle@main
         with:
-          operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
-          addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
+          operator_bundle: ${{ steps.extract-info.outputs.IMG_OPERATOR_BUNDLE }}
+          addon_analyzer: ${{ steps.extract-info.outputs.IMG_ADDON_ANALYZER }}
           tackle_hub: "quay.io/konveyor/tackle2-hub:${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}"
           provider_generic: ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
           provider_java: ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
       - name: push bundle image 
         run: |
-          docker push ttl.sh/konveyor-operator-bundle-${GITHUB_SHA}:2h
+          docker push ${{steps.extract-info.outputs.IMG_OPERATOR_BUNDLE}}
   e2e:
     needs: test
     uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
-      operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
+      operator_bundle: ${{ needs.test.outputs.img_operator_bundle }}
       tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"
