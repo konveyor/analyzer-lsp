@@ -875,7 +875,8 @@ func (sc *LSPServiceClientBase) searchContentForWorkspaceSymbols(ctx context.Con
 					dedupedMatchLocations[key] = true
 					absPath, err := filepath.Abs(fileURI.Filename())
 					if err != nil {
-						return positions
+						sc.Log.Error(err, "unable to get absolute path for file", "uri", fileURI)
+						continue
 					}
 					wsForMatch := protocol.WorkspaceSymbol{
 						BaseSymbolInformation: protocol.BaseSymbolInformation{
