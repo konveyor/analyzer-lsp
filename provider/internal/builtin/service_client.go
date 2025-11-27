@@ -161,7 +161,8 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
-			Patterns: []string{c.FilePattern},
+			Patterns:           []string{c.FilePattern},
+			ConditionFilepaths: c.Filepaths,
 		})
 		if err != nil {
 			return response, fmt.Errorf("failed to perform search - %w", err)
@@ -252,7 +253,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 		xmlFiles, err := fileSearcher.Search(provider.SearchCriteria{
 			Patterns:           []string{"*.xml", "*.xhtml"},
-			ConditionFilepaths: cond.XML.Filepaths,
+			ConditionFilepaths: cond.XMLPublicID.Filepaths,
 		})
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
@@ -297,7 +298,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 		jsonFiles, err := fileSearcher.Search(provider.SearchCriteria{
 			Patterns:           []string{"*.json"},
-			ConditionFilepaths: cond.XML.Filepaths,
+			ConditionFilepaths: cond.JSON.Filepaths,
 		})
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)

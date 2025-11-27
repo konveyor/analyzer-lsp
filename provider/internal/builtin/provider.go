@@ -25,8 +25,9 @@ type builtinCondition struct {
 }
 
 type fileContentCondition struct {
-	FilePattern string `yaml:"filePattern" json:"filePattern,omitempty" title:"FilePattern" description:"Only search in files with names matching this pattern"`
-	Pattern     string `yaml:"pattern" json:"pattern" title:"Pattern" description:"Regex pattern to match in content"`
+	FilePattern string   `yaml:"filePattern" json:"filePattern,omitempty" title:"FilePattern" description:"Only search in files with names matching this pattern"`
+	Pattern     string   `yaml:"pattern" json:"pattern" title:"Pattern" description:"Regex pattern to match in content"`
+	Filepaths   []string `yaml:"filepaths" json:"filepaths,omitempty" title:"Filepaths" description:"Optional list of files to scope down search"`
 }
 
 type fileCondition struct {
@@ -44,7 +45,7 @@ type xmlCondition struct {
 type xmlPublicIDCondition struct {
 	Regex      string            `yaml:"regex" json:"regex"`
 	Namespaces map[string]string `yaml:"namespaces" json:"namespaces" title:"Namespaces" description:"A map to scope down query to namespaces"`
-	Filepaths  []string          `yaml:"filepaths" json:"filepaths" title:"Filepaths" description:"Optional list of files to scope down search"`
+	Filepaths  []string          `yaml:"filepaths" json:"filepaths,omitempty" title:"Filepaths" description:"Optional list of files to scope down search"`
 }
 
 type jsonCondition struct {

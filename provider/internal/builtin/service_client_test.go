@@ -693,6 +693,72 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 			},
 			wantFilePaths: []string{filepath.Join("dir_b", "b.xml")},
 		},
+		{
+			name:       "(Filecontent) Include files from cond.Filepaths (single rendered path), no include / exclude",
+			capability: "filecontent",
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|app.config.property = .*)",
+					Filepaths: []string{fmt.Sprintf("%s %s",
+						filepath.Join(baseLocation, "dir_a", "a.txt"), filepath.Join(baseLocation, "dir_b", "b.txt")),
+					},
+				},
+			},
+			chainTemplate: engine.ChainTemplate{},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "a.txt"),
+				filepath.Join("dir_b", "b.txt"),
+			},
+		},
+		{
+			name:       "(Filecontent) Include files from cond.Filepaths (single rendered path), with include",
+			capability: "filecontent",
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|app.config.property = .*)",
+					Filepaths: []string{fmt.Sprintf("%s %s",
+						filepath.Join(baseLocation, "dir_a", "a.txt"), filepath.Join(baseLocation, "dir_b", "b.txt")),
+					},
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				Filepaths: []string{
+					// here we test whether intersection works as expected
+					filepath.Join("dir_b", "b.txt"),
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "b.txt"),
+			},
+		},
+		{
+			name:       "(Filecontent) Include files from cond.Filepaths, with include & exclude rule scope",
+			capability: "filecontent",
+			condition: builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern: "(fox|app.config.property = .*)",
+					Filepaths: []string{
+						filepath.Join("dir_a", "a.txt"), filepath.Join("dir_b", "b.txt"),
+						filepath.Join("dir_a", "a.properties"), filepath.Join("dir_b", "b.properties"),
+					},
+				},
+			},
+			chainTemplate: engine.ChainTemplate{
+				Filepaths: []string{
+					// here we test whether intersection works as expected
+					filepath.Join("dir_b", "b.txt"),
+					filepath.Join("dir_a", "a.properties"),
+				},
+				ExcludedPaths: []string{
+					filepath.Join("dir_b", "b.properties"),
+					filepath.Join("dir_a", "a.txt"),
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_b", "b.txt"),
+				filepath.Join("dir_a", "a.properties"),
+			},
+		},
 	}
 
 	getAbsolutePaths := func(baseLocation string, relativePaths []string) []string {
