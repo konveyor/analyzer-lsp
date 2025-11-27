@@ -1,6 +1,8 @@
 package java
 
 import (
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"

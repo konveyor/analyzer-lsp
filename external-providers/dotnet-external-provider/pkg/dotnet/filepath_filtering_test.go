@@ -1,6 +1,9 @@
 package dotnet
 
 import (
+	"runtime"
+	"strconv"
+	"strings"
 	"testing"
 
 	"go.lsp.dev/protocol"
@@ -237,7 +240,7 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 	// Create test data with many locations and scoped paths
 	locations := make([]protocol.Location, 10000)
 	for i := 0; i < 10000; i++ {
-		path := uri.URI("file:///project/src/File" + string(rune(i)) + ".cs")
+		path := uri.URI("file:///project/src/File" + strconv.Itoa(i) + ".cs")
 		locations[i] = protocol.Location{
 			URI: path,
 			Range: protocol.Range{
@@ -248,7 +251,7 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 
 	includedPaths := make([]string, 100)
 	for i := 0; i < 100; i++ {
-		includedPaths[i] = "/project/src/File" + string(rune(i)) + ".cs"
+		includedPaths[i] = "/project/src/File" + strconv.Itoa(i) + ".cs"
 	}
 
 	b.Run("with map optimization", func(b *testing.B) {
