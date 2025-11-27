@@ -1,6 +1,8 @@
 package nodejs
 
 import (
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/konveyor/analyzer-lsp/provider"
