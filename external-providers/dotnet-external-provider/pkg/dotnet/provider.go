@@ -36,7 +36,8 @@ type stdioRWCloser struct {
 }
 
 type dotnetCondition struct {
-	Referenced referenceCondition `yaml:"referenced"`
+	Referenced              referenceCondition   `yaml:"referenced"`
+	provider.ProviderContext `yaml:",inline"`
 }
 
 // Example:

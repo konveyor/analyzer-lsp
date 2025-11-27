@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -183,20 +184,84 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		}
 	}
 
-	if c.Referenced.Filepaths != nil {
-		// filter according to the given filepaths
+	// Filter according to filepaths from the condition or from the context (chaining)
+	filepathsToFilter := c.Referenced.Filepaths
+	var excludedFilepaths []string
+	if len(filepathsToFilter) == 0 {
+		// If no filepaths in the condition, check the context for scoped filepaths (from chaining)
+		if contextFilepaths, contextExcluded := condCTX.GetScopedFilepaths(); len(contextFilepaths) > 0 {
+			filepathsToFilter = contextFilepaths
+			excludedFilepaths = contextExcluded
+		}
+	}
+
+	// Filter by included and excluded paths
+	if len(filepathsToFilter) > 0 || len(excludedFilepaths) > 0 {
+		// Build maps for O(1) lookups instead of O(n) linear searches
+		// This is critical for performance with large codebases
+		excludedPathsMap := make(map[string]bool, len(excludedFilepaths))
+		for _, excludedPath := range excludedFilepaths {
+			if excludedPath == "" {
+				continue // Skip empty strings
+			}
+			normalizedPath := normalizePathForComparison(excludedPath)
+			excludedPathsMap[normalizedPath] = true
+		}
+
+		includedPathsMap := make(map[string]bool, len(filepathsToFilter))
+		for _, includedPath := range filepathsToFilter {
+			if includedPath == "" {
+				continue // Skip empty strings
+			}
+			normalizedPath := normalizePathForComparison(includedPath)
+			includedPathsMap[normalizedPath] = true
+		}
+
 		var filteredRefs []protocol.WorkspaceSymbol
 		for _, ref := range refs {
-			for _, fp := range c.Referenced.Filepaths {
-				if strings.HasSuffix(ref.Location.Value.(protocol.Location).URI, fp) {
-					filteredRefs = append(filteredRefs, ref)
-				}
+			refLocation, ok := ref.Location.Value.(protocol.Location)
+			if !ok {
+				p.log.V(7).Info("unexpected location type in workspace symbol", "symbol", ref.Name)
+				continue
 			}
+			normalizedRefURI := normalizePathForComparison(string(refLocation.URI))
+
+			// Check if excluded (O(1) lookup)
+			if excludedPathsMap[normalizedRefURI] {
+				continue
+			}
+
+			// Check if included (O(1) lookup) - only if include list exists
+			if len(includedPathsMap) > 0 && !includedPathsMap[normalizedRefURI] {
+				continue
+			}
+
+			filteredRefs = append(filteredRefs, ref)
 		}
 		return filteredRefs, nil
 	}
 
 	return refs, nil
+}
+
+// normalizePathForComparison removes URI schemes and cleans paths for comparison.
+// It handles cross-platform path differences including:
+// - URI schemes (file://, file:)
+// - Path separators (converts backslashes to forward slashes)
+// - Case sensitivity (normalizes to lowercase on Windows)
+func normalizePathForComparison(path string) string {
+	// Remove common URI schemes (some systems emit file: instead of file://)
+	path = strings.TrimPrefix(path, "file://")
+	path = strings.TrimPrefix(path, "file:")
+	// Clean the path to resolve . and .. elements
+	path = filepath.Clean(path)
+	// Convert to forward slashes for consistent comparison across platforms
+	path = filepath.ToSlash(path)
+	// On Windows, normalize to lowercase for case-insensitive comparison
+	if runtime.GOOS == "windows" {
+		path = strings.ToLower(path)
+	}
+	return path
 }
 
 func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protocol.WorkspaceSymbol) []protocol.Location {

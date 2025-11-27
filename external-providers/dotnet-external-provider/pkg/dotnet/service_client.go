@@ -33,6 +33,30 @@ type dotnetServiceClient struct {
 
 var _ provider.ServiceClient = &dotnetServiceClient{}
 
+// normalizePathForComparison removes URI schemes and cleans paths for comparison.
+// It handles cross-platform path differences including:
+// - URI schemes (file://, file:, but preserves csharp: for metadata URIs)
+// - Path separators (converts backslashes to forward slashes)
+// - Case sensitivity (normalizes to lowercase on Windows)
+func normalizePathForComparison(path string) string {
+	// Preserve C# metadata URIs as-is (they have their own scheme)
+	if strings.HasPrefix(path, "csharp:") {
+		return path
+	}
+	// Remove common URI schemes (some systems emit file: instead of file://)
+	path = strings.TrimPrefix(path, "file://")
+	path = strings.TrimPrefix(path, "file:")
+	// Clean the path to resolve . and .. elements
+	path = filepath.Clean(path)
+	// Convert to forward slashes for consistent comparison across platforms
+	path = filepath.ToSlash(path)
+	// On Windows, normalize to lowercase for case-insensitive comparison
+	if runtime.GOOS == "windows" {
+		path = strings.ToLower(path)
+	}
+	return path
+}
+
 func (d *dotnetServiceClient) Stop() {
 	d.cancelFunc()
 	d.cmd.Wait()
@@ -59,6 +83,29 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get namespace for query")
 	}
 
+	// Extract filepath scope from the ProviderContext
+	includedFilepaths, excludedFilepaths := cond.ProviderContext.GetScopedFilepaths()
+
+	// Build maps for O(1) lookups instead of O(n) linear searches
+	// This is critical for performance with large codebases
+	excludedPathsMap := make(map[string]bool, len(excludedFilepaths))
+	for _, excludedPath := range excludedFilepaths {
+		if excludedPath == "" {
+			continue // Skip empty strings
+		}
+		normalizedPath := normalizePathForComparison(excludedPath)
+		excludedPathsMap[normalizedPath] = true
+	}
+
+	includedPathsMap := make(map[string]bool, len(includedFilepaths))
+	for _, includedPath := range includedFilepaths {
+		if includedPath == "" {
+			continue // Skip empty strings
+		}
+		normalizedPath := normalizePathForComparison(includedPath)
+		includedPathsMap[normalizedPath] = true
+	}
+
 	symbols := d.GetAllSymbols(query)
 	incidents := []provider.IncidentContext{}
 	for _, s := range symbols {
@@ -66,6 +113,17 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 			references := d.GetAllReferences(s)
 			for _, ref := range references {
 				if strings.Contains(ref.URI.Filename(), d.config.Location) {
+					normalizedRefPath := normalizePathForComparison(string(ref.URI))
+
+					// Check if excluded (O(1) lookup)
+					if excludedPathsMap[normalizedRefPath] {
+						continue
+					}
+
+					// Check if included (O(1) lookup) - only if include list exists
+					if len(includedPathsMap) > 0 && !includedPathsMap[normalizedRefPath] {
+						continue
+					}
 					lineNumber := int(ref.Range.Start.Line)
 					incidents = append(incidents, provider.IncidentContext{
 						FileURI:    ref.URI,
@@ -127,6 +185,17 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 					// "csharp:/metadata/projects/NerdDinner/assemblies/System.Web.Mvc/symbols/System.Web.Mvc.Controller.cs"
 					split := strings.Split(filename, "assemblies/")
 					if strings.HasPrefix(split[1], namespace) {
+						normalizedRPath := normalizePathForComparison(string(r.URI))
+
+						// Check if excluded (O(1) lookup)
+						if excludedPathsMap[normalizedRPath] {
+							continue
+						}
+
+						// Check if included (O(1) lookup) - only if include list exists
+						if len(includedPathsMap) > 0 && !includedPathsMap[normalizedRPath] {
+							continue
+						}
 						lineNumber := int(r.Range.Start.Line)
 						incidents = append(incidents, provider.IncidentContext{
 							FileURI:    r.URI,
