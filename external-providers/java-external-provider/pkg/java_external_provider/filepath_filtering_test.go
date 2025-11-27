@@ -47,8 +47,13 @@ func TestNormalizePathForComparison(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := normalizePathForComparison(tt.input)
-			if result != tt.expected {
-				t.Errorf("normalizePathForComparison(%q) = %q, want %q", tt.input, result, tt.expected)
+			expected := tt.expected
+			// On Windows, paths are normalized to lowercase
+			if runtime.GOOS == "windows" {
+				expected = strings.ToLower(expected)
+			}
+			if result != expected {
+				t.Errorf("normalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
 			}
 		})
 	}
@@ -222,7 +227,8 @@ func TestFilepathFiltering(t *testing.T) {
 			}
 
 			for _, expectedPath := range tt.expectedPaths {
-				if !foundPaths[expectedPath] {
+				normalizedExpectedPath := normalizePathForComparison(expectedPath)
+				if !foundPaths[normalizedExpectedPath] {
 					t.Errorf("Expected path %q not found in filtered symbols", expectedPath)
 				}
 			}
