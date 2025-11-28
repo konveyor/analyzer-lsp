@@ -685,11 +685,19 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	// Handle array template references by converting ctx to have YAML-serialized filepaths
 	yamlCtx := make(map[string]interface{})
 	for key, template := range ctx {
-		// Marshal the filepaths array as YAML inline array format
+		// Expose all ChainTemplate fields for mustache rendering
+		templateMap := make(map[string]interface{})
 		if len(template.Filepaths) > 0 {
-			yamlCtx[key] = map[string]interface{}{
-				"filepaths": template.Filepaths,
-			}
+			templateMap["filepaths"] = template.Filepaths
+		}
+		if len(template.ExcludedPaths) > 0 {
+			templateMap["excludedPaths"] = template.ExcludedPaths
+		}
+		if len(template.Extras) > 0 {
+			templateMap["extras"] = template.Extras
+		}
+		if len(templateMap) > 0 {
+			yamlCtx[key] = templateMap
 		}
 	}
 
