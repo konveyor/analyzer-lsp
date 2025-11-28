@@ -311,9 +311,9 @@ func gatherChain(start ConditionEntry, entries []ConditionEntry) []ConditionEntr
 
 // Chain Templates are used by rules and providers to pass context around during rule execution.
 type ChainTemplate struct {
-	Filepaths     []string               `yaml:"filepaths,omitempty"`
-	Extras        map[string]interface{} `yaml:"extras,omitempty"`
-	ExcludedPaths []string               `yaml:"excludedPaths,omitempty"`
+	Filepaths     []string               `yaml:"filepaths,omitempty" json:"filepaths,omitempty"`
+	Extras        map[string]interface{} `yaml:"extras,omitempty" json:"extras,omitempty"`
+	ExcludedPaths []string               `yaml:"excludedPaths,omitempty" json:"excludedPaths,omitempty"`
 }
 
 func (c *ChainTemplate) FilterIncidentsByFilePaths(incidents []IncidentContext) []IncidentContext {

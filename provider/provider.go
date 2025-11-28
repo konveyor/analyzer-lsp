@@ -682,7 +682,18 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	s := strings.ReplaceAll(string(condition), `'{{`, "{{")
 	s = strings.ReplaceAll(s, `}}'`, "}}")
 
-	s, err := mustache.RenderRaw(s, true, ctx)
+	// Handle array template references by converting ctx to have YAML-serialized filepaths
+	yamlCtx := make(map[string]interface{})
+	for key, template := range ctx {
+		// Marshal the filepaths array as YAML inline array format
+		if len(template.Filepaths) > 0 {
+			yamlCtx[key] = map[string]interface{}{
+				"filepaths": template.Filepaths,
+			}
+		}
+	}
+
+	s, err := mustache.RenderRaw(s, true, yamlCtx)
 	if err != nil {
 		return nil, err
 	}

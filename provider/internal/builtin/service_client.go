@@ -160,8 +160,12 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 
+		patterns := []string{}
+		if c.FilePattern != "" {
+			patterns = append(patterns, c.FilePattern)
+		}
 		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
-			Patterns:           []string{c.FilePattern},
+			Patterns:           patterns,
 			ConditionFilepaths: c.Filepaths,
 		})
 		if err != nil {
