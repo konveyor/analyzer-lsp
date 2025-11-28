@@ -492,7 +492,14 @@ type fileSearchResult struct {
 func (b *builtinServiceClient) performFileContentSearch(pattern string, locations []string) ([]fileSearchResult, error) {
 	var err error
 
+	// If no files to search, return empty result immediately
+	// This prevents rg from searching recursively when called without arguments
+	if len(locations) == 0 {
+		return []fileSearchResult{}, nil
+	}
+
 	if runtime.GOOS == "windows" {
+		// Windows doesn't have xargs, use Go-based parallel walk instead
 		// Have to trim quotes around the pattern to keep backwards compatibility
 		trimmedPattern := strings.Trim(pattern, "\"")
 		patternRegex, err := regexp2.Compile(trimmedPattern, regexp2.Multiline)
@@ -506,24 +513,27 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 		return matches, nil
 	}
 
-	// Calculate total argument length to determine if we can use direct grep
-	// ARG_MAX on Linux is typically 2MB, use conservative 512KB threshold for safety
+	// Calculate total argument length to determine if we can use direct rg
+	// ARG_MAX on Linux/macOS is typically 2MB, use conservative 512KB threshold for safety
 	const argMaxSafeThreshold = 512 * 1024
-	totalArgLength := len(pattern) + 50 // pattern + grep flags overhead
+	totalArgLength := len(pattern) + 50 // pattern + rg flags overhead
 	for _, loc := range locations {
 		totalArgLength += len(loc) + 1 // +1 for space separator
 	}
 
 	var outputBytes bytes.Buffer
 
-	// Fast path for small projects: use direct grep if args fit within ARG_MAX
-	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" && totalArgLength < argMaxSafeThreshold {
-		b.log.V(5).Info("using direct grep (fast path)", "pattern", pattern, "totalFiles", len(locations), "argLength", totalArgLength)
-		// Build grep command with all files as arguments
+	// Fast path for small projects: use direct rg if args fit within ARG_MAX
+	// Works on both Linux and macOS
+	if totalArgLength < argMaxSafeThreshold {
+		b.log.V(5).Info("using direct rg (fast path)", "pattern", pattern, "totalFiles", len(locations), "argLength", totalArgLength)
+		// Build rg command with all files as arguments
 		// Use -- to mark end of options, preventing patterns like --pf- from being interpreted as options
-		args := []string{"-o", "-n", "--with-filename", "-P", "--", pattern}
+		// --no-ignore: don't respect .gitignore since we're searching specific files
+		// --no-config: don't load ripgrep config files for consistent behavior
+		args := []string{"-o", "-n", "--with-filename", "-P", "--no-ignore", "--no-config", "--", pattern}
 		args = append(args, locations...)
-		cmd := exec.Command("grep", args...)
+		cmd := exec.Command("rg", args...)
 		output, err := cmd.Output()
 		if err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok {
@@ -533,84 +543,61 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 				}
 			}
 			if err != nil {
-				return nil, fmt.Errorf("could not run grep with provided pattern %+v", err)
+				return nil, fmt.Errorf("could not run rg with provided pattern %+v", err)
 			}
 		}
 		outputBytes.Write(output)
 	} else {
-		// Slow path for large projects or macOS: use batching with xargs
+		// Slow path for large projects: use batching with xargs
+		// Works on both Linux and macOS
 		batchSize := 500
 		for start := 0; start < len(locations); start += batchSize {
 			end := int(math.Min(float64(start+batchSize), float64(len(locations))))
 			currBatch := locations[start:end]
 			b.log.V(5).Info("searching for pattern", "pattern", pattern, "batchSize", len(currBatch), "totalFiles", len(locations))
 			var currOutput []byte
-			switch runtime.GOOS {
-			case "darwin":
-				isEscaped := isSlashEscaped(pattern)
-				escapedPattern := pattern
-				// some rules already escape '/' while others do not
-				if !isEscaped {
-					escapedPattern = strings.ReplaceAll(escapedPattern, "/", "\\/")
-				}
-				// escape other chars used in perl pattern
-				escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
-				escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
-				var fileList bytes.Buffer
-				for _, f := range currBatch {
-					fileList.WriteString(f)
-					fileList.WriteByte('\x00')
-				}
-				cmdStr := fmt.Sprintf(
-					`xargs -0 perl -ne 'if (/%v/) { print "$ARGV:$.:$1\n" } close ARGV if eof;'`,
-					escapedPattern,
-				)
-				b.log.V(7).Info("running perl", "cmd", cmdStr)
-				cmd := exec.Command("/bin/sh", "-c", cmdStr)
-				cmd.Stdin = &fileList
-				currOutput, err = cmd.Output()
-			default:
-				// Use xargs to avoid ARG_MAX limits when processing large numbers of files
-				// This prevents "argument list too long" errors when analyzing projects
-				// with many files (e.g., node_modules with 30,000+ files)
-				var fileList bytes.Buffer
-				for _, f := range currBatch {
-					fileList.WriteString(f)
-					fileList.WriteByte('\x00')
-				}
-				// Escape pattern for safe shell interpolation
-				escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
-				// Use -- to mark end of options, preventing patterns like --pf- from being interpreted as options
-				cmdStr := fmt.Sprintf(
-					`xargs -0 grep -o -n --with-filename -P -- '%s'`,
-					escapedPattern,
-				)
-				b.log.V(7).Info("running grep via xargs", "cmd", cmdStr)
-				cmd := exec.Command("/bin/sh", "-c", cmdStr)
-				cmd.Stdin = &fileList
-				currOutput, err = cmd.Output()
+			// Use xargs to avoid ARG_MAX limits when processing large numbers of files
+			// This prevents "argument list too long" errors when analyzing projects
+			// with many files (e.g., node_modules with 30,000+ files)
+			var fileList bytes.Buffer
+			for _, f := range currBatch {
+				fileList.WriteString(f)
+				fileList.WriteByte('\x00')
 			}
+			// Escape pattern for safe shell interpolation
+			escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
+			// Use -- to mark end of options, preventing patterns like --pf- from being interpreted as options
+			// --no-ignore: don't respect .gitignore since we're searching specific files
+			// --no-config: don't load ripgrep config files for consistent behavior
+			cmdStr := fmt.Sprintf(
+				`xargs -0 rg -o -n --with-filename -P --no-ignore --no-config -- '%s'`,
+				escapedPattern,
+			)
+			b.log.V(7).Info("running rg via xargs", "cmd", cmdStr)
+			cmd := exec.Command("/bin/sh", "-c", cmdStr)
+			cmd.Stdin = &fileList
+			currOutput, err = cmd.Output()
 			if err != nil {
 				if exitError, ok := err.(*exec.ExitError); ok {
-					// Exit code 1: grep found no matches
+					// Exit code 1: rg found no matches
 					if exitError.ExitCode() == 1 {
 						err = nil // Clear error; no matches in this batch
 					}
 					// Exit code 123: GNU xargs exits with 123 when any child exits with 1-125
-					// This includes both "no matches" (grep exit 1) and real errors (grep exit 2)
+					// This includes both "no matches" (rg exit 1) and real errors (rg exit 2)
 					// Only clear 123 if stderr is empty; otherwise surface the error
 					if exitError.ExitCode() == 123 {
 						stderrStr := strings.TrimSpace(string(exitError.Stderr))
 						if stderrStr == "" {
 							err = nil // mixed batches, but no actual error output
 						} else {
-							// Real grep error (e.g., exit 2) - include stderr in error message
-							return nil, fmt.Errorf("could not run grep with provided pattern %+v; stderr=%s", err, stderrStr)
+							// Real rg error (e.g., exit 2) - include stderr in error message
+							return nil, fmt.Errorf("could not run rg with provided pattern %+v; stderr=%s", err, stderrStr)
 						}
 					}
 				}
 				if err != nil {
-					return nil, fmt.Errorf("could not run grep with provided pattern %+v", err)
+					return nil, fmt.Errorf("could not run rg with provided pattern %+v", err)
 				}
 			}
 			outputBytes.Write(currOutput)
@@ -784,17 +771,8 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp) (
 	return r, nil
 }
 
-func isSlashEscaped(str string) bool {
-	for i := 0; i < len(str); i++ {
-		if str[i] == '/' && i > 0 && str[i-1] == '\\' {
-			return true
-		}
-	}
-	return false
-}
-
 func parseGrepOutputForFileContent(match string) ([]string, error) {
-	// This will parse the output of the PowerShell/grep in the form
+	// This will parse the output of rg in the form
 	// "Filepath:Linenumber:Matchingtext" to return string array of path, line number and matching text
 	// works with handling both windows and unix based file paths eg: "C:\path\to\file" and "/path/to/file"
 	re, err := regexp.Compile(`^(.*?):(\d+):(.*)$`)

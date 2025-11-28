@@ -34,7 +34,9 @@ FROM jaegertracing/all-in-one:latest AS jaeger-builder
 
 FROM base
 
-RUN microdnf install gcc-c++ python-devel python3-devel -y
+RUN rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
+    microdnf install -y gcc-c++ python-devel python3-devel ripgrep && \
+    microdnf clean all
 RUN python3 -m ensurepip --upgrade
 RUN python3 -m pip install 'python-lsp-server>=1.8.2'
 
