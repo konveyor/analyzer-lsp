@@ -10,7 +10,7 @@
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "lspServerPath": "/jdtls/bin/jdtls",
-                    "mavenIndexPath": "/usr/locl/etc"
+                    "mavenIndexPath": "/usr/local/etc"
                 },
                 "analysisMode": "source-only"
             },
@@ -20,7 +20,7 @@
                     "lspServerName": "java",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
-                    "mavenIndexPath": "/usr/locl/etc",
+                    "mavenIndexPath": "/usr/local/etc",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "includedPaths": [
                         "src/main/java/io/konveyor/util/FileReader.java"
@@ -34,7 +34,7 @@
                     "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
-                    "mavenIndexPath": "/usr/locl/etc",
+                    "mavenIndexPath": "/usr/local/etc",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
                 },
                 "analysisMode": "source-only"
@@ -45,7 +45,7 @@
                     "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
-                    "mavenIndexPath": "/usr/locl/etc",
+                    "mavenIndexPath": "/usr/local/etc",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
                 },
                 "analysisMode": "source-only"
@@ -56,7 +56,7 @@
                     "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
-                    "mavenIndexPath": "/usr/locl/etc",
+                    "mavenIndexPath": "/usr/local/etc",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
                 },
                 "analysisMode": "full"

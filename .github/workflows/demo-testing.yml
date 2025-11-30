@@ -58,7 +58,6 @@ jobs:
           - provider: analyzer-lsp
             image_name: konveyor-analyzer-lsp
             dockerfile: Dockerfile
-            build_args: JAVA_BUNDLE_TAG=latest
     steps:
       - uses: actions/checkout@v3
 
@@ -156,7 +155,7 @@ jobs:
             demo-output-path: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/demo-output.yaml
             provider_settings-path: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/provider_settings.json
             testing-rules: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/rule-example.yaml
-          - provider: yaml
+          - provider: yq
             artifact_pattern: "{konveyor-analyzer-lsp,yq-provider}"
             test-data: examples
             image_name: yq-provider
@@ -211,7 +210,8 @@ jobs:
             localhost/konveyor-analyzer-lsp:${{ needs.detect-changes.outputs.image_tag }} \
             --output-file=/analyzer-lsp/output.yaml \
             --rules=/analyzer-lsp/rules \
-            --provider-settings=/analyzer-lsp/provider_settings.json
+            --provider-settings=/analyzer-lsp/provider_settings.json \
+            --dep-label-selector='!konveyor.io/dep-source=open-source'
 
       - name: Run e2e verification
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
@@ -225,6 +225,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ needs.detect-changes.outputs.image_tag }}
+      IMG_C_SHARP_PROVIDER: localhost/c-sharp-provider:${{ needs.detect-changes.outputs.image_tag }}
+      IMG_ANALYZER: localhost/konveyor-analyzer-lsp:${{ needs.detect-changes.outputs.image_tag }}
     outputs:
       api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
       tackle2_hub_tag: ${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}

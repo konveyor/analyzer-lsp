@@ -25,5 +25,10 @@
   effort: 1
   category: potential
   when:
-    nodejs.referenced:
-      pattern: "React"
+    and:
+    - nodejs.referenced:
+        pattern: "React"
+    - builtin.filecontent:
+        filePattern: "\\.tsx$"
+        pattern: "import.*React"
+      ignore: true

@@ -405,13 +405,13 @@
       incidents:
       - uri: file:///examples/golang/main.go
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 2  \n 3  import (\n 4  \t\"fmt\"\n 5  \n 6  \t\"github.com/konveyor/analyzer-lsp/examples/golang/dummy\"\n 7  \t\"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1\"\n 8  )\n 9  \n10  func main() {\n11  \tfmt.Println(v1beta1.CustomResourceDefinition{})\n12  \n13  \tfmt.Println(dummy.HelloWorld())\n14  }\n"
+        codeSnip: "\n 2  \n 3  import (\n 4  \"fmt\"\n 5  \n 6  \"github.com/konveyor/analyzer-lsp/examples/golang/dummy\"\n 7  \"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1\"\n 8  )\n 9  \n10  func main() {\n11  fmt.Println(v1beta1.CustomResourceDefinition{})\n12  \n13  fmt.Println(dummy.HelloWorld())\n14  }"
         lineNumber: 11
         variables:
           file: file:///examples/golang/main.go
       - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
+        codeSnip: "\n 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App\n 6  {\n 7  \n 8  /**\n 9  * {@link CustomResourceDefinition}\n10  * @param args\n11  */\n12  public static void main( String[] args )\n13  {"
         lineNumber: 3
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
@@ -420,7 +420,7 @@
           package: com.example.apps
       - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
+        codeSnip: "\n 4  \n 5  public class App\n 6  {\n 7  \n 8  /**\n 9  * {@link CustomResourceDefinition}\n10  * @param args\n11  */\n12  public static void main( String[] args )\n13  {\n14  CustomResourceDefinition crd = new CustomResourceDefinition();\n15  System.out.println( crd );\n16  \n17  GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18  element.get();\n19  }\n20  }"
         lineNumber: 14
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java

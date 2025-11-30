@@ -68,6 +68,8 @@ jobs:
   # generic provider requires go dep provider we built in matrix and needs to be sequential
   generic-external-provider-build:
     needs: image-build
+    env:
+      TAG: ${{ github.ref == 'refs/heads/main' && 'latest' || github.ref_name }}
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
       registry: "quay.io/konveyor"
@@ -75,7 +77,7 @@ jobs:
       containerfile: "./external-providers/generic-external-provider/Dockerfile"
       architectures: '[ "amd64", "arm64" ]'
       context: "."
-      extra-args: "GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:${{ env.tag }}"
+      extra-args: "GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:${{ env.TAG }}"
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
       registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}  

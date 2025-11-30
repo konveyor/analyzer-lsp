@@ -58,6 +58,45 @@ Flags:
 
 * See [label selector](./docs/labels.md#label-selector) for more info on `--label-selector` option.
 
+## Testing
+
+The project includes automated tests for all providers and the analyzer engine.
+
+### Run All Tests
+
+```sh
+make test-all
+```
+
+This runs tests for all providers (Java, Generic, YAML) and the analyzer engine.
+
+### Test Individual Providers
+
+```sh
+# Test Java provider
+make test-java
+
+# Test all generic providers (Go, Python, Node.js)
+make test-generic
+
+# Test YAML provider
+make test-yaml
+
+# Test analyzer engine with all providers
+make test-analyzer
+```
+
+### Test Specific Generic Providers
+
+```sh
+# Test individual generic providers
+make test-golang
+make test-python
+make test-nodejs
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed testing instructions and troubleshooting.
+
 ## Code Base Starting Point
 
 Using the LSP/Protocal from Golang https://github.com/golang/tools/tree/master/gopls/internal/lsp/protocol and stripping out anything related to serving, proxy or anything. Just keeping the types for communication

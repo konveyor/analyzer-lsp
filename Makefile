@@ -42,7 +42,7 @@ deps: build-dir
 	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer-dep build/konveyor-analyzer-dep.exe; fi
 
 image-build:
-	podman build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f Dockerfile . -t $(IMG_ANALYZER)
+	podman build -f Dockerfile . -t $(IMG_ANALYZER)
 
 build-external:image-build build-generic-provider build-java-provider build-yq-provider
 
@@ -99,7 +99,6 @@ run-demo-image:
 # Provider-specific test targets
 run-java-provider-pod:
 	podman volume create test-data
-	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-java
 	podman run --pod analyzer-java --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_JAVA_PROVIDER) --port 14651
@@ -113,7 +112,8 @@ run-demo-java:
 		localhost/$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
-		--provider-settings=/analyzer-lsp/provider_settings.json
+		--provider-settings=/analyzer-lsp/provider_settings.json \
+		--dep-label-selector='!konveyor.io/dep-source=open-source'
 
 stop-java-provider-pod:
 	podman pod kill analyzer-java || true
@@ -203,6 +203,11 @@ stop-yaml-provider-pod:
 	podman pod kill analyzer-yaml || true
 	podman pod rm analyzer-yaml || true
 	podman volume rm test-data || true
+
+
+test-all: test-all-providers test-analyzer
+
+test-analyzer: run-external-providers-pod run-demo-image stop-external-providers-pod
 
 # Run all provider tests sequentially
 test-all-providers: test-java test-generic test-yaml
