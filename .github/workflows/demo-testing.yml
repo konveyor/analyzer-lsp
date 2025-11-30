@@ -14,7 +14,7 @@ jobs:
     outputs:
       java: ${{ steps.filter.outputs.java }}
       generic: ${{ steps.filter.outputs.generic }}
-      yaml: ${{ steps.filter.outputs.yaml }}
+      yq: ${{ steps.filter.outputs.yq}}
       c-sharp: ${{ steps.filter.outputs.c-sharp }}
       image_tag: ${{ steps.set-tag.outputs.image_tag }}
     steps:
@@ -37,7 +37,7 @@ jobs:
               - '**'
               - '!external-providers/**'
               - 'external-providers/generic-external-provider/**'
-            yaml:
+            yq:
               - '**'
               - '!external-providers/**'
               - 'external-providers/yq-external-provider/**'
@@ -132,13 +132,30 @@ jobs:
             demo-output-path: external-providers/java-external-provider/e2e-tests/demo-output.yaml
             provider_settings-path: external-providers/java-external-provider/e2e-tests/provider_settings.json
             testing-rules: external-providers/java-external-provider/e2e-tests/rule-example.yaml
+            # Generic golang
           - provider: generic
             artifact_pattern: "{konveyor-analyzer-lsp,generic-provider,golang-dep-provider}"
             test-data: examples
             image_name: generic-provider
-            demo-output-path: external-providers/generic-external-provider/e2e-tests/demo-output.yaml
-            provider_settings-path: external-providers/generic-external-provider/e2e-tests/provider_settings.json
-            testing-rules: external-providers/generic-external-provider/e2e-tests/rule-example.yaml
+            demo-output-path: external-providers/generic-external-provider/e2e-tests/golang-e2e/demo-output.yaml
+            provider_settings-path: external-providers/generic-external-provider/e2e-tests/golang-e2e/provider_settings.json
+            testing-rules: external-providers/generic-external-provider/e2e-tests/golang-e2e/rule-example.yaml
+            # Generic python
+          - provider: generic
+            artifact_pattern: "{konveyor-analyzer-lsp,generic-provider}"
+            test-data: examples
+            image_name: generic-provider
+            demo-output-path: external-providers/generic-external-provider/e2e-tests/python-e2e/demo-output.yaml
+            provider_settings-path: external-providers/generic-external-provider/e2e-tests/python-e2e/provider_settings.json
+            testing-rules: external-providers/generic-external-provider/e2e-tests/python-e2e/rule-example.yaml
+            # Generic nodejs
+          - provider: generic
+            artifact_pattern: "{konveyor-analyzer-lsp,generic-provider}"
+            test-data: examples
+            image_name: generic-provider
+            demo-output-path: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/demo-output.yaml
+            provider_settings-path: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/provider_settings.json
+            testing-rules: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/rule-example.yaml
           - provider: yaml
             artifact_pattern: "{konveyor-analyzer-lsp,yq-provider}"
             test-data: examples

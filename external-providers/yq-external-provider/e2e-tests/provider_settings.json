@@ -1,7 +1,7 @@
 [
     {
         "name": "yaml",
-        "address": "localhost:14652",
+        "address": "localhost:14651",
         "initConfig": [{
             "location": "/analyzer-lsp/examples/yaml",
             "analysisMode": "full",

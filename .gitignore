@@ -13,7 +13,7 @@ org.eclipse.core*
 org.eclipse.osgi*
 org.eclipse.equinox*
 provider_settings.json
-!external-providers/*/e2e-tests/provider_settings.json
+!external-providers/**/provider_settings.json
 build/
 konveyor-analyzer
 konveyor-analyzer-dep

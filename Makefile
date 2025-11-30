@@ -10,11 +10,7 @@ OS := $(shell uname -s)
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 
-ifeq ($(OS),Linux)
-	MOUNT_OPT := :z
-else
-	MOUNT_OPT :=
-endif
+MOUNT_OPT := :z
 
 build-dir:
 	mkdir -p build
@@ -124,35 +120,73 @@ stop-java-provider-pod:
 	podman pod rm analyzer-java || true
 	podman volume rm test-data || true
 
-run-generic-provider-pod:
+run-generic-golang-provider-pod:
 	podman volume create test-data
 	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
-	podman pod create --name=analyzer-generic
-	podman run --entrypoint /usr/local/bin/entrypoint.sh --pod analyzer-generic --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_GENERIC_PROVIDER) --port 14653
-	podman run --pod analyzer-generic --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_GENERIC_PROVIDER) --port 14654 --name nodejs
-	podman run --pod analyzer-generic --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
+	podman pod create --name=analyzer-generic-golang
+	podman run --pod analyzer-generic-golang --name golang -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_GENERIC_PROVIDER) --port 14651 --name generic
+run-generic-python-provider-pod:
+	podman volume create test-data
+	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman pod create --name=analyzer-generic-python
+	podman run --pod analyzer-generic-python --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_GENERIC_PROVIDER) --port 14651 --name pylsp
+run-generic-nodejs-provider-pod:
+	podman volume create test-data
+	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman pod create --name=analyzer-generic-nodejs
+	podman run --pod analyzer-generic-nodejs --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_GENERIC_PROVIDER) --port 14651 --name nodejs
 
-run-demo-generic:
-	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic \
+run-demo-generic-golang:
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-golang \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		localhost/$(IMG_ANALYZER) \
+		--output-file=/analyzer-lsp/output.yaml \
+		--rules=/analyzer-lsp/rule-example.yaml \
+		--provider-settings=/analyzer-lsp/provider_settings.json
+run-demo-generic-python:
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-python \
+		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		localhost/$(IMG_ANALYZER) \
+		--output-file=/analyzer-lsp/output.yaml \
+		--rules=/analyzer-lsp/rule-example.yaml \
+		--provider-settings=/analyzer-lsp/provider_settings.json
+run-demo-generic-nodejs:
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-nodejs \
+		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
 		localhost/$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
 		--provider-settings=/analyzer-lsp/provider_settings.json
 
-stop-generic-provider-pod:
-	podman pod kill analyzer-generic || true
-	podman pod rm analyzer-generic || true
+stop-generic-golang-provider-pod:
+	podman pod kill analyzer-generic-golang || true
+	podman pod rm analyzer-generic-golang || true
+	podman volume rm test-data || true
+
+stop-generic-python-provider-pod:
+	podman pod kill analyzer-generic-python || true
+	podman pod rm analyzer-generic-python || true
+	podman volume rm test-data || true
+
+stop-generic-nodejs-provider-pod:
+	podman pod kill analyzer-generic-nodejs || true
+	podman pod rm analyzer-generic-nodejs || true
 	podman volume rm test-data || true
 
 run-yaml-provider-pod:
 	podman volume create test-data
 	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-yaml
-	podman run --pod analyzer-yaml --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_YQ_PROVIDER) --port 14652
+	podman run --pod analyzer-yaml --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) localhost/$(IMG_YQ_PROVIDER) --port 14651
 
 run-demo-yaml:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-yaml \
@@ -176,7 +210,13 @@ test-all-providers: test-java test-generic test-yaml
 
 test-java: run-java-provider-pod run-demo-java stop-java-provider-pod
 
-test-generic: run-generic-provider-pod run-demo-generic stop-generic-provider-pod
+test-golang: run-generic-golang-provider-pod run-demo-generic-golang stop-generic-golang-provider-pod
+
+test-python: run-generic-python-provider-pod run-demo-generic-python stop-generic-python-provider-pod
+
+test-nodejs: run-generic-nodejs-provider-pod run-demo-generic-nodejs stop-generic-nodejs-provider-pod
+
+test-generic: test-nodejs test-python test-golang 
 
 test-yaml: run-yaml-provider-pod run-demo-yaml stop-yaml-provider-pod
 
