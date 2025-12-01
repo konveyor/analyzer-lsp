@@ -59,6 +59,8 @@ func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	}
 	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath()
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
+	log.Info("found m2 local repo: ", mvnLocalRepo)
+
 	// Once we get a binary, we need to wait for resolve to complete before handing back any information.
 	resolveSync := sync.Mutex{}
 	resolveSync.Lock()

@@ -313,6 +313,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		MavenIndexPath:  mavenSHASearchIndex,
 		Labeler:         openSourceLabeler,
 		GradleTaskFile:  gradleTaskFile,
+
 	}, log)
 	if buildTool == nil {
 		return nil, additionalBuiltinConfig, errors.New("unable to get build tool")
