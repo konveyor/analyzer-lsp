@@ -16,7 +16,9 @@ type dependencyLocationResolverClient struct {
 
 // GetLocation implements provider.DependencyLocationResolver.
 func (d *dependencyLocationResolverClient) GetLocation(ctx context.Context, dep konveyor.Dep, depFile string) (engine.Location, error) {
-	extras, err := structpb.NewStruct(dep.Extras)
+	// Convert typed slices to []interface{} for protobuf compatibility
+	convertedExtras := convertTypedSlices(dep.Extras)
+	extras, err := structpb.NewStruct(convertedExtras)
 	if err != nil {
 		return engine.Location{}, err
 	}

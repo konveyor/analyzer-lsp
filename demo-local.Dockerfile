@@ -10,6 +10,7 @@ COPY provider_pod_local_settings.json /analyzer-lsp/provider_settings.json
 
 RUN python3 -m venv /analyzer-lsp/examples/python/.venv
 RUN yes | python3 -m pip install -r /analyzer-lsp/examples/python/requirements.txt
+RUN cd /analyzer-lsp/examples/nodejs && npm install
 
 EXPOSE 16686
 

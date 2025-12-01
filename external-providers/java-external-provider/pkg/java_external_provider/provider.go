@@ -397,8 +397,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		"--add-modules=ALL-SYSTEM",
 		"--add-opens", "java.base/java.util=ALL-UNNAMED",
 		"--add-opens", "java.base/java.lang=ALL-UNNAMED",
-		"-jar", jarPath,
 		"-Djava.net.useSystemProxies=true",
+		"-jar", jarPath,
 		"-configuration", "./",
 		"-data", workspace,
 	}
@@ -515,6 +515,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, additionalBuiltinConfig, err
 	}
 	return &svcClient, additionalBuiltinConfig, nil
+}
+
+func (p *javaProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
 }
 
 // GetLocation given a dep, attempts to find line number, caches the line number for a given dep

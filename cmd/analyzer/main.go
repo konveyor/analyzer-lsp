@@ -290,8 +290,9 @@ func AnalysisCmd() *cobra.Command {
 			}
 			ruleSets := []engine.RuleSet{}
 			needProviders := map[string]provider.InternalProviderClient{}
+			providerConditions := map[string][]provider.ConditionsByCap{}
 			for _, f := range rulesFile {
-				internRuleSet, internNeedProviders, err := parser.LoadRules(f)
+				internRuleSet, internNeedProviders, provConditions, err := parser.LoadRules(f)
 				if err != nil {
 					errLog.Error(err, "unable to parse all the rules for ruleset", "file", f)
 				}
@@ -299,7 +300,14 @@ func AnalysisCmd() *cobra.Command {
 				for k, v := range internNeedProviders {
 					needProviders[k] = v
 				}
+				for k, v := range provConditions {
+					if _, ok := providerConditions[k]; !ok {
+						providerConditions[k] = []provider.ConditionsByCap{}
+					}
+					providerConditions[k] = append(providerConditions[k], v...)
+				}
 			}
+
 			// Now that we have all the providers, we need to start them.
 			additionalBuiltinConfigs := []provider.InitConfig{}
 			for name, provider := range needProviders {
@@ -329,6 +337,15 @@ func AnalysisCmd() *cobra.Command {
 					errLog.Error(err, "unable to init builtin provider")
 					progressCleanup()
 					os.Exit(1)
+				}
+			}
+
+			// Call Prepare() on all providers
+			for name, conditions := range providerConditions {
+				if provider, ok := needProviders[name]; ok {
+					if err := provider.Prepare(ctx, conditions); err != nil {
+						errLog.Error(err, "unable to prepare provider", "provider", name)
+					}
 				}
 			}
 
@@ -384,7 +401,7 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&labelSelector, "label-selector", "", "an expression to select rules based on labels")
 	rootCmd.Flags().StringVar(&depLabelSelector, "dep-label-selector", "", "an expression to select dependencies based on labels. This will filter out the violations from these dependencies as well these dependencies when matching dependency conditions")
 	rootCmd.Flags().StringVar(&incidentSelector, "incident-selector", "", "an expression to select incidents based on custom variables. ex: (!package=io.konveyor.demo.config-utils)")
-	rootCmd.Flags().IntVar(&logLevel, "verbose", 9, "level for logging output")
+	rootCmd.Flags().IntVar(&logLevel, "verbose", 5, "level for logging output")
 	rootCmd.Flags().BoolVar(&enableJaeger, "enable-jaeger", false, "enable tracer exports to jaeger endpoint")
 	rootCmd.Flags().StringVar(&jaegerEndpoint, "jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
 	rootCmd.Flags().IntVar(&limitIncidents, "limit-incidents", 1500, "Set this to the limit incidents that a given rule can give, zero means no limit")

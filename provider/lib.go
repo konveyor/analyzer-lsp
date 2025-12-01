@@ -54,6 +54,13 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	f.Log.V(5).Info("searching for files", "criteria", s, "additionalPaths", f.AdditionalPaths,
 		"ruleScopedConstraints", f.RuleScopeConstraints, "providerScopeConstraints", f.ProviderConfigConstraints)
 
+	var excludedDirs, excludedPatterns []string
+	if len(f.RuleScopeConstraints.ExcludePathsOrPatterns) > 0 {
+		excludedDirs, _, excludedPatterns = splitPathsAndPatterns(statFunc, f.RuleScopeConstraints.ExcludePathsOrPatterns...)
+	} else {
+		excludedDirs, _, excludedPatterns = splitPathsAndPatterns(statFunc, f.ProviderConfigConstraints.ExcludePathsOrPatterns...)
+	}
+
 	// Patterns from search criteria take the highest priority
 	// they contain patterns from cond.ctx.Filepaths
 	searchCriteriaPaths := []string{}
@@ -65,7 +72,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	if len(searchCriteriaPatterns) > 0 {
 		allFiles := []string{}
 		for _, path := range append(f.AdditionalPaths, f.BasePath) {
-			files, walkError := walkDirFunc(path)
+			files, walkError := walkDirFunc(path, excludedDirs, excludedPatterns)
 			if walkError != nil {
 				if f.FailFast {
 					return nil, fmt.Errorf("failed to walk dirs - %w", walkError)
@@ -95,7 +102,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	// If there were included dirs, find files from them
 	filesFromIncludedDirs := []string{}
 	for _, dir := range includedDirs {
-		files, walkError := walkDirFunc(dir)
+		files, walkError := walkDirFunc(dir, excludedDirs, excludedPatterns)
 		if walkError != nil {
 			if f.FailFast {
 				return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
@@ -131,7 +138,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	// if there are any additional paths to search
 	// we need to include them e.g. working copies
 	for _, path := range f.AdditionalPaths {
-		files, walkError := walkDirFunc(path)
+		files, walkError := walkDirFunc(path, excludedDirs, excludedPatterns)
 		if walkError != nil {
 			if f.FailFast {
 				return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
@@ -150,7 +157,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 		// this is the next set of files we want to scope on
 		finalSearchResult = append(finalSearchResult, includedFiles...)
 		if len(includedPatterns) > 0 {
-			files, walkError := walkDirFunc(f.BasePath)
+			files, walkError := walkDirFunc(f.BasePath, excludedDirs, excludedPatterns)
 			if walkError != nil {
 				if f.FailFast {
 					return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
@@ -163,7 +170,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	} else {
 		// if there are no included files so far we have
 		// to search for all files in base path
-		files, walkError := walkDirFunc(f.BasePath)
+		files, walkError := walkDirFunc(f.BasePath, excludedDirs, excludedPatterns)
 		if walkError != nil {
 			if f.FailFast {
 				return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
@@ -188,7 +195,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 			statFunc, f.ProviderConfigConstraints.ExcludePathsOrPatterns, finalSearchResult, true)
 	}
 
-	f.Log.V(5).Info("returning file search result", "files", finalSearchResult)
+	f.Log.V(7).Info("returning file search result", "files", finalSearchResult)
 	return finalSearchResult, errors.Join(walkErrors...)
 }
 
@@ -275,14 +282,14 @@ func splitPathsAndPatterns(statFunc cachedOsStat, pathsOrPatterns ...string) (di
 	return
 }
 
-type cachedWalkDir func(path string) ([]string, error)
+type cachedWalkDir func(path string, excludedDirs []string, excludedPatterns []string) ([]string, error)
 
 func newCachedWalkDir() cachedWalkDir {
 	cache := make(map[string]struct {
 		files []string
 		err   error
 	})
-	return func(basePath string) ([]string, error) {
+	return func(basePath string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
 		val, ok := cache[basePath]
 		if !ok {
 			files := []string{}
@@ -292,6 +299,26 @@ func newCachedWalkDir() cachedWalkDir {
 				}
 				if !d.IsDir() {
 					files = append(files, path)
+					return nil
+				}
+				// do not recurse into excluded dirs
+				for _, excludedDir := range excludedDirs {
+					relPath, err := filepath.Rel(basePath, path)
+					if err == nil && (relPath == excludedDir || strings.HasPrefix(relPath, excludedDir)) {
+						return fs.SkipDir
+					}
+				}
+				for _, excludedPattern := range excludedPatterns {
+					if !strings.Contains(excludedPattern, "*") {
+						continue
+					}
+					regex, err := regexp.Compile(excludedPattern)
+					if err != nil {
+						continue
+					}
+					if regex.MatchString(path) || regex.MatchString(filepath.Base(path)) {
+						return fs.SkipDir
+					}
 				}
 				return nil
 			})

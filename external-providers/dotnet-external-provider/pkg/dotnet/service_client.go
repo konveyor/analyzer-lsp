@@ -38,6 +38,10 @@ func (d *dotnetServiceClient) Stop() {
 	d.cmd.Wait()
 }
 
+func (d *dotnetServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
 func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	var cond dotnetCondition
 	err := yaml.Unmarshal(conditionInfo, &cond)
