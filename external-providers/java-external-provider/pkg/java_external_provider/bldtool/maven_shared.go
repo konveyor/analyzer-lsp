@@ -143,7 +143,7 @@ func (m *mavenBaseTool) pomCoordinate(value *string) string {
 	return "unknown"
 }
 
-func (m *mavenBaseTool) getMavenLocalRepoPath() string {
+func (m *mavenBaseTool) getMavenLocalRepoPath(log logr.Logger) string {
 	args := []string{
 		"help:evaluate", "-Dexpression=settings.localRepository", "-q", "-DforceStdout",
 	}
@@ -155,9 +155,12 @@ func (m *mavenBaseTool) getMavenLocalRepoPath() string {
 	cmd.Stdout = &outb
 	err := cmd.Run()
 	if err != nil {
+		log.Error(err, "could not get maven local repo path")
 		return ""
 	}
 
+	s := outb.String()
+	log.Info("got maven local repo path", s)
 	// check errors
-	return outb.String()
+	return s
 }

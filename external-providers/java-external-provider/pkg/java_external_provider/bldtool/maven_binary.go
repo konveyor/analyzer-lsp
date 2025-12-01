@@ -57,7 +57,7 @@ func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 		log:             log,
 		labeler:         opts.Labeler,
 	}
-	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath()
+	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath(log)
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
 	log.Info("found m2 local repo: ", mvnLocalRepo)
 
