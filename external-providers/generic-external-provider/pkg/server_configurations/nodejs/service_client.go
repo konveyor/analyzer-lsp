@@ -189,46 +189,43 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		basePath = strings.TrimPrefix(basePath, "file://")
 	}
 
-	// Only use FileSearcher if we have any filepath constraints
-	fileMap := make(map[string]struct{})
-	if len(includedFilepaths) > 0 || len(excludedFilepaths) > 0 {
-		fileSearcher := provider.FileSearcher{
-			BasePath: basePath,
-			ProviderConfigConstraints: provider.IncludeExcludeConstraints{
-				IncludePathsOrPatterns: []string{},
-				ExcludePathsOrPatterns: sc.BaseConfig.DependencyFolders,
-			},
-			RuleScopeConstraints: provider.IncludeExcludeConstraints{
-				IncludePathsOrPatterns: includedFilepaths,
-				ExcludePathsOrPatterns: excludedFilepaths,
-			},
-			FailFast: true,
-			Log:      sc.Log,
-		}
-
-		// Run file search in a goroutine to build allowed file map
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// Note: nodejs conditions don't have a Filepaths field like java does
-			// so we pass empty ConditionFilepaths
-			paths, err := fileSearcher.Search(provider.SearchCriteria{
-				ConditionFilepaths: []string{},
-			})
-			if err != nil {
-				sc.Log.Error(err, "failed to search for files")
-				return
-			}
-			for _, path := range paths {
-				normalizedPath := provider.NormalizePathForComparison(path)
-				fileMap[normalizedPath] = struct{}{}
-			}
-		}()
-
-		// Wait for file search to complete
-		wg.Wait()
+	fileSearcher := provider.FileSearcher{
+		BasePath: basePath,
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: []string{},
+			ExcludePathsOrPatterns: sc.BaseConfig.DependencyFolders,
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedFilepaths,
+			ExcludePathsOrPatterns: excludedFilepaths,
+		},
+		FailFast: true,
+		Log:      sc.Log,
 	}
+
+	// Run file search in a goroutine to build allowed file map
+	fileMap := make(map[string]struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Note: nodejs conditions don't have a Filepaths field like java does
+		// so we pass empty ConditionFilepaths
+		paths, err := fileSearcher.Search(provider.SearchCriteria{
+			ConditionFilepaths: []string{},
+		})
+		if err != nil {
+			sc.Log.Error(err, "failed to search for files")
+			return
+		}
+		for _, path := range paths {
+			normalizedPath := provider.NormalizePathForComparison(path)
+			fileMap[normalizedPath] = struct{}{}
+		}
+	}()
+
+	// Wait for file search to complete
+	wg.Wait()
 
 	// Query symbols once after all files are indexed
 	symbols := sc.GetAllDeclarations(ctx, query, false)
@@ -241,11 +238,9 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	for _, incident := range incidentsMap {
 		normalizedIncidentPath := provider.NormalizePathForComparison(string(incident.FileURI))
 
-		// If FileSearcher found specific files, filter to only those files
-		if len(fileMap) > 0 {
-			if _, ok := fileMap[normalizedIncidentPath]; !ok {
-				continue
-			}
+		// Filter to only files found by FileSearcher
+		if _, ok := fileMap[normalizedIncidentPath]; !ok {
+			continue
 		}
 
 		incidents = append(incidents, incident)

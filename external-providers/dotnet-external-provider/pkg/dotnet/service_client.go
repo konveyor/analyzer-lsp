@@ -66,45 +66,42 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 	// 3. Condition filepaths (if they exist in the condition)
 	includedFilepaths, excludedFilepaths := cond.ProviderContext.GetScopedFilepaths()
 
-	// Only use FileSearcher if we have any filepath constraints
-	fileMap := make(map[string]struct{})
-	if len(includedFilepaths) > 0 || len(excludedFilepaths) > 0 {
-		fileSearcher := provider.FileSearcher{
-			BasePath: d.config.Location,
-			ProviderConfigConstraints: provider.IncludeExcludeConstraints{
-				IncludePathsOrPatterns: provider.GetIncludedPathsFromConfig(d.config, true),
-				ExcludePathsOrPatterns: provider.GetExcludedDirsFromConfig(d.config),
-			},
-			RuleScopeConstraints: provider.IncludeExcludeConstraints{
-				IncludePathsOrPatterns: includedFilepaths,
-				ExcludePathsOrPatterns: excludedFilepaths,
-			},
-			FailFast: true,
-			Log:      d.log,
-		}
-
-		// Run file search in a goroutine to build allowed file map
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// Note: dotnet conditions don't have a Filepaths field
-			paths, err := fileSearcher.Search(provider.SearchCriteria{
-				ConditionFilepaths: []string{},
-			})
-			if err != nil {
-				d.log.Error(err, "failed to search for files")
-				return
-			}
-			for _, path := range paths {
-				normalizedPath := provider.NormalizePathForComparison(path)
-				fileMap[normalizedPath] = struct{}{}
-			}
-		}()
-
-		// Wait for file search to complete
-		wg.Wait()
+	fileSearcher := provider.FileSearcher{
+		BasePath: d.config.Location,
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: provider.GetIncludedPathsFromConfig(d.config, true),
+			ExcludePathsOrPatterns: provider.GetExcludedDirsFromConfig(d.config),
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedFilepaths,
+			ExcludePathsOrPatterns: excludedFilepaths,
+		},
+		FailFast: true,
+		Log:      d.log,
 	}
+
+	// Run file search in a goroutine to build allowed file map
+	fileMap := make(map[string]struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Note: dotnet conditions don't have a Filepaths field
+		paths, err := fileSearcher.Search(provider.SearchCriteria{
+			ConditionFilepaths: []string{},
+		})
+		if err != nil {
+			d.log.Error(err, "failed to search for files")
+			return
+		}
+		for _, path := range paths {
+			normalizedPath := provider.NormalizePathForComparison(path)
+			fileMap[normalizedPath] = struct{}{}
+		}
+	}()
+
+	// Wait for file search to complete
+	wg.Wait()
 
 	symbols := d.GetAllSymbols(query)
 	incidents := []provider.IncidentContext{}
@@ -115,11 +112,9 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 				if strings.Contains(ref.URI.Filename(), d.config.Location) {
 					normalizedRefPath := provider.NormalizePathForComparison(string(ref.URI))
 
-					// If FileSearcher found specific files, filter to only those files
-					if len(fileMap) > 0 {
-						if _, ok := fileMap[normalizedRefPath]; !ok {
-							continue
-						}
+					// Filter to only files found by FileSearcher
+					if _, ok := fileMap[normalizedRefPath]; !ok {
+						continue
 					}
 
 					lineNumber := int(ref.Range.Start.Line)
@@ -185,11 +180,9 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 					if strings.HasPrefix(split[1], namespace) {
 						normalizedRPath := provider.NormalizePathForComparison(string(r.URI))
 
-						// If FileSearcher found specific files, filter to only those files
-						if len(fileMap) > 0 {
-							if _, ok := fileMap[normalizedRPath]; !ok {
-								continue
-							}
+						// Filter to only files found by FileSearcher
+						if _, ok := fileMap[normalizedRPath]; !ok {
+							continue
 						}
 
 						lineNumber := int(r.Range.Start.Line)

@@ -225,26 +225,22 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	// Wait for file search to complete
 	wg.Wait()
 
-	// If FileSearcher found specific files, filter symbols to only those files
-	if len(fileMap) > 0 {
-		var filteredRefs []protocol.WorkspaceSymbol
-		for _, ref := range refs {
-			refLocation, ok := ref.Location.Value.(protocol.Location)
-			if !ok {
-				p.log.V(7).Info("unexpected location type in workspace symbol", "symbol", ref.Name)
-				continue
-			}
-			normalizedRefURI := provider.NormalizePathForComparison(string(refLocation.URI))
-
-			// Check if file is in the allowed file map
-			if _, ok := fileMap[normalizedRefURI]; ok {
-				filteredRefs = append(filteredRefs, ref)
-			}
+	// Filter symbols to only those in files found by FileSearcher
+	var filteredRefs []protocol.WorkspaceSymbol
+	for _, ref := range refs {
+		refLocation, ok := ref.Location.Value.(protocol.Location)
+		if !ok {
+			p.log.V(7).Info("unexpected location type in workspace symbol", "symbol", ref.Name)
+			continue
 		}
-		return filteredRefs, nil
-	}
+		normalizedRefURI := provider.NormalizePathForComparison(string(refLocation.URI))
 
-	return refs, nil
+		// Check if file is in the allowed file map
+		if _, ok := fileMap[normalizedRefURI]; ok {
+			filteredRefs = append(filteredRefs, ref)
+		}
+	}
+	return filteredRefs, nil
 }
 
 
