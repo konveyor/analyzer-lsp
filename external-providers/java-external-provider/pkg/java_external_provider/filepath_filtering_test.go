@@ -2,6 +2,7 @@ package java
 
 import (
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -242,7 +243,8 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 	// Create test data with many symbols and scoped paths
 	symbols := make([]protocol.WorkspaceSymbol, 10000)
 	for i := 0; i < 10000; i++ {
-		path := protocol.DocumentURI("file:///project/src/File" + string(rune(i)) + ".java")
+		suffix := strconv.Itoa(i)
+		path := protocol.DocumentURI("file:///project/src/File" + suffix + ".java")
 		sym := protocol.WorkspaceSymbol{
 			Location: protocol.OrPLocation_workspace_symbol{
 				Value: protocol.Location{
@@ -256,7 +258,7 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 
 	includedPaths := make([]string, 100)
 	for i := 0; i < 100; i++ {
-		includedPaths[i] = "/project/src/File" + string(rune(i)) + ".java"
+		includedPaths[i] = "/project/src/File" + strconv.Itoa(i) + ".java"
 	}
 
 	b.Run("with map optimization", func(b *testing.B) {

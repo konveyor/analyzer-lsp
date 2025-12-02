@@ -2,6 +2,7 @@ package nodejs
 
 import (
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -231,13 +232,14 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 	// Create test data with many incidents and scoped paths
 	incidents := make(map[string]provider.IncidentContext)
 	for i := 0; i < 10000; i++ {
-		path := uri.URI(uri.File("/project/src/file" + string(rune(i)) + ".tsx"))
-		incidents[string(rune(i))] = provider.IncidentContext{FileURI: path}
+		suffix := strconv.Itoa(i)
+		path := uri.URI(uri.File("/project/src/file" + suffix + ".tsx"))
+		incidents[suffix] = provider.IncidentContext{FileURI: path}
 	}
 
 	includedPaths := make([]string, 100)
 	for i := 0; i < 100; i++ {
-		includedPaths[i] = "/project/src/file" + string(rune(i)) + ".tsx"
+		includedPaths[i] = "/project/src/file" + strconv.Itoa(i) + ".tsx"
 	}
 
 	b.Run("with map optimization", func(b *testing.B) {
