@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -204,7 +203,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 			if excludedPath == "" {
 				continue // Skip empty strings
 			}
-			normalizedPath := normalizePathForComparison(excludedPath)
+			normalizedPath := provider.NormalizePathForComparison(excludedPath)
 			excludedPathsMap[normalizedPath] = true
 		}
 
@@ -213,7 +212,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 			if includedPath == "" {
 				continue // Skip empty strings
 			}
-			normalizedPath := normalizePathForComparison(includedPath)
+			normalizedPath := provider.NormalizePathForComparison(includedPath)
 			includedPathsMap[normalizedPath] = true
 		}
 
@@ -224,7 +223,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 				p.log.V(7).Info("unexpected location type in workspace symbol", "symbol", ref.Name)
 				continue
 			}
-			normalizedRefURI := normalizePathForComparison(string(refLocation.URI))
+			normalizedRefURI := provider.NormalizePathForComparison(string(refLocation.URI))
 
 			// Check if excluded (O(1) lookup)
 			if excludedPathsMap[normalizedRefURI] {
@@ -244,25 +243,6 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	return refs, nil
 }
 
-// normalizePathForComparison removes URI schemes and cleans paths for comparison.
-// It handles cross-platform path differences including:
-// - URI schemes (file://, file:)
-// - Path separators (converts backslashes to forward slashes)
-// - Case sensitivity (normalizes to lowercase on Windows)
-func normalizePathForComparison(path string) string {
-	// Remove common URI schemes (some systems emit file: instead of file://)
-	path = strings.TrimPrefix(path, "file://")
-	path = strings.TrimPrefix(path, "file:")
-	// Clean the path to resolve . and .. elements
-	path = filepath.Clean(path)
-	// Convert to forward slashes for consistent comparison across platforms
-	path = filepath.ToSlash(path)
-	// On Windows, normalize to lowercase for case-insensitive comparison
-	if runtime.GOOS == "windows" {
-		path = strings.ToLower(path)
-	}
-	return path
-}
 
 func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protocol.WorkspaceSymbol) []protocol.Location {
 	var locationURI protocol.DocumentURI

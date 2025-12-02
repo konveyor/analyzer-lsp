@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
@@ -55,14 +56,14 @@ func TestNormalizePathForComparison(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := normalizePathForComparison(tt.input)
+			result := provider.NormalizePathForComparison(tt.input)
 			expected := tt.expected
 			// On Windows, paths are normalized to lowercase (except csharp: URIs)
 			if runtime.GOOS == "windows" && !strings.HasPrefix(tt.input, "csharp:") {
 				expected = strings.ToLower(expected)
 			}
 			if result != expected {
-				t.Errorf("normalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
+				t.Errorf("provider.NormalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
 			}
 		})
 	}
@@ -186,20 +187,20 @@ func TestFilepathFiltering(t *testing.T) {
 			// Build maps for O(1) lookups
 			excludedPathsMap := make(map[string]bool, len(tt.excludedFilepaths))
 			for _, excludedPath := range tt.excludedFilepaths {
-				normalizedPath := normalizePathForComparison(excludedPath)
+				normalizedPath := provider.NormalizePathForComparison(excludedPath)
 				excludedPathsMap[normalizedPath] = true
 			}
 
 			includedPathsMap := make(map[string]bool, len(tt.includedFilepaths))
 			for _, includedPath := range tt.includedFilepaths {
-				normalizedPath := normalizePathForComparison(includedPath)
+				normalizedPath := provider.NormalizePathForComparison(includedPath)
 				includedPathsMap[normalizedPath] = true
 			}
 
 			// Filter locations
 			filteredLocations := []protocol.Location{}
 			for _, loc := range tt.locations {
-				normalizedPath := normalizePathForComparison(string(loc.URI))
+				normalizedPath := provider.NormalizePathForComparison(string(loc.URI))
 
 				// Check if excluded
 				if excludedPathsMap[normalizedPath] {
@@ -222,12 +223,12 @@ func TestFilepathFiltering(t *testing.T) {
 			// Verify expected paths are present
 			foundPaths := make(map[string]bool)
 			for _, loc := range filteredLocations {
-				normalizedPath := normalizePathForComparison(string(loc.URI))
+				normalizedPath := provider.NormalizePathForComparison(string(loc.URI))
 				foundPaths[normalizedPath] = true
 			}
 
 			for _, expectedPath := range tt.expectedPaths {
-				normalizedExpectedPath := normalizePathForComparison(expectedPath)
+				normalizedExpectedPath := provider.NormalizePathForComparison(expectedPath)
 				if !foundPaths[normalizedExpectedPath] {
 					t.Errorf("Expected path %q not found in filtered locations", expectedPath)
 				}
@@ -259,14 +260,14 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 			// Build maps
 			includedPathsMap := make(map[string]bool, len(includedPaths))
 			for _, includedPath := range includedPaths {
-				normalizedPath := normalizePathForComparison(includedPath)
+				normalizedPath := provider.NormalizePathForComparison(includedPath)
 				includedPathsMap[normalizedPath] = true
 			}
 
 			// Filter
 			filtered := []protocol.Location{}
 			for _, loc := range locations {
-				normalizedPath := normalizePathForComparison(string(loc.URI))
+				normalizedPath := provider.NormalizePathForComparison(string(loc.URI))
 				if len(includedPathsMap) > 0 && !includedPathsMap[normalizedPath] {
 					continue
 				}
@@ -280,12 +281,12 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 			// Filter with nested loops
 			filtered := []protocol.Location{}
 			for _, loc := range locations {
-				normalizedLocPath := normalizePathForComparison(string(loc.URI))
+				normalizedLocPath := provider.NormalizePathForComparison(string(loc.URI))
 
 				if len(includedPaths) > 0 {
 					found := false
 					for _, includedPath := range includedPaths {
-						normalizedIncludedPath := normalizePathForComparison(includedPath)
+						normalizedIncludedPath := provider.NormalizePathForComparison(includedPath)
 						if normalizedLocPath == normalizedIncludedPath {
 							found = true
 							break

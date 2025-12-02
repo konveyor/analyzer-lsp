@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
+	"github.com/konveyor/analyzer-lsp/provider"
 )
 
 func TestNormalizePathForComparison(t *testing.T) {
@@ -49,14 +50,14 @@ func TestNormalizePathForComparison(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := normalizePathForComparison(tt.input)
+			result := provider.NormalizePathForComparison(tt.input)
 			expected := tt.expected
 			// On Windows, paths are normalized to lowercase
 			if runtime.GOOS == "windows" {
 				expected = strings.ToLower(expected)
 			}
 			if result != expected {
-				t.Errorf("normalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
+				t.Errorf("provider.NormalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
 			}
 		})
 	}
@@ -183,13 +184,13 @@ func TestFilepathFiltering(t *testing.T) {
 			// Build maps for O(1) lookups
 			excludedPathsMap := make(map[string]bool, len(tt.excludedFilepaths))
 			for _, excludedPath := range tt.excludedFilepaths {
-				normalizedPath := normalizePathForComparison(excludedPath)
+				normalizedPath := provider.NormalizePathForComparison(excludedPath)
 				excludedPathsMap[normalizedPath] = true
 			}
 
 			includedPathsMap := make(map[string]bool, len(tt.includedFilepaths))
 			for _, includedPath := range tt.includedFilepaths {
-				normalizedPath := normalizePathForComparison(includedPath)
+				normalizedPath := provider.NormalizePathForComparison(includedPath)
 				includedPathsMap[normalizedPath] = true
 			}
 
@@ -200,7 +201,7 @@ func TestFilepathFiltering(t *testing.T) {
 				if !ok {
 					continue
 				}
-				normalizedRefURI := normalizePathForComparison(string(refLocation.URI))
+				normalizedRefURI := provider.NormalizePathForComparison(string(refLocation.URI))
 
 				// Check if excluded
 				if excludedPathsMap[normalizedRefURI] {
@@ -224,13 +225,13 @@ func TestFilepathFiltering(t *testing.T) {
 			foundPaths := make(map[string]bool)
 			for _, symbol := range filteredSymbols {
 				if refLocation, ok := symbol.Location.Value.(protocol.Location); ok {
-					normalizedPath := normalizePathForComparison(string(refLocation.URI))
+					normalizedPath := provider.NormalizePathForComparison(string(refLocation.URI))
 					foundPaths[normalizedPath] = true
 				}
 			}
 
 			for _, expectedPath := range tt.expectedPaths {
-				normalizedExpectedPath := normalizePathForComparison(expectedPath)
+				normalizedExpectedPath := provider.NormalizePathForComparison(expectedPath)
 				if !foundPaths[normalizedExpectedPath] {
 					t.Errorf("Expected path %q not found in filtered symbols", expectedPath)
 				}
@@ -266,7 +267,7 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 			// Build maps
 			includedPathsMap := make(map[string]bool, len(includedPaths))
 			for _, includedPath := range includedPaths {
-				normalizedPath := normalizePathForComparison(includedPath)
+				normalizedPath := provider.NormalizePathForComparison(includedPath)
 				includedPathsMap[normalizedPath] = true
 			}
 
@@ -274,7 +275,7 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 			filtered := []protocol.WorkspaceSymbol{}
 			for _, symbol := range symbols {
 				if refLocation, ok := symbol.Location.Value.(protocol.Location); ok {
-					normalizedPath := normalizePathForComparison(string(refLocation.URI))
+					normalizedPath := provider.NormalizePathForComparison(string(refLocation.URI))
 					if len(includedPathsMap) > 0 && !includedPathsMap[normalizedPath] {
 						continue
 					}
@@ -290,12 +291,12 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 			filtered := []protocol.WorkspaceSymbol{}
 			for _, symbol := range symbols {
 				if refLocation, ok := symbol.Location.Value.(protocol.Location); ok {
-					normalizedSymbolPath := normalizePathForComparison(string(refLocation.URI))
+					normalizedSymbolPath := provider.NormalizePathForComparison(string(refLocation.URI))
 
 					if len(includedPaths) > 0 {
 						found := false
 						for _, includedPath := range includedPaths {
-							normalizedIncludedPath := normalizePathForComparison(includedPath)
+							normalizedIncludedPath := provider.NormalizePathForComparison(includedPath)
 							if normalizedSymbolPath == normalizedIncludedPath {
 								found = true
 								break

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -161,25 +160,6 @@ type referencedCondition struct {
 	provider.ProviderContext `yaml:",inline"`
 }
 
-// normalizePathForComparison removes URI schemes and cleans paths for comparison.
-// It handles cross-platform path differences including:
-// - URI schemes (file://, file:)
-// - Path separators (converts backslashes to forward slashes)
-// - Case sensitivity (normalizes to lowercase on Windows)
-func normalizePathForComparison(path string) string {
-	// Remove common URI schemes (some systems emit file: instead of file://)
-	path = strings.TrimPrefix(path, "file://")
-	path = strings.TrimPrefix(path, "file:")
-	// Clean the path to resolve . and .. elements
-	path = filepath.Clean(path)
-	// Convert to forward slashes for consistent comparison across platforms
-	path = filepath.ToSlash(path)
-	// On Windows, normalize to lowercase for case-insensitive comparison
-	if runtime.GOOS == "windows" {
-		path = strings.ToLower(path)
-	}
-	return path
-}
 
 // Example evaluate
 func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string, info []byte) (provider.ProviderEvaluateResponse, error) {
@@ -204,7 +184,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		if excludedPath == "" {
 			continue // Skip empty strings
 		}
-		normalizedPath := normalizePathForComparison(excludedPath)
+		normalizedPath := provider.NormalizePathForComparison(excludedPath)
 		excludedPathsMap[normalizedPath] = true
 	}
 
@@ -213,7 +193,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		if includedPath == "" {
 			continue // Skip empty strings
 		}
-		normalizedPath := normalizePathForComparison(includedPath)
+		normalizedPath := provider.NormalizePathForComparison(includedPath)
 		includedPathsMap[normalizedPath] = true
 	}
 
@@ -226,7 +206,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 	incidents := []provider.IncidentContext{}
 	for _, incident := range incidentsMap {
-		normalizedIncidentPath := normalizePathForComparison(string(incident.FileURI))
+		normalizedIncidentPath := provider.NormalizePathForComparison(string(incident.FileURI))
 
 		// Check if excluded (O(1) lookup)
 		if excludedPathsMap[normalizedIncidentPath] {

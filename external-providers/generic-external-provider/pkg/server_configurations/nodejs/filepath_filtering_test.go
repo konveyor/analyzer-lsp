@@ -50,14 +50,14 @@ func TestNormalizePathForComparison(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := normalizePathForComparison(tt.input)
+			result := provider.NormalizePathForComparison(tt.input)
 			expected := tt.expected
 			// On Windows, paths are normalized to lowercase
 			if runtime.GOOS == "windows" {
 				expected = strings.ToLower(expected)
 			}
 			if result != expected {
-				t.Errorf("normalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
+				t.Errorf("provider.NormalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
 			}
 		})
 	}
@@ -178,20 +178,20 @@ func TestFilepathFiltering(t *testing.T) {
 			// Build maps for O(1) lookups
 			excludedPathsMap := make(map[string]bool, len(tt.excludedFilepaths))
 			for _, excludedPath := range tt.excludedFilepaths {
-				normalizedPath := normalizePathForComparison(excludedPath)
+				normalizedPath := provider.NormalizePathForComparison(excludedPath)
 				excludedPathsMap[normalizedPath] = true
 			}
 
 			includedPathsMap := make(map[string]bool, len(tt.includedFilepaths))
 			for _, includedPath := range tt.includedFilepaths {
-				normalizedPath := normalizePathForComparison(includedPath)
+				normalizedPath := provider.NormalizePathForComparison(includedPath)
 				includedPathsMap[normalizedPath] = true
 			}
 
 			// Filter incidents
 			filteredIncidents := []provider.IncidentContext{}
 			for _, incident := range tt.incidents {
-				normalizedIncidentPath := normalizePathForComparison(string(incident.FileURI))
+				normalizedIncidentPath := provider.NormalizePathForComparison(string(incident.FileURI))
 
 				// Check if excluded
 				if excludedPathsMap[normalizedIncidentPath] {
@@ -214,12 +214,12 @@ func TestFilepathFiltering(t *testing.T) {
 			// Verify expected paths are present
 			foundPaths := make(map[string]bool)
 			for _, incident := range filteredIncidents {
-				normalizedPath := normalizePathForComparison(string(incident.FileURI))
+				normalizedPath := provider.NormalizePathForComparison(string(incident.FileURI))
 				foundPaths[normalizedPath] = true
 			}
 
 			for _, expectedPath := range tt.expectedPaths {
-				normalizedExpectedPath := normalizePathForComparison(expectedPath)
+				normalizedExpectedPath := provider.NormalizePathForComparison(expectedPath)
 				if !foundPaths[normalizedExpectedPath] {
 					t.Errorf("Expected path %q not found in filtered incidents", expectedPath)
 				}
@@ -247,14 +247,14 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 			// Build maps
 			includedPathsMap := make(map[string]bool, len(includedPaths))
 			for _, includedPath := range includedPaths {
-				normalizedPath := normalizePathForComparison(includedPath)
+				normalizedPath := provider.NormalizePathForComparison(includedPath)
 				includedPathsMap[normalizedPath] = true
 			}
 
 			// Filter
 			filtered := []provider.IncidentContext{}
 			for _, incident := range incidents {
-				normalizedPath := normalizePathForComparison(string(incident.FileURI))
+				normalizedPath := provider.NormalizePathForComparison(string(incident.FileURI))
 				if len(includedPathsMap) > 0 && !includedPathsMap[normalizedPath] {
 					continue
 				}
@@ -268,12 +268,12 @@ func BenchmarkFilepathFiltering(b *testing.B) {
 			// Filter with nested loops
 			filtered := []provider.IncidentContext{}
 			for _, incident := range incidents {
-				normalizedIncidentPath := normalizePathForComparison(string(incident.FileURI))
+				normalizedIncidentPath := provider.NormalizePathForComparison(string(incident.FileURI))
 
 				if len(includedPaths) > 0 {
 					found := false
 					for _, includedPath := range includedPaths {
-						normalizedIncludedPath := normalizePathForComparison(includedPath)
+						normalizedIncludedPath := provider.NormalizePathForComparison(includedPath)
 						if normalizedIncidentPath == normalizedIncludedPath {
 							found = true
 							break
