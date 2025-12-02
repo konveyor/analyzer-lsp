@@ -298,6 +298,12 @@ func newCachedWalkDir() cachedWalkDir {
 					return err
 				}
 				if !d.IsDir() {
+					// Check if it is a symlink to a directory
+					if d.Type()&fs.ModeSymlink != 0 {
+						if stat, err := os.Stat(path); err == nil && stat.IsDir() {
+							return nil
+						}
+					}
 					files = append(files, path)
 					return nil
 				}

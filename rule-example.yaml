@@ -474,8 +474,13 @@
   effort: 1
   category: potential
   when:
-    nodejs.referenced:
-      pattern: "React"
+    and:
+    - nodejs.referenced:
+        pattern: "React"
+    - builtin.filecontent:
+        filePattern: "\\.tsx$"
+        pattern: "import.*React"
+      ignore: true
 - message: Found React reference using regex pattern
   ruleID: test-regex-pattern-00000
   description: Test regex pattern for TypeScript/JavaScript files

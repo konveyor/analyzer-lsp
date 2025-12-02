@@ -359,7 +359,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			key, ok := k.(string)
 			if !ok {
 				r.Log.V(8).Info("condition key must be a string", "ruleID", ruleID, "file", filepath)
-				return nil, nil, nil,fmt.Errorf("condition key must be a string")
+				return nil, nil, nil, fmt.Errorf("condition key must be a string")
 			}
 			switch key {
 			case "or":
@@ -369,7 +369,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					r.Log.V(8).Info("invalid type for or clause, must be an array", "ruleID", ruleID, "file", filepath)
 					return nil, nil, nil, fmt.Errorf("invalid type for or clause, must be an array")
 				}
-				conditions, provs, err := r.getConditions(m)
+				conditions, provs, provConditions, err := r.getConditions(m)
 				if err != nil {
 					r.Log.V(8).Error(err, "failed parsing conditions in or clause", "ruleID", ruleID, "file", filepath)
 					return nil, nil, nil, err
@@ -387,6 +387,12 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					}
 					providers[k] = prov
 				}
+				for k, v := range provConditions {
+					if _, ok := providerConditions[k]; !ok {
+						providerConditions[k] = []provider.ConditionsByCap{}
+					}
+					providerConditions[k] = append(providerConditions[k], v...)
+				}
 				if len(snippers) > 0 {
 					rule.Snipper = provider.CodeSnipProvider{
 						Providers: snippers,
@@ -399,7 +405,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					r.Log.V(8).Info("invalid type for and clause, must be an array", "ruleID", ruleID, "file", filepath)
 					return nil, nil, nil, fmt.Errorf("invalid type for and clause, must be an array")
 				}
-				conditions, provs, err := r.getConditions(m)
+				conditions, provs, provConditions, err := r.getConditions(m)
 				if err != nil {
 					r.Log.V(8).Error(err, "failed parsing conditions in and clause", "ruleID", ruleID, "file", filepath)
 					return nil, nil, nil, err
@@ -418,6 +424,12 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 						snippers = append(snippers, snip)
 					}
 					providers[k] = prov
+				}
+				for k, v := range provConditions {
+					if _, ok := providerConditions[k]; !ok {
+						providerConditions[k] = []provider.ConditionsByCap{}
+					}
+					providerConditions[k] = append(providerConditions[k], v...)
 				}
 				if len(snippers) > 0 {
 					rule.Snipper = provider.CodeSnipProvider{
@@ -612,7 +624,7 @@ func (r *RuleParser) addCustomVarFields(m map[interface{}]interface{}, customVar
 	return nil
 }
 
-func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.ConditionEntry, map[string]provider.InternalProviderClient, error) {
+func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.ConditionEntry, map[string]provider.InternalProviderClient, map[string][]provider.ConditionsByCap, error) {
 	conditions := []engine.ConditionEntry{}
 	providers := map[string]provider.InternalProviderClient{}
 	providerConditions := map[string][]provider.ConditionsByCap{}
@@ -622,7 +634,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 		// get map from interface
 		conditionMap, ok := conditionInterface.(map[interface{}]interface{})
 		if !ok {
-			return nil, nil, fmt.Errorf("conditions must be an object")
+			return nil, nil, nil, fmt.Errorf("conditions must be an object")
 		}
 		var from string
 		var as string
@@ -633,7 +645,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			delete(conditionMap, "from")
 			from, ok = fromRaw.(string)
 			if !ok {
-				return nil, nil, fmt.Errorf("from must be a string literal, not %v", fromRaw)
+				return nil, nil, nil, fmt.Errorf("from must be a string literal, not %v", fromRaw)
 			}
 		}
 		asRaw, ok := conditionMap["as"]
@@ -641,7 +653,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			delete(conditionMap, "as")
 			as, ok = asRaw.(string)
 			if !ok {
-				return nil, nil, fmt.Errorf("as must be a string literal, not %v", asRaw)
+				return nil, nil, nil, fmt.Errorf("as must be a string literal, not %v", asRaw)
 			}
 		}
 		ignorableRaw, ok := conditionMap["ignore"]
@@ -649,7 +661,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			delete(conditionMap, "ignore")
 			ignorable, ok = ignorableRaw.(bool)
 			if !ok {
-				return nil, nil, fmt.Errorf("ignore must be a boolean, not %v", ignorableRaw)
+				return nil, nil, nil, fmt.Errorf("ignore must be a boolean, not %v", ignorableRaw)
 			}
 		}
 		notKeywordRaw, ok := conditionMap["not"]
@@ -657,24 +669,24 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			delete(conditionMap, "not")
 			not, ok = notKeywordRaw.(bool)
 			if !ok {
-				return nil, nil, fmt.Errorf("not must be a boolean, not %v", notKeywordRaw)
+				return nil, nil, nil, fmt.Errorf("not must be a boolean, not %v", notKeywordRaw)
 			}
 		}
 		for k, v := range conditionMap {
 			key, ok := k.(string)
 			if !ok {
-				return nil, nil, fmt.Errorf("condition key must be string")
+				return nil, nil, nil, fmt.Errorf("condition key must be string")
 			}
 			var ce engine.ConditionEntry
 			switch key {
 			case "and":
 				iConditions, ok := v.([]interface{})
 				if !ok {
-					return nil, nil, fmt.Errorf("inner condition for and is not array")
+					return nil, nil, nil, fmt.Errorf("inner condition for and is not array")
 				}
-				conds, provs, err := r.getConditions(iConditions)
+				conds, provs, provConditions, err := r.getConditions(iConditions)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				if len(conds) != len(iConditions) {
 					continue
@@ -691,14 +703,20 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				for k, prov := range provs {
 					providers[k] = prov
 				}
+				for k, v := range provConditions {
+					if _, ok := providerConditions[k]; !ok {
+						providerConditions[k] = []provider.ConditionsByCap{}
+					}
+					providerConditions[k] = append(providerConditions[k], v...)
+				}
 			case "or":
 				iConditions, ok := v.([]interface{})
 				if !ok {
-					return nil, nil, fmt.Errorf("inner condition for and is not array")
+					return nil, nil, nil, fmt.Errorf("inner condition for and is not array")
 				}
-				conds, provs, err := r.getConditions(iConditions)
+				conds, provs, provConditions, err := r.getConditions(iConditions)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				if len(conds) == 0 {
 					continue
@@ -715,14 +733,20 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				for k, prov := range provs {
 					providers[k] = prov
 				}
+				for k, v := range provConditions {
+					if _, ok := providerConditions[k]; !ok {
+						providerConditions[k] = []provider.ConditionsByCap{}
+					}
+					providerConditions[k] = append(providerConditions[k], v...)
+				}
 			case "":
-				return nil, nil, fmt.Errorf("must have at least one condition")
+				return nil, nil, nil, fmt.Errorf("must have at least one condition")
 			default:
 				// Need to get condition from provider
 				// Handle provider
 				s := strings.Split(key, ".")
 				if len(s) != 2 {
-					return nil, nil, fmt.Errorf("condition must be of the form {provider}.{capability}")
+					return nil, nil, nil, fmt.Errorf("condition must be of the form {provider}.{capability}")
 				}
 				providerKey, capability := s[0], s[1]
 
@@ -734,7 +758,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 						continue
 					}
 					// For other errors, return as before
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				if condition == nil {
 					continue
@@ -753,11 +777,11 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 				}
 			}
 			if ce.From != "" && ce.As != "" && ce.From == ce.As {
-				return nil, nil, fmt.Errorf("condition cannot have the same value for fields 'from' and 'as'")
+				return nil, nil, nil, fmt.Errorf("condition cannot have the same value for fields 'from' and 'as'")
 			} else if ce.As != "" {
 				for _, as := range asFound {
 					if as == ce.As {
-						return nil, nil, fmt.Errorf("condition cannot have multiple 'as' fields with the same name")
+						return nil, nil, nil, fmt.Errorf("condition cannot have multiple 'as' fields with the same name")
 					}
 				}
 				asFound = append(asFound, ce.As)
@@ -780,7 +804,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 		}
 	}
 
-	return conditions, providers, nil
+	return conditions, providers, providerConditions, nil
 }
 
 func (r *RuleParser) getConditionForProvider(langProvider, capability string, value interface{}) (engine.Conditional, provider.InternalProviderClient, error) {
@@ -845,7 +869,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 		if depCondition.Upperbound == "" && depCondition.Lowerbound == "" {
 			return nil, nil, fmt.Errorf("unable to parse dependency condition for %s (one of upperbound or lowerbound is required)", langProvider)
 		}
-        
+
 		return &depCondition, client, nil
 	} else if capability == "dependency" && r.NoDependencyRules {
 		r.Log.V(5).Info(fmt.Sprintf("not evaluating dependency condition - %s.%s for %#v", langProvider, capability, value))
@@ -871,7 +895,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 // mergeProviderConditions stores all conditions for a given provider, used to send to providers in Prepare()
 func mergeProviderConditions(providerConditions map[string][]provider.ConditionsByCap, providerKey, capability string, value interface{}) (map[string][]provider.ConditionsByCap, error) {
 	conditionInfo := struct {
-		Capability      map[string]interface{} `yaml:",inline"`
+		Capability map[string]interface{} `yaml:",inline"`
 	}{
 		Capability: map[string]interface{}{
 			capability: value,
@@ -885,7 +909,7 @@ func mergeProviderConditions(providerConditions map[string][]provider.Conditions
 		providerConditions[providerKey] = []provider.ConditionsByCap{}
 	}
 	providerConditions[providerKey] = append(providerConditions[providerKey], provider.ConditionsByCap{
-		Cap: capability,
+		Cap:        capability,
 		Conditions: [][]byte{conditionInfoBytes},
 	})
 	return providerConditions, nil
