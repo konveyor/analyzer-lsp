@@ -192,11 +192,19 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		basePath = strings.TrimPrefix(basePath, "file://")
 	}
 
+	// Filter out empty strings from dependency folders to avoid excluding all files
+	nonEmptyDependencyFolders := []string{}
+	for _, folder := range sc.BaseConfig.DependencyFolders {
+		if folder != "" {
+			nonEmptyDependencyFolders = append(nonEmptyDependencyFolders, folder)
+		}
+	}
+
 	fileSearcher := provider.FileSearcher{
 		BasePath: basePath,
 		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
 			IncludePathsOrPatterns: sc.includedPaths,
-			ExcludePathsOrPatterns: sc.BaseConfig.DependencyFolders,
+			ExcludePathsOrPatterns: nonEmptyDependencyFolders,
 		},
 		RuleScopeConstraints: provider.IncludeExcludeConstraints{
 			IncludePathsOrPatterns: includedFilepaths,
