@@ -48,25 +48,46 @@ const (
 	baseDepKey    = "baseDep"
 )
 
+// LocationType represents different types of rule locations for filtering
+type LocationType int
+
+const (
+	LocationTypeDefault         LocationType = iota // 0 - Type (default)
+	LocationInheritance                             // 1 - inheritance
+	LocationMethodCall                              // 2 - method_call
+	LocationConstructorCall                         // 3 - constructor_call
+	LocationAnnotation                              // 4 - annotation
+	LocationImplementsType                          // 5 - implements_type
+	LocationEnum                                    // 6 - enum (not implemented)
+	LocationReturnType                              // 7 - return_type
+	LocationImport                                  // 8 - import
+	LocationVariableDeclaration                     // 9 - variable_declaration
+	LocationTypeKeyword                             // 10 - type
+	LocationPackage                                 // 11 - package
+	LocationField                                   // 12 - field
+	LocationMethod                                  // 13 - method
+	LocationClass                                   // 14 - class
+)
+
 // Rule Location to location that the bundle understands
 var locationToCode = map[string]int{
 	//Type is the default.
-	"":                 0,
-	"inheritance":      1,
-	"method_call":      2,
-	"constructor_call": 3,
-	"annotation":       4,
-	"implements_type":  5,
+	"":                 int(LocationTypeDefault),
+	"inheritance":      int(LocationInheritance),
+	"method_call":      int(LocationMethodCall),
+	"constructor_call": int(LocationConstructorCall),
+	"annotation":       int(LocationAnnotation),
+	"implements_type":  int(LocationImplementsType),
 	// Not Implemented
-	"enum":                 6,
-	"return_type":          7,
-	"import":               8,
-	"variable_declaration": 9,
-	"type":                 10,
-	"package":              11,
-	"field":                12,
-	"method":               13,
-	"class":                14,
+	"enum":                 int(LocationEnum),
+	"return_type":          int(LocationReturnType),
+	"import":               int(LocationImport),
+	"variable_declaration": int(LocationVariableDeclaration),
+	"type":                 int(LocationTypeKeyword),
+	"package":              int(LocationPackage),
+	"field":                int(LocationField),
+	"method":               int(LocationMethod),
+	"class":                int(LocationClass),
 }
 
 type javaProvider struct {
@@ -157,59 +178,92 @@ func (p *javaProvider) Capabilities() []provider.Capability {
 	return caps
 }
 
+// SymbolKind represents LSP symbol kinds
+type SymbolKind int
+
+const (
+	_ SymbolKind = iota // Skip 0
+	SymbolKindFile
+	SymbolKindModule
+	SymbolKindNamespace
+	SymbolKindPackage
+	SymbolKindClass
+	SymbolKindMethod
+	SymbolKindProperty
+	SymbolKindField
+	SymbolKindConstructor
+	SymbolKindEnum
+	SymbolKindInterface
+	SymbolKindFunction
+	SymbolKindVariable
+	SymbolKindConstant
+	SymbolKindString
+	SymbolKindNumber
+	SymbolKindBoolean
+	SymbolKindArray
+	SymbolKindObject
+	SymbolKindKey
+	SymbolKindNull
+	SymbolKindEnumMember
+	SymbolKindStruct
+	SymbolKindEvent
+	SymbolKindOperator
+	SymbolKindTypeParameter
+)
+
 func symbolKindToString(symbolKind protocol.SymbolKind) string {
-	switch symbolKind {
-	case 1:
+	switch SymbolKind(symbolKind) {
+	case SymbolKindFile:
 		return "File"
-	case 2:
+	case SymbolKindModule:
 		return "Module"
-	case 3:
+	case SymbolKindNamespace:
 		return "Namespace"
-	case 4:
+	case SymbolKindPackage:
 		return "Package"
-	case 5:
+	case SymbolKindClass:
 		return "Class"
-	case 6:
+	case SymbolKindMethod:
 		return "Method"
-	case 7:
+	case SymbolKindProperty:
 		return "Property"
-	case 8:
+	case SymbolKindField:
 		return "Field"
-	case 9:
+	case SymbolKindConstructor:
 		return "Constructor"
-	case 10:
+	case SymbolKindEnum:
 		return "Enum"
-	case 11:
+	case SymbolKindInterface:
 		return "Interface"
-	case 12:
+	case SymbolKindFunction:
 		return "Function"
-	case 13:
+	case SymbolKindVariable:
 		return "Variable"
-	case 14:
+	case SymbolKindConstant:
 		return "Constant"
-	case 15:
+	case SymbolKindString:
 		return "String"
-	case 16:
+	case SymbolKindNumber:
 		return "Number"
-	case 17:
+	case SymbolKindBoolean:
 		return "Boolean"
-	case 18:
+	case SymbolKindArray:
 		return "Array"
-	case 19:
+	case SymbolKindObject:
 		return "Object"
-	case 20:
+	case SymbolKindKey:
 		return "Key"
-	case 21:
+	case SymbolKindNull:
 		return "Null"
-	case 22:
+	case SymbolKindEnumMember:
 		return "EnumMember"
-	case 23:
+	case SymbolKindStruct:
 		return "Struct"
-	case 24:
+	case SymbolKindEvent:
 		return "Event"
-	case 25:
+	case SymbolKindOperator:
 		return "Operator"
-	case 26:
+	case SymbolKindTypeParameter:
 		return "TypeParameter"
 	}
 	return ""

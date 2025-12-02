@@ -75,19 +75,20 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	p.log.Info("Symbols retrieved", "symbols", len(symbols), "cap", cap, "conditionInfo", cond)
 
 	incidents := []provider.IncidentContext{}
-	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
-	case 0, 3, 4, 6, 10, 11, 12, 13, 14:
-		// Filter handle for type, find all the referneces to this type.
+	locationCode := LocationType(locationToCode[strings.ToLower(cond.Referenced.Location)])
+	switch locationCode {
+	case LocationTypeDefault, LocationConstructorCall, LocationAnnotation, LocationEnum, LocationTypeKeyword, LocationPackage, LocationField, LocationMethod, LocationClass:
+		// Filter handle for type, find all the references to this type.
 		incidents, err = p.filterDefault(symbols)
-	case 1, 5:
+	case LocationInheritance, LocationImplementsType:
 		incidents, err = p.filterTypesInheritance(symbols)
-	case 2:
+	case LocationMethodCall:
 		incidents, err = p.filterMethodSymbols(symbols)
-	case 7:
+	case LocationReturnType:
 		incidents, err = p.filterMethodSymbols(symbols)
-	case 8:
+	case LocationImport:
 		incidents, err = p.filterModulesImports(symbols)
-	case 9:
+	case LocationVariableDeclaration:
 		incidents, err = p.filterVariableDeclaration(symbols)
 	default:
 
