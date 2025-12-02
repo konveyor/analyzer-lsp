@@ -160,7 +160,8 @@ func (m *mavenBaseTool) getMavenLocalRepoPath(log logr.Logger) string {
 	}
 
 	s := outb.String()
-	log.Info("got maven local repo path", s)
+
+	log.Info("got maven local repo path: " + s)
 	// check errors
 	return s
 }
