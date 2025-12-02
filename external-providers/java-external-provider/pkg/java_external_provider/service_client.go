@@ -184,23 +184,66 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		}
 	}
 
-	// Only apply filepath filtering if there are actual filepath constraints.
-	// The java language server indexes both source and dependencies (e.g., Maven repo),
-	// and we need to allow analyzing dependency code unless explicitly filtered.
-	if c.Referenced.Filepaths != nil {
-		// filter according to the given filepaths
-		var filteredRefs []protocol.WorkspaceSymbol
-		for _, ref := range refs {
-			for _, fp := range c.Referenced.Filepaths {
-				if strings.HasSuffix(ref.Location.Value.(protocol.Location).URI, fp) {
-					filteredRefs = append(filteredRefs, ref)
-				}
-			}
-		}
-		return filteredRefs, nil
+	// Use FileSearcher to handle filepath filtering from multiple sources:
+	// 1. Rule scope excluded paths (language server only knows about included paths)
+	// 2. Condition filepaths (with proper pattern matching and normalization)
+	// The java language server indexes both source and dependencies (e.g., Maven repo).
+	// The language server was already instructed to filter by provider-level and rule-scope
+	// included paths. Here we apply additional filtering for excluded paths and
+	// condition-level filepaths.
+	includedFilepaths, excludedFilepaths := condCTX.GetScopedFilepaths()
+
+	// Check if we have any additional filtering to apply beyond what the language server did
+	hasAdditionalConstraints := len(excludedFilepaths) > 0 || len(c.Referenced.Filepaths) > 0
+
+	if !hasAdditionalConstraints {
+		// No additional constraints - return language server results as-is
+		return refs, nil
 	}
 
-	return refs, nil
+	// Determine base path - use workspace directory
+	basePath := p.workspace
+
+	fileSearcher := provider.FileSearcher{
+		BasePath: basePath,
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: p.includedPaths,
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedFilepaths,
+			ExcludePathsOrPatterns: excludedFilepaths,
+		},
+		FailFast: true,
+		Log:      log,
+	}
+
+	// Search for allowed files
+	paths, err := fileSearcher.Search(provider.SearchCriteria{
+		ConditionFilepaths: c.Referenced.Filepaths,
+	})
+	if err != nil {
+		log.Error(err, "failed to search for files, returning all language server results")
+		return refs, nil
+	}
+
+	// Build map of allowed files for quick lookup
+	fileMap := make(map[string]struct{})
+	for _, path := range paths {
+		normalizedPath := provider.NormalizePathForComparison(path)
+		fileMap[normalizedPath] = struct{}{}
+	}
+
+	// Filter refs to only those in allowed files
+	var filteredRefs []protocol.WorkspaceSymbol
+	for _, ref := range refs {
+		refURI := ref.Location.Value.(protocol.Location).URI
+		normalizedRefURI := provider.NormalizePathForComparison(string(refURI))
+		if _, ok := fileMap[normalizedRefURI]; ok {
+			filteredRefs = append(filteredRefs, ref)
+		}
+	}
+
+	return filteredRefs, nil
 }
 
 
