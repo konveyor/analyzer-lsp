@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/go-logr/logr"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
@@ -204,12 +203,14 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	}
 
 	// Run file search in a goroutine to build allowed file map
-	fileMap := make(map[string]struct{})
-	var fileSearchErr error
-	var wg sync.WaitGroup
-	wg.Add(1)
+	type fileSearchResult struct {
+		fileMap map[string]struct{}
+		err     error
+	}
+	resultCh := make(chan fileSearchResult, 1)
+
 	go func() {
-		defer wg.Done()
+		defer close(resultCh)
 		// Note: nodejs conditions don't have a Filepaths field like java does
 		// so we pass empty ConditionFilepaths
 		paths, err := fileSearcher.Search(provider.SearchCriteria{
@@ -217,23 +218,25 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		})
 		if err != nil {
 			sc.Log.Error(err, "failed to search for files")
-			fileSearchErr = err
+			resultCh <- fileSearchResult{err: err}
 			return
 		}
+		fileMap := make(map[string]struct{})
 		for _, path := range paths {
 			normalizedPath := provider.NormalizePathForComparison(path)
 			fileMap[normalizedPath] = struct{}{}
 		}
+		resultCh <- fileSearchResult{fileMap: fileMap}
 	}()
 
 	// Query symbols once after all files are indexed
 	symbols := sc.GetAllDeclarations(ctx, query, false)
 
-	// Wait for file search to complete
-	wg.Wait()
+	// Wait for file search to complete and get result
+	searchResult := <-resultCh
 
 	// If file search failed, skip filtering to avoid false negatives
-	skipFiltering := fileSearchErr != nil
+	skipFiltering := searchResult.err != nil
 
 	incidentsMap, err := sc.EvaluateSymbols(ctx, symbols)
 	if err != nil {
@@ -246,7 +249,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 		// Filter to only files found by FileSearcher (unless search failed)
 		if !skipFiltering {
-			if _, ok := fileMap[normalizedIncidentPath]; !ok {
+			if _, ok := searchResult.fileMap[normalizedIncidentPath]; !ok {
 				continue
 			}
 		}

@@ -181,24 +181,28 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	}
 
 	// Run file search in a goroutine to build allowed file map
-	fileMap := make(map[string]struct{})
-	var fileSearchErr error
-	var wg sync.WaitGroup
-	wg.Add(1)
+	type fileSearchResult struct {
+		fileMap map[string]struct{}
+		err     error
+	}
+	resultCh := make(chan fileSearchResult, 1)
+
 	go func() {
-		defer wg.Done()
+		defer close(resultCh)
 		paths, err := fileSearcher.Search(provider.SearchCriteria{
 			ConditionFilepaths: c.Referenced.Filepaths,
 		})
 		if err != nil {
 			p.log.Error(err, "failed to search for files")
-			fileSearchErr = err
+			resultCh <- fileSearchResult{err: err}
 			return
 		}
+		fileMap := make(map[string]struct{})
 		for _, path := range paths {
 			normalizedPath := provider.NormalizePathForComparison(path)
 			fileMap[normalizedPath] = struct{}{}
 		}
+		resultCh <- fileSearchResult{fileMap: fileMap}
 	}()
 
 	var refs []protocol.WorkspaceSymbol
@@ -224,11 +228,11 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		}
 	}
 
-	// Wait for file search to complete
-	wg.Wait()
+	// Wait for file search to complete and get result
+	searchResult := <-resultCh
 
 	// If file search failed, skip filtering to avoid false negatives
-	skipFiltering := fileSearchErr != nil
+	skipFiltering := searchResult.err != nil
 
 	// Filter symbols to only those in files found by FileSearcher
 	var filteredRefs []protocol.WorkspaceSymbol
@@ -244,7 +248,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		if skipFiltering {
 			filteredRefs = append(filteredRefs, ref)
 		} else {
-			if _, ok := fileMap[normalizedRefURI]; ok {
+			if _, ok := searchResult.fileMap[normalizedRefURI]; ok {
 				filteredRefs = append(filteredRefs, ref)
 			}
 		}

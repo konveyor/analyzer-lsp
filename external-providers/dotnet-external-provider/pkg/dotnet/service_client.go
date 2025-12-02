@@ -81,34 +81,38 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 	}
 
 	// Run file search in a goroutine to build allowed file map
-	fileMap := make(map[string]struct{})
-	var fileSearchErr error
-	var wg sync.WaitGroup
-	wg.Add(1)
+	type fileSearchResult struct {
+		fileMap map[string]struct{}
+		err     error
+	}
+	resultCh := make(chan fileSearchResult, 1)
+
 	go func() {
-		defer wg.Done()
+		defer close(resultCh)
 		// Note: dotnet conditions don't have a Filepaths field
 		paths, err := fileSearcher.Search(provider.SearchCriteria{
 			ConditionFilepaths: []string{},
 		})
 		if err != nil {
 			d.log.Error(err, "failed to search for files")
-			fileSearchErr = err
+			resultCh <- fileSearchResult{err: err}
 			return
 		}
+		fileMap := make(map[string]struct{})
 		for _, path := range paths {
 			normalizedPath := provider.NormalizePathForComparison(path)
 			fileMap[normalizedPath] = struct{}{}
 		}
+		resultCh <- fileSearchResult{fileMap: fileMap}
 	}()
 
 	symbols := d.GetAllSymbols(query)
 
-	// Wait for file search to complete
-	wg.Wait()
+	// Wait for file search to complete and get result
+	searchResult := <-resultCh
 
 	// If file search failed, skip filtering to avoid false negatives
-	skipFiltering := fileSearchErr != nil
+	skipFiltering := searchResult.err != nil
 
 	incidents := []provider.IncidentContext{}
 	for _, s := range symbols {
@@ -120,7 +124,7 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 
 					// Filter to only files found by FileSearcher (unless search failed)
 					if !skipFiltering {
-						if _, ok := fileMap[normalizedRefPath]; !ok {
+						if _, ok := searchResult.fileMap[normalizedRefPath]; !ok {
 							continue
 						}
 					}
@@ -190,7 +194,7 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 
 						// Filter to only files found by FileSearcher (unless search failed)
 						if !skipFiltering {
-							if _, ok := fileMap[normalizedRPath]; !ok {
+							if _, ok := searchResult.fileMap[normalizedRPath]; !ok {
 								continue
 							}
 						}
