@@ -5,7 +5,7 @@ go 1.23.9
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/go-logr/logr v1.4.2
-	github.com/konveyor/analyzer-lsp v0.9.0-alpha.1.0.20251121202139-b3f742caf596
+	github.com/konveyor/analyzer-lsp v0.9.0-alpha.1.0.20251126192951-3d1bb23d760c
 	github.com/sirupsen/logrus v1.9.3
 	github.com/swaggest/openapi-go v0.2.50
 	go.lsp.dev/uri v0.3.0
