@@ -160,51 +160,6 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		Arguments: arguments,
 	}
 
-	// Use FileSearcher to properly handle all filepath filtering sources:
-	// 1. Provider config constraints (from InitConfig)
-	// 2. Rule scope constraints (from GetScopedFilepaths)
-	// 3. Condition filepaths (from Referenced.Filepaths)
-	includedFilepaths, excludedFilepaths := condCTX.GetScopedFilepaths()
-
-	fileSearcher := provider.FileSearcher{
-		BasePath: p.config.Location,
-		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
-			IncludePathsOrPatterns: p.includedPaths,
-			ExcludePathsOrPatterns: provider.GetExcludedDirsFromConfig(p.config),
-		},
-		RuleScopeConstraints: provider.IncludeExcludeConstraints{
-			IncludePathsOrPatterns: includedFilepaths,
-			ExcludePathsOrPatterns: excludedFilepaths,
-		},
-		FailFast: true,
-		Log:      p.log,
-	}
-
-	// Run file search in a goroutine to build allowed file map
-	type fileSearchResult struct {
-		fileMap map[string]struct{}
-		err     error
-	}
-	resultCh := make(chan fileSearchResult, 1)
-
-	go func() {
-		defer close(resultCh)
-		paths, err := fileSearcher.Search(provider.SearchCriteria{
-			ConditionFilepaths: c.Referenced.Filepaths,
-		})
-		if err != nil {
-			p.log.Error(err, "failed to search for files")
-			resultCh <- fileSearchResult{err: err}
-			return
-		}
-		fileMap := make(map[string]struct{})
-		for _, path := range paths {
-			normalizedPath := provider.NormalizePathForComparison(path)
-			fileMap[normalizedPath] = struct{}{}
-		}
-		resultCh <- fileSearchResult{fileMap: fileMap}
-	}()
-
 	var refs []protocol.WorkspaceSymbol
 	// If it takes us 5 min to complete a request, then we are in trouble
 	timeout := 5 * time.Minute
@@ -228,32 +183,23 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		}
 	}
 
-	// Wait for file search to complete and get result
-	searchResult := <-resultCh
-
-	// If file search failed, skip filtering to avoid false negatives
-	skipFiltering := searchResult.err != nil
-
-	// Filter symbols to only those in files found by FileSearcher
-	var filteredRefs []protocol.WorkspaceSymbol
-	for _, ref := range refs {
-		refLocation, ok := ref.Location.Value.(protocol.Location)
-		if !ok {
-			p.log.V(7).Info("unexpected location type in workspace symbol", "symbol", ref.Name)
-			continue
-		}
-		normalizedRefURI := provider.NormalizePathForComparison(string(refLocation.URI))
-
-		// Check if file is in the allowed file map (unless search failed)
-		if skipFiltering {
-			filteredRefs = append(filteredRefs, ref)
-		} else {
-			if _, ok := searchResult.fileMap[normalizedRefURI]; ok {
-				filteredRefs = append(filteredRefs, ref)
+	// Only apply filepath filtering if there are actual filepath constraints.
+	// The java language server indexes both source and dependencies (e.g., Maven repo),
+	// and we need to allow analyzing dependency code unless explicitly filtered.
+	if c.Referenced.Filepaths != nil {
+		// filter according to the given filepaths
+		var filteredRefs []protocol.WorkspaceSymbol
+		for _, ref := range refs {
+			for _, fp := range c.Referenced.Filepaths {
+				if strings.HasSuffix(ref.Location.Value.(protocol.Location).URI, fp) {
+					filteredRefs = append(filteredRefs, ref)
+				}
 			}
 		}
+		return filteredRefs, nil
 	}
-	return filteredRefs, nil
+
+	return refs, nil
 }
 
 
