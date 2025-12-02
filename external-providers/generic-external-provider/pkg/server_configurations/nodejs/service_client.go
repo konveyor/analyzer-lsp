@@ -45,6 +45,11 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 		return nil, err
 	}
 
+	// Get included paths from init config (provider-level constraints)
+	// IMPORTANT: Must be called before c.Location is mutated to a file:// URI,
+	// as GetIncludedPathsFromConfig needs a filesystem path to resolve relative includes
+	sc.includedPaths = provider.GetIncludedPathsFromConfig(c, false)
+
 	params := protocol.InitializeParams{}
 
 	// treat location as the only workspace folder
@@ -132,9 +137,6 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 		return nil, err
 	}
 	sc.LSPServiceClientEvaluator = eval
-
-	// Get included paths from init config (provider-level constraints)
-	sc.includedPaths = provider.GetIncludedPathsFromConfig(c, false)
 
 	return sc, nil
 }
