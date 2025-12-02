@@ -205,6 +205,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 	// Run file search in a goroutine to build allowed file map
 	fileMap := make(map[string]struct{})
+	var fileSearchErr error
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -216,6 +217,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		})
 		if err != nil {
 			sc.Log.Error(err, "failed to search for files")
+			fileSearchErr = err
 			return
 		}
 		for _, path := range paths {
@@ -230,6 +232,9 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	// Wait for file search to complete
 	wg.Wait()
 
+	// If file search failed, skip filtering to avoid false negatives
+	skipFiltering := fileSearchErr != nil
+
 	incidentsMap, err := sc.EvaluateSymbols(ctx, symbols)
 	if err != nil {
 		return resp{}, err
@@ -239,9 +244,11 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	for _, incident := range incidentsMap {
 		normalizedIncidentPath := provider.NormalizePathForComparison(string(incident.FileURI))
 
-		// Filter to only files found by FileSearcher
-		if _, ok := fileMap[normalizedIncidentPath]; !ok {
-			continue
+		// Filter to only files found by FileSearcher (unless search failed)
+		if !skipFiltering {
+			if _, ok := fileMap[normalizedIncidentPath]; !ok {
+				continue
+			}
 		}
 
 		incidents = append(incidents, incident)

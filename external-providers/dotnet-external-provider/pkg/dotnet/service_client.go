@@ -82,6 +82,7 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 
 	// Run file search in a goroutine to build allowed file map
 	fileMap := make(map[string]struct{})
+	var fileSearchErr error
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -92,6 +93,7 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 		})
 		if err != nil {
 			d.log.Error(err, "failed to search for files")
+			fileSearchErr = err
 			return
 		}
 		for _, path := range paths {
@@ -105,6 +107,9 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 	// Wait for file search to complete
 	wg.Wait()
 
+	// If file search failed, skip filtering to avoid false negatives
+	skipFiltering := fileSearchErr != nil
+
 	incidents := []provider.IncidentContext{}
 	for _, s := range symbols {
 		if s.Kind == protocol.SymbolKindMethod {
@@ -113,9 +118,11 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 				if strings.Contains(ref.URI.Filename(), d.config.Location) {
 					normalizedRefPath := provider.NormalizePathForComparison(string(ref.URI))
 
-					// Filter to only files found by FileSearcher
-					if _, ok := fileMap[normalizedRefPath]; !ok {
-						continue
+					// Filter to only files found by FileSearcher (unless search failed)
+					if !skipFiltering {
+						if _, ok := fileMap[normalizedRefPath]; !ok {
+							continue
+						}
 					}
 
 					lineNumber := int(ref.Range.Start.Line)
@@ -181,9 +188,11 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 					if strings.HasPrefix(split[1], namespace) {
 						normalizedRPath := provider.NormalizePathForComparison(string(r.URI))
 
-						// Filter to only files found by FileSearcher
-						if _, ok := fileMap[normalizedRPath]; !ok {
-							continue
+						// Filter to only files found by FileSearcher (unless search failed)
+						if !skipFiltering {
+							if _, ok := fileMap[normalizedRPath]; !ok {
+								continue
+							}
 						}
 
 						lineNumber := int(r.Range.Start.Line)
