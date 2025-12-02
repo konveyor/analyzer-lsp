@@ -183,39 +183,50 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		}
 	}
 
-	// Filter according to filepaths from the condition or from the context (chaining)
-	filepathsToFilter := c.Referenced.Filepaths
-	var excludedFilepaths []string
-	if len(filepathsToFilter) == 0 {
-		// If no filepaths in the condition, check the context for scoped filepaths (from chaining)
-		if contextFilepaths, contextExcluded := condCTX.GetScopedFilepaths(); len(contextFilepaths) > 0 {
-			filepathsToFilter = contextFilepaths
-			excludedFilepaths = contextExcluded
-		}
+	// Use FileSearcher to properly handle all filepath filtering sources:
+	// 1. Provider config constraints (from InitConfig)
+	// 2. Rule scope constraints (from GetScopedFilepaths)
+	// 3. Condition filepaths (from Referenced.Filepaths)
+	includedFilepaths, excludedFilepaths := condCTX.GetScopedFilepaths()
+
+	fileSearcher := provider.FileSearcher{
+		BasePath: p.config.Location,
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: p.includedPaths,
+			ExcludePathsOrPatterns: provider.GetExcludedDirsFromConfig(p.config),
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedFilepaths,
+			ExcludePathsOrPatterns: excludedFilepaths,
+		},
+		FailFast: true,
+		Log:      p.log,
 	}
 
-	// Filter by included and excluded paths
-	if len(filepathsToFilter) > 0 || len(excludedFilepaths) > 0 {
-		// Build maps for O(1) lookups instead of O(n) linear searches
-		// This is critical for performance with large codebases
-		excludedPathsMap := make(map[string]bool, len(excludedFilepaths))
-		for _, excludedPath := range excludedFilepaths {
-			if excludedPath == "" {
-				continue // Skip empty strings
-			}
-			normalizedPath := provider.NormalizePathForComparison(excludedPath)
-			excludedPathsMap[normalizedPath] = true
+	// Run file search in a goroutine to build allowed file map
+	fileMap := make(map[string]struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		paths, err := fileSearcher.Search(provider.SearchCriteria{
+			ConditionFilepaths: c.Referenced.Filepaths,
+		})
+		if err != nil {
+			p.log.Error(err, "failed to search for files")
+			return
 		}
-
-		includedPathsMap := make(map[string]bool, len(filepathsToFilter))
-		for _, includedPath := range filepathsToFilter {
-			if includedPath == "" {
-				continue // Skip empty strings
-			}
-			normalizedPath := provider.NormalizePathForComparison(includedPath)
-			includedPathsMap[normalizedPath] = true
+		for _, path := range paths {
+			normalizedPath := provider.NormalizePathForComparison(path)
+			fileMap[normalizedPath] = struct{}{}
 		}
+	}()
 
+	// Wait for file search to complete
+	wg.Wait()
+
+	// If FileSearcher found specific files, filter symbols to only those files
+	if len(fileMap) > 0 {
 		var filteredRefs []protocol.WorkspaceSymbol
 		for _, ref := range refs {
 			refLocation, ok := ref.Location.Value.(protocol.Location)
@@ -225,17 +236,10 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 			}
 			normalizedRefURI := provider.NormalizePathForComparison(string(refLocation.URI))
 
-			// Check if excluded (O(1) lookup)
-			if excludedPathsMap[normalizedRefURI] {
-				continue
+			// Check if file is in the allowed file map
+			if _, ok := fileMap[normalizedRefURI]; ok {
+				filteredRefs = append(filteredRefs, ref)
 			}
-
-			// Check if included (O(1) lookup) - only if include list exists
-			if len(includedPathsMap) > 0 && !includedPathsMap[normalizedRefURI] {
-				continue
-			}
-
-			filteredRefs = append(filteredRefs, ref)
 		}
 		return filteredRefs, nil
 	}

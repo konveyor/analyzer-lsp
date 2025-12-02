@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
@@ -174,27 +175,59 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return resp{}, fmt.Errorf("unable to get query info")
 	}
 
-	// Extract filepath scope from the ProviderContext
+	// Use FileSearcher to properly handle all filepath filtering sources:
+	// 1. Provider config constraints (dependency folders)
+	// 2. Rule scope constraints (from GetScopedFilepaths)
+	// 3. Condition filepaths (if they exist in the condition)
 	includedFilepaths, excludedFilepaths := cond.ProviderContext.GetScopedFilepaths()
 
-	// Build maps for O(1) lookups instead of O(n) linear searches
-	// This is critical for performance with large codebases
-	excludedPathsMap := make(map[string]bool, len(excludedFilepaths))
-	for _, excludedPath := range excludedFilepaths {
-		if excludedPath == "" {
-			continue // Skip empty strings
-		}
-		normalizedPath := provider.NormalizePathForComparison(excludedPath)
-		excludedPathsMap[normalizedPath] = true
+	// Determine base path - use first workspace folder if available
+	basePath := ""
+	if len(sc.BaseConfig.WorkspaceFolders) > 0 {
+		basePath = sc.BaseConfig.WorkspaceFolders[0]
+		// Remove file:// prefix if present
+		basePath = strings.TrimPrefix(basePath, "file://")
 	}
 
-	includedPathsMap := make(map[string]bool, len(includedFilepaths))
-	for _, includedPath := range includedFilepaths {
-		if includedPath == "" {
-			continue // Skip empty strings
+	// Only use FileSearcher if we have any filepath constraints
+	fileMap := make(map[string]struct{})
+	if len(includedFilepaths) > 0 || len(excludedFilepaths) > 0 {
+		fileSearcher := provider.FileSearcher{
+			BasePath: basePath,
+			ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				ExcludePathsOrPatterns: sc.BaseConfig.DependencyFolders,
+			},
+			RuleScopeConstraints: provider.IncludeExcludeConstraints{
+				IncludePathsOrPatterns: includedFilepaths,
+				ExcludePathsOrPatterns: excludedFilepaths,
+			},
+			FailFast: true,
+			Log:      sc.Log,
 		}
-		normalizedPath := provider.NormalizePathForComparison(includedPath)
-		includedPathsMap[normalizedPath] = true
+
+		// Run file search in a goroutine to build allowed file map
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Note: nodejs conditions don't have a Filepaths field like java does
+			// so we pass empty ConditionFilepaths
+			paths, err := fileSearcher.Search(provider.SearchCriteria{
+				ConditionFilepaths: []string{},
+			})
+			if err != nil {
+				sc.Log.Error(err, "failed to search for files")
+				return
+			}
+			for _, path := range paths {
+				normalizedPath := provider.NormalizePathForComparison(path)
+				fileMap[normalizedPath] = struct{}{}
+			}
+		}()
+
+		// Wait for file search to complete
+		wg.Wait()
 	}
 
 	// Query symbols once after all files are indexed
@@ -208,14 +241,11 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	for _, incident := range incidentsMap {
 		normalizedIncidentPath := provider.NormalizePathForComparison(string(incident.FileURI))
 
-		// Check if excluded (O(1) lookup)
-		if excludedPathsMap[normalizedIncidentPath] {
-			continue
-		}
-
-		// Check if included (O(1) lookup) - only if include list exists
-		if len(includedPathsMap) > 0 && !includedPathsMap[normalizedIncidentPath] {
-			continue
+		// If FileSearcher found specific files, filter to only those files
+		if len(fileMap) > 0 {
+			if _, ok := fileMap[normalizedIncidentPath]; !ok {
+				continue
+			}
 		}
 
 		incidents = append(incidents, incident)
