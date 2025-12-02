@@ -59,7 +59,7 @@
                 "lspServerInitializationOptions": "",
 
                 "workspaceFolders": ["file:///analyzer-lsp/examples/nodejs"],
-                "dependencyFolders": [""],
+                "dependencyFolders": [],
 
                 "dependencyProviderPath": ""
             }
