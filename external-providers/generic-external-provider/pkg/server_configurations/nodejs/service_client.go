@@ -29,7 +29,8 @@ type NodeServiceClient struct {
 	*base.LSPServiceClientBase
 	*base.LSPServiceClientEvaluator[*NodeServiceClient]
 
-	Config NodeServiceClientConfig
+	Config        NodeServiceClientConfig
+	includedPaths []string
 }
 
 type NodeServiceClientBuilder struct{}
@@ -132,6 +133,9 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	}
 	sc.LSPServiceClientEvaluator = eval
 
+	// Get included paths from init config (provider-level constraints)
+	sc.includedPaths = provider.GetIncludedPathsFromConfig(c, false)
+
 	return sc, nil
 }
 
@@ -191,7 +195,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	fileSearcher := provider.FileSearcher{
 		BasePath: basePath,
 		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
-			IncludePathsOrPatterns: []string{},
+			IncludePathsOrPatterns: sc.includedPaths,
 			ExcludePathsOrPatterns: sc.BaseConfig.DependencyFolders,
 		},
 		RuleScopeConstraints: provider.IncludeExcludeConstraints{
