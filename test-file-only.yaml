@@ -1,8 +1,0 @@
-- ruleID: test-file-only-00000
-  description: Test file pattern to see what files match
-  effort: 1
-  category: potential
-  when:
-    builtin.file:
-      pattern: "*.tsx"
-  message: Found .tsx file
