@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -158,6 +159,17 @@ type LSPServiceClientBase struct {
 
 	TempDir string
 	handler jsonrpc2.Handler
+
+	// Progress reporting for Prepare() phase
+	progressReporter     provider.PrepareProgressReporter
+	totalFilesToProcess  int32
+	filesProcessed       atomic.Int32
+	lastProgressReport   time.Time
+	progressMutex        sync.Mutex
+
+	// Progress event streaming for GRPC providers
+	progressEventChan    chan *provider.PrepareProgressEvent
+	progressStreamActive atomic.Bool
 }
 
 // SymbolSearchHelper is used by the generic service client to work with symbols
@@ -239,6 +251,9 @@ func NewLSPServiceClientBase(
 	// Create the ctx, cancelFunc, and log
 	sc.Ctx, sc.CancelFunc = context.WithCancel(ctx)
 	sc.Log = log.WithValues("provider", sc.BaseConfig.LspServerName)
+
+	// Store progress reporter if provided
+	sc.progressReporter = c.PrepareProgressReporter
 
 	sc.handler = NewChainHandler(initializeHandler)
 	if c.RPC == nil {
@@ -360,11 +375,27 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 	go func() {
 		defer sc.symbolCacheUpdateWaitGroup.Done()
 		uris := sc.symbolSearchHelper.GetDocumentUris(conditionsByCap...)
+
+		// Initialize progress tracking
+		sc.filesProcessed.Store(0)
+		atomic.StoreInt32(&sc.totalFilesToProcess, int32(len(uris)))
+		sc.lastProgressReport = time.Now()
+
 		sc.symbolCacheUpdateWaitGroup.Add(len(uris))
 		for _, uri := range uris {
 			sc.symbolCacheUpdateChan <- uri
 		}
 	}()
+
+	// Wait for all file processing to complete
+	sc.symbolCacheUpdateWaitGroup.Wait()
+
+	// Close progress stream if it was started
+	// This signals to the server that no more progress events will be sent
+	if sc.progressStreamActive.Load() {
+		sc.StopProgressStream()
+	}
+
 	return nil
 }
 
@@ -666,6 +697,8 @@ func (sc *LSPServiceClientBase) symbolCacheUpdateHandler() {
 
 func (sc *LSPServiceClientBase) processSymbolCacheUpdate(fileURI uri.URI) {
 	defer sc.symbolCacheUpdateWaitGroup.Done()
+	defer sc.reportProgress()
+
 	if sc.symbolCache == nil || fileURI == "" {
 		return
 	}
@@ -682,6 +715,73 @@ func (sc *LSPServiceClientBase) processSymbolCacheUpdate(fileURI uri.URI) {
 		return
 	}
 	sc.populateDocumentSymbolCache(sc.Ctx, []uri.URI{fileURI})
+}
+
+// reportProgress reports progress to the progress reporter if one is configured.
+// It throttles updates to avoid excessive reporting (max once per 500ms).
+// It also sends events to the progress stream channel if streaming is active.
+func (sc *LSPServiceClientBase) reportProgress() {
+	// Increment files processed counter
+	processed := sc.filesProcessed.Add(1)
+	total := atomic.LoadInt32(&sc.totalFilesToProcess)
+
+	// Throttle progress updates to once per 500ms
+	sc.progressMutex.Lock()
+	now := time.Now()
+	timeSinceLastReport := now.Sub(sc.lastProgressReport)
+
+	// Always report on first file, last file, or if 500ms have elapsed
+	shouldReport := processed == 1 || processed == total || timeSinceLastReport >= 500*time.Millisecond
+
+	if shouldReport {
+		sc.lastProgressReport = now
+		sc.progressMutex.Unlock()
+
+		// Call the progress reporter if configured (in-process)
+		if sc.progressReporter != nil {
+			sc.progressReporter.ReportProgress(
+				sc.BaseConfig.LspServerName,
+				int(processed),
+				int(total),
+			)
+		}
+
+		// Send to progress stream channel if streaming is active (GRPC)
+		if sc.progressStreamActive.Load() && sc.progressEventChan != nil {
+			event := &provider.PrepareProgressEvent{
+				ProviderName:   sc.BaseConfig.LspServerName,
+				FilesProcessed: int(processed),
+				TotalFiles:     int(total),
+			}
+			// Non-blocking send to avoid deadlocks
+			select {
+			case sc.progressEventChan <- event:
+			default:
+				// Channel full or closed, skip this event
+			}
+		}
+	} else {
+		sc.progressMutex.Unlock()
+	}
+}
+
+// StartProgressStream creates and returns a channel for streaming progress events.
+// This is used by GRPC providers to stream progress back to the client.
+// The returned channel will receive progress events during Prepare() phase.
+// The caller should close the channel when done by calling StopProgressStream().
+func (sc *LSPServiceClientBase) StartProgressStream() <-chan *provider.PrepareProgressEvent {
+	sc.progressEventChan = make(chan *provider.PrepareProgressEvent, 100)
+	sc.progressStreamActive.Store(true)
+	return sc.progressEventChan
+}
+
+// StopProgressStream stops the progress stream and closes the channel.
+func (sc *LSPServiceClientBase) StopProgressStream() {
+	sc.progressStreamActive.Store(false)
+	if sc.progressEventChan != nil {
+		close(sc.progressEventChan)
+		sc.progressEventChan = nil
+	}
 }
 
 func (sc *LSPServiceClientBase) drainPendingSymbolCacheUpdates() {

@@ -119,6 +119,10 @@ const (
 	// Events include provider name and readiness status.
 	StageProviderInit Stage = "provider_init"
 
+	// StageProviderPrepare indicates provider Prepare() phase (symbol cache population).
+	// Events include provider name, files processed, and total files.
+	StageProviderPrepare Stage = "provider_prepare"
+
 	// StageRuleParsing indicates rule loading and parsing.
 	// Events include the total number of rules discovered.
 	StageRuleParsing Stage = "rule_parsing"

@@ -46,6 +46,7 @@ func NewTextReporter(w io.Writer) *TextReporter {
 //
 // The output format varies by stage:
 //   - Provider init: "[HH:MM:SS] Provider: <message>"
+//   - Provider prepare: "[HH:MM:SS] <message>... X/Y files (Z%)"
 //   - Rule execution: "[HH:MM:SS] Rule: <rule-id>" or "[HH:MM:SS] Processing rules: X/Y (Z%)"
 //   - Complete: "[HH:MM:SS] Analysis complete!"
 //
@@ -66,6 +67,17 @@ func (t *TextReporter) Report(event ProgressEvent) {
 	case StageProviderInit:
 		if event.Message != "" {
 			output = fmt.Sprintf("[%s] Provider: %s\n", event.Timestamp.Format("15:04:05"), event.Message)
+		}
+	case StageProviderPrepare:
+		if event.Total > 0 {
+			output = fmt.Sprintf("[%s] %s... %d/%d files (%.1f%%)\n",
+				event.Timestamp.Format("15:04:05"),
+				event.Message,
+				event.Current,
+				event.Total,
+				event.Percent)
+		} else if event.Message != "" {
+			output = fmt.Sprintf("[%s] %s\n", event.Timestamp.Format("15:04:05"), event.Message)
 		}
 	case StageRuleParsing:
 		if event.Total > 0 {

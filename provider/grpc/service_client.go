@@ -215,6 +215,19 @@ func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provi
 		Conditions: conditionsByCapability,
 		Id:         g.id,
 	}
+
+	// Start progress streaming BEFORE calling Prepare so we don't miss any events
+	streamDone := make(chan struct{})
+	streamReady := make(chan struct{})
+	if g.config.PrepareProgressReporter != nil {
+		go func() {
+			g.streamPrepareProgress(ctx, streamReady)
+			close(streamDone)
+		}()
+		// Wait for stream to be established before calling Prepare
+		<-streamReady
+	}
+
 	prepareResponse, err := g.client.Prepare(ctx, prepareRequest)
 	if err != nil {
 		return err
@@ -222,5 +235,42 @@ func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provi
 	if prepareResponse.Error != "" {
 		return fmt.Errorf(prepareResponse.Error)
 	}
+
+	// Wait for streaming to complete if it was started
+	if g.config.PrepareProgressReporter != nil {
+		<-streamDone
+	}
+
 	return nil
+}
+
+// streamPrepareProgress receives progress events from the GRPC server and forwards them
+// to the configured PrepareProgressReporter.
+func (g *grpcServiceClient) streamPrepareProgress(ctx context.Context, ready chan struct{}) {
+	stream, err := g.client.StreamPrepareProgress(ctx, &pb.PrepareProgressRequest{Id: g.id})
+	if err != nil {
+		// Not an error - server might not support streaming or provider might not implement it
+		close(ready) // Signal ready even on error so we don't block
+		return
+	}
+
+	// Signal that the stream is ready
+	close(ready)
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			// Stream ended (either normally or with error)
+			return
+		}
+
+		// Forward the event to the progress reporter
+		if g.config.PrepareProgressReporter != nil {
+			g.config.PrepareProgressReporter.ReportProgress(
+				event.ProviderName,
+				int(event.FilesProcessed),
+				int(event.TotalFiles),
+			)
+		}
+	}
 }

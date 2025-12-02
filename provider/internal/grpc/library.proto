@@ -125,6 +125,7 @@ service ProviderService {
   rpc GetDependenciesDAG(ServiceRequest) returns (DependencyDAGResponse) {};
   rpc NotifyFileChanges(NotifyFileChangesRequest) returns (NotifyFileChangesResponse) {};
   rpc Prepare(PrepareRequest) returns (PrepareResponse) {};
+  rpc StreamPrepareProgress(PrepareProgressRequest) returns (stream PrepareProgressEvent) {};
 }
 
 message Dependency {
@@ -203,4 +204,14 @@ message PrepareRequest {
 
 message PrepareResponse {
   string error = 1;
+}
+
+message PrepareProgressEvent {
+  string providerName = 1;
+  int32 filesProcessed = 2;
+  int32 totalFiles = 3;
+}
+
+message PrepareProgressRequest {
+  int64 id = 1;
 }

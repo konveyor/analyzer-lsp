@@ -205,6 +205,14 @@ func AnalysisCmd() *cobra.Command {
 					config.InitConfig = inits
 				}
 
+				// Add prepare progress reporter to all init configs
+				inits := []provider.InitConfig{}
+				for _, i := range config.InitConfig {
+					i.PrepareProgressReporter = provider.NewPrepareProgressAdapter(progressReporter)
+					inits = append(inits, i)
+				}
+				config.InitConfig = inits
+
 				// Report provider initialization starting
 				progressReporter.Report(progress.ProgressEvent{
 					Stage:   progress.StageProviderInit,
