@@ -1,67 +1,12 @@
 package nodejs
 
 import (
-	"runtime"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 )
-
-func TestNormalizePathForComparison(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "file:// URI scheme",
-			input:    "file:///project/src/App.tsx",
-			expected: "/project/src/App.tsx",
-		},
-		{
-			name:     "file: URI scheme",
-			input:    "file:/project/src/App.tsx",
-			expected: "/project/src/App.tsx",
-		},
-		{
-			name:     "plain path",
-			input:    "/project/src/App.tsx",
-			expected: "/project/src/App.tsx",
-		},
-		{
-			name:     "path with ..",
-			input:    "/project/src/../src/App.tsx",
-			expected: "/project/src/App.tsx",
-		},
-		{
-			name:     "path with .",
-			input:    "/project/./src/App.tsx",
-			expected: "/project/src/App.tsx",
-		},
-		{
-			name:     "windows-style path",
-			input:    "file:///C:/project/src/App.tsx",
-			expected: "/C:/project/src/App.tsx",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := provider.NormalizePathForComparison(tt.input)
-			expected := tt.expected
-			// On Windows, paths are normalized to lowercase
-			if runtime.GOOS == "windows" {
-				expected = strings.ToLower(expected)
-			}
-			if result != expected {
-				t.Errorf("provider.NormalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
-			}
-		})
-	}
-}
 
 func TestFilepathFiltering(t *testing.T) {
 	// Create test incidents

@@ -1,73 +1,13 @@
 package dotnet
 
 import (
-	"runtime"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
-
-func TestNormalizePathForComparison(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "file:// URI scheme",
-			input:    "file:///project/src/Program.cs",
-			expected: "/project/src/Program.cs",
-		},
-		{
-			name:     "file: URI scheme",
-			input:    "file:/project/src/Program.cs",
-			expected: "/project/src/Program.cs",
-		},
-		{
-			name:     "plain path",
-			input:    "/project/src/Program.cs",
-			expected: "/project/src/Program.cs",
-		},
-		{
-			name:     "path with ..",
-			input:    "/project/src/../src/Program.cs",
-			expected: "/project/src/Program.cs",
-		},
-		{
-			name:     "path with .",
-			input:    "/project/./src/Program.cs",
-			expected: "/project/src/Program.cs",
-		},
-		{
-			name:     "windows-style path",
-			input:    "file:///C:/project/src/Program.cs",
-			expected: "/C:/project/src/Program.cs",
-		},
-		{
-			name:     "csharp metadata URI",
-			input:    "csharp:/metadata/projects/MyApp/assemblies/System.Web.Mvc/symbols/Controller.cs",
-			expected: "csharp:/metadata/projects/MyApp/assemblies/System.Web.Mvc/symbols/Controller.cs",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := provider.NormalizePathForComparison(tt.input)
-			expected := tt.expected
-			// On Windows, paths are normalized to lowercase (except csharp: URIs)
-			if runtime.GOOS == "windows" && !strings.HasPrefix(tt.input, "csharp:") {
-				expected = strings.ToLower(expected)
-			}
-			if result != expected {
-				t.Errorf("provider.NormalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
-			}
-		})
-	}
-}
 
 func TestFilepathFiltering(t *testing.T) {
 	// Create test locations
