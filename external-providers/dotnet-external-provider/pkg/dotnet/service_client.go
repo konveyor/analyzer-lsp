@@ -100,10 +100,11 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 		}
 	}()
 
+	symbols := d.GetAllSymbols(query)
+
 	// Wait for file search to complete
 	wg.Wait()
 
-	symbols := d.GetAllSymbols(query)
 	incidents := []provider.IncidentContext{}
 	for _, s := range symbols {
 		if s.Kind == protocol.SymbolKindMethod {

@@ -160,29 +160,6 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		Arguments: arguments,
 	}
 
-	var refs []protocol.WorkspaceSymbol
-	// If it takes us 5 min to complete a request, then we are in trouble
-	timeout := 5 * time.Minute
-	// certain wildcard queries are known to perform worse especially in containers
-	if strings.HasSuffix(c.Referenced.Pattern, "*") || strings.HasSuffix(c.Referenced.Pattern, "*)") {
-		timeout = 10 * time.Minute
-	}
-	p.activeRPCCalls.Add(1)
-	defer p.activeRPCCalls.Done()
-
-	timeOutCtx, cancelFunc := context.WithTimeout(ctx, timeout)
-	defer cancelFunc()
-	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp).Await(timeOutCtx, &refs)
-	if err != nil {
-		if jsonrpc2.IsRPCClosed(err) {
-			log.Error(err, "connection to the language server is closed, language server is not running")
-			return refs, fmt.Errorf("connection to the language server is closed, language server is not running")
-		} else {
-			log.Error(err, "unable to ask for Konveyor rule entry")
-			return refs, fmt.Errorf("unable to ask for Konveyor rule entry")
-		}
-	}
-
 	// Use FileSearcher to properly handle all filepath filtering sources:
 	// 1. Provider config constraints (from InitConfig)
 	// 2. Rule scope constraints (from GetScopedFilepaths)
@@ -221,6 +198,29 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 			fileMap[normalizedPath] = struct{}{}
 		}
 	}()
+
+	var refs []protocol.WorkspaceSymbol
+	// If it takes us 5 min to complete a request, then we are in trouble
+	timeout := 5 * time.Minute
+	// certain wildcard queries are known to perform worse especially in containers
+	if strings.HasSuffix(c.Referenced.Pattern, "*") || strings.HasSuffix(c.Referenced.Pattern, "*)") {
+		timeout = 10 * time.Minute
+	}
+	p.activeRPCCalls.Add(1)
+	defer p.activeRPCCalls.Done()
+
+	timeOutCtx, cancelFunc := context.WithTimeout(ctx, timeout)
+	defer cancelFunc()
+	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp).Await(timeOutCtx, &refs)
+	if err != nil {
+		if jsonrpc2.IsRPCClosed(err) {
+			log.Error(err, "connection to the language server is closed, language server is not running")
+			return refs, fmt.Errorf("connection to the language server is closed, language server is not running")
+		} else {
+			log.Error(err, "unable to ask for Konveyor rule entry")
+			return refs, fmt.Errorf("unable to ask for Konveyor rule entry")
+		}
+	}
 
 	// Wait for file search to complete
 	wg.Wait()

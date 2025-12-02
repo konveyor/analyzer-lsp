@@ -224,11 +224,12 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		}
 	}()
 
+	// Query symbols once after all files are indexed
+	symbols := sc.GetAllDeclarations(ctx, query, false)
+
 	// Wait for file search to complete
 	wg.Wait()
 
-	// Query symbols once after all files are indexed
-	symbols := sc.GetAllDeclarations(ctx, query, false)
 	incidentsMap, err := sc.EvaluateSymbols(ctx, symbols)
 	if err != nil {
 		return resp{}, err
