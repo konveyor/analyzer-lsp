@@ -11,8 +11,10 @@ import (
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/sirupsen/logrus"
+	"go.lsp.dev/uri"
 )
 
 type testConditional struct {
@@ -47,13 +49,13 @@ func createTestConditional(b bool, e error, sleep bool) Conditional {
 type testChainableConditionalAs struct {
 	err           error
 	documentedKey string
-	AsValue       interface{}
+	AsValue       any
 }
 
 func (t testChainableConditionalAs) Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error) {
 	return ConditionResponse{
 		Matched: true,
-		TemplateContext: map[string]interface{}{
+		TemplateContext: map[string]any{
 			t.documentedKey: t.AsValue,
 		},
 		Incidents: []IncidentContext{{}},
@@ -67,7 +69,7 @@ func (t testChainableConditionalAs) Ignorable() bool {
 type testChainableConditionalFrom struct {
 	FromName      string
 	DocumentedKey string
-	FromValue     interface{}
+	FromValue     any
 }
 
 func (t testChainableConditionalFrom) Ignorable() bool {
@@ -79,11 +81,33 @@ func (t testChainableConditionalFrom) Evaluate(ctx context.Context, log logr.Log
 		if reflect.DeepEqual(v.Extras[t.DocumentedKey], t.FromValue) {
 			return ConditionResponse{
 				Matched:         true,
-				TemplateContext: map[string]interface{}{},
+				TemplateContext: map[string]any{},
 			}, nil
 		}
 	}
 	return ConditionResponse{}, fmt.Errorf("unable to find from in context")
+}
+
+type testTemplateConditional struct{}
+
+func (t testTemplateConditional) Evaluate(ctx context.Context, log logr.Logger, condCtx ConditionContext) (ConditionResponse, error) {
+	lineNum := 10
+	return ConditionResponse{
+		Matched: true,
+		Incidents: []IncidentContext{
+			{
+				FileURI:    "file:///test.java",
+				LineNumber: &lineNum,
+				Variables: map[string]any{
+					"name": "Spring",
+				},
+			},
+		},
+	}, nil
+}
+
+func (t testTemplateConditional) Ignorable() bool {
+	return true
 }
 
 func TestEvaluateAndConditions(t *testing.T) {
@@ -471,6 +495,13 @@ func TestChainConditions(t *testing.T) {
 	}
 }
 
+type testCodeSnipper struct{}
+
+func (t *testCodeSnipper) GetCodeSnip(uri.URI, Location) (string, error) {
+	time.Sleep(10 * time.Second)
+	return "test code snip", nil
+}
+
 func TestRuleEngine(t *testing.T) {
 	woo := "WOO"
 	wooFalse := "WOO - False"
@@ -660,6 +691,72 @@ func TestRuleEngine(t *testing.T) {
 				},
 			},
 		},
+		{
+			// Before the change this would take 10 seconds per rule so a 100 seconds
+			// Now should pass 10 seconds
+			Name: "test 10 rules with code snip",
+			Rules: []RuleSet{
+				{
+					Rules: []Rule{
+						{
+							Perform: Perform{Message: Message{Text: &woo}},
+							When:    createTestConditional(true, nil, false),
+							Snipper: &testCodeSnipper{},
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+						{
+							Perform: Perform{Message: Message{Text: &wooFalse}},
+							Snipper: &testCodeSnipper{},
+							When:    createTestConditional(true, nil, false),
+						},
+					},
+				},
+			},
+		},
 	}
 
 	logrusLog := logrus.New()
@@ -752,7 +849,6 @@ func Test_parseTagsFromPerformString(t *testing.T) {
 		})
 	}
 }
-
 
 func TestRunRulesWithProgressReporter(t *testing.T) {
 	logrus.SetLevel(logrus.ErrorLevel)
@@ -992,5 +1088,604 @@ func TestConcurrentRunsWithSeparateProgressReporters(t *testing.T) {
 	}
 	if !hasComplete2 {
 		t.Error("Expected reporter2 to receive completion event")
+	}
+}
+
+func TestRunTaggingRules(t *testing.T) {
+	logrus.SetLevel(logrus.ErrorLevel)
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+	log := logrusr.New(logrusLog)
+
+	ctx := context.Background()
+	ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
+	defer ruleEngine.Stop()
+
+	effort5 := 5
+
+	tests := []struct {
+		name      string
+		infoRules []ruleMessage
+		checkFunc func(t *testing.T, resultContext ConditionContext, rs *konveyor.RuleSet)
+	}{
+		{
+			name: "basic tag creation",
+			infoRules: []ruleMessage{
+				{
+					rule: Rule{
+						RuleMeta: RuleMeta{
+							RuleID: "tag-rule-1",
+						},
+						Perform: Perform{
+							Tag: []string{"Java", "Migration"},
+						},
+						When: createTestConditional(true, nil, false),
+					},
+					ruleSetName: "test-ruleset",
+				},
+			},
+			checkFunc: func(t *testing.T, resultContext ConditionContext, rs *konveyor.RuleSet) {
+				if !resultContext.Tags["Java"].(bool) {
+					t.Error("Expected 'Java' tag in context")
+				}
+				if !resultContext.Tags["Migration"].(bool) {
+					t.Error("Expected 'Migration' tag in context")
+				}
+				if len(rs.Tags) != 2 {
+					t.Errorf("Expected 2 tags in ruleset, got %d", len(rs.Tags))
+				}
+				if len(rs.Insights) != 1 {
+					t.Errorf("Expected 1 insight, got %d", len(rs.Insights))
+				}
+			},
+		},
+		{
+			name: "tag with effort creates violation",
+			infoRules: []ruleMessage{
+				{
+					rule: Rule{
+						RuleMeta: RuleMeta{
+							RuleID: "tag-rule-with-effort",
+							Effort: &effort5,
+						},
+						Perform: Perform{
+							Tag: []string{"HighEffort"},
+						},
+						When: createTestConditional(true, nil, false),
+					},
+					ruleSetName: "test-ruleset",
+				},
+			},
+			checkFunc: func(t *testing.T, resultContext ConditionContext, rs *konveyor.RuleSet) {
+				if len(rs.Violations) != 1 {
+					t.Errorf("Expected 1 violation for tag with effort, got %d", len(rs.Violations))
+				}
+				if len(rs.Insights) != 0 {
+					t.Errorf("Expected 0 insights for tag with effort, got %d", len(rs.Insights))
+				}
+			},
+		},
+		{
+			name: "template tags with variables",
+			infoRules: []ruleMessage{
+				{
+					rule: Rule{
+						RuleMeta: RuleMeta{
+							RuleID: "template-tag-rule",
+						},
+						Perform: Perform{
+							Tag: []string{"Framework={{name}}"},
+						},
+						When: &testTemplateConditional{},
+					},
+					ruleSetName: "test-ruleset",
+				},
+			},
+			checkFunc: func(t *testing.T, resultContext ConditionContext, rs *konveyor.RuleSet) {
+				if val, ok := resultContext.Tags["Spring"]; !ok || !val.(bool) {
+					t.Errorf("Expected 'Spring' tag in context, got tags: %v", resultContext.Tags)
+				}
+			},
+		},
+		{
+			name: "unmatched tagging rule",
+			infoRules: []ruleMessage{
+				{
+					rule: Rule{
+						RuleMeta: RuleMeta{
+							RuleID: "unmatched-tag-rule",
+						},
+						Perform: Perform{
+							Tag: []string{"ShouldNotExist"},
+						},
+						When: createTestConditional(false, nil, false),
+					},
+					ruleSetName: "test-ruleset",
+				},
+			},
+			checkFunc: func(t *testing.T, resultContext ConditionContext, rs *konveyor.RuleSet) {
+				if len(rs.Unmatched) != 1 {
+					t.Errorf("Expected 1 unmatched rule, got %d", len(rs.Unmatched))
+				}
+				if rs.Unmatched[0] != "unmatched-tag-rule" {
+					t.Errorf("Expected unmatched rule 'unmatched-tag-rule', got %s", rs.Unmatched[0])
+				}
+			},
+		},
+		{
+			name: "error in tagging rule",
+			infoRules: []ruleMessage{
+				{
+					rule: Rule{
+						RuleMeta: RuleMeta{
+							RuleID: "error-tag-rule",
+						},
+						Perform: Perform{
+							Tag: []string{"ErrorTag"},
+						},
+						When: createTestConditional(true, fmt.Errorf("test error"), false),
+					},
+					ruleSetName: "test-ruleset",
+				},
+			},
+			checkFunc: func(t *testing.T, resultContext ConditionContext, rs *konveyor.RuleSet) {
+				if len(rs.Errors) != 1 {
+					t.Errorf("Expected 1 error, got %d", len(rs.Errors))
+				}
+				if _, ok := rs.Errors["error-tag-rule"]; !ok {
+					t.Error("Expected error for 'error-tag-rule'")
+				}
+			},
+		},
+		{
+			name: "tag deduplication across rules",
+			infoRules: []ruleMessage{
+				{
+					rule: Rule{
+						RuleMeta: RuleMeta{
+							RuleID: "tag-rule-1",
+						},
+						Perform: Perform{
+							Tag: []string{"DuplicateTag"},
+						},
+						When: createTestConditional(true, nil, false),
+					},
+					ruleSetName: "test-ruleset",
+				},
+				{
+					rule: Rule{
+						RuleMeta: RuleMeta{
+							RuleID: "tag-rule-2",
+						},
+						Perform: Perform{
+							Tag: []string{"DuplicateTag"},
+						},
+						When: createTestConditional(true, nil, false),
+					},
+					ruleSetName: "test-ruleset",
+				},
+			},
+			checkFunc: func(t *testing.T, resultContext ConditionContext, rs *konveyor.RuleSet) {
+				if len(rs.Tags) != 1 {
+					t.Errorf("Expected 1 unique tag, got %d: %v", len(rs.Tags), rs.Tags)
+				}
+				if rs.Tags[0] != "DuplicateTag" {
+					t.Errorf("Expected 'DuplicateTag', got %s", rs.Tags[0])
+				}
+			},
+		},
+		{
+			name: "UsesHasTags sorting",
+			infoRules: []ruleMessage{
+				{
+					rule: Rule{
+						RuleMeta: RuleMeta{
+							RuleID:      "has-tags-rule",
+							UsesHasTags: true,
+						},
+						Perform: Perform{
+							Tag: []string{"DependentTag"},
+						},
+						When: createTestConditional(true, nil, false),
+					},
+					ruleSetName: "test-ruleset",
+				},
+				{
+					rule: Rule{
+						RuleMeta: RuleMeta{
+							RuleID:      "normal-rule",
+							UsesHasTags: false,
+						},
+						Perform: Perform{
+							Tag: []string{"NormalTag"},
+						},
+						When: createTestConditional(true, nil, false),
+					},
+					ruleSetName: "test-ruleset",
+				},
+			},
+			checkFunc: func(t *testing.T, resultContext ConditionContext, rs *konveyor.RuleSet) {
+				foundNormal := false
+				foundDependent := false
+				for _, tag := range rs.Tags {
+					if tag == "NormalTag" {
+						foundNormal = true
+					}
+					if tag == "DependentTag" {
+						foundDependent = true
+					}
+				}
+				if !foundNormal {
+					t.Error("Expected 'NormalTag' to be created")
+				}
+				if !foundDependent {
+					t.Error("Expected 'DependentTag' to be created")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conditionContext := ConditionContext{
+				Tags:     make(map[string]any),
+				Template: make(map[string]ChainTemplate),
+			}
+
+			mapRuleSets := map[string]*konveyor.RuleSet{
+				"test-ruleset": ruleEngine.createRuleSet(RuleSet{Name: "test-ruleset"}),
+			}
+
+			resultContext := ruleEngine.runTaggingRules(ctx, tt.infoRules, mapRuleSets, conditionContext, nil)
+
+			tt.checkFunc(t, resultContext, mapRuleSets["test-ruleset"])
+		})
+	}
+}
+
+func TestCreateViolation(t *testing.T) {
+	logrus.SetLevel(logrus.ErrorLevel)
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+	log := logrusr.New(logrusLog)
+
+	ctx := context.Background()
+
+	tests := []struct {
+		name      string
+		setupFunc func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func())
+		checkFunc func(t *testing.T, violation konveyor.Violation, err error)
+	}{
+		{
+			name: "basic violation creation",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
+				lineNum := 10
+				msg := "Test violation"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///test.java",
+							LineNumber: &lineNum,
+							Variables: map[string]any{
+								"class": "TestClass",
+							},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID:      "test-rule",
+						Description: "Test rule description",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if len(violation.Incidents) != 1 {
+					t.Errorf("Expected 1 incident, got %d", len(violation.Incidents))
+				}
+				if violation.Description != "Test rule description" {
+					t.Errorf("Expected description 'Test rule description', got '%s'", violation.Description)
+				}
+				if violation.Incidents[0].Message != "Test violation" {
+					t.Errorf("Expected message 'Test violation', got '%s'", violation.Incidents[0].Message)
+				}
+			},
+		},
+		{
+			name: "incident limit",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log, WithIncidentLimit(2)).(*ruleEngine)
+				lineNum1, lineNum2, lineNum3 := 10, 20, 30
+				msg := "Test violation"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///test1.java",
+							LineNumber: &lineNum1,
+							Variables:  map[string]any{},
+						},
+						{
+							FileURI:    "file:///test2.java",
+							LineNumber: &lineNum2,
+							Variables:  map[string]any{},
+						},
+						{
+							FileURI:    "file:///test3.java",
+							LineNumber: &lineNum3,
+							Variables:  map[string]any{},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if len(violation.Incidents) != 2 {
+					t.Errorf("Expected 2 incidents (limited), got %d", len(violation.Incidents))
+				}
+			},
+		},
+		{
+			name: "code snip limit",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log, WithCodeSnipLimit(1)).(*ruleEngine)
+				lineNum1, lineNum2 := 10, 20
+				msg := "Test violation"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///test.java",
+							LineNumber: &lineNum1,
+							Variables:  map[string]any{},
+							CodeLocation: &Location{
+								StartPosition: Position{Line: 9, Character: 0},
+								EndPosition:   Position{Line: 10, Character: 0},
+							},
+						},
+						{
+							FileURI:    "file:///test.java",
+							LineNumber: &lineNum2,
+							Variables:  map[string]any{},
+							CodeLocation: &Location{
+								StartPosition: Position{Line: 19, Character: 0},
+								EndPosition:   Position{Line: 20, Character: 0},
+							},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				codeSnipCount := 0
+				for _, incident := range violation.Incidents {
+					if incident.CodeSnip != "" {
+						codeSnipCount++
+					}
+				}
+				if codeSnipCount > 1 {
+					t.Errorf("Expected at most 1 code snip due to limit, got %d", codeSnipCount)
+				}
+			},
+		},
+		{
+			name: "message template with variables",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
+				lineNum := 10
+				msg := "Found class {{class}} at line {{lineNumber}}"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///test.java",
+							LineNumber: &lineNum,
+							Variables: map[string]any{
+								"class": "TestClass",
+							},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				expectedMsg := "Found class TestClass at line 10"
+				if violation.Incidents[0].Message != expectedMsg {
+					t.Errorf("Expected message '%s', got '%s'", expectedMsg, violation.Incidents[0].Message)
+				}
+			},
+		},
+		{
+			name: "duplicate incident filtering",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
+				lineNum := 10
+				msg := "Duplicate test"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///test.java",
+							LineNumber: &lineNum,
+							Variables:  map[string]any{},
+						},
+						{
+							FileURI:    "file:///test.java",
+							LineNumber: &lineNum,
+							Variables:  map[string]any{},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if len(violation.Incidents) != 1 {
+					t.Errorf("Expected 1 incident (duplicates filtered), got %d", len(violation.Incidents))
+				}
+			},
+		},
+		{
+			name: "label deduplication",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
+				lineNum := 10
+				msg := "Test"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///test.java",
+							LineNumber: &lineNum,
+							Variables:  map[string]any{},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+						Labels: []string{"label1", "label2", "label1", "label3", "label2"},
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if len(violation.Labels) != 3 {
+					t.Errorf("Expected 3 unique labels, got %d: %v", len(violation.Labels), violation.Labels)
+				}
+			},
+		},
+		{
+			name: "incident selector filtering",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log, WithIncidentSelector("kind=class")).(*ruleEngine)
+				lineNum1, lineNum2 := 10, 20
+				msg := "Test"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///test1.java",
+							LineNumber: &lineNum1,
+							Variables: map[string]any{
+								"kind": "class",
+							},
+						},
+						{
+							FileURI:    "file:///test2.java",
+							LineNumber: &lineNum2,
+							Variables: map[string]any{
+								"kind": "method",
+							},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if len(violation.Incidents) != 1 {
+					t.Errorf("Expected 1 incident after selector filtering, got %d", len(violation.Incidents))
+				}
+				if violation.Incidents[0].Variables["kind"] != "class" {
+					t.Errorf("Expected filtered incident to have kind=class")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ruleEngine, conditionResponse, rule, cleanup := tt.setupFunc(t)
+			defer cleanup()
+
+			violation, err := ruleEngine.createViolation(ctx, conditionResponse, rule, nil)
+
+			tt.checkFunc(t, violation, err)
+		})
 	}
 }
