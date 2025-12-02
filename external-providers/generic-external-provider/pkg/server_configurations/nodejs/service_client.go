@@ -161,6 +161,7 @@ type referencedCondition struct {
 	Referenced struct {
 		Pattern string `yaml:"pattern"`
 	} `yaml:"referenced"`
+	Filepaths                []string `yaml:"filepaths,omitempty"`
 	provider.ProviderContext `yaml:",inline"`
 }
 
@@ -223,10 +224,8 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 	go func() {
 		defer close(resultCh)
-		// Note: nodejs conditions don't have a Filepaths field like java does
-		// so we pass empty ConditionFilepaths
 		paths, err := fileSearcher.Search(provider.SearchCriteria{
-			ConditionFilepaths: []string{},
+			ConditionFilepaths: cond.Filepaths,
 		})
 		if err != nil {
 			sc.Log.Error(err, "failed to search for files")
