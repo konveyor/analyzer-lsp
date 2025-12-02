@@ -249,10 +249,9 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 	incidents := []provider.IncidentContext{}
 	for _, incident := range incidentsMap {
-		normalizedIncidentPath := provider.NormalizePathForComparison(string(incident.FileURI))
-
 		// Filter to only files found by FileSearcher (unless search failed)
 		if !skipFiltering {
+			normalizedIncidentPath := provider.NormalizePathForComparison(string(incident.FileURI))
 			if _, ok := searchResult.fileMap[normalizedIncidentPath]; !ok {
 				continue
 			}
