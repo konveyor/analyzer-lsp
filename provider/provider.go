@@ -682,23 +682,17 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	s := strings.ReplaceAll(string(condition), `'{{`, "{{")
 	s = strings.ReplaceAll(s, `}}'`, "}}")
 
-	// Handle array template references by converting ctx to have YAML-serialized filepaths
+	// Augment the context with properly structured ChainTemplate data for mustache rendering
+	// We always expose all ChainTemplate fields (even if empty) to ensure templates can
+	// reliably reference them without worrying about undefined values
 	yamlCtx := make(map[string]interface{})
 	for key, template := range ctx {
-		// Expose all ChainTemplate fields for mustache rendering
 		templateMap := make(map[string]interface{})
-		if len(template.Filepaths) > 0 {
-			templateMap["filepaths"] = template.Filepaths
-		}
-		if len(template.ExcludedPaths) > 0 {
-			templateMap["excludedPaths"] = template.ExcludedPaths
-		}
-		if len(template.Extras) > 0 {
-			templateMap["extras"] = template.Extras
-		}
-		if len(templateMap) > 0 {
-			yamlCtx[key] = templateMap
-		}
+		// Always set all fields, even if empty, for template consistency
+		templateMap["filepaths"] = template.Filepaths
+		templateMap["excludedPaths"] = template.ExcludedPaths
+		templateMap["extras"] = template.Extras
+		yamlCtx[key] = templateMap
 	}
 
 	s, err := mustache.RenderRaw(s, true, yamlCtx)
