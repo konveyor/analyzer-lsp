@@ -162,9 +162,10 @@ type LSPServiceClientBase struct {
 	handler jsonrpc2.Handler
 
 	// Progress reporting for Prepare() phase using ThrottledReporter
-	throttledReporter    *progress.ThrottledReporter
-	totalFilesToProcess  atomic.Int32
-	filesProcessed       atomic.Int32
+	throttledReporter       *progress.ThrottledReporter
+	totalFilesToProcess     atomic.Int32
+	filesProcessed          atomic.Int32
+	firstEvaluateCompleted  atomic.Bool
 
 	// Progress event streaming for GRPC providers
 	progressEventChan    chan progress.ProgressEvent
@@ -408,7 +409,7 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 
 		// Don't wait here - symbol cache updates continue in background
 		// First Evaluate() call will wait via GetAllDeclarations()
-		// Progress stream stays open until Stop() is called
+		// Progress stream will be closed after first Evaluate completes
 	}()
 
 	// Return immediately - work continues in background
@@ -518,6 +519,15 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 
 	// wait until pending symbol cache update calls are complete
 	sc.symbolCacheUpdateWaitGroup.Wait()
+
+	// Close progress stream after first Evaluate completes
+	// (first Evaluate waits for symbol cache via this Wait call)
+	if sc.firstEvaluateCompleted.CompareAndSwap(false, true) {
+		if sc.progressStreamActive.Load() {
+			sc.StopProgressStream()
+			sc.Log.V(5).Info("progress stream closed after first Evaluate completed")
+		}
+	}
 
 	symbolsDefinitionPairs := sc.symbolCache.GetAllWorkspaceSymbols()
 
