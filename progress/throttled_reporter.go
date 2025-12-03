@@ -166,7 +166,16 @@ func (t *ThrottledReporter) DisableStreaming() {
 
 // sendToStream sends an event to the stream channel using non-blocking send.
 // This ensures we never block progress reporting even if the consumer is slow.
+// Uses recover to handle the race condition where the channel might be closed
+// between the streamEnabled check and the actual send.
 func (t *ThrottledReporter) sendToStream(event ProgressEvent) {
+	defer func() {
+		if r := recover(); r != nil {
+			// Channel was closed during send, ignore the panic
+			// This can happen if DisableStreaming() is called concurrently
+		}
+	}()
+
 	t.streamMutex.RLock()
 	ch := t.streamChan
 	t.streamMutex.RUnlock()
