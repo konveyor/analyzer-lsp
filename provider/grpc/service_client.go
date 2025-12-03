@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/konveyor/analyzer-lsp/provider"
 	pb "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
@@ -215,12 +216,83 @@ func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provi
 		Conditions: conditionsByCapability,
 		Id:         g.id,
 	}
-	prepareResponse, err := g.client.Prepare(ctx, prepareRequest)
+
+	// Execute Prepare with progress streaming if configured
+	return g.withPrepareProgressStreaming(ctx, func() error {
+		prepareResponse, err := g.client.Prepare(ctx, prepareRequest)
+		if err != nil {
+			return err
+		}
+		if prepareResponse.Error != "" {
+			return fmt.Errorf(prepareResponse.Error)
+		}
+		return nil
+	})
+}
+
+// withPrepareProgressStreaming wraps a function call with prepare progress streaming.
+// It handles starting the stream, waiting for it to be ready (with timeout), executing
+// the function, and waiting for the stream to complete.
+func (g *grpcServiceClient) withPrepareProgressStreaming(ctx context.Context, fn func() error) error {
+	// If no progress reporter configured, just execute the function
+	if g.config.PrepareProgressReporter == nil {
+		return fn()
+	}
+
+	// Start progress streaming BEFORE calling the function so we don't miss any events
+	streamDone := make(chan struct{})
+	streamReady := make(chan struct{})
+	go func() {
+		g.streamPrepareProgress(ctx, streamReady)
+		close(streamDone)
+	}()
+
+	// Wait for stream to be established before proceeding (with timeout)
+	select {
+	case <-streamReady:
+		// Stream is ready, continue
+	case <-time.After(5 * time.Second):
+		// Timeout waiting for stream - continue anyway without streaming
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	// Execute the function
+	err := fn()
+
+	// Wait for streaming to complete
+	<-streamDone
+
+	return err
+}
+
+// streamPrepareProgress receives progress events from the GRPC server and forwards them
+// to the configured PrepareProgressReporter.
+func (g *grpcServiceClient) streamPrepareProgress(ctx context.Context, ready chan struct{}) {
+	stream, err := g.client.StreamPrepareProgress(ctx, &pb.PrepareProgressRequest{Id: g.id})
 	if err != nil {
-		return err
+		// Not an error - server might not support streaming or provider might not implement it
+		close(ready) // Signal ready even on error so we don't block
+		return
 	}
-	if prepareResponse.Error != "" {
-		return fmt.Errorf(prepareResponse.Error)
+
+	// Signal that the stream is ready
+	close(ready)
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			// Stream ended (either normally or with error)
+			return
+		}
+
+		// Forward the event to the progress reporter
+		if g.config.PrepareProgressReporter != nil {
+			g.config.PrepareProgressReporter.ReportProgress(
+				event.ProviderName,
+				int(event.FilesProcessed),
+				int(event.TotalFiles),
+			)
+		}
 	}
-	return nil
 }

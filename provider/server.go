@@ -463,7 +463,7 @@ func recreateDAGAddedItems(items []DepDAGItem) []*libgrpc.DependencyDAGItem {
 	return deps
 }
 
-func (s *server) GetDependenciesLinkedList(ctx context.Context, in *libgrpc.ServiceRequest) (*libgrpc.DependencyDAGResponse, error) {
+func (s *server) GetDependenciesDAG(ctx context.Context, in *libgrpc.ServiceRequest) (*libgrpc.DependencyDAGResponse, error) {
 	s.mutex.RLock()
 	client := s.clients[in.Id]
 	s.mutex.RUnlock()
@@ -576,4 +576,38 @@ func (s *server) NotifyFileChanges(ctx context.Context, in *libgrpc.NotifyFileCh
 	return &libgrpc.NotifyFileChangesResponse{
 		Error: "",
 	}, nil
+}
+
+func (s *server) StreamPrepareProgress(in *libgrpc.PrepareProgressRequest, stream libgrpc.ProviderService_StreamPrepareProgressServer) error {
+	s.mutex.RLock()
+	client := s.clients[in.Id]
+	s.mutex.RUnlock()
+
+	// Check if client supports progress streaming
+	streamer, ok := client.client.(PrepareProgressStreamer)
+	if !ok {
+		// Not an error, client just doesn't support streaming
+		s.Log.V(5).Info("client does not support progress streaming", "id", in.Id)
+		return nil
+	}
+
+	// Start the progress stream
+	progressChan := streamer.StartProgressStream()
+	defer streamer.StopProgressStream()
+
+	// Stream events to the GRPC client
+	for event := range progressChan {
+		pbEvent := &libgrpc.ProgressEvent{
+			Type:           libgrpc.ProgressEventType_PREPARE,
+			ProviderName:   event.ProviderName,
+			FilesProcessed: int32(event.FilesProcessed),
+			TotalFiles:     int32(event.TotalFiles),
+		}
+		if err := stream.Send(pbEvent); err != nil {
+			s.Log.Error(err, "failed to send progress event")
+			return err
+		}
+	}
+
+	return nil
 }
