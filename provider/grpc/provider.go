@@ -357,10 +357,12 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 		id:     r.Id,
 		config: config,
 		client: g.Client,
+		log:    log.WithName("grpcServiceClient"),
 	}, additionalBuiltinConfig, nil
 }
 
 func (g *grpcProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	g.log.Info("connection", "conn", g.conn.GetState())
 	return provider.FullResponseFromServiceClients(ctx, g.serviceClients, cap, conditionInfo)
 }
 

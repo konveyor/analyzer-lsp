@@ -1,0 +1,36 @@
+- name: konveyor-analysis
+  violations:
+    go-lang-ref-001:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///examples/golang/main.go
+        message: golang apiextensions/v1/customresourcedefinitions found file:///examples/golang/main.go:11
+        codeSnip: " 2  \n 3  import (\n 4  \t\"fmt\"\n 5  \n 6  \t\"github.com/konveyor/analyzer-lsp/examples/golang/dummy\"\n 7  \t\"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1\"\n 8  )\n 9  \n10  func main() {\n11  \tfmt.Println(v1beta1.CustomResourceDefinition{})\n12  \n13  \tfmt.Println(dummy.HelloWorld())\n14  }\n"
+        lineNumber: 11
+        variables:
+          file: file:///examples/golang/main.go
+      effort: 1
+    golang-gomod-dependencies:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///examples/golang/go.mod
+        message: dependency golang.org/x/text with v0.3.7 is bad and you should feel bad for using it
+        lineNumber: 0
+        variables:
+          name: golang.org/x/text
+          version: v0.3.7
+      - uri: file:///examples/golang/go.mod
+        message: dependency k8s.io/apimachinery with v0.24.4 is bad and you should feel bad for using it
+        lineNumber: 0
+        variables:
+          name: k8s.io/apimachinery
+          version: v0.24.4
+      - uri: file:///examples/golang/go.mod
+        message: dependency sigs.k8s.io/structured-merge-diff/v4 with v4.2.1 is bad and you should feel bad for using it
+        lineNumber: 0
+        variables:
+          name: sigs.k8s.io/structured-merge-diff/v4
+          version: v4.2.1
+      effort: 1

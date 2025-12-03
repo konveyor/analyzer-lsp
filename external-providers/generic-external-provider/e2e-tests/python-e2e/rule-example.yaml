@@ -1,0 +1,18 @@
+- message: python sample rule 001
+  ruleID: python-sample-rule-001
+  effort: 1
+  when:
+    python.referenced:
+      pattern: "hello_world"
+- message: python sample rule 002
+  ruleID: python-sample-rule-002
+  effort: 1
+  when:
+    python.referenced:
+      pattern: "speak"
+- message: python sample rule 003
+  ruleID: python-sample-rule-003
+  effort: 1
+  when:
+    python.referenced:
+      pattern: "create_custom_resource_definition"

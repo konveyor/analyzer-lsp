@@ -118,9 +118,58 @@ make build-external
 
 ## Testing Your Changes
 
-### Running Tests Locally
+### Quick Testing with Make Targets
 
-Run the Go test suite:
+The easiest way to test your changes is using the automated test targets:
+
+```bash
+# Run all tests (providers + analyzer)
+make test-all
+
+# Test all providers only
+make test-all-providers
+
+# Test specific providers
+make test-java          # Java provider
+make test-generic       # All generic providers (Go, Python, Node.js)
+make test-yaml          # YAML provider
+make test-analyzer      # Analyzer engine with all providers
+
+# Test individual generic providers
+make test-golang
+make test-python
+make test-nodejs
+```
+
+**These test targets automatically:**
+1. Build the required container images
+2. Create provider pods with test data
+3. Run the analyzer against example projects
+4. Clean up containers and volumes
+5. Validate output against expected results
+
+**Resource Requirements:**
+- **RAM**: 12GB minimum (Java provider requires significant memory)
+- **CPU**: 4 cores recommended
+- **Disk**: 20GB
+
+Check your podman machine resources:
+
+```bash
+podman machine info
+```
+
+Increase memory if needed:
+
+```bash
+podman machine stop
+podman machine set --memory 12288  # 12GB
+podman machine start
+```
+
+### Running Go Unit Tests
+
+Run the Go test suite for quick local validation:
 
 ```bash
 go test ./...
@@ -136,7 +185,7 @@ The `examples/` directory contains test projects for each language:
 - `examples/python/` - Python test projects
 - `examples/yaml/` - YAML/Kubernetes manifests
 
-### Container-Based Development
+### Container-Based Development (Advanced)
 
 Container-based testing is the **recommended approach** for comprehensive testing with all providers.
 
@@ -161,8 +210,8 @@ podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 # 3. Run external providers pod
 make run-external-providers-pod
 
-# 4. Build demo container image
-podman build -f demo-local.Dockerfile -t localhost/testing:latest .
+# 4. Build analyzer container image
+make image-build
 
 # 5. Run demo image to generate output
 make run-demo-image
@@ -602,7 +651,7 @@ podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
 make run-external-providers-pod
 
 # 3. Build and run demo
-podman build -f demo-local.Dockerfile -t localhost/testing:latest .
+make image-build
 make run-demo-image
 
 # 4. Verify output

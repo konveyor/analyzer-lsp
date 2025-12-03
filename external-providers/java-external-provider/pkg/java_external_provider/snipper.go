@@ -53,11 +53,11 @@ func (p *javaProvider) scanFile(path string, loc engine.Location) (string, error
 	paddingSize := len(strconv.Itoa(loc.EndPosition.Line + p.contextLines))
 	for scanner.Scan() {
 		if (lineNumber - p.contextLines) == loc.EndPosition.Line {
-			codeSnip = codeSnip + fmt.Sprintf("%*d  %v", paddingSize, lineNumber+1, scanner.Text())
+			codeSnip = codeSnip + fmt.Sprintf("\n%*d  %v", paddingSize, lineNumber+1, strings.TrimSpace(scanner.Text()))
 			break
 		}
 		if (lineNumber + p.contextLines) >= loc.StartPosition.Line {
-			codeSnip = codeSnip + fmt.Sprintf("%*d  %v\n", paddingSize, lineNumber+1, scanner.Text())
+			codeSnip = codeSnip + fmt.Sprintf("\n%*d  %v", paddingSize, lineNumber+1, strings.TrimSpace(scanner.Text()))
 		}
 		lineNumber += 1
 	}

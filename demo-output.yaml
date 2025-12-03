@@ -3,28 +3,9 @@
   - Backend=Golang
   - Infra=Kubernetes
   - Java
-  - Java Operator SDK
   - Language=Golang
   - License=Apache
   violations:
-    annotation-on-any-class-01:
-      description: '@Singleton found at class level'
-      category: mandatory
-      labels:
-      - konveyor.io/source=spring-boot2
-      - konveyor.io/target=spring-boot3+
-      incidents:
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-        message: |
-          A `@Singleton` annotation has been found annotating some class.
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
-        lineNumber: 7
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Class
-          name: Bean
-          package: com.example.apps
-      effort: 1
     builtin-inclusion-test-json:
       description: |
         This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.
@@ -334,6 +315,53 @@
           innerText: "\n      io.netty\n      netty-transport-native-epoll\n      4.1.76.Final\n      linux-x86_64\n      runtime\n    "
           matchingXML: <groupId>io.netty</groupId><artifactId>netty-transport-native-epoll</artifactId><version>4.1.76.Final</version><classifier>linux-x86_64</classifier><scope>runtime</scope>
       effort: 1
+    dotnet-deprecated-001:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///examples/c-sharp-dummy-example/Program.cs
+        message: System.Net.WebClient found. Consider replacing with System.Net.Http.HttpClient.
+        codeSnip: |
+          6     public static async Task Main(string[] args)
+          7     {
+          8         using (HttpClient client = new HttpClient())
+          9         {
+          10             try
+          11             {
+          12                 string url = "https://jsonplaceholder.typicode.com/todos/1";
+          13                 HttpResponseMessage response = await client.GetAsync(url);
+          14                 response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP status code is not 2xx
+          15                 string responseBody = await response.Content.ReadAsStringAsync();
+        lineNumber: 16
+        variables:
+          file: file:///examples/c-sharp-dummy-example/Program.cs
+          fqdn_class: Console
+          fqdn_method: WriteLine
+          fqdn_namespace: System
+          symbol: Console.WriteLine
+          syntax_type: method_reference
+      - uri: file:///examples/c-sharp-dummy-example/Program.cs
+        message: System.Net.WebClient found. Consider replacing with System.Net.Http.HttpClient.
+        codeSnip: |
+          10             try
+          11             {
+          12                 string url = "https://jsonplaceholder.typicode.com/todos/1";
+          13                 HttpResponseMessage response = await client.GetAsync(url);
+          14                 response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP status code is not 2xx
+          15                 string responseBody = await response.Content.ReadAsStringAsync();
+          16                 Console.WriteLine(responseBody);
+          17             }
+          18             catch (HttpRequestException e)
+          19             {
+        lineNumber: 20
+        variables:
+          file: file:///examples/c-sharp-dummy-example/Program.cs
+          fqdn_class: Console
+          fqdn_method: WriteLine
+          fqdn_namespace: System
+          symbol: Console.WriteLine
+          syntax_type: method_reference
+      effort: 2
     file-001:
       description: Testing that we can get all the go files in the project
       category: potential
@@ -360,104 +388,6 @@
         variables:
           matchingText: FROM maven:3.8-openjdk-11 as build
       effort: 1
-    go-lang-ref-001:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/golang/main.go
-        message: golang apiextensions/v1/customresourcedefinitions found file:///examples/golang/main.go:11
-        codeSnip: " 2  \n 3  import (\n 4  \t\"fmt\"\n 5  \n 6  \t\"github.com/konveyor/analyzer-lsp/examples/golang/dummy\"\n 7  \t\"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1\"\n 8  )\n 9  \n10  func main() {\n11  \tfmt.Println(v1beta1.CustomResourceDefinition{})\n12  \n13  \tfmt.Println(dummy.HelloWorld())\n14  }\n"
-        lineNumber: 11
-        variables:
-          file: file:///examples/golang/main.go
-      effort: 1
-    golang-gomod-dependencies:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/golang/go.mod
-        message: dependency golang.org/x/text with v0.3.7 is bad and you should feel bad for using it
-        lineNumber: 0
-        variables:
-          name: golang.org/x/text
-          version: v0.3.7
-      - uri: file:///examples/golang/go.mod
-        message: dependency k8s.io/apimachinery with v0.24.4 is bad and you should feel bad for using it
-        lineNumber: 0
-        variables:
-          name: k8s.io/apimachinery
-          version: v0.24.4
-      - uri: file:///examples/golang/go.mod
-        message: dependency sigs.k8s.io/structured-merge-diff/v4 with v4.2.1 is bad and you should feel bad for using it
-        lineNumber: 0
-        variables:
-          name: sigs.k8s.io/structured-merge-diff/v4
-          version: v4.2.1
-      effort: 1
-    java-gradle-project:
-      description: |
-        This rule looks for a class only present in the gradle project
-      category: mandatory
-      incidents:
-      - uri: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
-        message: Only incidents in gradle project should appear
-        codeSnip: " 1  package io.jeffchao.template.server;\n 2  \n 3  import java.io.IOException;\n 4  import java.io.OutputStream;\n 5  import java.net.InetSocketAddress;\n 6  \n 7  import com.sun.net.httpserver.HttpExchange;\n 8  import com.sun.net.httpserver.HttpHandler;\n 9  import com.sun.net.httpserver.HttpServer;\n10  \n11  public class Server {\n12  \n13    public static void main(String[] args) throws IOException {\n14      String portString = System.getenv(\"PORT\");\n15      int port = portString == null ? 8080 : Integer.valueOf(portString);\n16      HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);\n17      server.createContext(\"/\", new MyHandler());"
-        lineNumber: 7
-        variables:
-          file: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
-          kind: Module
-          name: com.sun.net.httpserver.HttpExchange
-          package: io.jeffchao.template.server
-      - uri: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
-        message: Only incidents in gradle project should appear
-        codeSnip: "14      String portString = System.getenv(\"PORT\");\n15      int port = portString == null ? 8080 : Integer.valueOf(portString);\n16      HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);\n17      server.createContext(\"/\", new MyHandler());\n18      server.setExecutor(null); // creates a default executor\n19      server.start();\n20    }\n21  \n22    static class MyHandler implements HttpHandler {\n23      @Override\n24      public void handle(HttpExchange t) throws IOException {\n25        String response = \"Hello from Gradle!\";\n26        t.sendResponseHeaders(200, response.length());\n27        OutputStream os = t.getResponseBody();\n28        os.write(response.getBytes());\n29        os.close();\n30      }\n31    }\n32  }\n"
-        lineNumber: 24
-        variables:
-          file: file:///examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
-          kind: Method
-          name: handle
-          package: io.jeffchao.template.server
-      effort: 3
-    java-inclusion-test:
-      description: "This rule tests includedPaths config of the java provider. There should be two instances of this issue in the example app. \nWe are filtering one of them using includedPaths in provider config.\n"
-      category: mandatory
-      incidents:
-      - uri: file:///examples/inclusion-tests/src/main/java/io/konveyor/util/FileReader.java
-        message: Only incidents in util/FileReader.java should be found
-        codeSnip: " 1  package io.konveyor.util;\n 2  \n 3  import java.io.File;\n 4  \n 5  public class FileReader {\n 6      public static boolean fileExists() {\n 7          File file = new File(\"/test\");\n 8          return true;\n 9      }\n10  }\n"
-        lineNumber: 5
-        variables:
-          file: file:///examples/inclusion-tests/src/main/java/io/konveyor/util/FileReader.java
-          kind: Class
-          name: FileReader
-          package: io.konveyor.util
-      effort: 3
-    java-pomxml-dependencies:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/gradle-multi-project-example/build.gradle
-        message: dependency junit.junit with 4.12 is bad and you should feel bad for using it
-        codeSnip: " 1  apply plugin: 'idea'\n 2  \n 3  ext {\n 4    log4jVersion = '2.9.1'\n 5  }\n 6  \n 7  buildscript {\n 8    repositories {\n 9      jcenter()\n10      mavenCentral()\n11    }"
-        lineNumber: 0
-        variables:
-          name: junit.junit
-          version: "4.12"
-      - uri: file:///examples/java/pom.xml
-        message: dependency junit.junit with 4.11 is bad and you should feel bad for using it
-        codeSnip: "20    <properties>\n21      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n22      <maven.compiler.source>1.7</maven.compiler.source>\n23      <maven.compiler.target>1.7</maven.compiler.target>\n24      <javaee-api.version>7.0</javaee-api.version>\n25    </properties>\n26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>"
-        lineNumber: 29
-        variables:
-          name: junit.junit
-          version: "4.11"
-      - uri: file:///examples/java/pom.xml
-        message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you should feel bad for using it
-        codeSnip: "26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>\n41        <artifactId>kubernetes-client-api</artifactId>\n42        <version>6.0.0</version>\n43      </dependency>\n44      <dependency>\n45        <groupId>javax</groupId>\n46        <artifactId>javaee-api</artifactId>"
-        lineNumber: 35
-        variables:
-          name: io.fabric8.kubernetes-client
-          version: 6.0.0
-      effort: 1
     jboss-eap5-7-xml-02000:
       description: ""
       category: potential
@@ -469,47 +399,19 @@
           innerText: "\n        jboss-example-service\n    "
           matchingXML: <service>jboss-example-service</service>
       effort: 1
-    k8s-deprecated-api-001:
-      description: Check for usage of deprecated Kubernetes API versions
-      category: potential
-      incidents:
-      - uri: file:///examples/yaml/k8s.yaml
-        message: Deprecated/removed Kubernetes API version 'extensions/v1beta1' is used for 'Deployment'. Consider using 'apps/v1'.
-        lineNumber: 16
-        variables:
-          apiVersion: extensions/v1beta1
-          deprecated-in: v1.9.0
-          kind: Deployment
-          removed-in: v1.16.0
-          replacement-API: apps/v1
-      effort: 2
-    k8s-deprecated-api-002:
-      description: Check for usage of deprecated Kubernetes API versions
-      category: potential
-      incidents:
-      - uri: file:///examples/yaml/k8s.yaml
-        message: Deprecated Kubernetes API version 'apps/v1beta1' is used for 'StatefulSet'. Consider using 'apps/v1'.
-        lineNumber: 38
-        variables:
-          apiVersion: extensions/v1beta1
-          deprecated-in: v1.9.0
-          kind: ReplicaSet
-          removed-in: v1.16.0
-          replacement-API: apps/v1
-      effort: 2
     lang-ref-001:
       description: ""
       category: potential
       incidents:
       - uri: file:///examples/golang/main.go
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 2  \n 3  import (\n 4  \t\"fmt\"\n 5  \n 6  \t\"github.com/konveyor/analyzer-lsp/examples/golang/dummy\"\n 7  \t\"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1\"\n 8  )\n 9  \n10  func main() {\n11  \tfmt.Println(v1beta1.CustomResourceDefinition{})\n12  \n13  \tfmt.Println(dummy.HelloWorld())\n14  }\n"
+        codeSnip: "\n 2  \n 3  import (\n 4  \"fmt\"\n 5  \n 6  \"github.com/konveyor/analyzer-lsp/examples/golang/dummy\"\n 7  \"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1\"\n 8  )\n 9  \n10  func main() {\n11  fmt.Println(v1beta1.CustomResourceDefinition{})\n12  \n13  fmt.Println(dummy.HelloWorld())\n14  }"
         lineNumber: 11
         variables:
           file: file:///examples/golang/main.go
       - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
+        codeSnip: "\n 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App\n 6  {\n 7  \n 8  /**\n 9  * {@link CustomResourceDefinition}\n10  * @param args\n11  */\n12  public static void main( String[] args )\n13  {"
         lineNumber: 3
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
@@ -518,208 +420,12 @@
           package: com.example.apps
       - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
+        codeSnip: "\n 4  \n 5  public class App\n 6  {\n 7  \n 8  /**\n 9  * {@link CustomResourceDefinition}\n10  * @param args\n11  */\n12  public static void main( String[] args )\n13  {\n14  CustomResourceDefinition crd = new CustomResourceDefinition();\n15  System.out.println( crd );\n16  \n17  GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18  element.get();\n19  }\n20  }"
         lineNumber: 14
         variables:
           file: file:///examples/java/example/src/main/java/com/example/apps/App.java
           kind: Method
           name: main
-          package: com.example.apps
-      effort: 1
-    lang-ref-003:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///examples/java/example/src/main/java/com/example/apps/App.java:3
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {"
-        lineNumber: 3
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/App.java
-          kind: Module
-          name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
-          package: com.example.apps
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
-        message: java found apiextensions/v1/customresourcedefinitions found file:///examples/java/example/src/main/java/com/example/apps/App.java:14
-        codeSnip: " 4  \n 5  public class App \n 6  {\n 7  \n 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
-        lineNumber: 14
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/App.java
-          kind: Method
-          name: main
-          package: com.example.apps
-      effort: 1
-    lang-ref-004:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
-        message: found generic call
-        codeSnip: " 8      /**\n 9       * {@link CustomResourceDefinition}\n10       * @param args\n11       */\n12      public static void main( String[] args )\n13      {\n14          CustomResourceDefinition crd = new CustomResourceDefinition();\n15          System.out.println( crd );\n16  \n17          GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18          element.get();\n19      }\n20  }\n"
-        lineNumber: 18
-        variables:
-          VariableName: element
-          file: file:///examples/java/example/src/main/java/com/example/apps/App.java
-          kind: Method
-          name: main
-          package: com.example.apps
-      effort: 1
-    maven-javax-to-jakarta-00002:
-      description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
-      category: potential
-      incidents:
-      - uri: file:///examples/java/pom.xml
-        message: If you migrate your application to JBoss EAP 7.3, or later, and want to ensure its Maven building, running or testing works as expected, use instead the Jakarta EE dependency with groupId `com.sun.activation`
-        codeSnip: |-
-          36        <artifactId>kubernetes-client</artifactId>
-          37        <version>6.0.0</version>
-          38      </dependency>
-          39      <dependency>
-          40        <groupId>io.fabric8</groupId>
-          41        <artifactId>kubernetes-client-api</artifactId>
-          42        <version>6.0.0</version>
-          43      </dependency>
-          44      <dependency>
-          45        <groupId>javax</groupId>
-          46        <artifactId>javaee-api</artifactId>
-          47        <version>${javaee-api.version}</version>
-          48        <scope>provided</scope>
-          49      </dependency>
-          50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
-          51      <dependency>
-          52        <groupId>io.netty</groupId>
-          53        <artifactId>netty-transport-native-epoll</artifactId>
-          54        <version>4.1.76.Final</version>
-          55        <classifier>linux-x86_64</classifier>
-          56        <scope>runtime</scope>
-        lineNumber: 45
-        variables:
-          name: javax.activation.activation
-          version: "1.1"
-      effort: 1
-    node-sample-rule-001:
-      description: Testing that the node provider works - type
-      category: potential
-      incidents:
-      - uri: file:///examples/nodejs/test_a.ts
-        message: nodejs sample rule 001
-        codeSnip: " 1  export interface Greeter {\n 2    name: string;\n 3    hello(): string;\n 4  }\n 5  \n 6  export const greeter: Greeter = {\n 7    name: \"Person1\",\n 8    hello() {\n 9      return `Hello, I'm ${this.name}`;\n10    },\n11  };\n"
-        lineNumber: 6
-        variables:
-          file: file:///examples/nodejs/test_a.ts
-      - uri: file:///examples/nodejs/test_b.ts
-        message: nodejs sample rule 001
-        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
-        lineNumber: 1
-        variables:
-          file: file:///examples/nodejs/test_b.ts
-      - uri: file:///examples/nodejs/test_b.ts
-        message: nodejs sample rule 001
-        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
-        lineNumber: 3
-        variables:
-          file: file:///examples/nodejs/test_b.ts
-      effort: 1
-    node-sample-rule-002:
-      description: Testing that the node provider works - function
-      category: potential
-      incidents:
-      - uri: file:///examples/nodejs/test_a.ts
-        message: nodejs sample rule 002
-        codeSnip: " 1  export interface Greeter {\n 2    name: string;\n 3    hello(): string;\n 4  }\n 5  \n 6  export const greeter: Greeter = {\n 7    name: \"Person1\",\n 8    hello() {\n 9      return `Hello, I'm ${this.name}`;\n10    },\n11  };\n"
-        lineNumber: 3
-        variables:
-          file: file:///examples/nodejs/test_a.ts
-      - uri: file:///examples/nodejs/test_a.ts
-        message: nodejs sample rule 002
-        codeSnip: " 1  export interface Greeter {\n 2    name: string;\n 3    hello(): string;\n 4  }\n 5  \n 6  export const greeter: Greeter = {\n 7    name: \"Person1\",\n 8    hello() {\n 9      return `Hello, I'm ${this.name}`;\n10    },\n11  };\n"
-        lineNumber: 8
-        variables:
-          file: file:///examples/nodejs/test_a.ts
-      - uri: file:///examples/nodejs/test_b.ts
-        message: nodejs sample rule 002
-        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
-        lineNumber: 3
-        variables:
-          file: file:///examples/nodejs/test_b.ts
-      effort: 1
-    node-sample-rule-003:
-      description: Testing that the node module files are not matched
-      category: potential
-      incidents:
-      - uri: file:///examples/nodejs/test_b.ts
-        message: nodejs sample rule 003
-        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
-        lineNumber: 3
-        variables:
-          file: file:///examples/nodejs/test_b.ts
-      effort: 1
-    python-sample-rule-001:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/python/file_a.py
-        message: python sample rule 001
-        codeSnip: " 1  import file_b\n 2  \n 3  print(file_b.hello_world())\n 4  \n 5  doggie = file_b.Dog()\n 6  print(doggie.speak())\n 7  \n 8  file_b.bad_method()\n"
-        lineNumber: 3
-        variables:
-          file: file:///examples/python/file_a.py
-      effort: 1
-    python-sample-rule-002:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/python/file_a.py
-        message: python sample rule 002
-        codeSnip: " 1  import file_b\n 2  \n 3  print(file_b.hello_world())\n 4  \n 5  doggie = file_b.Dog()\n 6  print(doggie.speak())\n 7  \n 8  file_b.bad_method()\n"
-        lineNumber: 6
-        variables:
-          file: file:///examples/python/file_a.py
-      effort: 1
-    singleton-sessionbean-00001:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-        message: condition entries should evaluate out of order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
-        lineNumber: 6
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Property
-          name: Singleton
-          package: com.example.apps
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-        message: condition entries should evaluate out of order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
-        lineNumber: 7
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Class
-          name: Bean
-          package: com.example.apps
-      effort: 1
-    singleton-sessionbean-00002:
-      description: ""
-      category: potential
-      incidents:
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-        message: condition entries should evaluate in order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
-        lineNumber: 6
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Property
-          name: Singleton
-          package: com.example.apps
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-        message: condition entries should evaluate in order
-        codeSnip: " 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8      \n 9  }\n"
-        lineNumber: 7
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/Bean.java
-          kind: Class
-          name: Bean
           package: com.example.apps
       effort: 1
     test-regex-pattern-00000:
@@ -792,29 +498,6 @@
         lineNumber: 1
         variables:
           matchingText: import React
-      effort: 1
-    test-tsx-support-00010:
-      description: Test that nodejs provider can find references in TypeScript/React files
-      category: potential
-      incidents:
-      - uri: file:///examples/nodejs/Component.tsx
-        message: Found React reference using nodejs provider
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
-        lineNumber: 1
-        variables:
-          file: file:///examples/nodejs/Component.tsx
-      - uri: file:///examples/nodejs/Component.tsx
-        message: Found React reference using nodejs provider
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
-        lineNumber: 3
-        variables:
-          file: file:///examples/nodejs/Component.tsx
-      - uri: file:///examples/nodejs/LegacyComponent.jsx
-        message: Found React reference using nodejs provider
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const LegacyComponent = () => {\n 4    return <div>Hello from JavaScript React</div>;\n 5  };\n"
-        lineNumber: 1
-        variables:
-          file: file:///examples/nodejs/LegacyComponent.jsx
       effort: 1
     xml-pom-001:
       description: ""
@@ -1098,127 +781,6 @@
           matchingXML: ""
       effort: 1
   insights:
-    field-rule-00001:
-      description: Sample field declaration rule
-      category: mandatory
-      incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
-        message: Field found
-        codeSnip: " 8  import org.springframework.data.domain.Page;\n 9  import org.springframework.data.domain.Pageable;\n10  import org.springframework.stereotype.Service;\n11  import org.springframework.transaction.annotation.Transactional;\n12  \n13  @Service\n14  @Transactional\n15  public class CustomerService implements ICustomerService{\n16  \t\n17  \t@Autowired\n18  \tprivate CustomerRepository repository;\n19  \t\n20  \tprivate static Logger logger = Logger.getLogger( CustomerService.class.getName() );\n21  \t\n22  \tpublic Customer findById(Long id) {\n23  \t\tlogger.debug(\"Entering CustomerService.findById()\");\n24  \t\tCustomer c = repository.findById(id).orElse(null);\n25  \t\tlogger.debug(\"Returning element: \" + c);\n26  \t\treturn c;\n27  \t}\n28  \t"
-        lineNumber: 18
-        variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
-          kind: Field
-          name: repository
-          package: io.konveyor.demo.ordermanagement.service
-    java-annotation-inspection-01:
-      description: |
-        This rule looks for a given class annotated with a given annotation
-      category: mandatory
-      incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
-        message: Annotation inspection 01
-        codeSnip: "17  import org.springframework.transaction.annotation.EnableTransactionManagement;\n18  \n19  import io.konveyor.demo.config.ApplicationConfiguration;\n20  \n21  @Configuration\n22  @EnableJpaRepositories(basePackages = {\n23          \"io.konveyor.demo.ordermanagement.repository\"\n24  })\n25  @EnableTransactionManagement\n26  @EnableSpringDataWebSupport\n27  public class PersistenceConfig {\n28  \n29      \n30  \t@Bean\n31      public LocalContainerEntityManagerFactoryBean entityManagerFactory() {\n32          final LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();\n33          em.setDataSource(dataSource());\n34          em.setPackagesToScan(\"io.konveyor.demo.ordermanagement.model\");\n35          em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());\n36          em.setJpaProperties(additionalProperties());\n37  "
-        lineNumber: 27
-        variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
-          kind: Class
-          name: PersistenceConfig
-          package: io.konveyor.demo.ordermanagement.config
-    java-annotation-inspection-02:
-      description: |
-        This rule looks for a given method annotated with a given annotation
-      category: mandatory
-      incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
-        message: Annotation inspection 02
-        codeSnip: "46          dataSource.setUrl(config.getProperty(\"jdbc.url\"));\n47          dataSource.setUsername(config.getProperty(\"jdbc.user\"));\n48          dataSource.setPassword(config.getProperty(\"jdbc.password\"));\n49  \n50          return dataSource;\n51      }\n52  \n53      @Bean\n54      public PlatformTransactionManager transactionManager() {\n55          final JpaTransactionManager transactionManager = new JpaTransactionManager();\n56          transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());\n57          return transactionManager;\n58      }\n59  \n60      @Bean\n61      public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {\n62          return new PersistenceExceptionTranslationPostProcessor();\n63      }\n64  \n65      final Properties additionalProperties() {\n66      \tApplicationConfiguration config = new ApplicationConfiguration();"
-        lineNumber: 56
-        variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
-          kind: Method
-          name: transactionManager
-          package: io.konveyor.demo.ordermanagement.config
-    java-annotation-inspection-03:
-      description: |
-        This rule looks for a given field annotated with a given annotation
-      category: mandatory
-      incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
-        message: Annotation inspection 03
-        codeSnip: "11  import org.springframework.web.bind.annotation.GetMapping;\n12  import org.springframework.web.bind.annotation.PathVariable;\n13  import org.springframework.web.bind.annotation.RequestMapping;\n14  import org.springframework.web.bind.annotation.RestController;\n15  \n16  @RestController\n17  @RequestMapping(\"/customers\")\n18  public class CustomerController {\n19  \t\n20  \t@Autowired\n21  \tprivate CustomerService customerService;\n22  \t\n23  \tprivate static Logger logger = Logger.getLogger( CustomerController.class.getName() );\n24  \t\n25  \t@GetMapping(value = \"id\", produces = MediaType.APPLICATION_JSON_VALUE)\n26      public Customer getById(@PathVariable(\"id\") Long id) {\n27  \t\tCustomer c = customerService.findById(id);\n28  \t\tif (c == null) {\n29  \t\t\tthrow new ResourceNotFoundException(\"Requested order doesn't exist\");\n30  \t\t}\n31  \t\tlogger.debug(\"Returning element: \" + c);"
-        lineNumber: 21
-        variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
-          kind: Field
-          name: customerService
-          package: io.konveyor.demo.ordermanagement.controller
-    java-annotation-inspection-04:
-      description: |
-        This rule looks for a given annotation used with some given properties (elements)
-      category: mandatory
-      incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
-        message: Annotation inspection 04
-        codeSnip: "15  \n16  @RestController\n17  @RequestMapping(\"/customers\")\n18  public class CustomerController {\n19  \t\n20  \t@Autowired\n21  \tprivate CustomerService customerService;\n22  \t\n23  \tprivate static Logger logger = Logger.getLogger( CustomerController.class.getName() );\n24  \t\n25  \t@GetMapping(value = \"id\", produces = MediaType.APPLICATION_JSON_VALUE)\n26      public Customer getById(@PathVariable(\"id\") Long id) {\n27  \t\tCustomer c = customerService.findById(id);\n28  \t\tif (c == null) {\n29  \t\t\tthrow new ResourceNotFoundException(\"Requested order doesn't exist\");\n30  \t\t}\n31  \t\tlogger.debug(\"Returning element: \" + c);\n32  \t\treturn c;\n33  \t}\n34  \t\n35  \t@RequestMapping"
-        lineNumber: 25
-        variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
-          kind: Property
-          name: GetMapping
-          package: io.konveyor.demo.ordermanagement.controller
-    java-annotation-inspection-05:
-      description: |
-        This rule looks for a given annotation used with another annotation
-      category: mandatory
-      incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
-        message: Annotation inspection 05
-        codeSnip: "11  import org.springframework.data.web.config.EnableSpringDataWebSupport;\n12  import org.springframework.jdbc.datasource.DriverManagerDataSource;\n13  import org.springframework.orm.jpa.JpaTransactionManager;\n14  import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;\n15  import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;\n16  import org.springframework.transaction.PlatformTransactionManager;\n17  import org.springframework.transaction.annotation.EnableTransactionManagement;\n18  \n19  import io.konveyor.demo.config.ApplicationConfiguration;\n20  \n21  @Configuration\n22  @EnableJpaRepositories(basePackages = {\n23          \"io.konveyor.demo.ordermanagement.repository\"\n24  })\n25  @EnableTransactionManagement\n26  @EnableSpringDataWebSupport\n27  public class PersistenceConfig {\n28  \n29      \n30  \t@Bean\n31      public LocalContainerEntityManagerFactoryBean entityManagerFactory() {"
-        lineNumber: 21
-        variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
-          kind: Property
-          name: Configuration
-          package: io.konveyor.demo.ordermanagement.config
-    java-chaining-01:
-      description: There should only be one instance of this rule
-      category: mandatory
-      incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
-        message: |
-          Sample message. This rule checks that the chaining conditions are working. Should only get a single issue.
-        codeSnip: " 3  import javax.servlet.ServletContext;\n 4  import javax.servlet.ServletException;\n 5  import javax.servlet.ServletRegistration;\n 6  \n 7  import org.springframework.web.WebApplicationInitializer;\n 8  import org.springframework.web.context.ContextLoaderListener;\n 9  import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;\n10  import org.springframework.web.servlet.DispatcherServlet;\n11  \n12  \n13  public class OrderManagementAppInitializer implements WebApplicationInitializer  {\n14  \n15  \t@Override\n16  \tpublic void onStartup(ServletContext container) throws ServletException {\n17  \t\tAnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();\n18        context.setConfigLocation(\"io.konveyor.demo.ordermanagement.config\");\n19  \n20        context.scan(\"io.konveyor.demo.ordermanagement\");\n21        container.addListener(new ContextLoaderListener(context));\n22  \n23        ServletRegistration.Dynamic dispatcher = container"
-        lineNumber: 13
-        variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
-          kind: Class
-          name: OrderManagementAppInitializer
-          package: io.konveyor.demo.ordermanagement
-    java-downloaded-maven-artifact:
-      description: |
-        This rule tests the application downloaded from maven artifact
-      labels:
-      - tag=Java Operator SDK
-      incidents:
-      - uri: file:///examples/java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
-        message: ""
-        codeSnip: " 1  package io.javaoperatorsdk.operator.sample;\n 2  \n 3  import io.fabric8.kubernetes.client.KubernetesClient;\n 4  import io.javaoperatorsdk.operator.Operator;\n 5  import io.javaoperatorsdk.operator.api.config.ConfigurationService;\n 6  import io.javaoperatorsdk.operator.api.config.ControllerConfiguration;\n 7  import io.quarkus.runtime.Quarkus;\n 8  import io.quarkus.runtime.QuarkusApplication;\n 9  import io.quarkus.runtime.annotations.QuarkusMain;\n10  import javax.inject.Inject;\n11  \n12  @QuarkusMain\n13  public class QuarkusOperator implements QuarkusApplication {\n14     @Inject"
-        lineNumber: 4
-        variables:
-          file: file:///examples/java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
-          kind: Module
-          name: io.javaoperatorsdk.operator.Operator
-          package: io.javaoperatorsdk.operator.sample
-      - uri: file:///examples/java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
-        message: ""
-        codeSnip: " 7  import io.quarkus.runtime.Quarkus;\n 8  import io.quarkus.runtime.QuarkusApplication;\n 9  import io.quarkus.runtime.annotations.QuarkusMain;\n10  import javax.inject.Inject;\n11  \n12  @QuarkusMain\n13  public class QuarkusOperator implements QuarkusApplication {\n14     @Inject\n15     KubernetesClient client;\n16     @Inject\n17     Operator operator;\n18     @Inject\n19     ConfigurationService configuration;\n20     @Inject\n21     CustomServiceController controller;\n22  \n23     public static void main(String... args) {\n24        Quarkus.run(QuarkusOperator.class, args);\n25     }\n26  \n27     public int run(String... args) throws Exception {"
-        lineNumber: 17
-        variables:
-          file: file:///examples/java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
-          kind: Field
-          name: operator
-          package: io.javaoperatorsdk.operator.sample
     multiple-actions-001:
       description: ""
       labels:
@@ -1378,8 +940,7 @@
   errors:
     error-rule-001: |-
       unable to get query info: yaml: unmarshal errors:
-        line 11: cannot unmarshal !!map into string
+        line 10: cannot unmarshal !!map into string
   unmatched:
   - file-002
   - lang-ref-002
-  - python-sample-rule-003
