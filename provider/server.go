@@ -597,7 +597,8 @@ func (s *server) StreamPrepareProgress(in *libgrpc.PrepareProgressRequest, strea
 
 	// Stream events to the GRPC client
 	for event := range progressChan {
-		pbEvent := &libgrpc.PrepareProgressEvent{
+		pbEvent := &libgrpc.ProgressEvent{
+			Type:           libgrpc.ProgressEventType_PREPARE,
 			ProviderName:   event.ProviderName,
 			FilesProcessed: int32(event.FilesProcessed),
 			TotalFiles:     int32(event.TotalFiles),

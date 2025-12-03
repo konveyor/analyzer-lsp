@@ -249,7 +249,7 @@ type ProviderServiceClient interface {
 	GetDependenciesDAG(ctx context.Context, in *ServiceRequest, opts ...grpc.CallOption) (*DependencyDAGResponse, error)
 	NotifyFileChanges(ctx context.Context, in *NotifyFileChangesRequest, opts ...grpc.CallOption) (*NotifyFileChangesResponse, error)
 	Prepare(ctx context.Context, in *PrepareRequest, opts ...grpc.CallOption) (*PrepareResponse, error)
-	StreamPrepareProgress(ctx context.Context, in *PrepareProgressRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PrepareProgressEvent], error)
+	StreamPrepareProgress(ctx context.Context, in *PrepareProgressRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ProgressEvent], error)
 }
 
 type providerServiceClient struct {
@@ -340,13 +340,13 @@ func (c *providerServiceClient) Prepare(ctx context.Context, in *PrepareRequest,
 	return out, nil
 }
 
-func (c *providerServiceClient) StreamPrepareProgress(ctx context.Context, in *PrepareProgressRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PrepareProgressEvent], error) {
+func (c *providerServiceClient) StreamPrepareProgress(ctx context.Context, in *PrepareProgressRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ProgressEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &ProviderService_ServiceDesc.Streams[0], ProviderService_StreamPrepareProgress_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[PrepareProgressRequest, PrepareProgressEvent]{ClientStream: stream}
+	x := &grpc.GenericClientStream[PrepareProgressRequest, ProgressEvent]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -357,7 +357,7 @@ func (c *providerServiceClient) StreamPrepareProgress(ctx context.Context, in *P
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ProviderService_StreamPrepareProgressClient = grpc.ServerStreamingClient[PrepareProgressEvent]
+type ProviderService_StreamPrepareProgressClient = grpc.ServerStreamingClient[ProgressEvent]
 
 // ProviderServiceServer is the server API for ProviderService service.
 // All implementations must embed UnimplementedProviderServiceServer
@@ -371,7 +371,7 @@ type ProviderServiceServer interface {
 	GetDependenciesDAG(context.Context, *ServiceRequest) (*DependencyDAGResponse, error)
 	NotifyFileChanges(context.Context, *NotifyFileChangesRequest) (*NotifyFileChangesResponse, error)
 	Prepare(context.Context, *PrepareRequest) (*PrepareResponse, error)
-	StreamPrepareProgress(*PrepareProgressRequest, grpc.ServerStreamingServer[PrepareProgressEvent]) error
+	StreamPrepareProgress(*PrepareProgressRequest, grpc.ServerStreamingServer[ProgressEvent]) error
 	mustEmbedUnimplementedProviderServiceServer()
 }
 
@@ -406,7 +406,7 @@ func (UnimplementedProviderServiceServer) NotifyFileChanges(context.Context, *No
 func (UnimplementedProviderServiceServer) Prepare(context.Context, *PrepareRequest) (*PrepareResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Prepare not implemented")
 }
-func (UnimplementedProviderServiceServer) StreamPrepareProgress(*PrepareProgressRequest, grpc.ServerStreamingServer[PrepareProgressEvent]) error {
+func (UnimplementedProviderServiceServer) StreamPrepareProgress(*PrepareProgressRequest, grpc.ServerStreamingServer[ProgressEvent]) error {
 	return status.Error(codes.Unimplemented, "method StreamPrepareProgress not implemented")
 }
 func (UnimplementedProviderServiceServer) mustEmbedUnimplementedProviderServiceServer() {}
@@ -579,11 +579,11 @@ func _ProviderService_StreamPrepareProgress_Handler(srv interface{}, stream grpc
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ProviderServiceServer).StreamPrepareProgress(m, &grpc.GenericServerStream[PrepareProgressRequest, PrepareProgressEvent]{ServerStream: stream})
+	return srv.(ProviderServiceServer).StreamPrepareProgress(m, &grpc.GenericServerStream[PrepareProgressRequest, ProgressEvent]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ProviderService_StreamPrepareProgressServer = grpc.ServerStreamingServer[PrepareProgressEvent]
+type ProviderService_StreamPrepareProgressServer = grpc.ServerStreamingServer[ProgressEvent]
 
 // ProviderService_ServiceDesc is the grpc.ServiceDesc for ProviderService service.
 // It's only intended for direct use with grpc.RegisterService,
