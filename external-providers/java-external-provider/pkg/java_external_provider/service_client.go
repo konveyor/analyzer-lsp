@@ -194,7 +194,8 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	includedFilepaths, excludedFilepaths := condCTX.GetScopedFilepaths()
 
 	// Check if we have any additional filtering to apply beyond what the language server did
-	hasAdditionalConstraints := len(excludedFilepaths) > 0 || len(c.Referenced.Filepaths) > 0
+	// The language server filters at package-level, we need file-level precision
+	hasAdditionalConstraints := len(includedFilepaths) > 0 || len(excludedFilepaths) > 0 || len(c.Referenced.Filepaths) > 0
 
 	if !hasAdditionalConstraints {
 		// No additional constraints - return language server results as-is
