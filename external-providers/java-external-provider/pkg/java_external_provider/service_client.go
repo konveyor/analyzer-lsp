@@ -145,68 +145,12 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 
 	log := p.log.WithValues("ruleID", condCTX.RuleID)
 
-	// Check if we need file-level filtering before making the language server call
-	// The java language server indexes both source and dependencies (e.g., Maven repo).
-	// The language server was already instructed to filter by provider-level and rule-scope
-	// included paths. Here we apply additional filtering for excluded paths and
-	// condition-level filepaths.
-	includedFilepaths, excludedFilepaths := condCTX.GetScopedFilepaths()
-
-	// Check if we have any additional filtering to apply beyond what the language server did
-	// The language server filters at package-level, we need file-level precision
-	hasAdditionalConstraints := len(includedFilepaths) > 0 || len(excludedFilepaths) > 0 || len(c.Referenced.Filepaths) > 0
-
-	// Start file search in parallel with language server query (if needed)
-	type fileSearchResult struct {
-		fileMap map[string]struct{}
-		err     error
-	}
-	var resultCh chan fileSearchResult
-	if hasAdditionalConstraints {
-		resultCh = make(chan fileSearchResult, 1)
-		go func() {
-			defer close(resultCh)
-			// Determine base path - use workspace directory
-			basePath := p.workspace
-
-			fileSearcher := provider.FileSearcher{
-				BasePath: basePath,
-				ProviderConfigConstraints: provider.IncludeExcludeConstraints{
-					IncludePathsOrPatterns: p.includedPaths,
-				},
-				RuleScopeConstraints: provider.IncludeExcludeConstraints{
-					IncludePathsOrPatterns: includedFilepaths,
-					ExcludePathsOrPatterns: excludedFilepaths,
-				},
-				FailFast: true,
-				Log:      log,
-			}
-
-			paths, err := fileSearcher.Search(provider.SearchCriteria{
-				ConditionFilepaths: c.Referenced.Filepaths,
-			})
-			if err != nil {
-				log.Error(err, "failed to search for files")
-				resultCh <- fileSearchResult{err: err}
-				return
-			}
-
-			// Build map of allowed files for quick lookup
-			fileMap := make(map[string]struct{})
-			for _, path := range paths {
-				normalizedPath := provider.NormalizePathForComparison(path)
-				fileMap[normalizedPath] = struct{}{}
-			}
-			resultCh <- fileSearchResult{fileMap: fileMap}
-		}()
-	}
-
 	if len(p.includedPaths) > 0 {
 		argumentsMap[provider.IncludedPathsConfigKey] = p.includedPaths
 		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths)
-	} else if len(includedFilepaths) > 0 {
-		argumentsMap[provider.IncludedPathsConfigKey] = includedFilepaths
-		log.V(8).Info("setting search scope by filepaths", "paths", includedFilepaths, "argumentMap", argumentsMap)
+	} else if includedPaths, _ := condCTX.GetScopedFilepaths(); len(includedPaths) > 0 {
+		argumentsMap[provider.IncludedPathsConfigKey] = includedPaths
+		log.V(8).Info("setting search scope by filepaths", "paths", includedPaths, "argumentMap", argumentsMap)
 	}
 
 	argumentsBytes, _ := json.Marshal(argumentsMap)
@@ -240,17 +184,54 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		}
 	}
 
-	// If no additional filtering needed, return language server results as-is
+	// Use FileSearcher to handle filepath filtering from multiple sources:
+	// 1. Rule scope excluded paths (language server only knows about included paths)
+	// 2. Condition filepaths (with proper pattern matching and normalization)
+	// The java language server indexes both source and dependencies (e.g., Maven repo).
+	// The language server was already instructed to filter by provider-level and rule-scope
+	// included paths. Here we apply additional filtering for excluded paths and
+	// condition-level filepaths.
+	includedFilepaths, excludedFilepaths := condCTX.GetScopedFilepaths()
+
+	// Check if we have any additional filtering to apply beyond what the language server did
+	// The language server filters at package-level, we need file-level precision
+	hasAdditionalConstraints := len(includedFilepaths) > 0 || len(excludedFilepaths) > 0 || len(c.Referenced.Filepaths) > 0
+
 	if !hasAdditionalConstraints {
+		// No additional constraints - return language server results as-is
 		return refs, nil
 	}
 
-	// Wait for file search to complete and get result
-	searchResult := <-resultCh
+	// Determine base path - use workspace directory
+	basePath := p.workspace
 
-	// If file search failed, return all language server results to avoid false negatives
-	if searchResult.err != nil {
+	fileSearcher := provider.FileSearcher{
+		BasePath: basePath,
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: p.includedPaths,
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedFilepaths,
+			ExcludePathsOrPatterns: excludedFilepaths,
+		},
+		FailFast: true,
+		Log:      log,
+	}
+
+	// Search for allowed files
+	paths, err := fileSearcher.Search(provider.SearchCriteria{
+		ConditionFilepaths: c.Referenced.Filepaths,
+	})
+	if err != nil {
+		log.Error(err, "failed to search for files, returning all language server results")
 		return refs, nil
+	}
+
+	// Build map of allowed files for quick lookup
+	fileMap := make(map[string]struct{})
+	for _, path := range paths {
+		normalizedPath := provider.NormalizePathForComparison(path)
+		fileMap[normalizedPath] = struct{}{}
 	}
 
 	// Filter refs to only those in allowed files
@@ -267,7 +248,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 			continue
 		}
 		normalizedRefURI := provider.NormalizePathForComparison(string(refURI))
-		if _, ok := searchResult.fileMap[normalizedRefURI]; ok {
+		if _, ok := fileMap[normalizedRefURI]; ok {
 			filteredRefs = append(filteredRefs, ref)
 		}
 	}
