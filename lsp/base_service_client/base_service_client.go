@@ -337,7 +337,13 @@ func (sc *LSPServiceClientBase) GetLSPServiceClientBase() *LSPServiceClientBase 
 
 // Shut down any spawned helper processes
 func (sc *LSPServiceClientBase) Stop() {
+	// Cancel context to stop background goroutines
 	sc.CancelFunc()
+
+	// Wait for any in-progress symbol cache updates to complete
+	// This ensures clean shutdown even if Prepare() is still running in background
+	sc.symbolCacheUpdateWaitGroup.Wait()
+
 	sc.Conn.Close()
 
 	if sc.TempDir != "" {
@@ -370,6 +376,8 @@ func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes .
 }
 
 // Prepare is called before Evaluate() with all rules. We prepare the symbol cache during this step.
+// This method returns immediately and work continues in the background, allowing rule evaluation
+// to proceed while symbol cache is being populated.
 func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
 	sc.allConditionsMutex.Lock()
 	sc.allConditions = conditionsByCap
@@ -392,17 +400,17 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 		for _, uri := range uris {
 			sc.symbolCacheUpdateChan <- uri
 		}
+
+		// Wait for all symbol cache updates to complete in background
+		sc.symbolCacheUpdateWaitGroup.Wait()
+
+		// Close progress stream now that background work is done
+		if sc.progressStreamActive.Load() {
+			sc.StopProgressStream()
+		}
 	}()
 
-	// Wait for all file processing to complete
-	sc.symbolCacheUpdateWaitGroup.Wait()
-
-	// Close progress stream if it was started
-	// This signals to the server that no more progress events will be sent
-	if sc.progressStreamActive.Load() {
-		sc.StopProgressStream()
-	}
-
+	// Return immediately - work continues in background
 	return nil
 }
 
