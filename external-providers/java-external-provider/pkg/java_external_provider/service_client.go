@@ -236,7 +236,16 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	// Filter refs to only those in allowed files
 	var filteredRefs []protocol.WorkspaceSymbol
 	for _, ref := range refs {
-		refURI := ref.Location.Value.(protocol.Location).URI
+		var refURI protocol.DocumentURI
+		switch x := ref.Location.Value.(type) {
+		case protocol.Location:
+			refURI = x.URI
+		case protocol.PLocationMsg_workspace_symbol:
+			refURI = x.URI
+		default:
+			// Skip symbols with unknown location types
+			continue
+		}
 		normalizedRefURI := provider.NormalizePathForComparison(string(refURI))
 		if _, ok := fileMap[normalizedRefURI]; ok {
 			filteredRefs = append(filteredRefs, ref)
