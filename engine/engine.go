@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -56,10 +57,10 @@ type ruleMessage struct {
 }
 
 type response struct {
-	ConditionResponse ConditionResponse `yaml:"conditionResponse"`
-	Err               error             `yaml:"err"`
-	Rule              Rule              `yaml:"rule"`
-	RuleSetName       string
+	Violation   *konveyor.Violation `yaml:"violation"`
+	Err         error               `yaml:"err"`
+	Rule        Rule                `yaml:"rule"`
+	RuleSetName string
 }
 
 type ruleEngine struct {
@@ -139,12 +140,6 @@ func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger, options
 	ctx, cancelFunc := context.WithCancel(ctx)
 	wg := &sync.WaitGroup{}
 
-	for i := 0; i < workers; i++ {
-		logger := log.WithValues("worker", i)
-		wg.Add(1)
-		go processRuleWorker(ctx, ruleProcessor, logger, wg)
-	}
-
 	r := &ruleEngine{
 		ruleProcessing: ruleProcessor,
 		cancelFunc:     cancelFunc,
@@ -154,6 +149,12 @@ func CreateRuleEngine(ctx context.Context, workers int, log logr.Logger, options
 	for _, o := range options {
 		o(r)
 	}
+	for i := range workers {
+		logger := log.WithValues("worker", i)
+		wg.Add(1)
+		go r.processRuleWorker(ctx, ruleProcessor, logger, wg)
+	}
+
 	return r
 }
 
@@ -170,7 +171,7 @@ func reportProgress(reporter progress.ProgressReporter, event progress.ProgressE
 	}
 }
 
-func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logger logr.Logger, wg *sync.WaitGroup) {
+func (r *ruleEngine) processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logger logr.Logger, wg *sync.WaitGroup) {
 	prop := otel.GetTextMapPropagator()
 	for {
 		select {
@@ -185,14 +186,24 @@ func processRuleWorker(ctx context.Context, ruleMessages chan ruleMessage, logge
 			logger.Info("Adding Carrier span info to context")
 			ctx = prop.Extract(ctx, m.carrier)
 
-			bo, err := processRule(ctx, m.rule, m.conditionContext, newLogger)
-			logger.V(5).Info("finished rule", "found", len(bo.Incidents), "matched", bo.Matched, "error", err, "rule", m.rule.RuleID)
-			m.returnChan <- response{
-				ConditionResponse: bo,
-				Err:               err,
-				Rule:              m.rule,
-				RuleSetName:       m.ruleSetName,
+			conditionResponse, err := processRule(ctx, m.rule, m.conditionContext, newLogger)
+			newLogger.V(5).Info("finished rule", "found", len(conditionResponse.Incidents), "matched", conditionResponse.Matched, "error", err)
+			response := response{
+				Err:         err,
+				Rule:        m.rule,
+				RuleSetName: m.ruleSetName,
 			}
+			if conditionResponse.Matched && len(conditionResponse.Incidents) > 0 {
+				violation, err := r.createViolation(ctx, conditionResponse, m.rule, m.scope)
+				if err != nil {
+					response.Err = err
+				} else if len(violation.Incidents) == 0 {
+					newLogger.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched")
+				} else {
+					response.Violation = &violation
+				}
+			}
+			m.returnChan <- response
 		case <-ctx.Done():
 			logger.V(5).Info("stopping rule worker")
 			wg.Done()
@@ -240,7 +251,7 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 	// determine if we should run
 
 	conditionContext := ConditionContext{
-		Tags:     make(map[string]interface{}),
+		Tags:     make(map[string]any),
 		Template: make(map[string]ChainTemplate),
 	}
 	if scopes != nil {
@@ -296,31 +307,19 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 						if rs, ok := mapRuleSets[response.RuleSetName]; ok {
 							rs.Errors[response.Rule.RuleID] = response.Err.Error()
 						}
-					} else if response.ConditionResponse.Matched && len(response.ConditionResponse.Incidents) > 0 {
-						log.Info("rule matched and has incidents, creating violation")
-						violation, err := r.createViolation(ctx, response.ConditionResponse, response.Rule, scopes)
-						if err != nil {
-							log.Error(err, "unable to create violation from response")
+						// response.Violation will be nil when the condition response is unmatched or there are zero incidents
+					} else if response.Violation != nil {
+						atomic.AddInt32(&matchedRules, 1)
+						rs, ok := mapRuleSets[response.RuleSetName]
+						if !ok {
+							log.Info("this should never happen that we don't find the ruleset")
+							return
 						}
-						if len(violation.Incidents) == 0 {
-							log.V(5).Info("rule was evaluated and incidents were filtered out to make it unmatched")
-							atomic.AddInt32(&unmatchedRules, 1)
-							if rs, ok := mapRuleSets[response.RuleSetName]; ok {
-								rs.Unmatched = append(rs.Unmatched, response.Rule.RuleID)
-							}
+						// when a rule has 0 effort, we should create an insight instead
+						if response.Rule.Effort == nil || *response.Rule.Effort == 0 {
+							rs.Insights[response.Rule.RuleID] = *response.Violation
 						} else {
-							atomic.AddInt32(&matchedRules, 1)
-							rs, ok := mapRuleSets[response.RuleSetName]
-							if !ok {
-								log.Info("this should never happen that we don't find the ruleset")
-								return
-							}
-							// when a rule has 0 effort, we should create an insight instead
-							if response.Rule.Effort == nil || *response.Rule.Effort == 0 {
-								rs.Insights[response.Rule.RuleID] = violation
-							} else {
-								rs.Violations[response.Rule.RuleID] = violation
-							}
+							rs.Violations[response.Rule.RuleID] = *response.Violation
 						}
 					} else {
 						atomic.AddInt32(&unmatchedRules, 1)
@@ -476,10 +475,8 @@ func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessag
 				if strings.Contains(tagString, "{{") && strings.Contains(tagString, "}}") {
 					for _, incident := range response.Incidents {
 						// If this is the case then we neeed to use the reponse variables to get the tag
-						variables := make(map[string]interface{})
-						for key, value := range incident.Variables {
-							variables[key] = value
-						}
+						variables := make(map[string]any)
+						maps.Copy(variables, incident.Variables)
 						if incident.LineNumber != nil {
 							variables["lineNumber"] = *incident.LineNumber
 						}
@@ -693,10 +690,8 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 		}
 
 		if rule.Perform.Message.Text != nil {
-			variables := make(map[string]interface{})
-			for key, value := range m.Variables {
-				variables[key] = value
-			}
+			variables := make(map[string]any)
+			maps.Copy(variables, m.Variables)
 			if m.LineNumber != nil {
 				variables["lineNumber"] = *m.LineNumber
 			}
@@ -801,7 +796,7 @@ func (r *ruleEngine) getCodeLocation(_ context.Context, m IncidentContext, rule 
 	return "", nil
 }
 
-func (r *ruleEngine) createPerformString(messageTemplate string, ctx map[string]interface{}) (string, error) {
+func (r *ruleEngine) createPerformString(messageTemplate string, ctx map[string]any) (string, error) {
 	return mustache.Render(messageTemplate, ctx)
 }
 
