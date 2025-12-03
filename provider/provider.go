@@ -687,12 +687,7 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	// reliably reference them without worrying about undefined values
 	yamlCtx := make(map[string]interface{})
 	for key, template := range ctx {
-		templateMap := make(map[string]interface{})
-		// Always set all fields, even if empty, for template consistency
-		templateMap["filepaths"] = template.Filepaths
-		templateMap["excludedPaths"] = template.ExcludedPaths
-		templateMap["extras"] = template.Extras
-		yamlCtx[key] = templateMap
+		yamlCtx[key] = template.ToMap()
 	}
 
 	s, err := mustache.RenderRaw(s, true, yamlCtx)

@@ -316,6 +316,17 @@ type ChainTemplate struct {
 	ExcludedPaths []string               `yaml:"excludedPaths,omitempty" json:"excludedPaths,omitempty"`
 }
 
+// ToMap converts the ChainTemplate to a map suitable for mustache template rendering.
+// All fields are always exposed (even if empty) to ensure templates can reliably
+// reference them without worrying about undefined values.
+func (c *ChainTemplate) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"filepaths":     c.Filepaths,
+		"excludedPaths": c.ExcludedPaths,
+		"extras":        c.Extras,
+	}
+}
+
 func (c *ChainTemplate) FilterIncidentsByFilePaths(incidents []IncidentContext) []IncidentContext {
 	//Convert the Filepaths and ExlucedFilePaths back to scopes.
 
