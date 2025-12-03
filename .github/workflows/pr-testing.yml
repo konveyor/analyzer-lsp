@@ -48,12 +48,14 @@ jobs:
         run: |
           make extract-maven-index-files
           cd external-providers/java-external-provider/
+          go mod edit -replace github.com/konveyor/analyzer-lsp=../..
           go test -v ./...
       
       - name: Test Java External Provider
         if: ${{ !startsWith(matrix.goos, 'linux') }}
         run: |
           cd external-providers/java-external-provider/
+          go mod edit -replace github.com/konveyor/analyzer-lsp=../..
           go test -timeout=20m -v -skip 'TestConstructArtifactFromSHA' ./... 
       
       - name: Build binaries
