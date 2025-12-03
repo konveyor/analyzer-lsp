@@ -682,7 +682,15 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	s := strings.ReplaceAll(string(condition), `'{{`, "{{")
 	s = strings.ReplaceAll(s, `}}'`, "}}")
 
-	s, err := mustache.RenderRaw(s, true, ctx)
+	// Augment the context with properly structured ChainTemplate data for mustache rendering
+	// We always expose all ChainTemplate fields (even if empty) to ensure templates can
+	// reliably reference them without worrying about undefined values
+	yamlCtx := make(map[string]interface{})
+	for key, template := range ctx {
+		yamlCtx[key] = template.ToMap()
+	}
+
+	s, err := mustache.RenderRaw(s, true, yamlCtx)
 	if err != nil {
 		return nil, err
 	}

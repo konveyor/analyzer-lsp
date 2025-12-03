@@ -494,6 +494,47 @@ In the java provider, the `filepaths` variable must be uppercased. For instance:
           filepaths: "{{annotation.Filepaths}}"
 ```
 
+#### Filepath Filtering Behavior in Chained Conditions
+
+When using `filepaths` with chained conditions, it's important to understand how filepath filtering behaves:
+
+**Intersection Behavior:**
+When you specify `filepaths` in a condition that uses a template variable from a previous condition, the final set of files is the **intersection** of:
+1. The filepaths from the template (e.g., `{{poms.filepaths}}`)
+2. Any rule-scope includes/excludes
+3. Any condition-specific filepath patterns
+
+**Example:**
+
+```yaml
+when:
+  or:
+    - builtin.xml:
+        xpath: "//dependencies/dependency"
+        filepaths: "{{poms.filepaths}}"  # Only search files found by the poms condition
+      from: poms
+    - builtin.file:
+        pattern: pom.xml
+      as: poms
+      ignore: true
+```
+
+In this example:
+1. The `builtin.file` condition finds all files matching `pom.xml` → e.g., `[a/pom.xml, b/pom.xml, c/pom.xml]`
+2. The `builtin.xml` condition receives `filepaths: "{{poms.filepaths}}"` which expands to those files
+3. The XML search is **scoped down** to only those specific files - it will not search any other XML files
+
+**Important Notes:**
+- This is a "scope down" operation - the chained condition will search a **subset** of files, never more than what the template provides
+- If you specify additional filepath patterns along with a template variable, the result is the intersection (AND), not union (OR)
+- This behavior is consistent across all providers (builtin, java, nodejs, etc.)
+- To search all files regardless of the chain, simply don't include the `filepaths` template variable
+
+**Use Cases:**
+- ✅ "Find dependencies in pom.xml files, then search for specific imports in only those pom.xml files"
+- ✅ "Find all Java files with @Controller, then check if those same files have @RequestMapping"
+- ❌ "Find pom.xml files, then search all XML files (including non-pom)" - use separate conditions without chaining for this
+
 
 ## Ruleset
 
