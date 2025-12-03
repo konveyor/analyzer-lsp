@@ -344,6 +344,11 @@ func (sc *LSPServiceClientBase) Stop() {
 	// This ensures clean shutdown even if Prepare() is still running in background
 	sc.symbolCacheUpdateWaitGroup.Wait()
 
+	// Close progress stream if it's active
+	if sc.progressStreamActive.Load() {
+		sc.StopProgressStream()
+	}
+
 	sc.Conn.Close()
 
 	if sc.TempDir != "" {
@@ -401,13 +406,9 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 			sc.symbolCacheUpdateChan <- uri
 		}
 
-		// Wait for all symbol cache updates to complete in background
-		sc.symbolCacheUpdateWaitGroup.Wait()
-
-		// Close progress stream now that background work is done
-		if sc.progressStreamActive.Load() {
-			sc.StopProgressStream()
-		}
+		// Don't wait here - symbol cache updates continue in background
+		// First Evaluate() call will wait via GetAllDeclarations()
+		// Progress stream stays open until Stop() is called
 	}()
 
 	// Return immediately - work continues in background
