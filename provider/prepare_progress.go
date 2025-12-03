@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"reflect"
+	"time"
 )
 
 // prepareProgressAdapter adapts a progress.ProgressReporter to implement PrepareProgressReporter.
@@ -58,6 +59,7 @@ func (a *prepareProgressAdapter) ReportProgress(providerName string, filesProces
 	eventValue := reflect.New(eventType).Elem()
 
 	// Set the fields
+	eventValue.FieldByName("Timestamp").Set(reflect.ValueOf(time.Now()))
 	eventValue.FieldByName("Stage").SetString("provider_prepare")
 	eventValue.FieldByName("Message").SetString(fmt.Sprintf("Preparing %s provider", providerName))
 	eventValue.FieldByName("Current").SetInt(int64(filesProcessed))
