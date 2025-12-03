@@ -138,6 +138,11 @@ func (t *ThrottledReporter) Report(event ProgressEvent) {
 // will not block progress reporting. Configure the channel with adequate
 // buffering for your use case.
 //
+// Channel Ownership:
+// The caller retains ownership of the channel and is responsible for closing it.
+// Always call DisableStreaming() before closing the channel to avoid races.
+// The ThrottledReporter never closes the channel - it only sends to it.
+//
 // Example:
 //
 //	eventChan := make(chan ProgressEvent, 100)
@@ -148,6 +153,10 @@ func (t *ThrottledReporter) Report(event ProgressEvent) {
 //	        // Process event
 //	    }
 //	}()
+//
+//	// When done:
+//	reporter.DisableStreaming()  // Must be called before close!
+//	close(eventChan)
 func (t *ThrottledReporter) EnableStreaming(ch chan<- ProgressEvent) {
 	t.streamMutex.Lock()
 	t.streamChan = ch

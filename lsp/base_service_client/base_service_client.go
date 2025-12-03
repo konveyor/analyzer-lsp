@@ -162,8 +162,8 @@ type LSPServiceClientBase struct {
 	handler jsonrpc2.Handler
 
 	// Progress reporting for Prepare() phase using ThrottledReporter
-	throttledReporter  *progress.ThrottledReporter
-	totalFilesToProcess  int32
+	throttledReporter    *progress.ThrottledReporter
+	totalFilesToProcess  atomic.Int32
 	filesProcessed       atomic.Int32
 
 	// Progress event streaming for GRPC providers
@@ -389,7 +389,7 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 
 		// Initialize progress tracking
 		sc.filesProcessed.Store(0)
-		atomic.StoreInt32(&sc.totalFilesToProcess, int32(len(uris)))
+		sc.totalFilesToProcess.Store(int32(len(uris)))
 
 		// Enable streaming on throttled reporter if streaming is active
 		if sc.progressStreamActive.Load() && sc.throttledReporter != nil {
@@ -737,7 +737,7 @@ func (sc *LSPServiceClientBase) processSymbolCacheUpdate(fileURI uri.URI) {
 func (sc *LSPServiceClientBase) reportProgress() {
 	// Increment files processed counter
 	processed := sc.filesProcessed.Add(1)
-	total := atomic.LoadInt32(&sc.totalFilesToProcess)
+	total := sc.totalFilesToProcess.Load()
 
 	// Report progress via ThrottledReporter if configured
 	// ThrottledReporter handles throttling, streaming, and first/last event logic
