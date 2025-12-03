@@ -3,37 +3,26 @@ package provider
 import (
 	"sync"
 	"testing"
-	"time"
+
+	"github.com/konveyor/analyzer-lsp/progress"
 )
 
-// mockProgressEvent matches the structure expected by the adapter
-// This must match progress.ProgressEvent structure
-type mockProgressEvent struct {
-	Timestamp time.Time              `json:"timestamp"`
-	Stage     string                 `json:"stage"`
-	Message   string                 `json:"message,omitempty"`
-	Current   int                    `json:"current,omitempty"`
-	Total     int                    `json:"total,omitempty"`
-	Percent   float64                `json:"percent,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-}
-
-// mockProgressReporter is a mock implementation compatible with progress.ProgressReporter
+// mockProgressReporter is a mock implementation of progress.ProgressReporter
 type mockProgressReporter struct {
 	mu     sync.Mutex
-	events []mockProgressEvent
+	events []progress.ProgressEvent
 }
 
-func (m *mockProgressReporter) Report(event mockProgressEvent) {
+func (m *mockProgressReporter) Report(event progress.ProgressEvent) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.events = append(m.events, event)
 }
 
-func (m *mockProgressReporter) GetEvents() []mockProgressEvent {
+func (m *mockProgressReporter) GetEvents() []progress.ProgressEvent {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return append([]mockProgressEvent{}, m.events...)
+	return append([]progress.ProgressEvent{}, m.events...)
 }
 
 func (m *mockProgressReporter) EventCount() int {
@@ -79,7 +68,7 @@ func TestPrepareProgressAdapter_ReportProgress(t *testing.T) {
 	// Verify first event
 	if len(events) > 0 {
 		e := events[0]
-		if e.Stage != "provider_prepare" {
+		if e.Stage != progress.StageProviderPrepare {
 			t.Errorf("Expected stage 'provider_prepare', got '%s'", e.Stage)
 		}
 		if e.Current != 10 {
