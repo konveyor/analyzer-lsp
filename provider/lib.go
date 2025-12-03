@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -495,4 +496,44 @@ func GetEncodingFromConfig(i InitConfig) string {
 		}
 	}
 	return ""
+}
+
+// NormalizePathForComparison normalizes a file path for consistent comparison across platforms.
+// It handles:
+//   - URI schemes (file:///, file:)
+//   - Path separators (converts backslashes to forward slashes)
+//   - Case sensitivity (normalizes to lowercase on Windows)
+//   - Special URI schemes (preserves them as-is, e.g., csharp:)
+//
+// This function is commonly used when filtering paths or comparing file URIs from LSP servers.
+func NormalizePathForComparison(path string) string {
+	// Preserve special URI schemes as-is (e.g., csharp: for C# metadata)
+	// These don't represent real file paths and should be compared literally
+	if strings.Contains(path, ":") && !strings.HasPrefix(path, "file:") {
+		colonIdx := strings.Index(path, ":")
+		if colonIdx > 0 && colonIdx < len(path)-1 {
+			// Check if it's not a Windows drive letter (single letter followed by colon)
+			if colonIdx > 1 || (colonIdx == 1 && (path[0] < 'A' || path[0] > 'Z') && (path[0] < 'a' || path[0] > 'z')) {
+				// This looks like a special URI scheme, preserve it
+				return path
+			}
+		}
+	}
+
+	// Remove common URI schemes (some systems emit file: instead of file://)
+	path = strings.TrimPrefix(path, "file://")
+	path = strings.TrimPrefix(path, "file:")
+
+	// Clean the path to resolve . and .. elements
+	path = filepath.Clean(path)
+
+	// Convert to forward slashes for consistent comparison across platforms
+	path = filepath.ToSlash(path)
+
+	// On Windows, normalize to lowercase for case-insensitive comparison
+	if runtime.GOOS == "windows" {
+		path = strings.ToLower(path)
+	}
+
+	return path
 }

@@ -33,6 +33,7 @@ type dotnetServiceClient struct {
 
 var _ provider.ServiceClient = &dotnetServiceClient{}
 
+
 func (d *dotnetServiceClient) Stop() {
 	d.cancelFunc()
 	d.cmd.Wait()
@@ -59,13 +60,75 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get namespace for query")
 	}
 
+	// Use FileSearcher to properly handle all filepath filtering sources:
+	// 1. Provider config constraints (from InitConfig)
+	// 2. Rule scope constraints (from GetScopedFilepaths)
+	// 3. Condition filepaths (if they exist in the condition)
+	includedFilepaths, excludedFilepaths := cond.ProviderContext.GetScopedFilepaths()
+
+	fileSearcher := provider.FileSearcher{
+		BasePath: d.config.Location,
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: provider.GetIncludedPathsFromConfig(d.config, true),
+			ExcludePathsOrPatterns: provider.GetExcludedDirsFromConfig(d.config),
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedFilepaths,
+			ExcludePathsOrPatterns: excludedFilepaths,
+		},
+		FailFast: true,
+		Log:      d.log,
+	}
+
+	// Run file search in a goroutine to build allowed file map
+	type fileSearchResult struct {
+		fileMap map[string]struct{}
+		err     error
+	}
+	resultCh := make(chan fileSearchResult, 1)
+
+	go func() {
+		defer close(resultCh)
+		// Note: dotnet conditions don't have a Filepaths field
+		paths, err := fileSearcher.Search(provider.SearchCriteria{
+			ConditionFilepaths: []string{},
+		})
+		if err != nil {
+			d.log.Error(err, "failed to search for files")
+			resultCh <- fileSearchResult{err: err}
+			return
+		}
+		fileMap := make(map[string]struct{})
+		for _, path := range paths {
+			normalizedPath := provider.NormalizePathForComparison(path)
+			fileMap[normalizedPath] = struct{}{}
+		}
+		resultCh <- fileSearchResult{fileMap: fileMap}
+	}()
+
 	symbols := d.GetAllSymbols(query)
+
+	// Wait for file search to complete and get result
+	searchResult := <-resultCh
+
+	// If file search failed, skip filtering to avoid false negatives
+	skipFiltering := searchResult.err != nil
+
 	incidents := []provider.IncidentContext{}
 	for _, s := range symbols {
 		if s.Kind == protocol.SymbolKindMethod {
 			references := d.GetAllReferences(s)
 			for _, ref := range references {
 				if strings.Contains(ref.URI.Filename(), d.config.Location) {
+					normalizedRefPath := provider.NormalizePathForComparison(string(ref.URI))
+
+					// Filter to only files found by FileSearcher (unless search failed)
+					if !skipFiltering {
+						if _, ok := searchResult.fileMap[normalizedRefPath]; !ok {
+							continue
+						}
+					}
+
 					lineNumber := int(ref.Range.Start.Line)
 					incidents = append(incidents, provider.IncidentContext{
 						FileURI:    ref.URI,
@@ -127,6 +190,15 @@ func (d *dotnetServiceClient) Evaluate(ctx context.Context, cap string, conditio
 					// "csharp:/metadata/projects/NerdDinner/assemblies/System.Web.Mvc/symbols/System.Web.Mvc.Controller.cs"
 					split := strings.Split(filename, "assemblies/")
 					if strings.HasPrefix(split[1], namespace) {
+						normalizedRPath := provider.NormalizePathForComparison(string(r.URI))
+
+						// Filter to only files found by FileSearcher (unless search failed)
+						if !skipFiltering {
+							if _, ok := searchResult.fileMap[normalizedRPath]; !ok {
+								continue
+							}
+						}
+
 						lineNumber := int(r.Range.Start.Line)
 						incidents = append(incidents, provider.IncidentContext{
 							FileURI:    r.URI,

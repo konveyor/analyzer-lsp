@@ -145,12 +145,74 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 
 	log := p.log.WithValues("ruleID", condCTX.RuleID)
 
+	// Get filepath constraints from rule scope (e.g., chained conditions)
+	includedFilepaths, excludedFilepaths := condCTX.GetScopedFilepaths()
+
+	// Determine which filepaths to pass to the language server query
+	// Provider-level includes take precedence over rule-scope includes
+	var lspIncludedPaths []string
 	if len(p.includedPaths) > 0 {
-		argumentsMap[provider.IncludedPathsConfigKey] = p.includedPaths
-		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths)
-	} else if includedPaths, _ := condCTX.GetScopedFilepaths(); len(includedPaths) > 0 {
-		argumentsMap[provider.IncludedPathsConfigKey] = includedPaths
-		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths, "argumentMap", argumentsMap)
+		lspIncludedPaths = p.includedPaths
+		log.V(8).Info("setting LSP search scope by provider-level filepaths", "paths", p.includedPaths)
+	} else if len(includedFilepaths) > 0 {
+		lspIncludedPaths = includedFilepaths
+		log.V(8).Info("setting LSP search scope by rule-scope filepaths", "paths", includedFilepaths)
+	}
+
+	if len(lspIncludedPaths) > 0 {
+		argumentsMap[provider.IncludedPathsConfigKey] = lspIncludedPaths
+	}
+
+	// Check if we need file-level filtering beyond what the language server provides
+	// The language server filters at package-level, we need file-level precision for:
+	// 1. Excluded paths (language server only handles included paths)
+	// 2. Condition-level filepaths (pattern matching and normalization)
+	// 3. Rule-scope included paths when provider-level paths were used for LSP query
+	hasAdditionalConstraints := len(excludedFilepaths) > 0 ||
+		len(c.Referenced.Filepaths) > 0 ||
+		(len(p.includedPaths) > 0 && len(includedFilepaths) > 0)
+
+	// Start file search in parallel with language server query (if needed)
+	type fileSearchResult struct {
+		fileMap map[string]struct{}
+		err     error
+	}
+	var resultCh chan fileSearchResult
+	if hasAdditionalConstraints {
+		resultCh = make(chan fileSearchResult, 1)
+		go func() {
+			defer close(resultCh)
+
+			fileSearcher := provider.FileSearcher{
+				BasePath: p.workspace,
+				ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+					IncludePathsOrPatterns: p.includedPaths,
+				},
+				RuleScopeConstraints: provider.IncludeExcludeConstraints{
+					IncludePathsOrPatterns: includedFilepaths,
+					ExcludePathsOrPatterns: excludedFilepaths,
+				},
+				FailFast: true,
+				Log:      log,
+			}
+
+			paths, err := fileSearcher.Search(provider.SearchCriteria{
+				ConditionFilepaths: c.Referenced.Filepaths,
+			})
+			if err != nil {
+				log.Error(err, "failed to search for files")
+				resultCh <- fileSearchResult{err: err}
+				return
+			}
+
+			// Build map of allowed files for quick lookup
+			fileMap := make(map[string]struct{})
+			for _, path := range paths {
+				normalizedPath := provider.NormalizePathForComparison(path)
+				fileMap[normalizedPath] = struct{}{}
+			}
+			resultCh <- fileSearchResult{fileMap: fileMap}
+		}()
 	}
 
 	argumentsBytes, _ := json.Marshal(argumentsMap)
@@ -184,21 +246,41 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		}
 	}
 
-	if c.Referenced.Filepaths != nil {
-		// filter according to the given filepaths
-		var filteredRefs []protocol.WorkspaceSymbol
-		for _, ref := range refs {
-			for _, fp := range c.Referenced.Filepaths {
-				if strings.HasSuffix(ref.Location.Value.(protocol.Location).URI, fp) {
-					filteredRefs = append(filteredRefs, ref)
-				}
-			}
-		}
-		return filteredRefs, nil
+	// If no additional filtering needed, return language server results as-is
+	if !hasAdditionalConstraints {
+		return refs, nil
 	}
 
-	return refs, nil
+	// Wait for file search to complete and get result
+	searchResult := <-resultCh
+
+	// If file search failed, return all language server results to avoid false negatives
+	if searchResult.err != nil {
+		return refs, nil
+	}
+
+	// Filter refs to only those in allowed files
+	var filteredRefs []protocol.WorkspaceSymbol
+	for _, ref := range refs {
+		var refURI protocol.DocumentURI
+		switch x := ref.Location.Value.(type) {
+		case protocol.Location:
+			refURI = x.URI
+		case protocol.PLocationMsg_workspace_symbol:
+			refURI = x.URI
+		default:
+			// Skip symbols with unknown location types
+			continue
+		}
+		normalizedRefURI := provider.NormalizePathForComparison(string(refURI))
+		if _, ok := searchResult.fileMap[normalizedRefURI]; ok {
+			filteredRefs = append(filteredRefs, ref)
+		}
+	}
+
+	return filteredRefs, nil
 }
+
 
 func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protocol.WorkspaceSymbol) []protocol.Location {
 	var locationURI protocol.DocumentURI

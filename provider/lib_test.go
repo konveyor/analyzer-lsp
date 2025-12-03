@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -79,5 +81,63 @@ func BenchmarkMultilineGrepFileSizeBig(b *testing.B) {
 			"./testdata/big.xml",
 			"(<groupId>io.konveyor.demo</groupId>|<artifactId>config-utils</artifactId>).*?(<artifactId>config-utils</artifactId>|<groupId>io.konveyor.demo</groupId>).*")
 		canMe()
+	}
+}
+
+func TestNormalizePathForComparison(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "file:// URI scheme",
+			input:    "file:///project/src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "file: URI scheme",
+			input:    "file:/project/src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "plain path",
+			input:    "/project/src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "path with ..",
+			input:    "/project/src/../src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "path with .",
+			input:    "/project/./src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "windows-style path",
+			input:    "file:///C:/project/src/Main.java",
+			expected: "/C:/project/src/Main.java",
+		},
+		{
+			name:     "csharp metadata URI",
+			input:    "csharp:/metadata/projects/MyApp/assemblies/System.Web.Mvc/symbols/Controller.cs",
+			expected: "csharp:/metadata/projects/MyApp/assemblies/System.Web.Mvc/symbols/Controller.cs",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := NormalizePathForComparison(tt.input)
+			expected := tt.expected
+			// On Windows, paths are normalized to lowercase (except csharp: URIs)
+			if runtime.GOOS == "windows" && !strings.HasPrefix(tt.input, "csharp:") {
+				expected = strings.ToLower(expected)
+			}
+			if result != expected {
+				t.Errorf("NormalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
+			}
+		})
 	}
 }

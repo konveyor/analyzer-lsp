@@ -29,7 +29,8 @@ type NodeServiceClient struct {
 	*base.LSPServiceClientBase
 	*base.LSPServiceClientEvaluator[*NodeServiceClient]
 
-	Config NodeServiceClientConfig
+	Config        NodeServiceClientConfig
+	includedPaths []string
 }
 
 type NodeServiceClientBuilder struct{}
@@ -43,6 +44,11 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	if err != nil {
 		return nil, err
 	}
+
+	// Get included paths from init config (provider-level constraints)
+	// IMPORTANT: Must be called before c.Location is mutated to a file:// URI,
+	// as GetIncludedPathsFromConfig needs a filesystem path to resolve relative includes
+	sc.includedPaths = provider.GetIncludedPathsFromConfig(c, false)
 
 	params := protocol.InitializeParams{}
 
@@ -157,8 +163,10 @@ type referencedCondition struct {
 	Referenced struct {
 		Pattern string `yaml:"pattern"`
 	} `yaml:"referenced"`
+	Filepaths                []string `yaml:"filepaths,omitempty"`
 	provider.ProviderContext `yaml:",inline"`
 }
+
 
 // Example evaluate
 func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string, info []byte) (provider.ProviderEvaluateResponse, error) {
@@ -173,8 +181,76 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 		return resp{}, fmt.Errorf("unable to get query info")
 	}
 
+	// Use FileSearcher to properly handle all filepath filtering sources:
+	// 1. Provider config constraints (dependency folders)
+	// 2. Rule scope constraints (from GetScopedFilepaths)
+	// 3. Condition filepaths (if they exist in the condition)
+	includedFilepaths, excludedFilepaths := cond.ProviderContext.GetScopedFilepaths()
+
+	// Determine base path - use first workspace folder if available
+	basePath := ""
+	if len(sc.BaseConfig.WorkspaceFolders) > 0 {
+		basePath = sc.BaseConfig.WorkspaceFolders[0]
+		// Remove file:// prefix if present
+		basePath = strings.TrimPrefix(basePath, "file://")
+	}
+
+	// Filter out empty strings from dependency folders to avoid excluding all files
+	nonEmptyDependencyFolders := []string{}
+	for _, folder := range sc.BaseConfig.DependencyFolders {
+		if folder != "" {
+			nonEmptyDependencyFolders = append(nonEmptyDependencyFolders, folder)
+		}
+	}
+
+	fileSearcher := provider.FileSearcher{
+		BasePath: basePath,
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: sc.includedPaths,
+			ExcludePathsOrPatterns: nonEmptyDependencyFolders,
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedFilepaths,
+			ExcludePathsOrPatterns: excludedFilepaths,
+		},
+		FailFast: true,
+		Log:      sc.Log,
+	}
+
+	// Run file search in a goroutine to build allowed file map
+	type fileSearchResult struct {
+		fileMap map[string]struct{}
+		err     error
+	}
+	resultCh := make(chan fileSearchResult, 1)
+
+	go func() {
+		defer close(resultCh)
+		paths, err := fileSearcher.Search(provider.SearchCriteria{
+			ConditionFilepaths: cond.Filepaths,
+		})
+		if err != nil {
+			sc.Log.Error(err, "failed to search for files")
+			resultCh <- fileSearchResult{err: err}
+			return
+		}
+		fileMap := make(map[string]struct{})
+		for _, path := range paths {
+			normalizedPath := provider.NormalizePathForComparison(path)
+			fileMap[normalizedPath] = struct{}{}
+		}
+		resultCh <- fileSearchResult{fileMap: fileMap}
+	}()
+
 	// Query symbols once after all files are indexed
 	symbols := sc.GetAllDeclarations(ctx, query, false)
+
+	// Wait for file search to complete and get result
+	searchResult := <-resultCh
+
+	// If file search failed, skip filtering to avoid false negatives
+	skipFiltering := searchResult.err != nil
+
 	incidentsMap, err := sc.EvaluateSymbols(ctx, symbols)
 	if err != nil {
 		return resp{}, err
@@ -182,6 +258,14 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 	incidents := []provider.IncidentContext{}
 	for _, incident := range incidentsMap {
+		// Filter to only files found by FileSearcher (unless search failed)
+		if !skipFiltering {
+			normalizedIncidentPath := provider.NormalizePathForComparison(string(incident.FileURI))
+			if _, ok := searchResult.fileMap[normalizedIncidentPath]; !ok {
+				continue
+			}
+		}
+
 		incidents = append(incidents, incident)
 	}
 	if len(incidents) == 0 {
