@@ -206,7 +206,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths)
 	} else if len(includedFilepaths) > 0 {
 		argumentsMap[provider.IncludedPathsConfigKey] = includedFilepaths
-		log.V(8).Info("setting search scope by filepaths", "paths", p.includedPaths, "argumentMap", argumentsMap)
+		log.V(8).Info("setting search scope by filepaths", "paths", includedFilepaths, "argumentMap", argumentsMap)
 	}
 
 	argumentsBytes, _ := json.Marshal(argumentsMap)
