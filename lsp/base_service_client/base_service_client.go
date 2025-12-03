@@ -375,6 +375,10 @@ func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes .
 			sc.Log.Error(err, "didClose request failed", "uri", fileURI)
 		}
 		sc.symbolCache.Invalidate(fileURI)
+		// Check context before scheduling work to avoid deadlock in Stop()
+		if sc.Ctx.Err() != nil {
+			continue
+		}
 		sc.symbolCacheUpdateWaitGroup.Add(1)
 		sc.symbolCacheUpdateChan <- fileURI
 	}
@@ -393,6 +397,12 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 		defer sc.symbolCacheUpdateWaitGroup.Done()
 		uris := sc.symbolSearchHelper.GetDocumentUris(conditionsByCap...)
 
+		// Check if context was cancelled while we were getting URIs
+		// If cancelled, don't schedule any new work to avoid deadlock in Stop()
+		if sc.Ctx.Err() != nil {
+			return
+		}
+
 		// Initialize progress tracking
 		sc.filesProcessed.Store(0)
 		sc.totalFilesToProcess.Store(int32(len(uris)))
@@ -403,7 +413,17 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 		}
 
 		sc.symbolCacheUpdateWaitGroup.Add(len(uris))
-		for _, uri := range uris {
+		for i, uri := range uris {
+			// Check context before each send to avoid blocking on cancelled context
+			if sc.Ctx.Err() != nil {
+				// Context cancelled - drain the work we haven't sent yet
+				// We've sent i URIs, so we need to account for the remaining (len(uris) - i)
+				remaining := len(uris) - i
+				for j := 0; j < remaining; j++ {
+					sc.symbolCacheUpdateWaitGroup.Done()
+				}
+				return
+			}
 			sc.symbolCacheUpdateChan <- uri
 		}
 
