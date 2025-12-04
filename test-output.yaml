@@ -1,4 +1,0 @@
-- name: patternfly-v5/patternfly-v6
-  description: This ruleset provides guidance for migrating from patternfly-v5 to patternfly-v6
-  unmatched:
-  - patternfly-v5-to-patternfly-v6-avatar-00000
