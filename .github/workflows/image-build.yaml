@@ -21,11 +21,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       java-bundle-tag: ${{ steps.dep_tag.outputs.java_bundle_tag }}
+      tag: ${{ steps.dep_tag.outputs.tag }}
     steps:
       - name: Determine image tags for dependencies
         id: dep_tag
         run: |
-          echo "java_bundle_tag=${GITHUB_REF_NAME/main/latest}" >> $GITHUB_OUTPUT
+          TAG="${GITHUB_REF_NAME/main/latest}"
+          echo "java_bundle_tag=${TAG:-latest}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG:-latest}" >> "$GITHUB_OUTPUT"
 
   image-build:
     needs: compute-deps-refs
@@ -58,7 +61,6 @@ jobs:
       image_name: ${{ matrix.images.name }}
       containerfile: ${{ matrix.images.containerfile }}
       extra-args: ${{ matrix.images['extra-args'] || '' }}
-      pre_build_cmd: ${{ matrix.images.pre_build_cmd }}
       architectures: ${{ matrix.images.architectures }}
       context: ${{ matrix.images.context }}
     secrets:
@@ -67,10 +69,9 @@ jobs:
   
   # generic provider requires go dep provider we built in matrix and needs to be sequential
   generic-external-provider-build:
-    needs: image-build
-    runs-on: ubuntu-latest
-    env:
-      TAG: ${{ github.ref == 'refs/heads/main' && 'latest' || github.ref_name }}
+    needs: 
+    - image-build
+    - compute-deps-refs
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
     with:
       registry: "quay.io/konveyor"
@@ -78,13 +79,15 @@ jobs:
       containerfile: "./external-providers/generic-external-provider/Dockerfile"
       architectures: '[ "amd64", "arm64" ]'
       context: "."
-      extra-args: "GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:${{ env.TAG }}"
+      extra-args: "GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:${{ needs.compute-deps-refs.outputs.tag }}"
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
       registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}  
     
   analyzer-windows-build:
-    needs: image-build
+    needs:
+    - image-build
+    - compute-deps-refs
     runs-on: windows-latest
     steps:
     - name: Checkout
@@ -98,8 +101,7 @@ jobs:
     - name: Docker Build
       shell: bash
       run: |
-        TAG=${GITHUB_REF_NAME/main/latest}
-        IMAGE_NAME=quay.io/konveyor/analyzer-lsp:${TAG}-windowsservercore-ltsc2025
+        IMAGE_NAME=quay.io/konveyor/analyzer-lsp:${{ needs.compute-deps-refs.outputs.tag }}-windowsservercore-ltsc2025
         docker build -t ${IMAGE_NAME} -f ./Dockerfile.windows .
         docker push ${IMAGE_NAME}
 
