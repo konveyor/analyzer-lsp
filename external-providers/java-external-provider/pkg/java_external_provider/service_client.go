@@ -75,7 +75,7 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	p.log.Info("Symbols retrieved", "symbols", len(symbols), "cap", cap, "conditionInfo", cond)
 
 	incidents := []provider.IncidentContext{}
-	locationCode := LocationType(locationToCode[strings.ToLower(cond.Referenced.Location)])
+	locationCode := GetLocationTypeFromString(cond.Referenced.Location)
 	switch locationCode {
 	case LocationTypeDefault, LocationConstructorCall, LocationAnnotation, LocationEnum, LocationTypeKeyword, LocationPackage, LocationField, LocationMethod, LocationClass:
 		// Filter handle for type, find all the references to this type.
@@ -120,7 +120,7 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	argumentsMap := map[string]any{
 		"query":                      c.Referenced.Pattern,
 		"project":                    "java",
-		"location":                   fmt.Sprintf("%v", locationToCode[strings.ToLower(c.Referenced.Location)]),
+		"location":                   fmt.Sprintf("%v", int(GetLocationTypeFromString(c.Referenced.Location))),
 		"analysisMode":               string(p.config.AnalysisMode),
 		"includeOpenSourceLibraries": true,
 		"mavenLocalRepo":             p.buildTool.GetLocalRepoPath(),
