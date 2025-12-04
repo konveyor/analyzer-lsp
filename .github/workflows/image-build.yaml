@@ -79,7 +79,7 @@ jobs:
       containerfile: "./external-providers/generic-external-provider/Dockerfile"
       architectures: '[ "amd64", "arm64" ]'
       context: "."
-      extra-args: "GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:${{ needs.compute-deps-refs.outputs.tag }}"
+      extra-args: "--build-arg GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:${{ needs.compute-deps-refs.outputs.tag }}"
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
       registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}  
