@@ -60,7 +60,7 @@ func getMavenBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 		log:             log,
 		labeler:         opts.Labeler,
 	}
-	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath()
+	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath(log)
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
 	return &mavenBuildTool{
 		depCache: &depCache{
