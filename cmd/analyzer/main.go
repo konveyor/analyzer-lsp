@@ -205,7 +205,8 @@ func AnalysisCmd() *cobra.Command {
 					config.InitConfig = inits
 				}
 
-				// Add prepare progress reporter to all init configs
+				// Add prepare progress reporter to config (for GRPC providers) and all init configs (for LSP providers)
+				config.PrepareProgressReporter = provider.NewPrepareProgressAdapter(progressReporter)
 				inits := []provider.InitConfig{}
 				for _, i := range config.InitConfig {
 					i.PrepareProgressReporter = provider.NewPrepareProgressAdapter(progressReporter)
