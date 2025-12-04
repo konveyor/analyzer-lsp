@@ -272,32 +272,22 @@ func (g *grpcServiceClient) withPrepareProgressStreaming(ctx context.Context, fn
 // streamPrepareProgress receives progress events from the GRPC server and forwards them
 // to the configured PrepareProgressReporter.
 func (g *grpcServiceClient) streamPrepareProgress(ctx context.Context, ready chan struct{}) {
-	g.log.V(1).Info("DEBUG: streamPrepareProgress starting", "hasReporter", g.config.PrepareProgressReporter != nil)
-
 	stream, err := g.client.StreamPrepareProgress(ctx, &pb.PrepareProgressRequest{Id: g.id})
 	if err != nil {
 		// Not an error - server might not support streaming or provider might not implement it
-		g.log.V(1).Info("DEBUG: StreamPrepareProgress RPC failed", "error", err)
 		close(ready) // Signal ready even on error so we don't block
 		return
 	}
 
-	g.log.V(1).Info("DEBUG: StreamPrepareProgress RPC established successfully")
-
 	// Signal that the stream is ready
 	close(ready)
 
-	eventCount := 0
 	for {
 		event, err := stream.Recv()
 		if err != nil {
 			// Stream ended (either normally or with error)
-			g.log.V(1).Info("DEBUG: Stream ended", "error", err, "eventsReceived", eventCount)
 			return
 		}
-
-		eventCount++
-		g.log.V(1).Info("DEBUG: Received event from GRPC stream", "count", eventCount, "provider", event.ProviderName, "processed", event.FilesProcessed, "total", event.TotalFiles)
 
 		// Forward the event to the progress reporter
 		if g.config.PrepareProgressReporter != nil {
@@ -306,9 +296,6 @@ func (g *grpcServiceClient) streamPrepareProgress(ctx context.Context, ready cha
 				int(event.FilesProcessed),
 				int(event.TotalFiles),
 			)
-			g.log.V(1).Info("DEBUG: Event forwarded to PrepareProgressReporter", "count", eventCount)
-		} else {
-			g.log.V(1).Info("DEBUG: No PrepareProgressReporter configured, event dropped", "count", eventCount)
 		}
 	}
 }

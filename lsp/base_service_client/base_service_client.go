@@ -778,8 +778,6 @@ func (sc *LSPServiceClientBase) reportProgress() {
 	processed := sc.filesProcessed.Add(1)
 	total := sc.totalFilesToProcess.Load()
 
-	sc.Log.V(1).Info("DEBUG: reportProgress called", "processed", processed, "total", total, "hasReporter", sc.throttledReporter != nil)
-
 	// Report progress via ThrottledReporter if configured
 	// ThrottledReporter handles throttling, streaming, and first/last event logic
 	if sc.throttledReporter != nil {
@@ -789,7 +787,6 @@ func (sc *LSPServiceClientBase) reportProgress() {
 			Current: int(processed),
 			Total:   int(total),
 		})
-		sc.Log.V(1).Info("DEBUG: progress event sent to throttledReporter", "processed", processed, "total", total)
 	}
 }
 
@@ -798,8 +795,6 @@ func (sc *LSPServiceClientBase) reportProgress() {
 // The returned channel will receive progress events during Prepare() phase.
 // The caller should close the channel when done by calling StopProgressStream().
 func (sc *LSPServiceClientBase) StartProgressStream() <-chan *provider.PrepareProgressEvent {
-	sc.Log.V(1).Info("DEBUG: StartProgressStream called", "hasReporter", sc.throttledReporter != nil)
-
 	sc.progressEventChan = make(chan progress.ProgressEvent, 100)
 	sc.prepareProgressChan = make(chan *provider.PrepareProgressEvent, 100)
 	sc.progressAdapterStopped = make(chan struct{})
@@ -808,7 +803,6 @@ func (sc *LSPServiceClientBase) StartProgressStream() <-chan *provider.PreparePr
 	// Enable streaming on the throttled reporter
 	if sc.throttledReporter != nil {
 		sc.throttledReporter.EnableStreaming(sc.progressEventChan)
-		sc.Log.V(1).Info("DEBUG: EnableStreaming called on throttledReporter")
 	}
 
 	// Start adapter goroutine to convert progress.ProgressEvent to provider.PrepareProgressEvent
@@ -816,12 +810,7 @@ func (sc *LSPServiceClientBase) StartProgressStream() <-chan *provider.PreparePr
 		defer close(sc.prepareProgressChan)
 		defer close(sc.progressAdapterStopped)
 
-		sc.Log.V(1).Info("DEBUG: Adapter goroutine started, waiting for events")
-		eventCount := 0
 		for event := range sc.progressEventChan {
-			eventCount++
-			sc.Log.V(1).Info("DEBUG: Adapter received event", "count", eventCount, "stage", event.Stage, "current", event.Current, "total", event.Total)
-
 			// Only forward prepare stage events
 			if event.Stage == progress.StageProviderPrepare {
 				prepareEvent := &provider.PrepareProgressEvent{
@@ -830,10 +819,8 @@ func (sc *LSPServiceClientBase) StartProgressStream() <-chan *provider.PreparePr
 					TotalFiles:     event.Total,
 				}
 				sc.prepareProgressChan <- prepareEvent
-				sc.Log.V(1).Info("DEBUG: Forwarded prepare event", "provider", prepareEvent.ProviderName, "processed", prepareEvent.FilesProcessed, "total", prepareEvent.TotalFiles)
 			}
 		}
-		sc.Log.V(1).Info("DEBUG: Adapter goroutine exiting", "totalEvents", eventCount)
 	}()
 
 	return sc.prepareProgressChan

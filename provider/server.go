@@ -579,14 +579,11 @@ func (s *server) NotifyFileChanges(ctx context.Context, in *libgrpc.NotifyFileCh
 }
 
 func (s *server) StreamPrepareProgress(in *libgrpc.PrepareProgressRequest, stream libgrpc.ProviderService_StreamPrepareProgressServer) error {
-	s.Log.V(1).Info("DEBUG: StreamPrepareProgress called", "clientId", in.Id)
-
 	s.mutex.RLock()
 	client, ok := s.clients[in.Id]
 	s.mutex.RUnlock()
 
 	if !ok {
-		s.Log.V(1).Info("DEBUG: client not found", "id", in.Id)
 		return nil
 	}
 
@@ -594,24 +591,15 @@ func (s *server) StreamPrepareProgress(in *libgrpc.PrepareProgressRequest, strea
 	streamer, ok := client.client.(PrepareProgressStreamer)
 	if !ok {
 		// Not an error, client just doesn't support streaming
-		s.Log.V(1).Info("DEBUG: client does not support progress streaming (type assertion failed)", "id", in.Id, "clientType", fmt.Sprintf("%T", client.client))
 		return nil
 	}
-
-	s.Log.V(1).Info("DEBUG: Client supports streaming, starting progress stream", "id", in.Id)
 
 	// Start the progress stream
 	progressChan := streamer.StartProgressStream()
 	defer streamer.StopProgressStream()
 
-	s.Log.V(1).Info("DEBUG: Progress stream started, waiting for events")
-
 	// Stream events to the GRPC client
-	eventCount := 0
 	for event := range progressChan {
-		eventCount++
-		s.Log.V(1).Info("DEBUG: Received event from progressChan", "count", eventCount, "provider", event.ProviderName, "processed", event.FilesProcessed, "total", event.TotalFiles)
-
 		pbEvent := &libgrpc.ProgressEvent{
 			Type:           libgrpc.ProgressEventType_PREPARE,
 			ProviderName:   event.ProviderName,
@@ -622,9 +610,7 @@ func (s *server) StreamPrepareProgress(in *libgrpc.PrepareProgressRequest, strea
 			s.Log.Error(err, "failed to send progress event")
 			return err
 		}
-		s.Log.V(1).Info("DEBUG: Event sent to GRPC stream", "count", eventCount)
 	}
 
-	s.Log.V(1).Info("DEBUG: StreamPrepareProgress exiting", "totalEvents", eventCount)
 	return nil
 }
