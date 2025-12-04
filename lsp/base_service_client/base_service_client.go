@@ -168,8 +168,10 @@ type LSPServiceClientBase struct {
 	firstEvaluateCompleted  atomic.Bool
 
 	// Progress event streaming for GRPC providers
-	progressEventChan    chan progress.ProgressEvent
-	progressStreamActive atomic.Bool
+	progressEventChan      chan progress.ProgressEvent
+	prepareProgressChan    chan *provider.PrepareProgressEvent
+	progressStreamActive   atomic.Bool
+	progressAdapterStopped chan struct{}
 }
 
 // SymbolSearchHelper is used by the generic service client to work with symbols
@@ -788,10 +790,36 @@ func (sc *LSPServiceClientBase) reportProgress() {
 // This is used by GRPC providers to stream progress back to the client.
 // The returned channel will receive progress events during Prepare() phase.
 // The caller should close the channel when done by calling StopProgressStream().
-func (sc *LSPServiceClientBase) StartProgressStream() <-chan progress.ProgressEvent {
+func (sc *LSPServiceClientBase) StartProgressStream() <-chan *provider.PrepareProgressEvent {
 	sc.progressEventChan = make(chan progress.ProgressEvent, 100)
+	sc.prepareProgressChan = make(chan *provider.PrepareProgressEvent, 100)
+	sc.progressAdapterStopped = make(chan struct{})
 	sc.progressStreamActive.Store(true)
-	return sc.progressEventChan
+
+	// Enable streaming on the throttled reporter
+	if sc.throttledReporter != nil {
+		sc.throttledReporter.EnableStreaming(sc.progressEventChan)
+	}
+
+	// Start adapter goroutine to convert progress.ProgressEvent to provider.PrepareProgressEvent
+	go func() {
+		defer close(sc.prepareProgressChan)
+		defer close(sc.progressAdapterStopped)
+
+		for event := range sc.progressEventChan {
+			// Only forward prepare stage events
+			if event.Stage == progress.StageProviderPrepare {
+				prepareEvent := &provider.PrepareProgressEvent{
+					ProviderName:   sc.BaseConfig.LspServerName,
+					FilesProcessed: event.Current,
+					TotalFiles:     event.Total,
+				}
+				sc.prepareProgressChan <- prepareEvent
+			}
+		}
+	}()
+
+	return sc.prepareProgressChan
 }
 
 // StopProgressStream stops the progress stream and closes the channel.
@@ -804,6 +832,12 @@ func (sc *LSPServiceClientBase) StopProgressStream() {
 		close(sc.progressEventChan)
 		sc.progressEventChan = nil
 	}
+	// Wait for adapter goroutine to finish before returning
+	if sc.progressAdapterStopped != nil {
+		<-sc.progressAdapterStopped
+		sc.progressAdapterStopped = nil
+	}
+	sc.prepareProgressChan = nil
 }
 
 func (sc *LSPServiceClientBase) drainPendingSymbolCacheUpdates() {
