@@ -254,12 +254,16 @@ func NewLSPServiceClientBase(
 	sc.Ctx, sc.CancelFunc = context.WithCancel(ctx)
 	sc.Log = log.WithValues("provider", sc.BaseConfig.LspServerName)
 
-	// Create throttled progress reporter if provided
+	// Create throttled progress reporter
+	// Create it even if PrepareProgressReporter is nil, as it's needed for streaming in GRPC providers
+	var adapter progress.ProgressReporter
 	if c.PrepareProgressReporter != nil {
-		// Wrap the PrepareProgressReporter to work with ThrottledReporter
-		adapter := provider.NewPrepareProgressReporterAdapter(sc.BaseConfig.LspServerName, c.PrepareProgressReporter)
-		sc.throttledReporter = progress.NewThrottledReporter("provider_prepare", adapter)
+		adapter = provider.NewPrepareProgressReporterAdapter(sc.BaseConfig.LspServerName, c.PrepareProgressReporter)
+	} else {
+		// Use a no-op reporter for streaming-only mode (GRPC providers)
+		adapter = &noOpProgressReporter{}
 	}
+	sc.throttledReporter = progress.NewThrottledReporter("provider_prepare", adapter)
 
 	sc.handler = NewChainHandler(initializeHandler)
 	if c.RPC == nil {
@@ -1229,4 +1233,12 @@ func rangeLength(r protocol.Range) uint64 {
 		charDiff = 0
 	}
 	return (uint64(lineDiff) << 32) | uint64(charDiff)
+}
+
+// noOpProgressReporter is a no-op implementation of ProgressReporter
+// used for GRPC providers that only use streaming without direct reporting
+type noOpProgressReporter struct{}
+
+func (n *noOpProgressReporter) Report(event progress.ProgressEvent) {
+	// No-op: events will be streamed instead
 }
