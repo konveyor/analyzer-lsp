@@ -69,25 +69,42 @@ const (
 	LocationClass                                   // 14 - class
 )
 
-// Rule Location to location that the bundle understands
-var locationToCode = map[string]int{
-	//Type is the default.
-	"":                 int(LocationTypeDefault),
-	"inheritance":      int(LocationInheritance),
-	"method_call":      int(LocationMethodCall),
-	"constructor_call": int(LocationConstructorCall),
-	"annotation":       int(LocationAnnotation),
-	"implements_type":  int(LocationImplementsType),
-	// Not Implemented
-	"enum":                 int(LocationEnum),
-	"return_type":          int(LocationReturnType),
-	"import":               int(LocationImport),
-	"variable_declaration": int(LocationVariableDeclaration),
-	"type":                 int(LocationTypeKeyword),
-	"package":              int(LocationPackage),
-	"field":                int(LocationField),
-	"method":               int(LocationMethod),
-	"class":                int(LocationClass),
+// GetLocationTypeFromString converts a location string to its corresponding LocationType constant
+func GetLocationTypeFromString(location string) LocationType {
+	switch strings.ToLower(location) {
+	case "":
+		return LocationTypeDefault
+	case "inheritance":
+		return LocationInheritance
+	case "method_call":
+		return LocationMethodCall
+	case "constructor_call":
+		return LocationConstructorCall
+	case "annotation":
+		return LocationAnnotation
+	case "implements_type":
+		return LocationImplementsType
+	case "enum":
+		return LocationEnum
+	case "return_type":
+		return LocationReturnType
+	case "import":
+		return LocationImport
+	case "variable_declaration":
+		return LocationVariableDeclaration
+	case "type":
+		return LocationTypeKeyword
+	case "package":
+		return LocationPackage
+	case "field":
+		return LocationField
+	case "method":
+		return LocationMethod
+	case "class":
+		return LocationClass
+	default:
+		return LocationTypeDefault
+	}
 }
 
 type javaProvider struct {
@@ -367,7 +384,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		MavenIndexPath:  mavenSHASearchIndex,
 		Labeler:         openSourceLabeler,
 		GradleTaskFile:  gradleTaskFile,
-
 	}, log)
 	if buildTool == nil {
 		return nil, additionalBuiltinConfig, errors.New("unable to get build tool")
