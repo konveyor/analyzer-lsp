@@ -750,8 +750,8 @@ func (sc *LSPServiceClientBase) symbolCacheUpdateHandler() {
 }
 
 func (sc *LSPServiceClientBase) processSymbolCacheUpdate(fileURI uri.URI) {
-	defer sc.symbolCacheUpdateWaitGroup.Done()
 	defer sc.reportProgress()
+	defer sc.symbolCacheUpdateWaitGroup.Done()
 
 	if sc.symbolCache == nil || fileURI == "" {
 		return
