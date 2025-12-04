@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"unicode/utf8"
 )
 
 // ProgressBarReporter writes progress as a visual progress bar with real-time updates.
@@ -127,7 +128,7 @@ func (p *ProgressBarReporter) updateProgressBar(event ProgressEvent) {
 
 	// Write the new progress bar (without newline - will update in place)
 	fmt.Fprint(p.writer, barString)
-	p.lastLineLen = len(barString)
+	p.lastLineLen = utf8.RuneCountInString(barString)
 	p.inProgress = true
 
 	// If we've completed (100%), add a newline
@@ -157,7 +158,7 @@ func (p *ProgressBarReporter) updateProviderPrepareBar(event ProgressEvent) {
 
 	// Write the new progress bar (without newline - will update in place)
 	fmt.Fprint(p.writer, barString)
-	p.lastLineLen = len(barString)
+	p.lastLineLen = utf8.RuneCountInString(barString)
 	p.inProgress = true
 
 	// If we've completed (100%), add a newline
