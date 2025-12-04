@@ -165,7 +165,6 @@ type LSPServiceClientBase struct {
 	throttledReporter       *progress.ThrottledReporter
 	totalFilesToProcess     atomic.Int32
 	filesProcessed          atomic.Int32
-	firstEvaluateCompleted  atomic.Bool
 
 	// Progress event streaming for GRPC providers
 	progressEventChan      chan progress.ProgressEvent
@@ -394,53 +393,54 @@ func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes .
 }
 
 // Prepare is called before Evaluate() with all rules. We prepare the symbol cache during this step.
-// This method returns immediately and work continues in the background, allowing rule evaluation
-// to proceed while symbol cache is being populated.
+// This method blocks until symbol cache population is complete, ensuring the provider is fully
+// ready for rule evaluation when it returns. Progress is reported throughout the operation.
 func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
 	sc.allConditionsMutex.Lock()
 	sc.allConditions = conditionsByCap
 	sc.allConditionsMutex.Unlock()
-	sc.symbolCacheUpdateWaitGroup.Add(1)
-	go func() {
-		defer sc.symbolCacheUpdateWaitGroup.Done()
-		uris := sc.symbolSearchHelper.GetDocumentUris(conditionsByCap...)
 
-		// Check if context was cancelled while we were getting URIs
-		// If cancelled, don't schedule any new work to avoid deadlock in Stop()
-		if sc.Ctx.Err() != nil {
-			return
-		}
+	uris := sc.symbolSearchHelper.GetDocumentUris(conditionsByCap...)
 
-		// Initialize progress tracking
-		sc.filesProcessed.Store(0)
-		sc.totalFilesToProcess.Store(int32(len(uris)))
+	// Check if context was cancelled while we were getting URIs
+	if sc.Ctx.Err() != nil {
+		return sc.Ctx.Err()
+	}
 
-		// Enable streaming on throttled reporter if streaming is active
-		if sc.progressStreamActive.Load() && sc.throttledReporter != nil {
-			sc.throttledReporter.EnableStreaming(sc.progressEventChan)
-		}
+	// Initialize progress tracking
+	sc.filesProcessed.Store(0)
+	sc.totalFilesToProcess.Store(int32(len(uris)))
 
-		sc.symbolCacheUpdateWaitGroup.Add(len(uris))
-		for i, uri := range uris {
-			select {
-			case sc.symbolCacheUpdateChan <- uri:
-				// Successfully sent
-			case <-sc.Ctx.Done():
-				// Context cancelled - account for remaining URIs
-				remaining := len(uris) - i
-				for j := 0; j < remaining; j++ {
-					sc.symbolCacheUpdateWaitGroup.Done()
-				}
-				return
+	// Enable streaming on throttled reporter if streaming is active
+	if sc.progressStreamActive.Load() && sc.throttledReporter != nil {
+		sc.throttledReporter.EnableStreaming(sc.progressEventChan)
+	}
+
+	// Schedule all symbol cache updates
+	sc.symbolCacheUpdateWaitGroup.Add(len(uris))
+	for i, uri := range uris {
+		select {
+		case sc.symbolCacheUpdateChan <- uri:
+			// Successfully sent
+		case <-sc.Ctx.Done():
+			// Context cancelled - account for remaining URIs
+			remaining := len(uris) - i
+			for j := 0; j < remaining; j++ {
+				sc.symbolCacheUpdateWaitGroup.Done()
 			}
+			return sc.Ctx.Err()
 		}
+	}
 
-		// Don't wait here - symbol cache updates continue in background
-		// First Evaluate() call will wait via GetAllDeclarations()
-		// Progress stream will be closed after first Evaluate completes
-	}()
+	// Wait for all symbol cache updates to complete before returning
+	sc.symbolCacheUpdateWaitGroup.Wait()
 
-	// Return immediately - work continues in background
+	// Close progress stream now that preparation is complete
+	if sc.progressStreamActive.Load() {
+		sc.StopProgressStream()
+		sc.Log.V(5).Info("progress stream closed after Prepare completed")
+	}
+
 	return nil
 }
 
@@ -545,18 +545,7 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 		}
 	}
 
-	// wait until pending symbol cache update calls are complete
-	sc.symbolCacheUpdateWaitGroup.Wait()
-
-	// Close progress stream after first Evaluate completes
-	// (first Evaluate waits for symbol cache via this Wait call)
-	if sc.firstEvaluateCompleted.CompareAndSwap(false, true) {
-		if sc.progressStreamActive.Load() {
-			sc.StopProgressStream()
-			sc.Log.V(5).Info("progress stream closed after first Evaluate completed")
-		}
-	}
-
+	// Prepare() now blocks until symbol cache is ready, so no wait needed here
 	symbolsDefinitionPairs := sc.symbolCache.GetAllWorkspaceSymbols()
 
 	filteredSymbols := []protocol.WorkspaceSymbol{}
