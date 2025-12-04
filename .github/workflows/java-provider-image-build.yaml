@@ -13,7 +13,8 @@ jobs:
       - name: Determine image tags for dependencies
         id: dep_tag
         run: |
-          echo "java_bundle_tag=${{ github.event.ref == 'refs/heads/main' && 'latest' || github.event.ref_name }}" >> $GITHUB_OUTPUT
+          TAG="${{ github.event.client_payload.ref == 'refs/heads/main' && 'latest' || github.event.client_payload.ref_name }}"
+          echo "java_bundle_tag=${TAG:-latest}" >> $GITHUB_OUTPUT
 
   java-provider-image-build:
     needs: [compute-deps-refs]
@@ -22,10 +23,10 @@ jobs:
       registry: "quay.io/konveyor"
       image_name: java-external-provider
       containerfile: "external-providers/java-external-provider/Dockerfile"
-      extra-args: "--build-arg JAVA_BUNDLE_TAG=${{ needs.compute-deps-refs.outputs.java-bundle-tag }}" 
+      extra-args: "--build-arg JAVA_BUNDLE_TAG=${{ needs.compute-deps-refs.outputs.java-bundle-tag }}"
       architectures: '[ "amd64", "arm64" ]'
       context: "."
-      ref: ${{ github.event.ref }}
+      ref: ${{ github.event.client_payload.ref }}
       tag: ${{ needs.compute-deps-refs.outputs.java-bundle-tag }}
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}

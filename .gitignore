@@ -34,4 +34,7 @@ external-providers/java-external-provider/pkg/java_external_provider/dependency/
 # Go test coverage files
 coverage.out
 *.coverprofile
+
+# Act secrets file
+.secrets
 ...
