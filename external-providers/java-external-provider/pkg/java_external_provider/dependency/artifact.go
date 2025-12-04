@@ -71,7 +71,7 @@ func (j JavaArtifact) ToPomDep() gopom.Dependency {
 //
 // Parameters:
 //   - jarFile: Absolute path to the JAR file to identify
-//   - mavenIndexPath: Path to Maven index directory for SHA1 lookups
+//   - mavenIndexPath: Path to the txt index file
 //   - log: Logger for progress and error reporting
 //   - labeler: Used to determine if dependency is open source (unused in current implementation)
 //
@@ -103,7 +103,7 @@ var mavenSearchErrorCache error
 // Parameters:
 //   - log: Logger for error reporting
 //   - jarFile: Absolute path to the JAR file
-//   - mavenIndexPath: Path to directory containing maven-index.txt
+//   - mavenIndexPath: Path to the txt index file
 //
 // Returns JavaArtifact with FoundOnline=true if found, or error if lookup fails.
 func constructArtifactFromSHA(log logr.Logger, jarFile string, mavenIndexPath string) (JavaArtifact, error) {
@@ -121,9 +121,16 @@ func constructArtifactFromSHA(log logr.Logger, jarFile string, mavenIndexPath st
 		return dep, err
 	}
 
+	stat, err := os.Stat(mavenIndexPath)
+	if err != nil {
+		log.Error(err, "error while reading mavenIndexPath", "path", mavenIndexPath)
+		return JavaArtifact{}, err
+	}
+	if stat.IsDir() {
+		mavenIndexPath = filepath.Join(mavenIndexPath, "maven-index.txt")
+	}
 	sha1sum := hex.EncodeToString(hash.Sum(nil))
-	dataFilePath := filepath.Join(mavenIndexPath, "maven-index.txt")
-	return search(log, sha1sum, dataFilePath)
+	return search(log, sha1sum, mavenIndexPath)
 }
 
 // constructArtifactFromPom extracts Maven coordinates from a JAR's embedded pom.properties file.

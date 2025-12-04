@@ -21,7 +21,7 @@ jobs:
     with:
       registry: "quay.io/konveyor"
       image_name: java-external-provider
-      containerfile: ".external-providers/java-external-provider/Dockerfile"
+      containerfile: "external-providers/java-external-provider/Dockerfile"
       extra-args: "--build-arg JAVA_BUNDLE_TAG=${{ needs.compute-deps-refs.outputs.java-bundle-tag }}" 
       architectures: '[ "amd64", "arm64" ]'
       context: "."
