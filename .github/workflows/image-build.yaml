@@ -68,6 +68,7 @@ jobs:
   # generic provider requires go dep provider we built in matrix and needs to be sequential
   generic-external-provider-build:
     needs: image-build
+    runs-on: ubuntu-latest
     env:
       TAG: ${{ github.ref == 'refs/heads/main' && 'latest' || github.ref_name }}
     uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
