@@ -2,6 +2,7 @@ package konveyor
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
@@ -23,6 +24,8 @@ type analyzerOptions struct {
 	contextLineLimit        int
 	analysisMode            provider.AnalysisMode
 	dependencyRulesDisabled bool
+	reporters               []progress.Reporter
+	progress                *progress.Progress
 	log                     logr.Logger
 	ctx                     context.Context
 }
@@ -43,6 +46,12 @@ func (a *analyzerOptions) getSelectors() ([]engine.RuleSelector, error) {
 }
 
 // OPTIONALS FOR ENDUSER
+func WithRuleFilepaths(rules []string) AnalyzerOption {
+	return func(options *analyzerOptions) error {
+		options.rulesFilepaths = rules
+		return nil
+	}
+}
 func WithProviderConfigFilePath(providerConfigFilePath string) AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
 		opt.providerConfigFilePath = providerConfigFilePath
@@ -85,9 +94,16 @@ func WithContextLinesLimit(limit int) AnalyzerOption {
 		return
 	}
 }
-func WithAnalysisMode(mode provider.AnalysisMode) AnalyzerOption {
+func WithAnalysisMode(mode string) AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
-		opt.analysisMode = mode
+		switch mode {
+		case string(provider.FullAnalysisMode):
+			opt.analysisMode = provider.FullAnalysisMode
+		case string(provider.SourceOnlyAnalysisMode):
+			opt.analysisMode = provider.SourceOnlyAnalysisMode
+		default:
+			err = fmt.Errorf("analysis mode must be one of %s or %s, not: %s", provider.FullAnalysisMode, provider.SourceOnlyAnalysisMode, mode)
+		}
 		return
 	}
 }
@@ -109,6 +125,18 @@ func WithContext(ctx context.Context) AnalyzerOption {
 		return
 	}
 }
+func WithProgress(progress *progress.Progress) AnalyzerOption {
+	return func(opt *analyzerOptions) (err error) {
+		opt.progress = progress
+		return
+	}
+}
+func WithReporters(reporters ...progress.Reporter) AnalyzerOption {
+	return func(options *analyzerOptions) error {
+		options.reporters = reporters
+		return nil
+	}
+}
 
 // ENGINE OPTIONS
 func WithScope(scope engine.Scope) EngineOption {
@@ -117,7 +145,8 @@ func WithScope(scope engine.Scope) EngineOption {
 	}
 }
 
-func WithProgressReporter(reporter progress.ProgressReporter) EngineOption {
+// This should be a collector
+func WithProgressReporter(reporter progress.Reporter) EngineOption {
 	return func(options *engineOptions) {
 		options.progressReporter = reporter
 	}

@@ -1,463 +1,407 @@
 package progress
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
-	"strings"
+	"sync"
 	"testing"
 	"time"
-
-	"github.com/go-logr/logr"
 )
 
-func TestJSONReporter(t *testing.T) {
-	var buf bytes.Buffer
-	reporter := NewJSONReporter(&buf)
+// mockCollector implements the Collector interface for testing
+type mockCollector struct {
+	id  int
+	ch  chan Event
+	mu  sync.Mutex
+	rep []Event
+}
 
-	event := ProgressEvent{
-		Stage:   StageRuleExecution,
-		Current: 10,
-		Total:   45,
-		Percent: 22.2,
-		Message: "test-rule-001",
-	}
-
-	reporter.Report(event)
-
-	// Parse the JSON output
-	var decoded ProgressEvent
-	if err := json.Unmarshal(buf.Bytes(), &decoded); err != nil {
-		t.Fatalf("Failed to decode JSON: %v", err)
-	}
-
-	// Verify fields
-	if decoded.Stage != StageRuleExecution {
-		t.Errorf("Expected stage %s, got %s", StageRuleExecution, decoded.Stage)
-	}
-	if decoded.Current != 10 {
-		t.Errorf("Expected current 10, got %d", decoded.Current)
-	}
-	if decoded.Total != 45 {
-		t.Errorf("Expected total 45, got %d", decoded.Total)
-	}
-	if decoded.Percent != 22.2 {
-		t.Errorf("Expected percent 22.2, got %f", decoded.Percent)
-	}
-	if decoded.Message != "test-rule-001" {
-		t.Errorf("Expected message 'test-rule-001', got '%s'", decoded.Message)
+func newMockCollector(id int) *mockCollector {
+	return &mockCollector{
+		id: id,
+		ch: make(chan Event, 100),
 	}
 }
 
-func TestJSONReporterMultipleEvents(t *testing.T) {
-	var buf bytes.Buffer
-	reporter := NewJSONReporter(&buf)
-
-	// Report multiple events
-	for i := 0; i < 3; i++ {
-		reporter.Report(ProgressEvent{
-			Stage:   StageRuleExecution,
-			Current: i + 1,
-			Total:   3,
-		})
-	}
-
-	// Each event should be on a separate line
-	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
-	if len(lines) != 3 {
-		t.Errorf("Expected 3 JSON lines, got %d", len(lines))
-	}
-
-	// Verify each line is valid JSON
-	for i, line := range lines {
-		var event ProgressEvent
-		if err := json.Unmarshal([]byte(line), &event); err != nil {
-			t.Errorf("Line %d is not valid JSON: %v", i, err)
-		}
-	}
+func (m *mockCollector) ID() int {
+	return m.id
 }
 
-func TestTextReporter(t *testing.T) {
-	var buf bytes.Buffer
-	reporter := NewTextReporter(&buf)
-
-	event := ProgressEvent{
-		Stage:   StageRuleExecution,
-		Current: 10,
-		Total:   45,
-		Percent: 22.2,
-	}
-
-	reporter.Report(event)
-
-	output := buf.String()
-
-	// Verify output contains expected information
-	if !strings.Contains(output, "10/45") {
-		t.Errorf("Expected '10/45' in output, got: %s", output)
-	}
-	if !strings.Contains(output, "22.") || !strings.Contains(output, "%") {
-		t.Errorf("Expected percentage in output, got: %s", output)
-	}
-
-	// Test with message
-	buf.Reset()
-	event.Message = "test-rule-001"
-	reporter.Report(event)
-
-	output = buf.String()
-	if !strings.Contains(output, "test-rule-001") {
-		t.Errorf("Expected rule ID in output, got: %s", output)
-	}
+func (m *mockCollector) CollectChannel() chan Event {
+	return m.ch
 }
 
-func TestTextReporterStages(t *testing.T) {
-	tests := []struct {
-		name          string
-		event         ProgressEvent
-		shouldContain []string
-	}{
-		{
-			name: "init stage",
-			event: ProgressEvent{
-				Stage:   StageInit,
-				Message: "Starting analysis",
-			},
-			shouldContain: []string{"Initializing"},
-		},
-		{
-			name: "provider init stage",
-			event: ProgressEvent{
-				Stage:   StageProviderInit,
-				Message: "java-provider",
-			},
-			shouldContain: []string{"Provider", "java-provider"},
-		},
-		{
-			name: "rule parsing stage",
-			event: ProgressEvent{
-				Stage: StageRuleParsing,
-				Total: 45,
-			},
-			shouldContain: []string{"45 rules"},
-		},
-		{
-			name: "complete stage",
-			event: ProgressEvent{
-				Stage: StageComplete,
-			},
-			shouldContain: []string{"complete"},
-		},
-		{
-			name: "rule execution with both total and message",
-			event: ProgressEvent{
-				Stage:   StageRuleExecution,
-				Current: 10,
-				Total:   45,
-				Percent: 22.2,
-				Message: "test-rule-001",
-			},
-			shouldContain: []string{"Processing rules", "10/45", "22.2", "test-rule-001"},
-		},
-	}
+func (m *mockCollector) Report(event Event) {
+	m.mu.Lock()
+	m.rep = append(m.rep, event)
+	m.mu.Unlock()
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var buf bytes.Buffer
-			reporter := NewTextReporter(&buf)
-			reporter.Report(tt.event)
-
-			output := buf.String()
-			for _, expected := range tt.shouldContain {
-				if !strings.Contains(strings.ToLower(output), strings.ToLower(expected)) {
-					t.Errorf("Expected '%s' in output, got: %s", expected, output)
-				}
-			}
-		})
-	}
-}
-
-func TestChannelReporter(t *testing.T) {
-	ctx := context.Background()
-	reporter := NewChannelReporter(ctx)
-	defer reporter.Close()
-
-	event := ProgressEvent{
-		Stage:   StageRuleExecution,
-		Current: 10,
-		Total:   45,
-		Percent: 22.2,
-		Message: "test-rule",
-	}
-
-	// Send event in goroutine
-	go reporter.Report(event)
-
-	// Receive event
 	select {
-	case received := <-reporter.Events():
-		if received.Stage != event.Stage {
-			t.Errorf("Expected stage %s, got %s", event.Stage, received.Stage)
-		}
-		if received.Current != event.Current {
-			t.Errorf("Expected current %d, got %d", event.Current, received.Current)
-		}
-		if received.Total != event.Total {
-			t.Errorf("Expected total %d, got %d", event.Total, received.Total)
-		}
-		if received.Message != event.Message {
-			t.Errorf("Expected message '%s', got '%s'", event.Message, received.Message)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("Timeout waiting for event")
+	case m.ch <- event:
+	default:
+		// Channel full, drop event
 	}
 }
 
-func TestChannelReporterMultipleEvents(t *testing.T) {
-	ctx := context.Background()
-	reporter := NewChannelReporter(ctx)
-	defer reporter.Close()
-
-	// Send multiple events
-	go func() {
-		for i := 0; i < 5; i++ {
-			reporter.Report(ProgressEvent{
-				Stage:   StageRuleExecution,
-				Current: i + 1,
-				Total:   5,
-			})
-		}
-	}()
-
-	// Receive and verify all events
-	received := 0
-	timeout := time.After(2 * time.Second)
-
-	for received < 5 {
-		select {
-		case event := <-reporter.Events():
-			received++
-			if event.Current != received {
-				t.Errorf("Expected current %d, got %d", received, event.Current)
-			}
-		case <-timeout:
-			t.Fatalf("Timeout: only received %d events, expected 5", received)
-		}
-	}
+func (m *mockCollector) getReported() []Event {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]Event{}, m.rep...)
 }
 
-func TestChannelReporterClose(t *testing.T) {
-	ctx := context.Background()
-	reporter := NewChannelReporter(ctx)
-
-	// Send an event
-	reporter.Report(ProgressEvent{Stage: StageInit})
-
-	// Drain the channel
-	<-reporter.Events()
-
-	// Close the reporter
-	reporter.Close()
-
-	// Channel should be closed, reading should return zero value and ok=false
-	_, ok := <-reporter.Events()
-	if ok {
-		t.Error("Expected channel to be closed")
-	}
+// mockReporter implements the Reporter interface for testing
+type mockReporter struct {
+	events []Event
+	mu     sync.Mutex
 }
 
-func TestChannelReporterCloseMultipleTimes(t *testing.T) {
-	ctx := context.Background()
-	reporter := NewChannelReporter(ctx)
-
-	// Close multiple times should not panic
-	reporter.Close()
-	reporter.Close()
-	reporter.Close()
+func (m *mockReporter) Report(event Event) {
+	m.mu.Lock()
+	m.events = append(m.events, event)
+	m.mu.Unlock()
 }
 
-func TestChannelReporterContextCancellation(t *testing.T) {
+func (m *mockReporter) GetEvents() []Event {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]Event{}, m.events...)
+}
+
+func (m *mockReporter) EventCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.events)
+}
+
+func TestNew_DefaultNoopReporter(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	reporter := NewChannelReporter(ctx)
+	defer cancel()
 
-	// Send an event
-	reporter.Report(ProgressEvent{Stage: StageInit})
+	prog, err := New(WithContext(ctx))
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
 
-	// Drain the channel
-	<-reporter.Events()
+	if prog == nil {
+		t.Fatal("Expected non-nil Progress")
+	}
 
-	// Cancel the context
-	cancel()
-
-	// Give the goroutine time to close the channel
-	time.Sleep(10 * time.Millisecond)
-
-	// Channel should be closed
-	_, ok := <-reporter.Events()
-	if ok {
-		t.Error("Expected channel to be closed after context cancellation")
+	// Should have created a default NoopReporter (check internal state)
+	if len(prog.reporters) != 1 {
+		t.Errorf("Expected 1 default reporter, got %d", len(prog.reporters))
 	}
 }
 
-func TestChannelReporterRaceCondition(t *testing.T) {
-	// This test verifies that concurrent Report() and Close() calls don't cause a panic
-	ctx := context.Background()
-	reporter := NewChannelReporter(ctx)
+func TestNew_WithReporters(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// Start consuming events
-	done := make(chan struct{})
-	go func() {
-		for range reporter.Events() {
-			// Consume events
+	reporter1 := &mockReporter{}
+	reporter2 := &mockReporter{}
+
+	prog, err := New(
+		WithContext(ctx),
+		WithReporters(reporter1, reporter2),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	if len(prog.reporters) != 2 {
+		t.Errorf("Expected 2 reporters, got %d", len(prog.reporters))
+	}
+}
+
+func TestNew_WithCollectors(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	collector1 := newMockCollector(1)
+	collector2 := newMockCollector(2)
+
+	prog, err := New(
+		WithContext(ctx),
+		WithCollectors(collector1, collector2),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	if len(prog.collectors) != 2 {
+		t.Errorf("Expected 2 collectors, got %d", len(prog.collectors))
+	}
+}
+
+func TestProgress_EventFlow(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	collector := newMockCollector(1)
+	reporter := &mockReporter{}
+
+	_, err := New(
+		WithContext(ctx),
+		WithCollectors(collector),
+		WithReporters(reporter),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	// Send events through collector
+	events := []Event{
+		{Stage: StageInit, Message: "Starting"},
+		{Stage: StageRuleExecution, Current: 1, Total: 10},
+		{Stage: StageRuleExecution, Current: 5, Total: 10},
+		{Stage: StageComplete, Message: "Done"},
+	}
+
+	for _, event := range events {
+		collector.Report(event)
+	}
+
+	// Give time for events to flow through the system
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify events were received by reporter
+	reportedEvents := reporter.GetEvents()
+	if len(reportedEvents) != len(events) {
+		t.Errorf("Expected %d events at reporter, got %d", len(events), len(reportedEvents))
+	}
+
+	// Verify event content
+	for i, expected := range events {
+		if i >= len(reportedEvents) {
+			break
 		}
-		close(done)
-	}()
+		actual := reportedEvents[i]
+		if actual.Stage != expected.Stage {
+			t.Errorf("Event %d: expected stage %s, got %s", i, expected.Stage, actual.Stage)
+		}
+		if actual.Message != expected.Message {
+			t.Errorf("Event %d: expected message %s, got %s", i, expected.Message, actual.Message)
+		}
+	}
+}
 
-	// Concurrently send events from multiple goroutines
-	numSenders := 10
-	sendersStarted := make(chan struct{})
-	for i := 0; i < numSenders; i++ {
+func TestProgress_MultipleReporters(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	collector := newMockCollector(1)
+	reporter1 := &mockReporter{}
+	reporter2 := &mockReporter{}
+
+	_, err := New(
+		WithContext(ctx),
+		WithCollectors(collector),
+		WithReporters(reporter1, reporter2),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	// Send events
+	collector.Report(Event{Stage: StageInit})
+	collector.Report(Event{Stage: StageComplete})
+
+	// Give time for events to flow
+	time.Sleep(100 * time.Millisecond)
+
+	// Both reporters should receive all events
+	if reporter1.EventCount() != 2 {
+		t.Errorf("Reporter 1: expected 2 events, got %d", reporter1.EventCount())
+	}
+	if reporter2.EventCount() != 2 {
+		t.Errorf("Reporter 2: expected 2 events, got %d", reporter2.EventCount())
+	}
+}
+
+func TestProgress_MultipleCollectors(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	collector1 := newMockCollector(1)
+	collector2 := newMockCollector(2)
+	reporter := &mockReporter{}
+
+	_, err := New(
+		WithContext(ctx),
+		WithCollectors(collector1, collector2),
+		WithReporters(reporter),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	// Send events from both collectors
+	collector1.Report(Event{Stage: StageInit, Message: "Collector 1"})
+	collector2.Report(Event{Stage: StageInit, Message: "Collector 2"})
+
+	// Give time for events to flow
+	time.Sleep(100 * time.Millisecond)
+
+	// Reporter should receive events from both collectors
+	events := reporter.GetEvents()
+	if len(events) != 2 {
+		t.Errorf("Expected 2 events, got %d", len(events))
+	}
+}
+
+func TestProgress_Subscribe(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	reporter := &mockReporter{}
+
+	prog, err := New(
+		WithContext(ctx),
+		WithReporters(reporter),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	// Subscribe a new collector after creation
+	collector := newMockCollector(1)
+	prog.Subscribe(collector)
+
+	// Send event
+	collector.Report(Event{Stage: StageInit})
+
+	// Give time for event to flow
+	time.Sleep(100 * time.Millisecond)
+
+	// Reporter should receive the event
+	if reporter.EventCount() != 1 {
+		t.Errorf("Expected 1 event, got %d", reporter.EventCount())
+	}
+}
+
+func TestProgress_Unsubscribe(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	collector := newMockCollector(1)
+	reporter := &mockReporter{}
+
+	prog, err := New(
+		WithContext(ctx),
+		WithCollectors(collector),
+		WithReporters(reporter),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	// Send first event
+	collector.Report(Event{Stage: StageInit, Message: "Before unsubscribe"})
+	time.Sleep(50 * time.Millisecond)
+
+	// Unsubscribe
+	prog.Unsubscribe(collector)
+	time.Sleep(50 * time.Millisecond)
+
+	// Send second event (should not be received)
+	collector.Report(Event{Stage: StageComplete, Message: "After unsubscribe"})
+	time.Sleep(50 * time.Millisecond)
+
+	// Reporter should only have received the first event
+	events := reporter.GetEvents()
+	if len(events) != 1 {
+		t.Errorf("Expected 1 event, got %d", len(events))
+	}
+	if len(events) > 0 && events[0].Message != "Before unsubscribe" {
+		t.Errorf("Expected first event message, got: %s", events[0].Message)
+	}
+}
+
+func TestProgress_ContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	collector := newMockCollector(1)
+	reporter := &mockReporter{}
+
+	_, err := New(
+		WithContext(ctx),
+		WithCollectors(collector),
+		WithReporters(reporter),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	// Send event before cancellation
+	collector.Report(Event{Stage: StageInit})
+	time.Sleep(50 * time.Millisecond)
+
+	// Cancel context
+	cancel()
+	time.Sleep(50 * time.Millisecond)
+
+	// Send event after cancellation (should not be processed)
+	collector.Report(Event{Stage: StageComplete})
+	time.Sleep(50 * time.Millisecond)
+
+	// Should have only received the first event
+	events := reporter.GetEvents()
+	if len(events) > 1 {
+		t.Errorf("Expected at most 1 event after context cancellation, got %d", len(events))
+	}
+}
+
+func TestProgress_ConcurrentReporting(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	collector := newMockCollector(1)
+	reporter := &mockReporter{}
+
+	_, err := New(
+		WithContext(ctx),
+		WithCollectors(collector),
+		WithReporters(reporter),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	// Send events concurrently from multiple goroutines
+	var wg sync.WaitGroup
+	goroutines := 10
+	eventsPerGoroutine := 10
+
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
 		go func(id int) {
-			<-sendersStarted
-			for j := 0; j < 100; j++ {
-				reporter.Report(ProgressEvent{
+			defer wg.Done()
+			for j := 0; j < eventsPerGoroutine; j++ {
+				collector.Report(Event{
 					Stage:   StageRuleExecution,
 					Current: j,
-					Total:   100,
+					Total:   eventsPerGoroutine,
 				})
 			}
 		}(i)
 	}
 
-	// Start all senders at once to maximize race potential
-	close(sendersStarted)
+	wg.Wait()
 
-	// Close the reporter while senders are still active
-	time.Sleep(5 * time.Millisecond)
-	reporter.Close()
+	// Give time for all events to be processed
+	time.Sleep(200 * time.Millisecond)
 
-	// Wait for consumer to finish
-	<-done
-
-	// If we get here without panicking, the test passes
-}
-
-func TestChannelReporterReportAfterClose(t *testing.T) {
-	ctx := context.Background()
-	reporter := NewChannelReporter(ctx)
-
-	// Drain any existing events
-	go func() {
-		for range reporter.Events() {
-		}
-	}()
-
-	// Close the reporter
-	reporter.Close()
-
-	// Reporting after close should not panic
-	reporter.Report(ProgressEvent{Stage: StageInit})
-	reporter.Report(ProgressEvent{Stage: StageRuleExecution})
-}
-
-func TestChannelReporterDroppedEvents(t *testing.T) {
-	ctx := context.Background()
-	reporter := NewChannelReporter(ctx)
-	defer reporter.Close()
-
-	// Don't consume events, so channel buffer fills up
-	// The buffer is 100, so send 150 events
-	for i := 0; i < 150; i++ {
-		reporter.Report(ProgressEvent{
-			Stage:   StageRuleExecution,
-			Current: i,
-			Total:   150,
-		})
+	// Should have received all events
+	totalExpected := goroutines * eventsPerGoroutine
+	actualCount := reporter.EventCount()
+	if actualCount != totalExpected {
+		t.Errorf("Expected %d events, got %d", totalExpected, actualCount)
 	}
-
-	// At least some events should have been dropped
-	dropped := reporter.DroppedEvents()
-	if dropped == 0 {
-		t.Error("Expected some events to be dropped when channel buffer is full")
-	}
-
-	// Should be approximately 50 dropped events
-	if dropped < 40 || dropped > 60 {
-		t.Logf("Warning: Expected ~50 dropped events, got %d (this is informational)", dropped)
-	}
-}
-
-func TestChannelReporterWithLogger(t *testing.T) {
-	ctx := context.Background()
-
-	// Create a test logger that captures log calls
-	loggedDrops := 0
-	testLogger := testLogr{
-		logFunc: func(level int, msg string, keysAndValues ...interface{}) {
-			if msg == "progress event dropped due to slow consumer" {
-				loggedDrops++
-			}
-		},
-	}
-
-	reporter := NewChannelReporter(ctx, WithLogger(logr.New(testLogger)))
-	defer reporter.Close()
-
-	// Don't consume events, so channel buffer fills up
-	// The buffer is 100, so send 120 events to ensure some are dropped
-	for i := 0; i < 120; i++ {
-		reporter.Report(ProgressEvent{
-			Stage:   StageRuleExecution,
-			Current: i,
-			Total:   120,
-			Message: "test-rule",
-		})
-	}
-
-	// Verify that dropped events were logged
-	dropped := reporter.DroppedEvents()
-	if dropped == 0 {
-		t.Error("Expected some events to be dropped")
-	}
-
-	if loggedDrops != int(dropped) {
-		t.Errorf("Expected %d logged drops, got %d", dropped, loggedDrops)
-	}
-}
-
-// testLogr is a simple test implementation of logr.Logger
-type testLogr struct {
-	logFunc func(level int, msg string, keysAndValues ...interface{})
-}
-
-func (t testLogr) Init(info logr.RuntimeInfo) {}
-
-func (t testLogr) Enabled(level int) bool {
-	return true
-}
-
-func (t testLogr) Info(level int, msg string, keysAndValues ...interface{}) {
-	if t.logFunc != nil {
-		t.logFunc(level, msg, keysAndValues...)
-	}
-}
-
-func (t testLogr) Error(err error, msg string, keysAndValues ...interface{}) {}
-
-func (t testLogr) WithValues(keysAndValues ...interface{}) logr.LogSink {
-	return t
-}
-
-func (t testLogr) WithName(name string) logr.LogSink {
-	return t
 }
 
 func TestNoopReporter(t *testing.T) {
 	reporter := NewNoopReporter()
 
 	// Should not panic or do anything
-	reporter.Report(ProgressEvent{
+	reporter.Report(Event{
 		Stage:   StageRuleExecution,
 		Current: 10,
 		Total:   45,
@@ -465,60 +409,9 @@ func TestNoopReporter(t *testing.T) {
 
 	// Multiple calls should also be fine
 	for i := 0; i < 100; i++ {
-		reporter.Report(ProgressEvent{
+		reporter.Report(Event{
 			Stage: StageRuleExecution,
 		})
-	}
-}
-
-func TestProgressEventTimestamp(t *testing.T) {
-	var buf bytes.Buffer
-	reporter := NewJSONReporter(&buf)
-
-	event := ProgressEvent{
-		Stage: StageInit,
-		// No timestamp set
-	}
-
-	reporter.Report(event)
-
-	var decoded ProgressEvent
-	json.Unmarshal(buf.Bytes(), &decoded)
-
-	// Reporter should set timestamp if not provided
-	if decoded.Timestamp.IsZero() {
-		t.Error("Expected timestamp to be set by reporter")
-	}
-
-	// Timestamp should be recent (within last second)
-	if time.Since(decoded.Timestamp) > time.Second {
-		t.Errorf("Timestamp is too old: %v", decoded.Timestamp)
-	}
-}
-
-func TestProgressEventMetadata(t *testing.T) {
-	var buf bytes.Buffer
-	reporter := NewJSONReporter(&buf)
-
-	event := ProgressEvent{
-		Stage: StageRuleExecution,
-		Metadata: map[string]interface{}{
-			"ruleType": "java",
-			"matched":  true,
-			"duration": 1.5,
-		},
-	}
-
-	reporter.Report(event)
-
-	var decoded ProgressEvent
-	json.Unmarshal(buf.Bytes(), &decoded)
-
-	if decoded.Metadata["ruleType"] != "java" {
-		t.Errorf("Expected ruleType 'java', got %v", decoded.Metadata["ruleType"])
-	}
-	if decoded.Metadata["matched"] != true {
-		t.Errorf("Expected matched true, got %v", decoded.Metadata["matched"])
 	}
 }
 
@@ -527,6 +420,7 @@ func TestStageConstants(t *testing.T) {
 	stages := []Stage{
 		StageInit,
 		StageProviderInit,
+		StageProviderPrepare,
 		StageRuleParsing,
 		StageRuleExecution,
 		StageDependencyAnalysis,
@@ -541,354 +435,64 @@ func TestStageConstants(t *testing.T) {
 	}
 }
 
-func BenchmarkJSONReporter(b *testing.B) {
-	var buf bytes.Buffer
-	reporter := NewJSONReporter(&buf)
+func BenchmarkProgress_SingleCollectorSingleReporter(b *testing.B) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	event := ProgressEvent{
+	collector := newMockCollector(1)
+	reporter := &mockReporter{}
+
+	_, err := New(
+		WithContext(ctx),
+		WithCollectors(collector),
+		WithReporters(reporter),
+	)
+	if err != nil {
+		b.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	event := Event{
 		Stage:   StageRuleExecution,
 		Current: 10,
-		Total:   45,
-		Percent: 22.2,
-		Message: "test-rule",
+		Total:   100,
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		reporter.Report(event)
+		collector.Report(event)
 	}
 }
 
-func BenchmarkTextReporter(b *testing.B) {
-	var buf bytes.Buffer
-	reporter := NewTextReporter(&buf)
+func BenchmarkProgress_MultipleCollectorsMultipleReporters(b *testing.B) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	event := ProgressEvent{
+	collector1 := newMockCollector(1)
+	collector2 := newMockCollector(2)
+	reporter1 := &mockReporter{}
+	reporter2 := &mockReporter{}
+
+	_, err := New(
+		WithContext(ctx),
+		WithCollectors(collector1, collector2),
+		WithReporters(reporter1, reporter2),
+	)
+	if err != nil {
+		b.Fatalf("Failed to create Progress: %v", err)
+	}
+
+	event := Event{
 		Stage:   StageRuleExecution,
 		Current: 10,
-		Total:   45,
-		Percent: 22.2,
-		Message: "test-rule",
+		Total:   100,
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		reporter.Report(event)
-	}
-}
-
-func BenchmarkChannelReporter(b *testing.B) {
-	ctx := context.Background()
-	reporter := NewChannelReporter(ctx)
-	defer reporter.Close()
-
-	event := ProgressEvent{
-		Stage:   StageRuleExecution,
-		Current: 10,
-		Total:   45,
-	}
-
-	// Consumer goroutine
-	go func() {
-		for range reporter.Events() {
-			// Consume events
+		if i%2 == 0 {
+			collector1.Report(event)
+		} else {
+			collector2.Report(event)
 		}
-	}()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		reporter.Report(event)
-	}
-}
-
-func TestProgressBarReporter(t *testing.T) {
-	var buf bytes.Buffer
-	reporter := NewProgressBarReporter(&buf)
-
-	event := ProgressEvent{
-		Stage:   StageRuleExecution,
-		Current: 10,
-		Total:   45,
-		Percent: 22.2,
-		Message: "test-rule-001",
-	}
-
-	reporter.Report(event)
-
-	output := buf.String()
-
-	// Verify output contains expected components
-	if !strings.Contains(output, "Processing rules") {
-		t.Errorf("Expected 'Processing rules' in output, got: %s", output)
-	}
-	if !strings.Contains(output, "22%") {
-		t.Errorf("Expected percentage in output, got: %s", output)
-	}
-	if !strings.Contains(output, "10/45") {
-		t.Errorf("Expected '10/45' in output, got: %s", output)
-	}
-	if !strings.Contains(output, "test-rule-001") {
-		t.Errorf("Expected rule ID in output, got: %s", output)
-	}
-	// Progress bar should use block characters
-	if !strings.Contains(output, "█") && !strings.Contains(output, "░") {
-		t.Errorf("Expected progress bar characters in output, got: %s", output)
-	}
-}
-
-func TestProgressBarReporterProgressPercentages(t *testing.T) {
-	tests := []struct {
-		name           string
-		current        int
-		total          int
-		percent        float64
-		expectFilled   bool // Should have filled portion
-		expectEmpty    bool // Should have empty portion
-	}{
-		{
-			name:         "0 percent",
-			current:      0,
-			total:        100,
-			percent:      0.0,
-			expectFilled: false,
-			expectEmpty:  true,
-		},
-		{
-			name:         "50 percent",
-			current:      50,
-			total:        100,
-			percent:      50.0,
-			expectFilled: true,
-			expectEmpty:  true,
-		},
-		{
-			name:         "100 percent",
-			current:      100,
-			total:        100,
-			percent:      100.0,
-			expectFilled: true,
-			expectEmpty:  false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var buf bytes.Buffer
-			reporter := NewProgressBarReporter(&buf)
-
-			event := ProgressEvent{
-				Stage:   StageRuleExecution,
-				Current: tt.current,
-				Total:   tt.total,
-				Percent: tt.percent,
-			}
-
-			reporter.Report(event)
-
-			output := buf.String()
-
-			hasFilled := strings.Contains(output, "█")
-			hasEmpty := strings.Contains(output, "░")
-
-			if tt.expectFilled && !hasFilled {
-				t.Errorf("Expected filled bar characters (█) in output, got: %s", output)
-			}
-			if !tt.expectFilled && hasFilled {
-				t.Errorf("Did not expect filled bar characters (█) in output, got: %s", output)
-			}
-			if tt.expectEmpty && !hasEmpty {
-				t.Errorf("Expected empty bar characters (░) in output, got: %s", output)
-			}
-			if !tt.expectEmpty && hasEmpty {
-				t.Errorf("Did not expect empty bar characters (░) in output, got: %s", output)
-			}
-
-			// 100% should end with newline
-			if tt.percent >= 100.0 && !strings.HasSuffix(output, "\n") {
-				t.Errorf("Expected output to end with newline at 100%%, got: %s", output)
-			}
-		})
-	}
-}
-
-func TestProgressBarReporterStages(t *testing.T) {
-	tests := []struct {
-		name          string
-		event         ProgressEvent
-		shouldContain []string
-		shouldNotContain []string
-	}{
-		{
-			name: "provider init stage",
-			event: ProgressEvent{
-				Stage:   StageProviderInit,
-				Message: "Initializing java provider",
-			},
-			shouldContain: []string{"Initializing java provider"},
-		},
-		{
-			name: "rule parsing stage",
-			event: ProgressEvent{
-				Stage: StageRuleParsing,
-				Total: 235,
-			},
-			shouldContain: []string{"Loaded 235 rules"},
-		},
-		{
-			name: "dependency analysis stage",
-			event: ProgressEvent{
-				Stage: StageDependencyAnalysis,
-			},
-			shouldContain: []string{"Analyzing dependencies"},
-		},
-		{
-			name: "complete stage",
-			event: ProgressEvent{
-				Stage: StageComplete,
-			},
-			shouldContain: []string{"Analysis complete"},
-		},
-		{
-			name: "rule execution clears previous lines",
-			event: ProgressEvent{
-				Stage:   StageRuleExecution,
-				Current: 10,
-				Total:   45,
-			},
-			shouldContain: []string{"Processing rules", "10/45"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var buf bytes.Buffer
-			reporter := NewProgressBarReporter(&buf)
-			reporter.Report(tt.event)
-
-			output := buf.String()
-			for _, expected := range tt.shouldContain {
-				if !strings.Contains(output, expected) {
-					t.Errorf("Expected '%s' in output, got: %s", expected, output)
-				}
-			}
-			for _, notExpected := range tt.shouldNotContain {
-				if strings.Contains(output, notExpected) {
-					t.Errorf("Did not expect '%s' in output, got: %s", notExpected, output)
-				}
-			}
-		})
-	}
-}
-
-func TestProgressBarReporterRuleNameTruncation(t *testing.T) {
-	var buf bytes.Buffer
-	reporter := NewProgressBarReporter(&buf)
-
-	// Very long rule name (over 50 characters)
-	longRuleName := "this-is-a-very-long-rule-name-that-exceeds-the-maximum-display-length-and-should-be-truncated"
-
-	event := ProgressEvent{
-		Stage:   StageRuleExecution,
-		Current: 10,
-		Total:   45,
-		Percent: 22.2,
-		Message: longRuleName,
-	}
-
-	reporter.Report(event)
-
-	output := buf.String()
-
-	// Output should not contain the full long rule name
-	if strings.Contains(output, longRuleName) {
-		t.Errorf("Expected long rule name to be truncated, but found full name in: %s", output)
-	}
-
-	// Should contain truncation indicator (...)
-	if !strings.Contains(output, "...") {
-		t.Errorf("Expected truncation indicator '...' in output, got: %s", output)
-	}
-}
-
-func TestProgressBarReporterMultipleUpdates(t *testing.T) {
-	var buf bytes.Buffer
-	reporter := NewProgressBarReporter(&buf)
-
-	// Simulate progress from 0% to 100%
-	for i := 0; i <= 10; i++ {
-		reporter.Report(ProgressEvent{
-			Stage:   StageRuleExecution,
-			Current: i,
-			Total:   10,
-			Percent: float64(i) * 10.0,
-			Message: fmt.Sprintf("rule-%d", i),
-		})
-	}
-
-	output := buf.String()
-
-	// Should contain carriage returns for in-place updates
-	if !strings.Contains(output, "\r") {
-		t.Errorf("Expected carriage returns for in-place updates, got: %s", output)
-	}
-
-	// Final output at 100% should have a newline
-	if !strings.HasSuffix(output, "\n") {
-		t.Errorf("Expected final output to end with newline, got: %s", output)
-	}
-
-	// Should contain the final rule name
-	if !strings.Contains(output, "rule-10") {
-		t.Errorf("Expected final rule name 'rule-10' in output, got: %s", output)
-	}
-}
-
-func TestProgressBarReporterConcurrency(t *testing.T) {
-	// Verify that concurrent Report() calls don't cause a panic
-	var buf bytes.Buffer
-	reporter := NewProgressBarReporter(&buf)
-
-	// Concurrently send events from multiple goroutines
-	numSenders := 5
-	done := make(chan struct{})
-
-	for i := 0; i < numSenders; i++ {
-		go func(id int) {
-			for j := 0; j < 20; j++ {
-				reporter.Report(ProgressEvent{
-					Stage:   StageRuleExecution,
-					Current: j,
-					Total:   20,
-					Percent: float64(j) * 5.0,
-					Message: fmt.Sprintf("rule-%d-%d", id, j),
-				})
-			}
-			if id == 0 {
-				close(done)
-			}
-		}(i)
-	}
-
-	// Wait for at least one sender to complete
-	<-done
-
-	// If we get here without panicking, the test passes
-}
-
-func BenchmarkProgressBarReporter(b *testing.B) {
-	var buf bytes.Buffer
-	reporter := NewProgressBarReporter(&buf)
-
-	event := ProgressEvent{
-		Stage:   StageRuleExecution,
-		Current: 10,
-		Total:   45,
-		Percent: 22.2,
-		Message: "test-rule",
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		reporter.Report(event)
 	}
 }

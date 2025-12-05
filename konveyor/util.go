@@ -24,20 +24,18 @@ func setupProviderConfigs(providerConfigs []provider.Config) ([]provider.Config,
 				continue
 			}
 			builtinInitConfig := provider.InitConfig{Location: initConfig.Location}
-			if analysisMode != "" {
-
 			// If the builtin config then make sure to use the initConfig
 			if config.Name == "builtin" {
 				builtinInitConfig.ProviderSpecificConfig = initConfig.ProviderSpecificConfig
 			}
 			defaultBuiltinConfigs[initConfig.Location] = builtinInitConfig
 		}
-	}
 
-	finalConfigs = append(finalConfigs, provider.Config{
-		Name:       "builtin",
-		InitConfig: slices.Collect(maps.Values(defaultBuiltinConfigs)),
-	})
+		finalConfigs = append(finalConfigs, provider.Config{
+			Name:       "builtin",
+			InitConfig: slices.Collect(maps.Values(defaultBuiltinConfigs)),
+		})
+	}
 
 	return finalConfigs, slices.Collect(maps.Keys(defaultBuiltinConfigs))
 
