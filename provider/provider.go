@@ -193,10 +193,6 @@ type InitConfig struct {
 
 	// LogLevel for the provider logger verbosity
 	LogLevel *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
-
-	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
-	// If provided, the provider will call ReportProgress() as it processes files during symbol cache population.
-	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
 }
 
 type RPCClient interface {

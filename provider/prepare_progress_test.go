@@ -7,22 +7,22 @@ import (
 	"github.com/konveyor/analyzer-lsp/progress"
 )
 
-// mockProgressReporter is a mock implementation of progress.ProgressReporter
+// mockProgressReporter is a mock implementation of progress.Reporter
 type mockProgressReporter struct {
 	mu     sync.Mutex
-	events []progress.ProgressEvent
+	events []progress.Event
 }
 
-func (m *mockProgressReporter) Report(event progress.ProgressEvent) {
+func (m *mockProgressReporter) Report(event progress.Event) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.events = append(m.events, event)
 }
 
-func (m *mockProgressReporter) GetEvents() []progress.ProgressEvent {
+func (m *mockProgressReporter) GetEvents() []progress.Event {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return append([]progress.ProgressEvent{}, m.events...)
+	return append([]progress.Event{}, m.events...)
 }
 
 func (m *mockProgressReporter) EventCount() int {
