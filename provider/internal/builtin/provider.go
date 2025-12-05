@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/swaggest/openapi-go/openapi3"
 	"gopkg.in/yaml.v2"
@@ -54,7 +55,8 @@ type jsonCondition struct {
 }
 
 type builtinProvider struct {
-	log logr.Logger
+	log      logr.Logger
+	progress *progress.Progress
 
 	config provider.Config
 	tags   map[string]bool
@@ -63,7 +65,7 @@ type builtinProvider struct {
 	clients []provider.ServiceClient
 }
 
-func NewBuiltinProvider(config provider.Config, log logr.Logger) *builtinProvider {
+func NewBuiltinProvider(config provider.Config, log logr.Logger, progress *progress.Progress) *builtinProvider {
 	// If logLevel is set in config, update the logger's verbosity
 	// Note: This is informational only as logr doesn't support changing level after creation
 	// The log level should be set when creating the logger in the main analyzer command
@@ -71,8 +73,9 @@ func NewBuiltinProvider(config provider.Config, log logr.Logger) *builtinProvide
 		log.V(5).Info("builtin provider logLevel from config", "logLevel", *config.LogLevel)
 	}
 	return &builtinProvider{
-		config: config,
-		log:    log,
+		config:   config,
+		log:      log,
+		progress: progress,
 	}
 }
 

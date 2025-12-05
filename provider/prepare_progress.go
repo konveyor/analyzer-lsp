@@ -7,13 +7,13 @@ import (
 	"github.com/konveyor/analyzer-lsp/progress"
 )
 
-// prepareProgressAdapter adapts a progress.ProgressReporter to implement PrepareProgressReporter.
+// prepareProgressAdapter adapts a progress.Reporter to implement PrepareProgressReporter.
 // This allows the existing progress reporting infrastructure to be used for Prepare() phase reporting.
 type prepareProgressAdapter struct {
-	reporter progress.ProgressReporter
+	reporter progress.Reporter
 }
 
-// NewPrepareProgressAdapter creates a PrepareProgressReporter from a progress.ProgressReporter.
+// NewPrepareProgressAdapter creates a PrepareProgressReporter from a progress.Reporter.
 // This adapter converts Prepare() progress updates into ProgressEvents with "provider_prepare" stage.
 //
 // Example usage:
@@ -25,7 +25,7 @@ type prepareProgressAdapter struct {
 //	    Location: "/path/to/code",
 //	    PrepareProgressReporter: prepareReporter,
 //	}
-func NewPrepareProgressAdapter(reporter progress.ProgressReporter) PrepareProgressReporter {
+func NewPrepareProgressAdapter(reporter progress.Reporter) PrepareProgressReporter {
 	if reporter == nil {
 		return nil
 	}
@@ -41,7 +41,7 @@ func (a *prepareProgressAdapter) ReportProgress(providerName string, filesProces
 		return
 	}
 
-	a.reporter.Report(progress.ProgressEvent{
+	a.reporter.Report(progress.Event{
 		Timestamp: time.Now(),
 		Stage:     progress.StageProviderPrepare,
 		Message:   fmt.Sprintf("Preparing %s provider", providerName),

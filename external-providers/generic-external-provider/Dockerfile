@@ -26,10 +26,10 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
     chown -R 1001:0 /opt/app-root/src/go/pkg/mod && \
     chmod -R g+w /opt/app-root/src/go/pkg/mod
 
-USER 1001
 
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd generic-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
 
+USER 1001
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd generic-provider && go build -o generic-external-provider main.go
 
 FROM ${GOLANG_DEP_IMAGE} as go-dep-provider
