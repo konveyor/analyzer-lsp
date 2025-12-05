@@ -189,10 +189,6 @@ type InitConfig struct {
 
 	// Given a pipe name for the init config, we will use that pipe and connect to an already inited provider.
 	Initialized bool `yaml:"initialized" json:"initialized"`
-
-	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
-	// If provided, the provider will call ReportProgress() as it processes files during symbol cache population.
-	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
 }
 
 type RPCClient interface {

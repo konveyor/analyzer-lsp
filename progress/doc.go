@@ -12,7 +12,7 @@
 // For simple console output:
 //
 //	reporter := progress.NewTextReporter(os.Stderr)
-//	reporter.Report(progress.ProgressEvent{
+//	reporter.Report(progress.Event{
 //	    Stage: progress.StageProviderPrepare,
 //	    Message: "Preparing Java provider",
 //	    Current: 50,
@@ -29,7 +29,7 @@
 //	// Reports are automatically throttled to 500ms intervals
 //	// First and last events are always reported regardless of timing
 //	for i := 1; i <= total; i++ {
-//	    throttled.Report(progress.ProgressEvent{
+//	    throttled.Report(progress.Event{
 //	        Current: i,
 //	        Total: total,
 //	    })
@@ -42,7 +42,7 @@
 //	throttled := progress.NewThrottledReporter("java", textReporter)
 //
 //	// Enable streaming to a channel
-//	eventChan := make(chan progress.ProgressEvent, 100)
+//	eventChan := make(chan progress.Event, 100)
 //	throttled.EnableStreaming(eventChan)
 //
 //	// Events are sent to both the text reporter AND the channel

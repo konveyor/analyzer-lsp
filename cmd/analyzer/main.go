@@ -5,26 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/engine/labels"
-	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
+	"github.com/konveyor/analyzer-lsp/konveyor"
+	v1 "github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/progress"
+	"github.com/konveyor/analyzer-lsp/progress/collector"
+	"github.com/konveyor/analyzer-lsp/progress/reporter"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/analyzer-lsp/provider/lib"
-	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/swaggest/openapi-go/openapi3"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	"gopkg.in/yaml.v2"
 )
 
@@ -89,295 +85,59 @@ func AnalysisCmd() *cobra.Command {
 			ctx, cancelFunc := context.WithCancel(context.Background())
 			defer cancelFunc()
 
-			selectors := []engine.RuleSelector{}
-			if labelSelector != "" {
-				selector, err := labels.NewLabelSelector[*engine.RuleMeta](labelSelector, nil)
-				if err != nil {
-					errLog.Error(err, "failed to create label selector from expression", "selector", labelSelector)
-					os.Exit(1)
-				}
-				selectors = append(selectors, selector)
-			}
-
-			var dependencyLabelSelector *labels.LabelSelector[*konveyor.Dep]
-			var err error
-			if depLabelSelector != "" {
-				dependencyLabelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector, nil)
-				if err != nil {
-					errLog.Error(err, "failed to create label selector from expression", "selector", labelSelector)
-					os.Exit(1)
-				}
-			}
-
-			tracerOptions := tracing.Options{
-				EnableJaeger:   enableJaeger,
-				JaegerEndpoint: jaegerEndpoint,
-			}
-			tp, err := tracing.InitTracerProvider(log, tracerOptions)
-			if err != nil {
-				errLog.Error(err, "failed to initialize tracing")
-				os.Exit(1)
-			}
-
-			defer tracing.Shutdown(ctx, log, tp)
-
-			ctx, mainSpan := tracing.StartNewSpan(ctx, "main")
-			defer mainSpan.End()
-
-			// Get the configs
-			configs, err := provider.GetConfig(settingsFile)
-			if err != nil {
-				errLog.Error(err, "unable to get configuration")
-				os.Exit(1)
-			}
-
-			// we add builtin configs by default for all locations
-			defaultBuiltinConfigs := []provider.InitConfig{}
-			seenBuiltinConfigs := map[string]bool{}
-			finalConfigs := []provider.Config{}
-			for _, config := range configs {
-				if config.Name != "builtin" {
-					finalConfigs = append(finalConfigs, config)
-				}
-				for _, initConf := range config.InitConfig {
-					builtinConf := provider.InitConfig{}
-					_, ok := seenBuiltinConfigs[initConf.Location]
-					if !ok {
-						if initConf.Location != "" {
-							if stat, err := os.Stat(initConf.Location); err == nil && stat.IsDir() {
-								builtinLocation, err := filepath.Abs(initConf.Location)
-								if err != nil {
-									builtinLocation = initConf.Location
-								}
-								seenBuiltinConfigs[builtinLocation] = true
-								builtinConf = provider.InitConfig{Location: builtinLocation}
-								if config.Name == "builtin" {
-									builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
-								}
-								defaultBuiltinConfigs = append(defaultBuiltinConfigs, builtinConf)
-							}
-						}
-					}
-					//builtin config that already has location as other prov configs
-					if config.Name == "builtin" && ok {
-						builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
-						for i, c := range defaultBuiltinConfigs {
-							if initConf.Location == c.Location {
-								defaultBuiltinConfigs[i] = initConf
-							}
-						}
-					}
-
-				}
-			}
-			finalConfigs = append(finalConfigs, provider.Config{
-				Name:       "builtin",
-				InitConfig: defaultBuiltinConfigs,
-			})
-
-			// Create progress reporter early so we can report provider initialization
-			progressReporter, progressCleanup := createProgressReporter()
-			defer progressCleanup()
-
-			providers := map[string]provider.InternalProviderClient{}
-			providerLocations := []string{}
-			var encoding string
-			for _, config := range finalConfigs {
-				config.ContextLines = contextLines
-				for _, ind := range config.InitConfig {
-					providerLocations = append(providerLocations, ind.Location)
-				}
-
-				for _, initConfig := range config.InitConfig {
-					if encodingVal, ok := initConfig.ProviderSpecificConfig["encoding"]; ok {
-						encoding = encodingVal.(string)
-						break
-					}
-				}
-
-				// IF analsyis mode is set from the CLI, then we will override this for each init config
-				if analysisMode != "" {
-					inits := []provider.InitConfig{}
-					for _, i := range config.InitConfig {
-						i.AnalysisMode = provider.AnalysisMode(analysisMode)
-						inits = append(inits, i)
-					}
-					config.InitConfig = inits
-				}
-
-				// Add prepare progress reporter to config (for GRPC providers) and all init configs (for LSP providers)
-				config.PrepareProgressReporter = provider.NewPrepareProgressAdapter(progressReporter)
-				for i := range config.InitConfig {
-					config.InitConfig[i].PrepareProgressReporter = provider.NewPrepareProgressAdapter(progressReporter)
-				}
-
-				// Report provider initialization starting
-				progressReporter.Report(progress.ProgressEvent{
-					Stage:   progress.StageProviderInit,
-					Message: fmt.Sprintf("Initializing %s provider", config.Name),
-				})
-
-				prov, err := lib.GetProviderClient(config, log)
-				if err != nil {
-					// Report provider initialization failed
-					progressReporter.Report(progress.ProgressEvent{
-						Stage:   progress.StageProviderInit,
-						Message: fmt.Sprintf("Provider %s failed to initialize", config.Name),
-						Metadata: map[string]interface{}{
-							"error": err.Error(),
-						},
-					})
-					errLog.Error(err, "unable to create provider client")
-					progressCleanup()
-					os.Exit(1)
-				}
-				providers[config.Name] = prov
-				if s, ok := prov.(provider.Startable); ok {
-					if err := s.Start(ctx); err != nil {
-						// Report provider startup failed
-						progressReporter.Report(progress.ProgressEvent{
-							Stage:   progress.StageProviderInit,
-							Message: fmt.Sprintf("Provider %s failed to start", config.Name),
-							Metadata: map[string]interface{}{
-								"error": err.Error(),
-							},
-						})
-						errLog.Error(err, "unable to create provider client")
-						progressCleanup()
-						os.Exit(1)
-					}
-				}
-
-				// Report provider ready
-				progressReporter.Report(progress.ProgressEvent{
-					Stage:   progress.StageProviderInit,
-					Message: fmt.Sprintf("Provider %s ready", config.Name),
-				})
-			}
-
-			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
-
-			//start up the rule eng
-			eng := engine.CreateRuleEngine(engineCtx,
-				10,
-				log,
-				engine.WithIncidentLimit(limitIncidents),
-				engine.WithCodeSnipLimit(limitCodeSnips),
-				engine.WithContextLines(contextLines),
-				engine.WithIncidentSelector(incidentSelector),
-				engine.WithLocationPrefixes(providerLocations),
-				engine.WithEncoding(encoding),
+			progressReporter := createProgressReporter()
+			analyzerCollector := collector.New()
+			analyzerProgress, err := progress.New(
+				progress.WithCollectors(analyzerCollector),
+				progress.WithReporters(progressReporter),
+				progress.WithContext(ctx),
 			)
 
+			analyzer, err := konveyor.NewAnalyzer(
+				konveyor.WithLogger(log),
+				konveyor.WithProviderConfigFilePath(settingsFile),
+				konveyor.WithRuleFilepaths(rulesFile),
+				konveyor.WithLabelSelector(labelSelector),
+				konveyor.WithDepLabelSelector(depLabelSelector),
+				konveyor.WitIncidentSelector(incidentSelector),
+				konveyor.WithIncidentLimit(limitIncidents),
+				konveyor.WithCodeSnipLimit(limitCodeSnips),
+				konveyor.WithContextLinesLimit(contextLines),
+				konveyor.WithAnalysisMode(analysisMode),
+				konveyor.WitIncidentSelector(incidentSelector),
+				konveyor.WithProgress(analyzerProgress),
+			)
+
+			// TODO: Add back getting this.
 			if getOpenAPISpec != "" {
-				sc := createOpenAPISchema(providers, log)
+				sc := []byte{}
 				b, err := json.Marshal(sc)
 				if err != nil {
 					errLog.Error(err, "unable to create inital schema")
-					progressCleanup()
 					os.Exit(1)
 				}
 
 				err = os.WriteFile(getOpenAPISpec, b, 0644)
 				if err != nil {
 					errLog.Error(err, "error writing output file", "file", getOpenAPISpec)
-					progressCleanup()
 					os.Exit(1) // Treat the error as a fatal error
 				}
-				progressCleanup()
 				os.Exit(0)
 			}
 
-			parser := parser.RuleParser{
-				ProviderNameToClient: providers,
-				Log:                  log.WithName("parser"),
-				NoDependencyRules:    noDependencyRules,
-				DepLabelSelector:     dependencyLabelSelector,
-			}
-			ruleSets := []engine.RuleSet{}
-			needProviders := map[string]provider.InternalProviderClient{}
-			providerConditions := map[string][]provider.ConditionsByCap{}
-			for _, f := range rulesFile {
-				internRuleSet, internNeedProviders, provConditions, err := parser.LoadRules(f)
-				if err != nil {
-					errLog.Error(err, "unable to parse all the rules for ruleset", "file", f)
-				}
-				ruleSets = append(ruleSets, internRuleSet...)
-				for k, v := range internNeedProviders {
-					needProviders[k] = v
-				}
-				for k, v := range provConditions {
-					if _, ok := providerConditions[k]; !ok {
-						providerConditions[k] = []provider.ConditionsByCap{}
-					}
-					providerConditions[k] = append(providerConditions[k], v...)
-				}
+			_, err = analyzer.ParseRules()
+			if err != nil {
+				errLog.Error(err, "unable to parse rules")
 			}
 
-			// Now that we have all the providers, we need to start them.
-			additionalBuiltinConfigs := []provider.InitConfig{}
-			for name, provider := range needProviders {
-				switch name {
-				// other providers can return additional configs for the builtin provider
-				// therefore, we initiate builtin provider separately at the end
-				case "builtin":
-					continue
-				default:
-					initCtx, initSpan := tracing.StartNewSpan(ctx, "init",
-						attribute.Key("provider").String(name))
-					additionalBuiltinConfs, err := provider.ProviderInit(initCtx, nil)
-					if err != nil {
-						errLog.Error(err, "unable to init the providers", "provider", name)
-						progressCleanup()
-						os.Exit(1)
-					}
-					if additionalBuiltinConfs != nil {
-						additionalBuiltinConfigs = append(additionalBuiltinConfigs, additionalBuiltinConfs...)
-					}
-					initSpan.End()
-				}
+			err = analyzer.ProviderStart()
+			if err != nil {
+				errLog.Error(err, "unable to start providers")
 			}
 
-			if builtinClient, ok := needProviders["builtin"]; ok {
-				if _, err = builtinClient.ProviderInit(ctx, additionalBuiltinConfigs); err != nil {
-					errLog.Error(err, "unable to init builtin provider")
-					progressCleanup()
-					os.Exit(1)
-				}
-			}
-
-			// Call Prepare() on all providers
-			for name, conditions := range providerConditions {
-				if provider, ok := needProviders[name]; ok {
-					if err := provider.Prepare(ctx, conditions); err != nil {
-						errLog.Error(err, "unable to prepare provider", "provider", name)
-					}
-				}
-			}
-
-			wg := &sync.WaitGroup{}
-			var depSpan trace.Span
-			var depCtx context.Context
-			if depOutputFile != "" {
-				depCtx, depSpan = tracing.StartNewSpan(ctx, "dep")
-				wg.Add(1)
-				go DependencyOutput(depCtx, providers, log, errLog, depOutputFile, wg)
-			}
-
-			// This will already wait
-			rulesets := eng.RunRulesWithOptions(ctx, ruleSets, []engine.RunOption{
-				engine.WithProgressReporter(progressReporter),
-			}, selectors...)
-			engineSpan.End()
-			wg.Wait()
-			if depSpan != nil {
-				depSpan.End()
-			}
-			eng.Stop()
-
-			for _, provider := range needProviders {
-				provider.Stop()
-			}
+			// All the information should already be set on analyzer
+			// We don't need to override.
+			rulesets := analyzer.Run()
 
 			sort.SliceStable(rulesets, func(i, j int) bool {
 				return rulesets[i].Name < rulesets[j].Name
@@ -387,14 +147,12 @@ func AnalysisCmd() *cobra.Command {
 			b, _ := yaml.Marshal(rulesets)
 			if errorOnViolations && len(rulesets) != 0 {
 				fmt.Printf("%s", string(b))
-				progressCleanup()
 				os.Exit(EXIT_ON_ERROR_CODE)
 			}
 
 			err = os.WriteFile(outputViolations, b, 0644)
 			if err != nil {
 				errLog.Error(err, "error writing output file", "file", outputViolations)
-				progressCleanup()
 				os.Exit(1) // Treat the error as a fatal error
 			}
 		},
@@ -455,15 +213,14 @@ func validateFlags() error {
 }
 
 // createProgressReporter creates a progress reporter based on CLI flags
-func createProgressReporter() (progress.ProgressReporter, func()) {
+func createProgressReporter() progress.Reporter {
 	// If no output specified, return noop reporter
 	if progressOutput == "" {
-		return progress.NewNoopReporter(), func() {}
+		return progress.NewNoopReporter()
 	}
 
 	// Determine output writer
 	var writer *os.File
-	cleanup := func() {}
 	switch progressOutput {
 	case "stderr":
 		writer = os.Stderr
@@ -478,21 +235,20 @@ func createProgressReporter() (progress.ProgressReporter, func()) {
 			writer = os.Stderr
 		} else {
 			writer = file
-			cleanup = func() { _ = file.Close() }
 		}
 	}
 
 	// Create reporter based on format
 	switch progressFormat {
 	case "json":
-		return progress.NewJSONReporter(writer), cleanup
+		return reporter.NewJSONReporter(writer)
 	case "text":
-		return progress.NewTextReporter(writer), cleanup
+		return reporter.NewTextReporter(writer)
 	case "bar":
-		return progress.NewProgressBarReporter(writer), cleanup
+		return reporter.NewProgressBarReporter(writer)
 	default:
 		// Default to progress bar
-		return progress.NewProgressBarReporter(writer), cleanup
+		return reporter.NewProgressBarReporter(writer)
 	}
 }
 
@@ -622,8 +378,8 @@ func createOpenAPISchema(providers map[string]provider.InternalProviderClient, l
 
 func DependencyOutput(ctx context.Context, providers map[string]provider.InternalProviderClient, log logr.Logger, errLog logr.Logger, depOutputFile string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	var depsFlat []konveyor.DepsFlatItem
-	var depsTree []konveyor.DepsTreeItem
+	var depsFlat []v1.DepsFlatItem
+	var depsTree []v1.DepsTreeItem
 	for name, prov := range providers {
 		if !provider.HasCapability(prov.Capabilities(), "dependency") {
 			log.Info("provider does not have dependency capability", "provider", name)
@@ -637,7 +393,7 @@ func DependencyOutput(ctx context.Context, providers map[string]provider.Interna
 				continue
 			}
 			for u, ds := range deps {
-				depsTree = append(depsTree, konveyor.DepsTreeItem{
+				depsTree = append(depsTree, v1.DepsTreeItem{
 					FileURI:      string(u),
 					Provider:     name,
 					Dependencies: ds,
@@ -651,7 +407,7 @@ func DependencyOutput(ctx context.Context, providers map[string]provider.Interna
 			}
 			for u, ds := range deps {
 				newDeps := ds
-				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
+				depsFlat = append(depsFlat, v1.DepsFlatItem{
 					Provider:     name,
 					FileURI:      string(u),
 					Dependencies: newDeps,

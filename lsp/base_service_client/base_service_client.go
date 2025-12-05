@@ -17,6 +17,7 @@ import (
 	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/progress"
+	"github.com/konveyor/analyzer-lsp/progress/collector"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
@@ -162,15 +163,14 @@ type LSPServiceClientBase struct {
 	handler jsonrpc2.Handler
 
 	// Progress reporting for Prepare() phase using ThrottledReporter
-	throttledReporter       *progress.ThrottledReporter
-	totalFilesToProcess     atomic.Int32
-	filesProcessed          atomic.Int32
+	throttledReporter      *collector.ThrottledCollector
+	totalFilesToProcess    atomic.Int32
+	filesProcessed         atomic.Int32
+	firstEvaluateCompleted atomic.Bool
 
 	// Progress event streaming for GRPC providers
-	progressEventChan      chan progress.ProgressEvent
-	prepareProgressChan    chan *provider.PrepareProgressEvent
-	progressStreamActive   atomic.Bool
-	progressAdapterStopped chan struct{}
+	progressEventChan    chan progress.Event
+	progressStreamActive atomic.Bool
 }
 
 // SymbolSearchHelper is used by the generic service client to work with symbols
@@ -205,6 +205,7 @@ func NewLSPServiceClientBase(
 	initializeHandler jsonrpc2.Handler,
 	initializeParams protocol.InitializeParams,
 	symbolCacheHelper SymbolSearchHelper,
+	progress *progress.Progress,
 ) (*LSPServiceClientBase, error) {
 	sc := LSPServiceClientBase{}
 
@@ -253,16 +254,10 @@ func NewLSPServiceClientBase(
 	sc.Ctx, sc.CancelFunc = context.WithCancel(ctx)
 	sc.Log = log.WithValues("provider", sc.BaseConfig.LspServerName)
 
-	// Create throttled progress reporter
-	// Create it even if PrepareProgressReporter is nil, as it's needed for streaming in GRPC providers
-	var adapter progress.ProgressReporter
-	if c.PrepareProgressReporter != nil {
-		adapter = provider.NewPrepareProgressReporterAdapter(sc.BaseConfig.LspServerName, c.PrepareProgressReporter)
-	} else {
-		// Use a no-op reporter for streaming-only mode (GRPC providers)
-		adapter = &noOpProgressReporter{}
-	}
-	sc.throttledReporter = progress.NewThrottledReporter("provider_prepare", adapter)
+	// Create throttled progress reporter if provided
+	// Wrap the PrepareProgressReporter to work with ThrottledReporter
+	sc.throttledReporter = collector.NewThrottledCollector("provider_prepare")
+	progress.Subscribe(sc.throttledReporter)
 
 	sc.handler = NewChainHandler(initializeHandler)
 	if c.RPC == nil {
@@ -350,11 +345,6 @@ func (sc *LSPServiceClientBase) Stop() {
 	// This ensures clean shutdown even if Prepare() is still running in background
 	sc.symbolCacheUpdateWaitGroup.Wait()
 
-	// Close progress stream if it's active
-	if sc.progressStreamActive.Load() {
-		sc.StopProgressStream()
-	}
-
 	sc.Conn.Close()
 
 	if sc.TempDir != "" {
@@ -407,26 +397,18 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 		return sc.Ctx.Err()
 	}
 
-	// Initialize progress tracking
-	sc.filesProcessed.Store(0)
-	sc.totalFilesToProcess.Store(int32(len(uris)))
-
-	// Enable streaming on throttled reporter if streaming is active
-	if sc.progressStreamActive.Load() && sc.throttledReporter != nil {
-		sc.throttledReporter.EnableStreaming(sc.progressEventChan)
-	}
-
-	// Schedule all symbol cache updates
-	sc.symbolCacheUpdateWaitGroup.Add(len(uris))
-	for i, uri := range uris {
-		select {
-		case sc.symbolCacheUpdateChan <- uri:
-			// Successfully sent
-		case <-sc.Ctx.Done():
-			// Context cancelled - account for remaining URIs
-			remaining := len(uris) - i
-			for j := 0; j < remaining; j++ {
-				sc.symbolCacheUpdateWaitGroup.Done()
+		sc.symbolCacheUpdateWaitGroup.Add(len(uris))
+		for i, uri := range uris {
+			select {
+			case sc.symbolCacheUpdateChan <- uri:
+				// Successfully sent
+			case <-sc.Ctx.Done():
+				// Context cancelled - account for remaining URIs
+				remaining := len(uris) - i
+				for j := 0; j < remaining; j++ {
+					sc.symbolCacheUpdateWaitGroup.Done()
+				}
+				return
 			}
 			return sc.Ctx.Err()
 		}
@@ -770,7 +752,7 @@ func (sc *LSPServiceClientBase) reportProgress() {
 	// Report progress via ThrottledReporter if configured
 	// ThrottledReporter handles throttling, streaming, and first/last event logic
 	if sc.throttledReporter != nil {
-		sc.throttledReporter.Report(progress.ProgressEvent{
+		sc.throttledReporter.Report(progress.Event{
 			Stage:   progress.StageProviderPrepare,
 			Message: fmt.Sprintf("Preparing %s provider", sc.BaseConfig.LspServerName),
 			Current: int(processed),
@@ -783,10 +765,8 @@ func (sc *LSPServiceClientBase) reportProgress() {
 // This is used by GRPC providers to stream progress back to the client.
 // The returned channel will receive progress events during Prepare() phase.
 // The caller should close the channel when done by calling StopProgressStream().
-func (sc *LSPServiceClientBase) StartProgressStream() <-chan *provider.PrepareProgressEvent {
-	sc.progressEventChan = make(chan progress.ProgressEvent, 100)
-	sc.prepareProgressChan = make(chan *provider.PrepareProgressEvent, 100)
-	sc.progressAdapterStopped = make(chan struct{})
+func (sc *LSPServiceClientBase) StartProgressStream() <-chan progress.Event {
+	sc.progressEventChan = make(chan progress.Event, 100)
 	sc.progressStreamActive.Store(true)
 
 	// Enable streaming on the throttled reporter
@@ -813,24 +793,6 @@ func (sc *LSPServiceClientBase) StartProgressStream() <-chan *provider.PreparePr
 	}()
 
 	return sc.prepareProgressChan
-}
-
-// StopProgressStream stops the progress stream and closes the channel.
-func (sc *LSPServiceClientBase) StopProgressStream() {
-	sc.progressStreamActive.Store(false)
-	if sc.throttledReporter != nil {
-		sc.throttledReporter.DisableStreaming()
-	}
-	if sc.progressEventChan != nil {
-		close(sc.progressEventChan)
-		sc.progressEventChan = nil
-	}
-	// Wait for adapter goroutine to finish before returning
-	if sc.progressAdapterStopped != nil {
-		<-sc.progressAdapterStopped
-		sc.progressAdapterStopped = nil
-	}
-	sc.prepareProgressChan = nil
 }
 
 func (sc *LSPServiceClientBase) drainPendingSymbolCacheUpdates() {
