@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/swaggest/openapi-go/openapi3"
 	"gopkg.in/yaml.v2"
@@ -54,7 +55,8 @@ type jsonCondition struct {
 }
 
 type builtinProvider struct {
-	log logr.Logger
+	log      logr.Logger
+	progress *progress.Progress
 
 	config provider.Config
 	tags   map[string]bool
@@ -63,10 +65,11 @@ type builtinProvider struct {
 	clients []provider.ServiceClient
 }
 
-func NewBuiltinProvider(config provider.Config, log logr.Logger) *builtinProvider {
+func NewBuiltinProvider(config provider.Config, log logr.Logger, progress *progress.Progress) *builtinProvider {
 	return &builtinProvider{
-		config: config,
-		log:    log,
+		config:   config,
+		log:      log,
+		progress: progress,
 	}
 }
 
