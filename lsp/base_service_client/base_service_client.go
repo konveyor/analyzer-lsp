@@ -165,11 +165,12 @@ type LSPServiceClientBase struct {
 	throttledReporter       *progress.ThrottledReporter
 	totalFilesToProcess     atomic.Int32
 	filesProcessed          atomic.Int32
-	firstEvaluateCompleted  atomic.Bool
 
 	// Progress event streaming for GRPC providers
-	progressEventChan    chan progress.ProgressEvent
-	progressStreamActive atomic.Bool
+	progressEventChan      chan progress.ProgressEvent
+	prepareProgressChan    chan *provider.PrepareProgressEvent
+	progressStreamActive   atomic.Bool
+	progressAdapterStopped chan struct{}
 }
 
 // SymbolSearchHelper is used by the generic service client to work with symbols
@@ -252,12 +253,16 @@ func NewLSPServiceClientBase(
 	sc.Ctx, sc.CancelFunc = context.WithCancel(ctx)
 	sc.Log = log.WithValues("provider", sc.BaseConfig.LspServerName)
 
-	// Create throttled progress reporter if provided
+	// Create throttled progress reporter
+	// Create it even if PrepareProgressReporter is nil, as it's needed for streaming in GRPC providers
+	var adapter progress.ProgressReporter
 	if c.PrepareProgressReporter != nil {
-		// Wrap the PrepareProgressReporter to work with ThrottledReporter
-		adapter := provider.NewPrepareProgressReporterAdapter(sc.BaseConfig.LspServerName, c.PrepareProgressReporter)
-		sc.throttledReporter = progress.NewThrottledReporter("provider_prepare", adapter)
+		adapter = provider.NewPrepareProgressReporterAdapter(sc.BaseConfig.LspServerName, c.PrepareProgressReporter)
+	} else {
+		// Use a no-op reporter for streaming-only mode (GRPC providers)
+		adapter = &noOpProgressReporter{}
 	}
+	sc.throttledReporter = progress.NewThrottledReporter("provider_prepare", adapter)
 
 	sc.handler = NewChainHandler(initializeHandler)
 	if c.RPC == nil {
@@ -388,53 +393,54 @@ func (sc *LSPServiceClientBase) NotifyFileChanges(ctx context.Context, changes .
 }
 
 // Prepare is called before Evaluate() with all rules. We prepare the symbol cache during this step.
-// This method returns immediately and work continues in the background, allowing rule evaluation
-// to proceed while symbol cache is being populated.
+// This method blocks until symbol cache population is complete, ensuring the provider is fully
+// ready for rule evaluation when it returns. Progress is reported throughout the operation.
 func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
 	sc.allConditionsMutex.Lock()
 	sc.allConditions = conditionsByCap
 	sc.allConditionsMutex.Unlock()
-	sc.symbolCacheUpdateWaitGroup.Add(1)
-	go func() {
-		defer sc.symbolCacheUpdateWaitGroup.Done()
-		uris := sc.symbolSearchHelper.GetDocumentUris(conditionsByCap...)
 
-		// Check if context was cancelled while we were getting URIs
-		// If cancelled, don't schedule any new work to avoid deadlock in Stop()
-		if sc.Ctx.Err() != nil {
-			return
-		}
+	uris := sc.symbolSearchHelper.GetDocumentUris(conditionsByCap...)
 
-		// Initialize progress tracking
-		sc.filesProcessed.Store(0)
-		sc.totalFilesToProcess.Store(int32(len(uris)))
+	// Check if context was cancelled while we were getting URIs
+	if sc.Ctx.Err() != nil {
+		return sc.Ctx.Err()
+	}
 
-		// Enable streaming on throttled reporter if streaming is active
-		if sc.progressStreamActive.Load() && sc.throttledReporter != nil {
-			sc.throttledReporter.EnableStreaming(sc.progressEventChan)
-		}
+	// Initialize progress tracking
+	sc.filesProcessed.Store(0)
+	sc.totalFilesToProcess.Store(int32(len(uris)))
 
-		sc.symbolCacheUpdateWaitGroup.Add(len(uris))
-		for i, uri := range uris {
-			select {
-			case sc.symbolCacheUpdateChan <- uri:
-				// Successfully sent
-			case <-sc.Ctx.Done():
-				// Context cancelled - account for remaining URIs
-				remaining := len(uris) - i
-				for j := 0; j < remaining; j++ {
-					sc.symbolCacheUpdateWaitGroup.Done()
-				}
-				return
+	// Enable streaming on throttled reporter if streaming is active
+	if sc.progressStreamActive.Load() && sc.throttledReporter != nil {
+		sc.throttledReporter.EnableStreaming(sc.progressEventChan)
+	}
+
+	// Schedule all symbol cache updates
+	sc.symbolCacheUpdateWaitGroup.Add(len(uris))
+	for i, uri := range uris {
+		select {
+		case sc.symbolCacheUpdateChan <- uri:
+			// Successfully sent
+		case <-sc.Ctx.Done():
+			// Context cancelled - account for remaining URIs
+			remaining := len(uris) - i
+			for j := 0; j < remaining; j++ {
+				sc.symbolCacheUpdateWaitGroup.Done()
 			}
+			return sc.Ctx.Err()
 		}
+	}
 
-		// Don't wait here - symbol cache updates continue in background
-		// First Evaluate() call will wait via GetAllDeclarations()
-		// Progress stream will be closed after first Evaluate completes
-	}()
+	// Wait for all symbol cache updates to complete before returning
+	sc.symbolCacheUpdateWaitGroup.Wait()
 
-	// Return immediately - work continues in background
+	// Close progress stream now that preparation is complete
+	if sc.progressStreamActive.Load() {
+		sc.StopProgressStream()
+		sc.Log.V(5).Info("progress stream closed after Prepare completed")
+	}
+
 	return nil
 }
 
@@ -539,18 +545,7 @@ func (sc *LSPServiceClientBase) GetAllDeclarations(ctx context.Context, query st
 		}
 	}
 
-	// wait until pending symbol cache update calls are complete
-	sc.symbolCacheUpdateWaitGroup.Wait()
-
-	// Close progress stream after first Evaluate completes
-	// (first Evaluate waits for symbol cache via this Wait call)
-	if sc.firstEvaluateCompleted.CompareAndSwap(false, true) {
-		if sc.progressStreamActive.Load() {
-			sc.StopProgressStream()
-			sc.Log.V(5).Info("progress stream closed after first Evaluate completed")
-		}
-	}
-
+	// Prepare() now blocks until symbol cache is ready, so no wait needed here
 	symbolsDefinitionPairs := sc.symbolCache.GetAllWorkspaceSymbols()
 
 	filteredSymbols := []protocol.WorkspaceSymbol{}
@@ -788,10 +783,36 @@ func (sc *LSPServiceClientBase) reportProgress() {
 // This is used by GRPC providers to stream progress back to the client.
 // The returned channel will receive progress events during Prepare() phase.
 // The caller should close the channel when done by calling StopProgressStream().
-func (sc *LSPServiceClientBase) StartProgressStream() <-chan progress.ProgressEvent {
+func (sc *LSPServiceClientBase) StartProgressStream() <-chan *provider.PrepareProgressEvent {
 	sc.progressEventChan = make(chan progress.ProgressEvent, 100)
+	sc.prepareProgressChan = make(chan *provider.PrepareProgressEvent, 100)
+	sc.progressAdapterStopped = make(chan struct{})
 	sc.progressStreamActive.Store(true)
-	return sc.progressEventChan
+
+	// Enable streaming on the throttled reporter
+	if sc.throttledReporter != nil {
+		sc.throttledReporter.EnableStreaming(sc.progressEventChan)
+	}
+
+	// Start adapter goroutine to convert progress.ProgressEvent to provider.PrepareProgressEvent
+	go func() {
+		defer close(sc.prepareProgressChan)
+		defer close(sc.progressAdapterStopped)
+
+		for event := range sc.progressEventChan {
+			// Only forward prepare stage events
+			if event.Stage == progress.StageProviderPrepare {
+				prepareEvent := &provider.PrepareProgressEvent{
+					ProviderName:   sc.BaseConfig.LspServerName,
+					FilesProcessed: event.Current,
+					TotalFiles:     event.Total,
+				}
+				sc.prepareProgressChan <- prepareEvent
+			}
+		}
+	}()
+
+	return sc.prepareProgressChan
 }
 
 // StopProgressStream stops the progress stream and closes the channel.
@@ -804,6 +825,12 @@ func (sc *LSPServiceClientBase) StopProgressStream() {
 		close(sc.progressEventChan)
 		sc.progressEventChan = nil
 	}
+	// Wait for adapter goroutine to finish before returning
+	if sc.progressAdapterStopped != nil {
+		<-sc.progressAdapterStopped
+		sc.progressAdapterStopped = nil
+	}
+	sc.prepareProgressChan = nil
 }
 
 func (sc *LSPServiceClientBase) drainPendingSymbolCacheUpdates() {
@@ -1182,4 +1209,12 @@ func rangeLength(r protocol.Range) uint64 {
 		charDiff = 0
 	}
 	return (uint64(lineDiff) << 32) | uint64(charDiff)
+}
+
+// noOpProgressReporter is a no-op implementation of ProgressReporter
+// used for GRPC providers that only use streaming without direct reporting
+type noOpProgressReporter struct{}
+
+func (n *noOpProgressReporter) Report(event progress.ProgressEvent) {
+	// No-op: events will be streamed instead
 }

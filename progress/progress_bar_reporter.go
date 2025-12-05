@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"unicode/utf8"
 )
 
 // ProgressBarReporter writes progress as a visual progress bar with real-time updates.
@@ -79,6 +80,11 @@ func (p *ProgressBarReporter) Report(event ProgressEvent) {
 			fmt.Fprintf(p.writer, "Loaded %d rules\n", event.Total)
 		}
 
+	case StageProviderPrepare:
+		if event.Total > 0 {
+			p.updateProviderPrepareBar(event)
+		}
+
 	case StageRuleExecution:
 		if event.Total > 0 {
 			p.updateProgressBar(event)
@@ -122,7 +128,7 @@ func (p *ProgressBarReporter) updateProgressBar(event ProgressEvent) {
 
 	// Write the new progress bar (without newline - will update in place)
 	fmt.Fprint(p.writer, barString)
-	p.lastLineLen = len(barString)
+	p.lastLineLen = utf8.RuneCountInString(barString)
 	p.inProgress = true
 
 	// If we've completed (100%), add a newline
@@ -131,6 +137,64 @@ func (p *ProgressBarReporter) updateProgressBar(event ProgressEvent) {
 		p.lastLineLen = 0
 		p.inProgress = false
 	}
+}
+
+// updateProviderPrepareBar renders and updates the visual progress bar for provider preparation.
+//
+// Format: Preparing nodejs provider  92% |███████████████████████░░| 546/592 files
+func (p *ProgressBarReporter) updateProviderPrepareBar(event ProgressEvent) {
+	// Build the progress bar string
+	barString := p.buildProviderPrepareBar(event)
+
+	// Clear the previous line if needed
+	if p.lastLineLen > 0 {
+		// Move cursor to beginning of line
+		fmt.Fprint(p.writer, "\r")
+		// Overwrite with spaces to clear
+		fmt.Fprint(p.writer, strings.Repeat(" ", p.lastLineLen))
+		// Move back to beginning
+		fmt.Fprint(p.writer, "\r")
+	}
+
+	// Write the new progress bar (without newline - will update in place)
+	fmt.Fprint(p.writer, barString)
+	p.lastLineLen = utf8.RuneCountInString(barString)
+	p.inProgress = true
+
+	// If we've completed (100%), add a newline
+	if event.Current >= event.Total {
+		fmt.Fprint(p.writer, "\n")
+		p.lastLineLen = 0
+		p.inProgress = false
+	}
+}
+
+// buildProviderPrepareBar constructs the provider preparation progress bar string.
+//
+// Returns a string like: "Preparing nodejs provider  92% |███████████████████████░░| 546/592 files"
+func (p *ProgressBarReporter) buildProviderPrepareBar(event ProgressEvent) string {
+	// Calculate filled portion of the bar
+	filledWidth := int(float64(p.barWidth) * event.Percent / 100.0)
+	if filledWidth > p.barWidth {
+		filledWidth = p.barWidth
+	}
+	emptyWidth := p.barWidth - filledWidth
+
+	// Build the visual bar
+	filledBar := strings.Repeat("█", filledWidth)
+	emptyBar := strings.Repeat("░", emptyWidth)
+	visualBar := fmt.Sprintf("|%s%s|", filledBar, emptyBar)
+
+	// Build the full line
+	// Format: "Preparing <provider> provider  XX% |bar| current/total files"
+	percentStr := fmt.Sprintf("%3d%%", int(event.Percent))
+	countStr := fmt.Sprintf("%d/%d files", event.Current, event.Total)
+
+	// Assemble the full progress line
+	line := fmt.Sprintf("%s %s %s %s",
+		event.Message, percentStr, visualBar, countStr)
+
+	return line
 }
 
 // buildProgressBar constructs the progress bar string.

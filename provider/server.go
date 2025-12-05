@@ -580,14 +580,17 @@ func (s *server) NotifyFileChanges(ctx context.Context, in *libgrpc.NotifyFileCh
 
 func (s *server) StreamPrepareProgress(in *libgrpc.PrepareProgressRequest, stream libgrpc.ProviderService_StreamPrepareProgressServer) error {
 	s.mutex.RLock()
-	client := s.clients[in.Id]
+	client, ok := s.clients[in.Id]
 	s.mutex.RUnlock()
+
+	if !ok {
+		return nil
+	}
 
 	// Check if client supports progress streaming
 	streamer, ok := client.client.(PrepareProgressStreamer)
 	if !ok {
 		// Not an error, client just doesn't support streaming
-		s.Log.V(5).Info("client does not support progress streaming", "id", in.Id)
 		return nil
 	}
 
