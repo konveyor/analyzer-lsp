@@ -63,15 +63,15 @@ func WithLabelSelector(labelSelector string) AnalyzerOption {
 		return
 	}
 }
-func WithDepLabelSelector(labelSelector string) AnalyzerOption {
+func WithDepLabelSelector(selector string) AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
-		opt.incidentSelector = labelSelector
+		opt.depLabelSelector = selector
 		return
 	}
 }
 func WitIncidentSelector(selector string) AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
-		opt.depLabelSelector = selector
+		opt.incidentSelector = selector
 		return
 	}
 }

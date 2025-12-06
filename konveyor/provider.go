@@ -11,8 +11,8 @@ type Provider struct {
 	provider provider.InternalProviderClient
 }
 
-func (p *Provider) Capabilities() ([]provider.Capability, error) {
-	return p.provider.Capabilities(), nil
+func (p *Provider) Capabilities() []provider.Capability {
+	return p.provider.Capabilities()
 }
 
 // TODO: need to figure out a nice encapsulation of this.

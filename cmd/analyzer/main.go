@@ -12,7 +12,6 @@ import (
 	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/konveyor"
-	v1 "github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/progress/collector"
@@ -143,6 +142,15 @@ func AnalysisCmd() *cobra.Command {
 				errLog.Error(err, "unable to start providers")
 			}
 
+			wg := sync.WaitGroup{}
+			if depOutputFile != "" {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					analyzer.GetDependencies(depOutputFile, treeOutput)
+				}()
+			}
+
 			// All the information should already be set on analyzer
 			// We don't need to override.
 			rulesets := analyzer.Run()
@@ -164,6 +172,7 @@ func AnalysisCmd() *cobra.Command {
 				errLog.Error(err, "error writing output file", "file", outputViolations)
 				os.Exit(1) // Treat the error as a fatal error
 			}
+			wg.Wait()
 		},
 	}
 
@@ -383,82 +392,4 @@ func createOpenAPISchema(providers map[string]provider.InternalProviderClient, l
 	}
 
 	return sc
-}
-
-func DependencyOutput(ctx context.Context, providers map[string]provider.InternalProviderClient, log logr.Logger, errLog logr.Logger, depOutputFile string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	var depsFlat []v1.DepsFlatItem
-	var depsTree []v1.DepsTreeItem
-	for name, prov := range providers {
-		if !provider.HasCapability(prov.Capabilities(), "dependency") {
-			log.Info("provider does not have dependency capability", "provider", name)
-			continue
-		}
-
-		if treeOutput {
-			deps, err := prov.GetDependenciesDAG(ctx)
-			if err != nil {
-				errLog.Error(err, "failed to get list of dependencies for provider", "provider", name)
-				continue
-			}
-			for u, ds := range deps {
-				depsTree = append(depsTree, v1.DepsTreeItem{
-					FileURI:      string(u),
-					Provider:     name,
-					Dependencies: ds,
-				})
-			}
-		} else {
-			deps, err := prov.GetDependencies(ctx)
-			if err != nil {
-				errLog.Error(err, "failed to get list of dependencies for provider", "provider", name)
-				continue
-			}
-			for u, ds := range deps {
-				newDeps := ds
-				depsFlat = append(depsFlat, v1.DepsFlatItem{
-					Provider:     name,
-					FileURI:      string(u),
-					Dependencies: newDeps,
-				})
-			}
-		}
-	}
-
-	if depsFlat == nil && depsTree == nil {
-		errLog.Info("failed to get dependencies from all given providers")
-		return
-	}
-
-	var b []byte
-	var err error
-	if treeOutput {
-		b, err = yaml.Marshal(depsTree)
-		if err != nil {
-			errLog.Error(err, "failed to marshal dependency data as yaml")
-			return
-		}
-	} else {
-		// Sort depsFlat
-		sort.SliceStable(depsFlat, func(i, j int) bool {
-			if depsFlat[i].Provider == depsFlat[j].Provider {
-				return depsFlat[i].FileURI < depsFlat[j].FileURI
-			} else {
-				return depsFlat[i].Provider < depsFlat[j].Provider
-			}
-		})
-
-		b, err = yaml.Marshal(depsFlat)
-		if err != nil {
-			errLog.Error(err, "failed to marshal dependency data as yaml")
-			return
-		}
-	}
-
-	err = os.WriteFile(depOutputFile, b, 0644)
-	if err != nil {
-		errLog.Error(err, "failed to write dependencies to output file", "file", depOutputFile)
-		return
-	}
-
 }
