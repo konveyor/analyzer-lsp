@@ -2,6 +2,7 @@ package konveyor
 
 import (
 	"maps"
+	"path/filepath"
 	"slices"
 
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -17,19 +18,23 @@ func setupProviderConfigs(providerConfigs []provider.Config) ([]provider.Config,
 			finalConfigs = append(finalConfigs, config)
 		}
 		for _, initConfig := range config.InitConfig {
-			if builtinConfig, ok := defaultBuiltinConfigs[initConfig.Location]; ok {
+			location, err := filepath.Abs(initConfig.Location)
+			if err != nil {
+				continue
+			}
+			if builtinConfig, ok := defaultBuiltinConfigs[location]; ok {
 				if config.Name == "builtin" {
 					builtinConfig.ProviderSpecificConfig = initConfig.ProviderSpecificConfig
-					defaultBuiltinConfigs[initConfig.Location] = builtinConfig
+					defaultBuiltinConfigs[location] = builtinConfig
 				}
 				continue
 			}
-			builtinInitConfig := provider.InitConfig{Location: initConfig.Location}
+			builtinInitConfig := provider.InitConfig{Location: location}
 			// If the builtin config then make sure to use the initConfig
 			if config.Name == "builtin" {
 				builtinInitConfig.ProviderSpecificConfig = initConfig.ProviderSpecificConfig
 			}
-			defaultBuiltinConfigs[initConfig.Location] = builtinInitConfig
+			defaultBuiltinConfigs[location] = builtinInitConfig
 		}
 
 		finalConfigs = append(finalConfigs, provider.Config{

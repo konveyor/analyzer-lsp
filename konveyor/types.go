@@ -48,7 +48,7 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 		log = logr.Discard()
 	}
 
-	log.V(7).Info("setting up progress")
+	log.V(5).Info("setting up progress")
 	if opts.progress == nil {
 		var err error
 		opts.progress, err = progress.New(progress.WithReporters(opts.reporters...))
@@ -63,12 +63,12 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 		return nil, fmt.Errorf("unable to get new analyzer: %w", errors.Join(validationErrors...))
 	}
 
-	log.V(7).Info("Getting Config")
+	log.V(5).Info("Getting Config")
 	providerConfig, err := provider.GetConfig(opts.providerConfigFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get provider config: %w", err)
 	}
-	log.V(7).Info("got Config")
+	log.V(5).Info("got Config")
 
 	finalConfigs, locations := setupProviderConfigs(providerConfig)
 	log.V(3).Info("loaded provider configs", "locations", locations)
