@@ -3667,7 +3667,11 @@
           package: io.fabric8.kubernetes.api.model.apiextensions.v1beta1
       - uri: file:///root/.m2/repository/io/fabric8/kubernetes-model-apiextensions/4.12.0/io/fabric8/kubernetes/api/model/apiextensions/v1beta1/CustomResourceDefinitionStatusFluentImpl.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///root/.m2/repository/io/fabric8/kubernetes-model-apiextensions/4.12.0/io/fabric8/kubernetes/api/model/apiextensions/v1beta1/CustomResourceDefinitionStatusFluentImpl.java:19
-        codeSnip: "\n 9  import io.fabric8.kubernetes.api.builder.Predicate;\n10  import java.lang.Deprecated;\n11  import io.fabric8.kubernetes.api.builder.BaseFluent;\n12  import java.util.Iterator;\n13  import java.util.List;\n14  import java.lang.Boolean;\n15  import java.lang.StringBuffer;\n16  import java.util.Collection;\n17  import java.lang.Object;\n18  \n19  public class CustomResourceDefinitionStatusFluentImpl<A extends io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinitionStatusFluent<A>> extends io.fabric8.kubernetes.api.builder.BaseFluent<A> implements io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinitionStatusFluent<A> {\n20  \n21  private io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinitionNamesBuilder acceptedNames;\n22  private List<io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinitionConditionBuilder> conditions =  new ArrayList<io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinitionConditionBuilder>();\n23  private List<String> storedVersions = new ArrayList<String>();\n24  \n25  public CustomResourceDefinitionStatusFluentImpl() {\n26  }\n27  \n28  \n29  public CustomResourceDefinitionStatusFluentImpl(io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinitionStatus instance) {"
+        codeSnip: |2-
+
+           9  import io.fabric8.kubernetes.api.builder.Predicate;
+          10  import java.lang.Deprecated;
+          11  import io.fabric8.kubernetes.api.builder.BaseFluent;
         lineNumber: 19
         variables:
           file: file:///root/.m2/repository/io/fabric8/kubernetes-model-apiextensions/4.12.0/io/fabric8/kubernetes/api/model/apiextensions/v1beta1/CustomResourceDefinitionStatusFluentImpl.java
@@ -5294,12 +5298,12 @@
       description: Sample field declaration rule
       category: mandatory
       incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
         message: Field found
         codeSnip: "\n 8  import org.springframework.data.domain.Page;\n 9  import org.springframework.data.domain.Pageable;\n10  import org.springframework.stereotype.Service;\n11  import org.springframework.transaction.annotation.Transactional;\n12  \n13  @Service\n14  @Transactional\n15  public class CustomerService implements ICustomerService{\n16  \n17  @Autowired\n18  private CustomerRepository repository;\n19  \n20  private static Logger logger = Logger.getLogger( CustomerService.class.getName() );\n21  \n22  public Customer findById(Long id) {\n23  logger.debug(\"Entering CustomerService.findById()\");\n24  Customer c = repository.findById(id).orElse(null);\n25  logger.debug(\"Returning element: \" + c);\n26  return c;\n27  }\n28  "
         lineNumber: 18
         variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
           kind: Field
           name: repository
           package: io.konveyor.demo.ordermanagement.service
@@ -5321,12 +5325,12 @@
         This rule looks for a given class annotated with a given annotation
       category: mandatory
       incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
         message: Annotation inspection 01
         codeSnip: "\n17  import org.springframework.transaction.annotation.EnableTransactionManagement;\n18  \n19  import io.konveyor.demo.config.ApplicationConfiguration;\n20  \n21  @Configuration\n22  @EnableJpaRepositories(basePackages = {\n23  \"io.konveyor.demo.ordermanagement.repository\"\n24  })\n25  @EnableTransactionManagement\n26  @EnableSpringDataWebSupport\n27  public class PersistenceConfig {\n28  \n29  \n30  @Bean\n31  public LocalContainerEntityManagerFactoryBean entityManagerFactory() {\n32  final LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();\n33  em.setDataSource(dataSource());\n34  em.setPackagesToScan(\"io.konveyor.demo.ordermanagement.model\");\n35  em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());\n36  em.setJpaProperties(additionalProperties());\n37  "
         lineNumber: 27
         variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
           kind: Class
           name: PersistenceConfig
           package: io.konveyor.demo.ordermanagement.config
@@ -5335,12 +5339,12 @@
         This rule looks for a given method annotated with a given annotation
       category: mandatory
       incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
         message: Annotation inspection 02
         codeSnip: "\n46  dataSource.setUrl(config.getProperty(\"jdbc.url\"));\n47  dataSource.setUsername(config.getProperty(\"jdbc.user\"));\n48  dataSource.setPassword(config.getProperty(\"jdbc.password\"));\n49  \n50  return dataSource;\n51  }\n52  \n53  @Bean\n54  public PlatformTransactionManager transactionManager() {\n55  final JpaTransactionManager transactionManager = new JpaTransactionManager();\n56  transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());\n57  return transactionManager;\n58  }\n59  \n60  @Bean\n61  public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {\n62  return new PersistenceExceptionTranslationPostProcessor();\n63  }\n64  \n65  final Properties additionalProperties() {\n66  ApplicationConfiguration config = new ApplicationConfiguration();"
         lineNumber: 56
         variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
           kind: Method
           name: transactionManager
           package: io.konveyor.demo.ordermanagement.config
@@ -5349,12 +5353,12 @@
         This rule looks for a given field annotated with a given annotation
       category: mandatory
       incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
         message: Annotation inspection 03
         codeSnip: "\n11  import org.springframework.web.bind.annotation.GetMapping;\n12  import org.springframework.web.bind.annotation.PathVariable;\n13  import org.springframework.web.bind.annotation.RequestMapping;\n14  import org.springframework.web.bind.annotation.RestController;\n15  \n16  @RestController\n17  @RequestMapping(\"/customers\")\n18  public class CustomerController {\n19  \n20  @Autowired\n21  private CustomerService customerService;\n22  \n23  private static Logger logger = Logger.getLogger( CustomerController.class.getName() );\n24  \n25  @GetMapping(value = \"id\", produces = MediaType.APPLICATION_JSON_VALUE)\n26  public Customer getById(@PathVariable(\"id\") Long id) {\n27  Customer c = customerService.findById(id);\n28  if (c == null) {\n29  throw new ResourceNotFoundException(\"Requested order doesn't exist\");\n30  }\n31  logger.debug(\"Returning element: \" + c);"
         lineNumber: 21
         variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
           kind: Field
           name: customerService
           package: io.konveyor.demo.ordermanagement.controller
@@ -5363,12 +5367,12 @@
         This rule looks for a given annotation used with some given properties (elements)
       category: mandatory
       incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
         message: Annotation inspection 04
         codeSnip: "\n15  \n16  @RestController\n17  @RequestMapping(\"/customers\")\n18  public class CustomerController {\n19  \n20  @Autowired\n21  private CustomerService customerService;\n22  \n23  private static Logger logger = Logger.getLogger( CustomerController.class.getName() );\n24  \n25  @GetMapping(value = \"id\", produces = MediaType.APPLICATION_JSON_VALUE)\n26  public Customer getById(@PathVariable(\"id\") Long id) {\n27  Customer c = customerService.findById(id);\n28  if (c == null) {\n29  throw new ResourceNotFoundException(\"Requested order doesn't exist\");\n30  }\n31  logger.debug(\"Returning element: \" + c);\n32  return c;\n33  }\n34  \n35  @RequestMapping"
         lineNumber: 25
         variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/controller/CustomerController.java
           kind: Property
           name: GetMapping
           package: io.konveyor.demo.ordermanagement.controller
@@ -5377,12 +5381,12 @@
         This rule looks for a given annotation used with another annotation
       category: mandatory
       incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
         message: Annotation inspection 05
         codeSnip: "\n11  import org.springframework.data.web.config.EnableSpringDataWebSupport;\n12  import org.springframework.jdbc.datasource.DriverManagerDataSource;\n13  import org.springframework.orm.jpa.JpaTransactionManager;\n14  import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;\n15  import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;\n16  import org.springframework.transaction.PlatformTransactionManager;\n17  import org.springframework.transaction.annotation.EnableTransactionManagement;\n18  \n19  import io.konveyor.demo.config.ApplicationConfiguration;\n20  \n21  @Configuration\n22  @EnableJpaRepositories(basePackages = {\n23  \"io.konveyor.demo.ordermanagement.repository\"\n24  })\n25  @EnableTransactionManagement\n26  @EnableSpringDataWebSupport\n27  public class PersistenceConfig {\n28  \n29  \n30  @Bean\n31  public LocalContainerEntityManagerFactoryBean entityManagerFactory() {"
         lineNumber: 21
         variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
           kind: Property
           name: Configuration
           package: io.konveyor.demo.ordermanagement.config
@@ -5390,13 +5394,13 @@
       description: There should only be one instance of this rule
       category: mandatory
       incidents:
-      - uri: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
         message: |
           Sample message. This rule checks that the chaining conditions are working. Should only get a single issue.
         codeSnip: "\n 3  import javax.servlet.ServletContext;\n 4  import javax.servlet.ServletException;\n 5  import javax.servlet.ServletRegistration;\n 6  \n 7  import org.springframework.web.WebApplicationInitializer;\n 8  import org.springframework.web.context.ContextLoaderListener;\n 9  import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;\n10  import org.springframework.web.servlet.DispatcherServlet;\n11  \n12  \n13  public class OrderManagementAppInitializer implements WebApplicationInitializer  {\n14  \n15  @Override\n16  public void onStartup(ServletContext container) throws ServletException {\n17  AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();\n18  context.setConfigLocation(\"io.konveyor.demo.ordermanagement.config\");\n19  \n20  context.scan(\"io.konveyor.demo.ordermanagement\");\n21  container.addListener(new ContextLoaderListener(context));\n22  \n23  ServletRegistration.Dynamic dispatcher = container"
         lineNumber: 13
         variables:
-          file: file:///examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
           kind: Class
           name: OrderManagementAppInitializer
           package: io.konveyor.demo.ordermanagement
