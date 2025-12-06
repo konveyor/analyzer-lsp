@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"slices"
 	"sort"
 	"sync"
@@ -13,11 +14,13 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
+	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	v1 "github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/progress/collector"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"gopkg.in/yaml.v2"
 )
 
 type parserConfig struct {
@@ -323,8 +326,76 @@ func (a *analyzer) GetProviders(filters ...Filter) []Provider {
 	return slices.Collect(maps.Values(r))
 }
 
-// TODO: Need to add
 func (a *analyzer) GetDependencies(outputFilePath string, tree bool) error {
+	var depsFlat []v1.DepsFlatItem
+	var depsTree []v1.DepsTreeItem
+	providers := a.GetProviders(FilterByCapability("dependency"))
+	dependencyError := []error{}
+	for _, prov := range providers {
+		if tree {
+			deps, err := prov.provider.GetDependenciesDAG(a.ctx)
+			if err != nil {
+				dependencyError = append(dependencyError, err)
+				continue
+			}
+			for u, ds := range deps {
+				depsTree = append(depsTree, konveyor.DepsTreeItem{
+					FileURI:      string(u),
+					Provider:     prov.Name,
+					Dependencies: ds,
+				})
+			}
+		} else {
+			deps, err := prov.provider.GetDependencies(a.ctx)
+			if err != nil {
+				dependencyError = append(dependencyError, err)
+				continue
+			}
+			for u, ds := range deps {
+				newDeps := ds
+				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
+					Provider:     prov.Name,
+					FileURI:      string(u),
+					Dependencies: newDeps,
+				})
+			}
+		}
+	}
+	if len(dependencyError) > 0 {
+		return fmt.Errorf("failed to get dependencies: %w", errors.Join(dependencyError...))
+	}
+
+	if depsFlat == nil && depsTree == nil {
+		return fmt.Errorf("failed to get dependencies")
+	}
+
+	var b []byte
+	var err error
+	if tree {
+		b, err = yaml.Marshal(depsTree)
+		if err != nil {
+			return fmt.Errorf("unable to get yaml for dep tree: %w", err)
+		}
+	} else {
+		// Sort depsFlat
+		sort.SliceStable(depsFlat, func(i, j int) bool {
+			if depsFlat[i].Provider == depsFlat[j].Provider {
+				return depsFlat[i].FileURI < depsFlat[j].FileURI
+			} else {
+				return depsFlat[i].Provider < depsFlat[j].Provider
+			}
+		})
+
+		b, err = yaml.Marshal(depsFlat)
+		if err != nil {
+			return fmt.Errorf("unable to get yaml for deps: %w", err)
+		}
+	}
+
+	err = os.WriteFile(outputFilePath, b, 0644)
+	if err != nil {
+		return fmt.Errorf("unable to write file for deps: %w", err)
+	}
 	return nil
 }
 
