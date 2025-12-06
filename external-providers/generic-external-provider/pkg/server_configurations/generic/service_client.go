@@ -8,6 +8,7 @@ import (
 	"github.com/go-logr/logr"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/swaggest/openapi-go/openapi3"
 	"gopkg.in/yaml.v2"
@@ -51,7 +52,9 @@ type GenericServiceClient struct {
 	Config GenericServiceClientConfig
 }
 
-type GenericServiceClientBuilder struct{}
+type GenericServiceClientBuilder struct {
+	Progress *progress.Progress
+}
 
 func (g *GenericServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
 	sc := &GenericServiceClient{}
@@ -96,6 +99,7 @@ func (g *GenericServiceClientBuilder) Init(ctx context.Context, log logr.Logger,
 		base.LogHandler(log),
 		params,
 		nil,
+		g.Progress,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("base client initialization error: %w", err)

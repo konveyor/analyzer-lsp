@@ -2,7 +2,6 @@ package konveyor
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
@@ -102,7 +101,6 @@ func WithAnalysisMode(mode string) AnalyzerOption {
 		case string(provider.SourceOnlyAnalysisMode):
 			opt.analysisMode = provider.SourceOnlyAnalysisMode
 		default:
-			err = fmt.Errorf("analysis mode must be one of %s or %s, not: %s", provider.FullAnalysisMode, provider.SourceOnlyAnalysisMode, mode)
 		}
 		return
 	}
@@ -115,7 +113,9 @@ func WithDependencyRulesDisabled() AnalyzerOption {
 }
 func WithLogger(log logr.Logger) AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
+		log.Info("here")
 		opt.log = log
+		log.Info("here", "zero?", opt.log.IsZero())
 		return
 	}
 }

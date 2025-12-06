@@ -108,6 +108,11 @@ func AnalysisCmd() *cobra.Command {
 				konveyor.WithProgress(analyzerProgress),
 			)
 
+			if err != nil {
+				errLog.Error(err, "Unable to create new Analyzer")
+				os.Exit(1)
+			}
+
 			// TODO: Add back getting this.
 			if getOpenAPISpec != "" {
 				sc := []byte{}
@@ -150,6 +155,7 @@ func AnalysisCmd() *cobra.Command {
 				os.Exit(EXIT_ON_ERROR_CODE)
 			}
 
+			log.Info("writing violations to file", "file", outputViolations)
 			err = os.WriteFile(outputViolations, b, 0644)
 			if err != nil {
 				errLog.Error(err, "error writing output file", "file", outputViolations)

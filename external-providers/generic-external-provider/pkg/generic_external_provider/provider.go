@@ -11,6 +11,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/nodejs"
 	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/pylsp"
 	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/yaml_language_server"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
@@ -25,6 +26,7 @@ type genericProvider struct {
 	// Limit this instance of the generic provider to one lsp server type
 	lspServerName        string
 	serviceClientBuilder serverconf.ServiceClientBuilder
+	progress             *progress.Progress
 }
 
 // Create a generic provider locked to a specific service client found in the
@@ -84,13 +86,13 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 		// these have already been verified in NewGenericProvider() - no need to err
 		switch p.lspServerName {
 		case serverconf.GenericClient:
-			p.serviceClientBuilder = &generic.GenericServiceClientBuilder{}
+			p.serviceClientBuilder = &generic.GenericServiceClientBuilder{Progress: p.progress}
 		case serverconf.PythonClient:
-			p.serviceClientBuilder = &pylsp.PythonServiceClientBuilder{}
+			p.serviceClientBuilder = &pylsp.PythonServiceClientBuilder{Progress: p.progress}
 		case serverconf.NodeClient:
-			p.serviceClientBuilder = &nodejs.NodeServiceClientBuilder{}
+			p.serviceClientBuilder = &nodejs.NodeServiceClientBuilder{Progress: p.progress}
 		case serverconf.YamlClient:
-			p.serviceClientBuilder = &yaml_language_server.YamlServiceClientBuilder{}
+			p.serviceClientBuilder = &yaml_language_server.YamlServiceClientBuilder{Progress: p.progress}
 		default:
 			return nil, provider.InitConfig{}, fmt.Errorf("generic client name not found")
 		}

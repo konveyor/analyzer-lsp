@@ -7,6 +7,7 @@ import (
 	"maps"
 	"slices"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -45,6 +46,7 @@ var _ Analyzer = &analyzer{}
 // ParseRules
 // Either use the the rules that are set during anlaysis creation time, or use the rules that you pass here.
 func (a *analyzer) ParseRules(rulePaths ...string) (Rules, error) {
+	a.log.Info("Parsing rules")
 	// Now we have all the provider clients that have been configured. We can look at the rules to determine which are needed.
 	collector := collector.New()
 	a.progress.Subscribe(collector)
@@ -109,11 +111,13 @@ func (a *analyzer) ParseRules(rulePaths ...string) (Rules, error) {
 			provider: pv,
 		})
 	}
+	a.providers = providers
 	return a, nil
 }
 
 func (a *analyzer) ProviderStart() error {
-	if len(a.providers) == 0 {
+	a.log.Info("Starting providers")
+	if len(a.allConfigProviders) == 0 || len(a.providers) == 0 {
 		return fmt.Errorf("no providers to start")
 	}
 	additionalBuiltinConfigs := []provider.InitConfig{}
@@ -125,6 +129,21 @@ func (a *analyzer) ProviderStart() error {
 		Message: "Staring provider init",
 		Total:   len(a.providers),
 	})
+	abConfigChan := make(chan []provider.InitConfig)
+	providerInitCtx, cancelFunc := context.WithCancel(a.ctx)
+	waitGroup := sync.WaitGroup{}
+	go func() {
+		for {
+			select {
+			case config := <-abConfigChan:
+				waitGroup.Done()
+				additionalBuiltinConfigs = append(additionalBuiltinConfigs, config...)
+			case <-providerInitCtx.Done():
+				return
+			}
+		}
+	}()
+
 	for i, pv := range a.providers {
 		switch pv.Name {
 		case "builtin":
@@ -132,20 +151,39 @@ func (a *analyzer) ProviderStart() error {
 			continue
 		default:
 			// TODO: Handle tracing.
-			additionalBuiltins, err := pv.provider.ProviderInit(a.ctx, nil)
-			if err != nil {
-				providerInitErrors = append(providerInitErrors, err)
-				continue
-			}
-			additionalBuiltins = append(additionalBuiltins, additionalBuiltinConfigs...)
-			a.collector.Report(progress.Event{
-				Stage:   progress.StageProviderInit,
-				Message: fmt.Sprintf("started provider: %s", pv.Name),
-				Current: i + 1,
-				Total:   len(a.providers),
-			})
+			waitGroup.Add(1)
+			go func() {
+				a.log.Info("provider init", "provider", pv.Name)
+				additionalBuiltins, err := pv.provider.ProviderInit(a.ctx, nil)
+				if err != nil {
+					a.log.Error(err, "unable to init provider")
+					providerInitErrors = append(providerInitErrors, err)
+				}
+				a.collector.Report(progress.Event{
+					Stage:   progress.StageProviderInit,
+					Message: fmt.Sprintf("started provider: %s", pv.Name),
+					Current: i + 1,
+					Total:   len(a.providers),
+				})
+				abConfigChan <- additionalBuiltins
+			}()
 		}
 	}
+
+	c := make(chan struct{})
+	go func() {
+		waitGroup.Wait()
+		close(c)
+	}()
+
+	select {
+	case <-c:
+		a.log.V(3).Info("started all non builtin providers")
+	case <-time.After(4 * time.Minute):
+		cancelFunc()
+		return fmt.Errorf("timed out starting providers")
+	}
+	cancelFunc()
 
 	// Init builtins
 	if builtinProvider != nil {
@@ -162,16 +200,12 @@ func (a *analyzer) ProviderStart() error {
 	}
 
 	if len(providerInitErrors) > 0 {
-		return fmt.Errorf("unable to initialize providers: %w", providerInitErrors)
+		return fmt.Errorf("unable to initialize providers: %w", errors.Join(providerInitErrors...))
 	}
 
 	a.collector.Report(progress.Event{
-		Stage:    progress.StageProviderInit,
-		Message:  "all providers have been initialized",
-		Current:  0,
-		Total:    0,
-		Percent:  0,
-		Metadata: map[string]interface{}{},
+		Stage:   progress.StageProviderInit,
+		Message: "all providers have been initialized",
 	})
 
 	// Call Prepare on all providers.
@@ -194,12 +228,13 @@ func (a *analyzer) ProviderStart() error {
 }
 
 func (a *analyzer) Run(options ...EngineOption) []v1.RuleSet {
+	a.log.Info("Running analysis")
 	if len(a.ruleset) == 0 {
 		a.log.Error(fmt.Errorf("rules must be parsed before running rules"), "unable to run analysis")
 		return nil
 	}
 	if len(a.providers) == 0 {
-		a.log.Error(fmt.Errorf("rules must be parsed before running rules"), "unable to run analysis")
+		a.log.Error(fmt.Errorf("providers must be started before running rules"), "unable to run analysis")
 		return nil
 	}
 
@@ -221,6 +256,7 @@ func (a *analyzer) Run(options ...EngineOption) []v1.RuleSet {
 	sort.SliceStable(ruleset, func(i, j int) bool {
 		return ruleset[i].Name < ruleset[j].Name
 	})
+	a.log.Info("finished running analysis")
 	return ruleset
 
 }

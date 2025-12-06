@@ -33,19 +33,22 @@ type AnalyzerOption func(options *analyzerOptions) error
 // TODO: Handle Tracing
 // TODO: Handle encoding
 func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
-	opts := analyzerOptions{}
 	validationErrors := []error{}
+	opts := analyzerOptions{}
+	for _, apply := range options {
+		if err := apply(&opts); err != nil {
+			validationErrors = append(validationErrors, err)
+		}
+	}
+	if len(validationErrors) > 0 {
+		return nil, fmt.Errorf("unable to get Analyzer: %w", errors.Join(validationErrors...))
+	}
 	log := opts.log
 	if log.IsZero() {
 		log = logr.Discard()
 	}
-	for _, apply := range options {
-		if err := apply(&opts); err != nil {
-			log.Error(err, "validation failed")
-			validationErrors = append(validationErrors, err)
-		}
-	}
 
+	log.V(7).Info("setting up progress")
 	if opts.progress == nil {
 		var err error
 		opts.progress, err = progress.New(progress.WithReporters(opts.reporters...))
@@ -60,10 +63,12 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 		return nil, fmt.Errorf("unable to get new analyzer: %w", errors.Join(validationErrors...))
 	}
 
+	log.V(7).Info("Getting Config")
 	providerConfig, err := provider.GetConfig(opts.providerConfigFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get provider config: %w", err)
 	}
+	log.V(7).Info("got Config")
 
 	finalConfigs, locations := setupProviderConfigs(providerConfig)
 	log.V(3).Info("loaded provider configs", "locations", locations)
@@ -98,7 +103,7 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 
 	if len(providerErrors) > 0 {
 		cancelFunc()
-		return nil, fmt.Errorf("unable to get provider clients: %w", providerErrors)
+		return nil, fmt.Errorf("unable to get provider clients: %w", errors.Join(providerErrors...))
 	}
 	eng := engine.CreateRuleEngine(ctx,
 		10,
