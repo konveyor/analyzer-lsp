@@ -7,6 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
@@ -30,7 +31,9 @@ type PythonServiceClient struct {
 	Config PythonServiceClientConfig
 }
 
-type PythonServiceClientBuilder struct{}
+type PythonServiceClientBuilder struct {
+	Progress *progress.Progress
+}
 
 func (p *PythonServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
 	sc := &PythonServiceClient{}
@@ -75,6 +78,7 @@ func (p *PythonServiceClientBuilder) Init(ctx context.Context, log logr.Logger, 
 		base.LogHandler(log),
 		params,
 		nil,
+		p.Progress,
 	)
 	if err != nil {
 		return nil, err
@@ -82,7 +86,7 @@ func (p *PythonServiceClientBuilder) Init(ctx context.Context, log logr.Logger, 
 	sc.LSPServiceClientBase = scBase
 
 	// Initialize the fancy evaluator (dynamic dispatch ftw)
-	eval, err := base.NewLspServiceClientEvaluator[*PythonServiceClient](sc, p.GetGenericServiceClientCapabilities(log))
+	eval, err := base.NewLspServiceClientEvaluator(sc, p.GetGenericServiceClientCapabilities(log))
 	if err != nil {
 		return nil, err
 	}
