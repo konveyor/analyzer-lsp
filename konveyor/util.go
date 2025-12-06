@@ -20,6 +20,7 @@ func setupProviderConfigs(providerConfigs []provider.Config) ([]provider.Config,
 			if builtinConfig, ok := defaultBuiltinConfigs[initConfig.Location]; ok {
 				if config.Name == "builtin" {
 					builtinConfig.ProviderSpecificConfig = initConfig.ProviderSpecificConfig
+					defaultBuiltinConfigs[initConfig.Location] = builtinConfig
 				}
 				continue
 			}
