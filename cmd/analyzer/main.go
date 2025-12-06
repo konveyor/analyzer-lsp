@@ -75,10 +75,13 @@ func AnalysisCmd() *cobra.Command {
 			logrusLog := logrus.New()
 			logrusLog.SetOutput(os.Stdout)
 			logrusLog.SetFormatter(&logrus.TextFormatter{})
-			// need to do research on mapping in logrusr to level here TODO
-			logrusLog.SetLevel(logrus.Level(logLevel))
+			// Adding 5 here to move logs to info level
+			// setting verbose 1 -> V(2) logs show up
+			// setting verbose 2 -> V(3) logs show up
+			// setting verbose 3 -> .V(4) I believe show up
+			// setting verbose 4 -> .V(5) I believe show up
+			logrusLog.SetLevel(logrus.Level(logLevel + 5))
 			log := logrusr.New(logrusLog)
-
 			// This will globally prevent the yaml library from auto-wrapping lines at 80 characters
 			yaml.FutureLineWrap()
 
@@ -171,7 +174,7 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&labelSelector, "label-selector", "", "an expression to select rules based on labels")
 	rootCmd.Flags().StringVar(&depLabelSelector, "dep-label-selector", "", "an expression to select dependencies based on labels. This will filter out the violations from these dependencies as well these dependencies when matching dependency conditions")
 	rootCmd.Flags().StringVar(&incidentSelector, "incident-selector", "", "an expression to select incidents based on custom variables. ex: (!package=io.konveyor.demo.config-utils)")
-	rootCmd.Flags().IntVar(&logLevel, "verbose", 5, "level for logging output")
+	rootCmd.Flags().IntVar(&logLevel, "verbose", 0, "level for logging output")
 	rootCmd.Flags().BoolVar(&enableJaeger, "enable-jaeger", false, "enable tracer exports to jaeger endpoint")
 	rootCmd.Flags().StringVar(&jaegerEndpoint, "jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
 	rootCmd.Flags().IntVar(&limitIncidents, "limit-incidents", 1500, "Set this to the limit incidents that a given rule can give, zero means no limit")
