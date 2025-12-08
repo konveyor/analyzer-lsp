@@ -10,7 +10,7 @@ OS := $(shell uname -s)
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 
-MOUNT_OPT := :z
+MOUNT_OPT := :U,z
 
 build-dir:
 	mkdir -p build
@@ -94,7 +94,7 @@ run-external-providers-pod:
 	podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
 
 run-demo-image:
-	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:Z -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml:Z -v $(PWD)/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z -v $(PWD)/provider_pod_local_settings.json:/analyzer-lsp/provider_settings.json:Z $(IMG_ANALYZER) --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source' --rules=/analyzer-lsp/rule-example.yaml --provider-settings=/analyzer-lsp/provider_settings.json
+	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml${MOUNT_OPT} -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} -v $(PWD)/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} -v $(PWD)/provider_pod_local_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} $(IMG_ANALYZER) --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source' --rules=/analyzer-lsp/rule-example.yaml --provider-settings=/analyzer-lsp/provider_settings.json
 
 # Provider-specific test targets
 run-java-provider-pod:
