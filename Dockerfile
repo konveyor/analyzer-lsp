@@ -55,4 +55,6 @@ RUN chgrp -R 0 /analyzer-lsp && chmod -R g=u /analyzer-lsp
 
 EXPOSE 16686
 
+USER 1001
+
 ENTRYPOINT ["sh", "-c", "all-in-one-linux &> /dev/null & sleep 5 && konveyor-analyzer"]
