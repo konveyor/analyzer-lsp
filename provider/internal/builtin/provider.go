@@ -64,6 +64,12 @@ type builtinProvider struct {
 }
 
 func NewBuiltinProvider(config provider.Config, log logr.Logger) *builtinProvider {
+	// If logLevel is set in config, update the logger's verbosity
+	// Note: This is informational only as logr doesn't support changing level after creation
+	// The log level should be set when creating the logger in the main analyzer command
+	if config.LogLevel != nil {
+		log.V(5).Info("builtin provider logLevel from config", "logLevel", *config.LogLevel)
+	}
 	return &builtinProvider{
 		config: config,
 		log:    log,
