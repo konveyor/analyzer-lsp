@@ -33,7 +33,7 @@ func main() {
 	if logLevel != nil {
 		logrusLog.SetLevel(logrus.Level(*logLevel))
 	} else {
-		logrusLog.SetLevel(logrus.Level(5))
+		logrusLog.SetLevel(logrus.Level(20))
 	}
 	log := logrusr.New(logrusLog)
 	log = log.WithName("java-provider")
