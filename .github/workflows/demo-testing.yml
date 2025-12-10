@@ -199,14 +199,14 @@ jobs:
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
         run: |
           podman volume create test-data
-          podman run --rm -v test-data:/target:Z -v $(pwd)/${{ matrix.test-data }}:/src/:Z --entrypoint=cp alpine -a /src/. /target/
+          podman run --rm -v test-data:/target:U,Z -v $(pwd)/${{ matrix.test-data }}:/src/:U,Z --entrypoint=cp alpine -a /src/. /target/
           podman pod create --name=analyzer-${{ matrix.provider }}
-          podman run --pod analyzer-${{ matrix.provider }} --name ${{ matrix.provider }}-provider -d -v test-data:/analyzer-lsp/examples:Z localhost/${{ matrix.image_name }}:${{ needs.detect-changes.outputs.image_tag }} --port 14651
+          podman run --pod analyzer-${{ matrix.provider }} --name ${{ matrix.provider }}-provider -d -v test-data:/analyzer-lsp/examples:U,Z localhost/${{ matrix.image_name }}:${{ needs.detect-changes.outputs.image_tag }} --port 14651
           podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-${{ matrix.provider }} \
-            -v test-data:/analyzer-lsp/examples:Z \
-            -v $(pwd)/${{ matrix.demo-output-path }}:/analyzer-lsp/output.yaml:Z \
-            -v $(pwd)/${{ matrix.provider_settings-path }}:/analyzer-lsp/provider_settings.json:Z \
-            -v $(pwd)/${{ matrix.testing-rules }}:/analyzer-lsp/rules:Z \
+            -v test-data:/analyzer-lsp/examples:U,Z \
+            -v $(pwd)/${{ matrix.demo-output-path }}:/analyzer-lsp/output.yaml:U,Z \
+            -v $(pwd)/${{ matrix.provider_settings-path }}:/analyzer-lsp/provider_settings.json:U,Z \
+            -v $(pwd)/${{ matrix.testing-rules }}:/analyzer-lsp/rules:U,Z \
             localhost/konveyor-analyzer-lsp:${{ needs.detect-changes.outputs.image_tag }} \
             --output-file=/analyzer-lsp/output.yaml \
             --rules=/analyzer-lsp/rules \

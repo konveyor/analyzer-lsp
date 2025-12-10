@@ -137,8 +137,8 @@
                 "analysisMode": "source-only",
                 "location": "/analyzer-lsp/examples/c-sharp-dummy-example",
                 "providerSpecificConfig": {
-                    "ilspy_cmd": "/root/.dotnet/tools/ilspycmd",
-                    "paket_cmd": "/root/.dotnet/tools/paket"
+                    "ilspy_cmd": "/usr/local/bin/ilspycmd",
+                    "paket_cmd": "/usr/local/bin/paket"
                 }
             }
         ]

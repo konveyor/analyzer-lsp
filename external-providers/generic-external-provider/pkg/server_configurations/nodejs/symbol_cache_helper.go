@@ -41,6 +41,10 @@ func (h *nodejsSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.C
 				primaryPath = path
 				continue
 			}
+			// Skip workspace folders that duplicate primaryPath to avoid counting files twice
+			if path == primaryPath {
+				continue
+			}
 			additionalPaths = append(additionalPaths, path)
 		}
 	}
