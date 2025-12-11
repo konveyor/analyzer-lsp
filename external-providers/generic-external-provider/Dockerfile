@@ -1,4 +1,4 @@
-ARG GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dep-provider:latest
+ARG GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:latest
 FROM registry.access.redhat.com/ubi9/go-toolset:1.23 as go-builder
 
 USER 0
@@ -45,7 +45,7 @@ RUN python3 -m ensurepip --upgrade
 RUN python3 -m pip install 'python-lsp-server>=1.8.2'
 RUN npm install -g typescript-language-server typescript
 
-RUN go install golang.org/x/tools/gopls@v0.20.0
+RUN GOBIN=/usr/local/bin go install golang.org/x/tools/gopls@v0.20.0
 
 COPY --from=go-builder /opt/app-root/src/generic-provider/generic-external-provider /usr/local/bin/generic-external-provider
 COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
