@@ -464,13 +464,9 @@ func GetExcludedDirsFromConfig(i InitConfig) []string {
 
 		for _, dir := range excludedDirs {
 			if expath, ok := dir.(string); ok {
-				ab := expath
-				var err error
-				if !filepath.IsAbs(expath) {
-					if ab, err = filepath.Abs(expath); err == nil {
-					}
-				}
-				validatedPaths = append(validatedPaths, ab)
+				// Keep relative paths as directory names (like defaults) for pattern matching
+				// Only absolute paths are kept as-is for exact path matching
+				validatedPaths = append(validatedPaths, expath)
 			}
 		}
 		return validatedPaths
