@@ -127,7 +127,12 @@ The `builtin` provider takes following additional configuration options in `prov
 
 * `tagsFile`: Path to YAML file that contains a list of tags for the application being analyzed
 
-* `excludedDirs`: List of directory paths or patterns to exclude from analysis. These can be absolute paths or relative paths (relative to the `location`). Directory names are also matched anywhere in the tree (e.g., `"node_modules"` will exclude all `node_modules` directories).
+* `excludedDirs`: List of directory names, paths, or patterns to exclude from analysis.
+
+  **Path types:**
+  - **Directory names** (e.g., `"node_modules"`, `"bower_components"`): Matched anywhere in the project tree
+  - **Relative paths** (e.g., `"src/generated"`, `"test/fixtures"`): Treated as patterns relative to analyzed files
+  - **Absolute paths** (e.g., `"/path/to/specific/dir"`): Match exact directory locations
 
   The following directories are excluded by default to prevent performance issues and "argument list too long" errors:
   - `node_modules` - JavaScript/TypeScript dependencies
@@ -154,8 +159,10 @@ The `builtin` provider takes following additional configuration options in `prov
               "location": "/path/to/application",
               "providerSpecificConfig": {
                   "excludedDirs": [
-                      "custom-build-dir",
-                      "/absolute/path/to/exclude"
+                      "bower_components",        // Exclude all bower_components dirs
+                      "jspm_packages",            // Exclude all jspm_packages dirs
+                      "generated",                // Exclude all dirs named "generated"
+                      "/path/to/specific/dir"     // Exclude this specific directory only
                   ]
               }
           }
