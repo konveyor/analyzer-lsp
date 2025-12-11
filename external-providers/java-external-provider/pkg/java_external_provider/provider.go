@@ -490,27 +490,33 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	var returnErr error
-	waitErrorChannel := make(chan error)
+	waitErrorChannel := make(chan error, 1)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		err := cmd.Start()
-		wg.Done()
 		if err != nil {
+			wg.Done()
 			cancelFunc()
 			returnErr = err
-			log.Error(err, "unable to  start lsp command")
+			log.Error(err, "unable to start lsp command")
 			return
 		}
+
+		// Only start the Wait goroutine AFTER Start() has succeeded
+		// This prevents the "exec: not started" race condition
+		go func() {
+			waitErrorChannel <- cmd.Wait()
+		}()
+
+		// Signal that Start() completed and Wait() goroutine is running
+		wg.Done()
+
 		// Here we need to wait for the command to finish or if the ctx is cancelled,
 		// To close the pipes.
 		select {
 		case err := <-waitErrorChannel:
-			// language server has not started - don't error yet
-			if err != nil && cmd.ProcessState == nil {
-				log.Info("retrying language server start")
-				log.Error(err, "language server error")
-			} else if err != nil {
+			if err != nil {
 				log.Error(err, "language server process terminated")
 			}
 			log.Info("language server stopped")
@@ -520,11 +526,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			stdin.Close()
 			stdout.Close()
 		}
-	}()
-
-	// This will close the go routine above when wait has completed.
-	go func() {
-		waitErrorChannel <- cmd.Wait()
 	}()
 
 	wg.Wait()

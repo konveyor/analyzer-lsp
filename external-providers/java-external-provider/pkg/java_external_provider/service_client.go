@@ -281,7 +281,6 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	return filteredRefs, nil
 }
 
-
 func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protocol.WorkspaceSymbol) []protocol.Location {
 	var locationURI protocol.DocumentURI
 	var locationRange protocol.Range
@@ -339,15 +338,21 @@ func (p *javaServiceClient) Stop() {
 	if err != nil {
 		p.log.Error(err, "failed to gracefully shutdown java provider")
 	}
-	err = p.cmd.Wait()
-	if err != nil {
-		if isSafeErr(err) {
-			p.log.Info("java provider stopped")
+
+	// Only wait on cmd if it exists (cmd is nil when using RPC mode)
+	if p.cmd != nil {
+		err = p.cmd.Wait()
+		if err != nil {
+			if isSafeErr(err) {
+				p.log.Info("java provider stopped")
+			} else {
+				p.log.Error(err, "java provider stopped with error")
+			}
 		} else {
-			p.log.Error(err, "java provider stopped with error")
+			p.log.Info("java provider stopped")
 		}
 	} else {
-		p.log.Info("java provider stopped")
+		p.log.Info("java provider stopped (RPC mode)")
 	}
 
 	if len(p.cleanExplodedBins) > 0 {
