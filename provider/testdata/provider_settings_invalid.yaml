@@ -4,7 +4,7 @@
   - analysisMode: "full"
     providerSpecificConfig: 
       lspServerName: "generic"
-      lspServerPath: "/root/go/bin/gopls"
+      lspServerPath: "/usr/local/bin/gopls"
       lspServerArgs: 
       - "string"
       lspServerInitializationOptions: ""
