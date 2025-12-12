@@ -32,16 +32,15 @@ type javaServiceClient struct {
 	cmd                *exec.Cmd
 	bundles            []string
 	workspace          string
-	isLocationBinary   bool
 	globalSettings     string
 	includedPaths      []string
 	cleanExplodedBins  []string
-	disableMavenSearch bool
 	activeRPCCalls     sync.WaitGroup
 	depsLocationCache  map[string]int
 	buildTool          bldtool.BuildTool
 	mvnIndexPath       string
 	mvnSettingsFile    string
+	jdtlsProcessExited *chan bool
 }
 
 var _ provider.ServiceClient = &javaServiceClient{}
@@ -339,20 +338,8 @@ func (p *javaServiceClient) Stop() {
 		p.log.Error(err, "failed to gracefully shutdown java provider")
 	}
 
-	// Only wait on cmd if it exists (cmd is nil when using RPC mode)
-	if p.cmd != nil {
-		err = p.cmd.Wait()
-		if err != nil {
-			if isSafeErr(err) {
-				p.log.Info("java provider stopped")
-			} else {
-				p.log.Error(err, "java provider stopped with error")
-			}
-		} else {
-			p.log.Info("java provider stopped")
-		}
-	} else {
-		p.log.Info("java provider stopped (RPC mode)")
+	if p.jdtlsProcessExited != nil {
+		<-*p.jdtlsProcessExited
 	}
 
 	if len(p.cleanExplodedBins) > 0 {

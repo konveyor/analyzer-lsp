@@ -491,6 +491,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 
 	var returnErr error
 	waitErrorChannel := make(chan error, 1)
+	jdtlsProcessExited := make(chan bool, 1)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -503,17 +504,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			return
 		}
 
-		// Only start the Wait goroutine AFTER Start() has succeeded
-		// This prevents the "exec: not started" race condition
 		go func() {
 			waitErrorChannel <- cmd.Wait()
+			jdtlsProcessExited <- true
 		}()
 
-		// Signal that Start() completed and Wait() goroutine is running
 		wg.Done()
 
-		// Here we need to wait for the command to finish or if the ctx is cancelled,
-		// To close the pipes.
 		select {
 		case err := <-waitErrorChannel:
 			if err != nil {
@@ -525,6 +522,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			log.Info("language server context cancelled, closing pipes")
 			stdin.Close()
 			stdout.Close()
+			<-jdtlsProcessExited
 		}
 	}()
 
@@ -543,19 +541,20 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	svcClient := javaServiceClient{
-		rpc:               rpc,
-		cancelFunc:        cancelFunc,
-		config:            config,
-		cmd:               cmd,
-		bundles:           bundles,
-		workspace:         workspace,
-		log:               log,
-		globalSettings:    globalSettingsFile,
-		depsLocationCache: make(map[string]int),
-		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
-		buildTool:         buildTool,
-		mvnIndexPath:      mavenOpenSourceIndex,
-		mvnSettingsFile:   mavenSettingsFile,
+		rpc:                rpc,
+		cancelFunc:         cancelFunc,
+		config:             config,
+		cmd:                cmd,
+		bundles:            bundles,
+		workspace:          workspace,
+		log:                log,
+		globalSettings:     globalSettingsFile,
+		depsLocationCache:  make(map[string]int),
+		includedPaths:      provider.GetIncludedPathsFromConfig(config, false),
+		buildTool:          buildTool,
+		mvnIndexPath:       mavenOpenSourceIndex,
+		mvnSettingsFile:    mavenSettingsFile,
+		jdtlsProcessExited: &jdtlsProcessExited,
 	}
 
 	svcClient.initialization(ctx)
