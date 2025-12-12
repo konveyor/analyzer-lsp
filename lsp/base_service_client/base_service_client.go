@@ -397,21 +397,20 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 		return sc.Ctx.Err()
 	}
 
-		sc.symbolCacheUpdateWaitGroup.Add(len(uris))
-		for i, uri := range uris {
-			select {
-			case sc.symbolCacheUpdateChan <- uri:
-				// Successfully sent
-			case <-sc.Ctx.Done():
-				// Context cancelled - account for remaining URIs
-				remaining := len(uris) - i
-				for j := 0; j < remaining; j++ {
-					sc.symbolCacheUpdateWaitGroup.Done()
-				}
-				return
+	sc.symbolCacheUpdateWaitGroup.Add(len(uris))
+	for i, uri := range uris {
+		select {
+		case sc.symbolCacheUpdateChan <- uri:
+			// Successfully sent
+		case <-sc.Ctx.Done():
+			// Context cancelled - account for remaining URIs
+			remaining := len(uris) - i
+			for j := 0; j < remaining; j++ {
+				sc.symbolCacheUpdateWaitGroup.Done()
 			}
-			return sc.Ctx.Err()
+			return nil
 		}
+		return sc.Ctx.Err()
 	}
 
 	// Wait for all symbol cache updates to complete before returning
@@ -419,7 +418,6 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 
 	// Close progress stream now that preparation is complete
 	if sc.progressStreamActive.Load() {
-		sc.StopProgressStream()
 		sc.Log.V(5).Info("progress stream closed after Prepare completed")
 	}
 
@@ -759,40 +757,6 @@ func (sc *LSPServiceClientBase) reportProgress() {
 			Total:   int(total),
 		})
 	}
-}
-
-// StartProgressStream creates and returns a channel for streaming progress events.
-// This is used by GRPC providers to stream progress back to the client.
-// The returned channel will receive progress events during Prepare() phase.
-// The caller should close the channel when done by calling StopProgressStream().
-func (sc *LSPServiceClientBase) StartProgressStream() <-chan progress.Event {
-	sc.progressEventChan = make(chan progress.Event, 100)
-	sc.progressStreamActive.Store(true)
-
-	// Enable streaming on the throttled reporter
-	if sc.throttledReporter != nil {
-		sc.throttledReporter.EnableStreaming(sc.progressEventChan)
-	}
-
-	// Start adapter goroutine to convert progress.ProgressEvent to provider.PrepareProgressEvent
-	go func() {
-		defer close(sc.prepareProgressChan)
-		defer close(sc.progressAdapterStopped)
-
-		for event := range sc.progressEventChan {
-			// Only forward prepare stage events
-			if event.Stage == progress.StageProviderPrepare {
-				prepareEvent := &provider.PrepareProgressEvent{
-					ProviderName:   sc.BaseConfig.LspServerName,
-					FilesProcessed: event.Current,
-					TotalFiles:     event.Total,
-				}
-				sc.prepareProgressChan <- prepareEvent
-			}
-		}
-	}()
-
-	return sc.prepareProgressChan
 }
 
 func (sc *LSPServiceClientBase) drainPendingSymbolCacheUpdates() {
@@ -1177,6 +1141,6 @@ func rangeLength(r protocol.Range) uint64 {
 // used for GRPC providers that only use streaming without direct reporting
 type noOpProgressReporter struct{}
 
-func (n *noOpProgressReporter) Report(event progress.ProgressEvent) {
+func (n *noOpProgressReporter) Report(event progress.Event) {
 	// No-op: events will be streamed instead
 }

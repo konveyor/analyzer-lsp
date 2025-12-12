@@ -1,7 +1,9 @@
 package konveyor
 
 import (
+	"errors"
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 
@@ -19,6 +21,10 @@ func setupProviderConfigs(providerConfigs []provider.Config) ([]provider.Config,
 		}
 		for _, initConfig := range config.InitConfig {
 			location, err := filepath.Abs(initConfig.Location)
+			_, err = os.Stat(location)
+			if _, statErr := os.Stat(location); errors.Is(statErr, &os.PathError{}) {
+				continue
+			}
 			if err != nil {
 				continue
 			}
