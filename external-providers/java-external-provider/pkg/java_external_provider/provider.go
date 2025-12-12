@@ -398,8 +398,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 		location, depLocation, err := resolver.ResolveSources(ctx)
 		if err != nil {
-			log.Error(err, "unable to resolve")
-			return nil, additionalBuiltinConfig, err
+			// it is OK if we are not able to resolve all the sources
+			log.Error(err, "unable to resolve sources, continuing...")
 		}
 		config.Location = location
 		config.DependencyPath = depLocation
