@@ -99,6 +99,7 @@ func NewLspServiceClientEvaluator[T HasLSPServiceClientBase](
 // The evaluate method. Looks in the FuncMap and sees if `cap` matches. Executes
 // the function if it does.
 func (sc *LSPServiceClientEvaluator[T]) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	sc.Parent.GetLSPServiceClientBase().symbolCacheUpdateWaitGroup.Wait()
 	if fn, ok := sc.FuncMap[cap]; ok {
 		return fn(sc.Parent, ctx, cap, conditionInfo)
 	}
@@ -163,9 +164,9 @@ type LSPServiceClientBase struct {
 	handler jsonrpc2.Handler
 
 	// Progress reporting for Prepare() phase using ThrottledReporter
-	throttledReporter      *collector.ThrottledCollector
-	totalFilesToProcess    atomic.Int32
-	filesProcessed         atomic.Int32
+	throttledReporter   *collector.ThrottledCollector
+	totalFilesToProcess atomic.Int32
+	filesProcessed      atomic.Int32
 
 	// Progress event streaming for GRPC providers
 	progressEventChan    chan progress.Event
@@ -257,6 +258,7 @@ func NewLSPServiceClientBase(
 	// Wrap the PrepareProgressReporter to work with ThrottledReporter
 	sc.throttledReporter = collector.NewThrottledCollector("provider_prepare")
 	progress.Subscribe(sc.throttledReporter)
+	sc.progressStreamActive.Store(true)
 
 	sc.handler = NewChainHandler(initializeHandler)
 	if c.RPC == nil {
@@ -292,7 +294,8 @@ func NewLSPServiceClientBase(
 		sc.symbolSearchHelper = NewDefaultSymbolCacheHelper(sc.Log, c)
 	}
 	sc.symbolCacheUpdateChan = make(chan uri.URI, 10)
-	for range 5 {
+	for i := range 5 {
+		sc.Log.Info("starting handler", "worker", i)
 		go sc.symbolCacheUpdateHandler()
 	}
 	sc.openedFilesMutex.Lock()
@@ -398,6 +401,7 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 		return sc.Ctx.Err()
 	}
 
+	sc.totalFilesToProcess.Store(int32(len(uris)))
 	sc.symbolCacheUpdateWaitGroup.Add(len(uris))
 	for i, uri := range uris {
 		select {
@@ -411,7 +415,7 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 			}
 			return nil
 		}
-		return sc.Ctx.Err()
+		//return sc.Ctx.Err()
 	}
 
 	// Wait for all symbol cache updates to complete before returning
@@ -756,6 +760,9 @@ func (sc *LSPServiceClientBase) reportProgress() {
 			Message: fmt.Sprintf("Preparing %s provider", sc.BaseConfig.LspServerName),
 			Current: int(processed),
 			Total:   int(total),
+			Metadata: map[string]any{
+				"providerName": sc.BaseConfig.LspServerName,
+			},
 		})
 	}
 }

@@ -17,12 +17,7 @@
 =======
       - uri: file:///analyzer-lsp/examples/builtin/inclusion_tests/dir-0/inclusion-test.json
         message: Only incidents in dir-0/test.json should be found
-        codeSnip: |2
-           1  {
-           2      "description": "Does your JSON search work?",
-           3      "name": "test-your-json-search",
-           4      "inclusionTestNode": "Test this node"
-           5  }
+        codeSnip: 5  }
         lineNumber: 4
         variables:
           data: inclusionTestNode
@@ -30,12 +25,7 @@
       - uri: file:///analyzer-lsp/examples/builtin/inclusion_tests/inclusion-test.json
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: Only incidents in dir-0/test.json should be found
-        codeSnip: |2
-           1  {
-           2      "description": "Does your JSON search work?",
-           3      "name": "test-your-json-search",
-           4      "inclusionTestNode": "Test this node"
-           5  }
+        codeSnip: 5  }
         lineNumber: 4
         variables:
           data: inclusionTestNode
@@ -58,12 +48,7 @@
         lineNumber: 0
       - uri: file:///analyzer-lsp/examples/builtin/inclusion_tests/dir-0/inclusion-test.xml
         message: Only incidents in dir-0/test.xml should be found
-        codeSnip: |2
-           1  <xmlTest>
-           2      <description>Does your XML search work?</description>
-           3      <name>xml-search</name>
-           4      <inclusionTestNode>Test this node</inclusionTestNode>
-           5  </xmlTest>
+        codeSnip: 5  </xmlTest>
         lineNumber: 4
         variables:
           data: inclusionTestNode
@@ -75,12 +60,7 @@
       - uri: file:///analyzer-lsp/examples/builtin/inclusion_tests/inclusion-test.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: Only incidents in dir-0/test.xml should be found
-        codeSnip: |2
-           1  <xmlTest>
-           2      <description>Does your XML search work?</description>
-           3      <name>xml-search</name>
-           4      <inclusionTestNode>Test this node</inclusionTestNode>
-           5  </xmlTest>
+        codeSnip: 5  </xmlTest>
         lineNumber: 4
         variables:
           data: inclusionTestNode
@@ -97,7 +77,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
-        codeSnip: "36  \t\t\t<id>demo-config</id>\n37  \t\t\t<name>Azure DevOps</name>\n38  \t\t\t<url>https://pkgs.dev.azure.com/ShawnHurley21/demo-config-utils/_packaging/demo-config/maven/v1</url>\n39  \t\t</repository>\n40  \t</repositories>\n41  \n42  \t<dependencyManagement>\n43  \t\t<dependencies>\n44  \t\t\t<dependency>\n45  \t\t\t\t<groupId>com.fasterxml.jackson</groupId>\n46  \t\t\t\t<artifactId>jackson-bom</artifactId>\n47  \t\t\t\t<version>${jackson.version}</version>\n48  \t\t\t\t<scope>import</scope>\n49  \t\t\t\t<type>pom</type>\n50  \t\t\t</dependency>\n51  \t\t\t<dependency>\n52  \t\t\t\t<groupId>org.springframework.data</groupId>\n53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>"
+        codeSnip: "46  \t\t\t\t<artifactId>jackson-bom</artifactId>"
         lineNumber: 45
         variables:
           data: dependency
@@ -109,7 +89,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
-        codeSnip: "43  \t\t<dependencies>\n44  \t\t\t<dependency>\n45  \t\t\t\t<groupId>com.fasterxml.jackson</groupId>\n46  \t\t\t\t<artifactId>jackson-bom</artifactId>\n47  \t\t\t\t<version>${jackson.version}</version>\n48  \t\t\t\t<scope>import</scope>\n49  \t\t\t\t<type>pom</type>\n50  \t\t\t</dependency>\n51  \t\t\t<dependency>\n52  \t\t\t\t<groupId>org.springframework.data</groupId>\n53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>\n57  \t\t\t</dependency>\n58  \t\t</dependencies>\n59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>"
+        codeSnip: "53  \t\t\t\t<artifactId>spring-data-bom</artifactId>"
         lineNumber: 52
         variables:
           data: dependency
@@ -121,7 +101,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
-        codeSnip: "53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>\n57  \t\t\t</dependency>\n58  \t\t</dependencies>\n59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>"
+        codeSnip: "63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>"
         lineNumber: 62
         variables:
           data: dependency
@@ -133,7 +113,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
-        codeSnip: "59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  "
+        codeSnip: "69  \t\t\t<artifactId>jackson-core</artifactId>"
         lineNumber: 68
         variables:
           data: dependency
@@ -145,7 +125,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
-        codeSnip: "63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>"
+        codeSnip: "73  \t\t\t<artifactId>jackson-databind</artifactId>"
         lineNumber: 72
         variables:
           data: dependency
@@ -157,7 +137,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
-        codeSnip: "67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>"
+        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>"
         lineNumber: 76
         variables:
           data: dependency
@@ -169,7 +149,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
-        codeSnip: "72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>"
+        codeSnip: "82  \t\t\t<artifactId>spring-jdbc</artifactId>"
         lineNumber: 81
         variables:
           data: dependency
@@ -181,7 +161,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
-        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>\n93  \t\t\t<version>${spring-framework.version}</version>\n94  \t\t</dependency>\n95  \t\t<dependency>\n96  \t\t\t<groupId>org.springframework.boot</groupId>\n97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
+        codeSnip: "87  \t\t\t<artifactId>spring-webmvc</artifactId>"
         lineNumber: 86
         variables:
           data: dependency
@@ -193,7 +173,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
-        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>\n93  \t\t\t<version>${spring-framework.version}</version>\n94  \t\t</dependency>\n95  \t\t<dependency>\n96  \t\t\t<groupId>org.springframework.boot</groupId>\n97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
+        codeSnip: "87  \t\t\t<artifactId>spring-webmvc</artifactId>"
         lineNumber: 86
         variables:
           data: dependency
@@ -205,7 +185,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
-        codeSnip: " 87  \t\t\t<artifactId>spring-webmvc</artifactId>\n 88  \t\t\t<version>${spring-framework.version}</version>\n 89  \t\t</dependency>\n 90  \t\t<dependency>\n 91  \t\t\t<groupId>org.springframework</groupId>\n 92  \t\t\t<artifactId>spring-web</artifactId>\n 93  \t\t\t<version>${spring-framework.version}</version>\n 94  \t\t</dependency>\n 95  \t\t<dependency>\n 96  \t\t\t<groupId>org.springframework.boot</groupId>\n 97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>\n 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>"
+        codeSnip: "97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
         lineNumber: 96
         variables:
           data: dependency
@@ -217,7 +197,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
-        codeSnip: " 92  \t\t\t<artifactId>spring-web</artifactId>\n 93  \t\t\t<version>${spring-framework.version}</version>\n 94  \t\t</dependency>\n 95  \t\t<dependency>\n 96  \t\t\t<groupId>org.springframework.boot</groupId>\n 97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>\n 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>"
+        codeSnip: "102  \t\t\t<artifactId>tomcat-jdbc</artifactId>"
         lineNumber: 101
         variables:
           data: dependency
@@ -229,7 +209,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
-        codeSnip: " 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>"
+        codeSnip: "108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>"
         lineNumber: 107
         variables:
           data: dependency
@@ -241,7 +221,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
-        codeSnip: "103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>"
+        codeSnip: "113  \t\t\t<artifactId>hibernate-validator</artifactId>"
         lineNumber: 112
         variables:
           data: dependency
@@ -253,7 +233,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
-        codeSnip: "108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>"
+        codeSnip: "118  \t\t\t<artifactId>logback-classic</artifactId>"
         lineNumber: 117
         variables:
           data: dependency
@@ -265,7 +245,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
-        codeSnip: "113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>"
+        codeSnip: "123  \t\t\t<artifactId>ojdbc8</artifactId>"
         lineNumber: 122
         variables:
           data: dependency
@@ -277,7 +257,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
-        codeSnip: "118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>\n134  \t\t\t<artifactId>config-utils</artifactId>\n135  \t\t\t<version>1.0.0</version>\n136  \t\t</dependency>\n137  \n138  \t</dependencies>"
+        codeSnip: "128  \t\t\t<artifactId>postgresql</artifactId>"
         lineNumber: 127
         variables:
           data: dependency
@@ -289,7 +269,7 @@
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
-        codeSnip: "124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>\n134  \t\t\t<artifactId>config-utils</artifactId>\n135  \t\t\t<version>1.0.0</version>\n136  \t\t</dependency>\n137  \n138  \t</dependencies>\n139  \t<build>\n140  \t\t<plugins>\n141  \t\t\t<plugin>\n142  \t\t\t\t<groupId>org.apache.maven.plugins</groupId>\n143  \t\t\t\t<artifactId>maven-compiler-plugin</artifactId>\n144  \t\t\t\t<version>${maven-compiler-plugin.version}</version>"
+        codeSnip: "134  \t\t\t<artifactId>config-utils</artifactId>"
         lineNumber: 133
         variables:
           data: dependency
@@ -301,7 +281,7 @@
       - uri: file:///analyzer-lsp/examples/java-project/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>io.quarkus</groupId><artifactId>quarkus-universe-bom</artifactId><version>${quarkus.version}</version><type>pom</type><scope>import</scope>
-        codeSnip: "19      <maven.compiler.target>11</maven.compiler.target>\n20      <quarkus.version>1.10.5.Final</quarkus.version>\n21      <compiler-plugin.version>3.8.1</compiler-plugin.version>\n22      <maven.compiler.parameters>true</maven.compiler.parameters>\n23    </properties>\n24  \n25    <dependencyManagement>\n26      <dependencies>\n27        <dependency>\n28          <groupId>io.quarkus</groupId>\n29          <artifactId>quarkus-universe-bom</artifactId>\n30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>"
+        codeSnip: 29          <artifactId>quarkus-universe-bom</artifactId>
         lineNumber: 28
         variables:
           data: dependency
@@ -313,7 +293,7 @@
       - uri: file:///analyzer-lsp/examples/java-project/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-quarkus-extension</artifactId><version>${project.version}</version>
-        codeSnip: "30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>"
+        codeSnip: 40        <artifactId>operator-framework-quarkus-extension</artifactId>
         lineNumber: 39
         variables:
           data: dependency
@@ -325,7 +305,7 @@
       - uri: file:///analyzer-lsp/examples/java-project/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-samples-common</artifactId><version>${project.version}</version>
-        codeSnip: "35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>\n51      <plugins>\n52        <plugin>\n53          <groupId>org.apache.maven.plugins</groupId>\n54          <artifactId>maven-compiler-plugin</artifactId>\n55          <version>${compiler-plugin.version}</version>"
+        codeSnip: 45        <artifactId>operator-framework-samples-common</artifactId>
         lineNumber: 44
         variables:
           data: dependency
@@ -373,7 +353,7 @@
       - uri: file:///analyzer-lsp/examples/java/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
-        codeSnip: "20    <properties>\n21      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n22      <maven.compiler.source>1.7</maven.compiler.source>\n23      <maven.compiler.target>1.7</maven.compiler.target>\n24      <javaee-api.version>7.0</javaee-api.version>\n25    </properties>\n26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>"
+        codeSnip: 30        <artifactId>junit</artifactId>
         lineNumber: 29
         variables:
           data: dependency
@@ -385,7 +365,7 @@
       - uri: file:///analyzer-lsp/examples/java/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
-        codeSnip: "26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>\n41        <artifactId>kubernetes-client-api</artifactId>\n42        <version>6.0.0</version>\n43      </dependency>\n44      <dependency>\n45        <groupId>javax</groupId>\n46        <artifactId>javaee-api</artifactId>"
+        codeSnip: 36        <artifactId>kubernetes-client</artifactId>
         lineNumber: 35
         variables:
           data: dependency
@@ -397,28 +377,7 @@
       - uri: file:///analyzer-lsp/examples/java/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
-        codeSnip: |-
-          31        <version>4.11</version>
-          32        <scope>test</scope>
-          33      </dependency>
-          34      <dependency>
-          35        <groupId>io.fabric8</groupId>
-          36        <artifactId>kubernetes-client</artifactId>
-          37        <version>6.0.0</version>
-          38      </dependency>
-          39      <dependency>
-          40        <groupId>io.fabric8</groupId>
-          41        <artifactId>kubernetes-client-api</artifactId>
-          42        <version>6.0.0</version>
-          43      </dependency>
-          44      <dependency>
-          45        <groupId>javax</groupId>
-          46        <artifactId>javaee-api</artifactId>
-          47        <version>${javaee-api.version}</version>
-          48        <scope>provided</scope>
-          49      </dependency>
-          50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
-          51      <dependency>
+        codeSnip: 41        <artifactId>kubernetes-client-api</artifactId>
         lineNumber: 40
         variables:
           data: dependency
@@ -430,28 +389,7 @@
       - uri: file:///analyzer-lsp/examples/java/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>javax</groupId><artifactId>javaee-api</artifactId><version>${javaee-api.version}</version><scope>provided</scope>
-        codeSnip: |-
-          36        <artifactId>kubernetes-client</artifactId>
-          37        <version>6.0.0</version>
-          38      </dependency>
-          39      <dependency>
-          40        <groupId>io.fabric8</groupId>
-          41        <artifactId>kubernetes-client-api</artifactId>
-          42        <version>6.0.0</version>
-          43      </dependency>
-          44      <dependency>
-          45        <groupId>javax</groupId>
-          46        <artifactId>javaee-api</artifactId>
-          47        <version>${javaee-api.version}</version>
-          48        <scope>provided</scope>
-          49      </dependency>
-          50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
-          51      <dependency>
-          52        <groupId>io.netty</groupId>
-          53        <artifactId>netty-transport-native-epoll</artifactId>
-          54        <version>4.1.76.Final</version>
-          55        <classifier>linux-x86_64</classifier>
-          56        <scope>runtime</scope>
+        codeSnip: 46        <artifactId>javaee-api</artifactId>
         lineNumber: 45
         variables:
           data: dependency
@@ -463,7 +401,7 @@
       - uri: file:///analyzer-lsp/examples/java/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: <groupId>io.netty</groupId><artifactId>netty-transport-native-epoll</artifactId><version>4.1.76.Final</version><classifier>linux-x86_64</classifier><scope>runtime</scope>
-        codeSnip: "43      </dependency>\n44      <dependency>\n45        <groupId>javax</groupId>\n46        <artifactId>javaee-api</artifactId>\n47        <version>${javaee-api.version}</version>\n48        <scope>provided</scope>\n49      </dependency>\n50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->\n51      <dependency>\n52        <groupId>io.netty</groupId>\n53        <artifactId>netty-transport-native-epoll</artifactId>\n54        <version>4.1.76.Final</version>\n55        <classifier>linux-x86_64</classifier>\n56        <scope>runtime</scope>\n57      </dependency>\n58    </dependencies>\n59  \n60    <build>\n61      <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->\n62        <plugins>\n63          <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->"
+        codeSnip: 53        <artifactId>netty-transport-native-epoll</artifactId>
         lineNumber: 52
         variables:
           data: dependency
@@ -538,7 +476,7 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/Dockerfile
         message: Found usage of openjdk base image
-        codeSnip: " 1  ########################################\n 2  # Build Image\n 3  ########################################\n 4  # FROM maven:3.6-jdk-8-slim as build\n 5  FROM maven:3.8-openjdk-11 as build\n 6  \n 7  WORKDIR /app\n 8  \n 9  # Establish the dependency layer\n10  COPY pom.xml .\n11  RUN mvn dependency:resolve\n12  \n13  # Add the source code and package\n14  COPY src ./src\n15  RUN mvn package\n16  "
+        codeSnip: '6  '
         lineNumber: 5
         variables:
           matchingText: FROM maven:3.8-openjdk-11 as build
@@ -558,6 +496,12 @@
       description: ""
       category: potential
       incidents:
+      - uri: file:///analyzer-lsp/examples/golang/main.go
+        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
+        codeSnip: "\n 2  \n 3  import (\n 4  \"fmt\"\n 5  \n 6  \"github.com/konveyor/analyzer-lsp/examples/golang/dummy\"\n 7  \"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1\"\n 8  )\n 9  \n10  func main() {\n11  fmt.Println(v1beta1.CustomResourceDefinition{})\n12  \n13  fmt.Println(dummy.HelloWorld())\n14  }"
+        lineNumber: 11
+        variables:
+          file: file:///analyzer-lsp/examples/golang/main.go
       - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
         message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
         codeSnip: "\n 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App\n 6  {\n 7  \n 8  /**\n 9  * {@link CustomResourceDefinition}\n10  * @param args\n11  */\n12  public static void main( String[] args )\n13  {"
@@ -610,31 +554,31 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/nodejs/Component.tsx
         message: Found React reference using regex pattern
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        codeSnip: '2  '
         lineNumber: 1
         variables:
           matchingText: React
       - uri: file:///analyzer-lsp/examples/nodejs/Component.tsx
         message: Found React reference using regex pattern
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        codeSnip: 4    return <div>Hello from TypeScript React</div>;
         lineNumber: 3
         variables:
           matchingText: React
       - uri: file:///analyzer-lsp/examples/nodejs/Component.tsx
         message: Found React reference using regex pattern
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        codeSnip: 5  };
         lineNumber: 4
         variables:
           matchingText: React
       - uri: file:///analyzer-lsp/examples/nodejs/LegacyComponent.jsx
         message: Found React reference using regex pattern
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const LegacyComponent = () => {\n 4    return <div>Hello from JavaScript React</div>;\n 5  };\n"
+        codeSnip: '2  '
         lineNumber: 1
         variables:
           matchingText: React
       - uri: file:///analyzer-lsp/examples/nodejs/LegacyComponent.jsx
         message: Found React reference using regex pattern
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const LegacyComponent = () => {\n 4    return <div>Hello from JavaScript React</div>;\n 5  };\n"
+        codeSnip: 5  };
         lineNumber: 4
         variables:
           matchingText: React
@@ -645,21 +589,13 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/nodejs/styles.css
         message: Found PatternFly CSS variable using regex pattern
-        codeSnip: |2
-           1  .patternfly-example {
-           2    color: var(--pf-global-color-100);
-           3    margin: var(--pf-global-spacer-md);
-           4  }
+        codeSnip: '3    margin: var(--pf-global-spacer-md);'
         lineNumber: 2
         variables:
           matchingText: --pf-
       - uri: file:///analyzer-lsp/examples/nodejs/styles.css
         message: Found PatternFly CSS variable using regex pattern
-        codeSnip: |2
-           1  .patternfly-example {
-           2    color: var(--pf-global-color-100);
-           3    margin: var(--pf-global-spacer-md);
-           4  }
+        codeSnip: 4  }
         lineNumber: 3
         variables:
           matchingText: --pf-
@@ -670,7 +606,7 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/nodejs/Component.tsx
         message: Found React import in .tsx file
-        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
+        codeSnip: '2  '
         lineNumber: 1
         variables:
           matchingText: import React
@@ -681,7 +617,7 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>'
-        codeSnip: "36  \t\t\t<id>demo-config</id>\n37  \t\t\t<name>Azure DevOps</name>\n38  \t\t\t<url>https://pkgs.dev.azure.com/ShawnHurley21/demo-config-utils/_packaging/demo-config/maven/v1</url>\n39  \t\t</repository>\n40  \t</repositories>\n41  \n42  \t<dependencyManagement>\n43  \t\t<dependencies>\n44  \t\t\t<dependency>\n45  \t\t\t\t<groupId>com.fasterxml.jackson</groupId>\n46  \t\t\t\t<artifactId>jackson-bom</artifactId>\n47  \t\t\t\t<version>${jackson.version}</version>\n48  \t\t\t\t<scope>import</scope>\n49  \t\t\t\t<type>pom</type>\n50  \t\t\t</dependency>\n51  \t\t\t<dependency>\n52  \t\t\t\t<groupId>org.springframework.data</groupId>\n53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>"
+        codeSnip: "46  \t\t\t\t<artifactId>jackson-bom</artifactId>"
         lineNumber: 45
         variables:
           data: dependency
@@ -689,7 +625,7 @@
           matchingXML: <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId><version>${jackson.version}</version><scope>import</scope><type>pom</type>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>'
-        codeSnip: "43  \t\t<dependencies>\n44  \t\t\t<dependency>\n45  \t\t\t\t<groupId>com.fasterxml.jackson</groupId>\n46  \t\t\t\t<artifactId>jackson-bom</artifactId>\n47  \t\t\t\t<version>${jackson.version}</version>\n48  \t\t\t\t<scope>import</scope>\n49  \t\t\t\t<type>pom</type>\n50  \t\t\t</dependency>\n51  \t\t\t<dependency>\n52  \t\t\t\t<groupId>org.springframework.data</groupId>\n53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>\n57  \t\t\t</dependency>\n58  \t\t</dependencies>\n59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>"
+        codeSnip: "53  \t\t\t\t<artifactId>spring-data-bom</artifactId>"
         lineNumber: 52
         variables:
           data: dependency
@@ -697,7 +633,7 @@
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-bom</artifactId><version>${spring-data.version}</version><scope>import</scope><type>pom</type>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>'
-        codeSnip: "53  \t\t\t\t<artifactId>spring-data-bom</artifactId>\n54  \t\t\t\t<version>${spring-data.version}</version>\n55  \t\t\t\t<scope>import</scope>\n56  \t\t\t\t<type>pom</type>\n57  \t\t\t</dependency>\n58  \t\t</dependencies>\n59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>"
+        codeSnip: "63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>"
         lineNumber: 62
         variables:
           data: dependency
@@ -705,7 +641,7 @@
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-servlet-api</artifactId><version>${tomcat.version}</version><scope>provided</scope>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>'
-        codeSnip: "59  \t</dependencyManagement>\n60  \t<dependencies>\n61  \t\t<dependency>\n62  \t\t\t<groupId>org.apache.tomcat</groupId>\n63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  "
+        codeSnip: "69  \t\t\t<artifactId>jackson-core</artifactId>"
         lineNumber: 68
         variables:
           data: dependency
@@ -713,7 +649,7 @@
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>'
-        codeSnip: "63  \t\t\t<artifactId>tomcat-servlet-api</artifactId>\n64  \t\t\t<version>${tomcat.version}</version>\n65  \t\t\t<scope>provided</scope>\n66  \t\t</dependency>\n67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>"
+        codeSnip: "73  \t\t\t<artifactId>jackson-databind</artifactId>"
         lineNumber: 72
         variables:
           data: dependency
@@ -721,7 +657,7 @@
           matchingXML: <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>'
-        codeSnip: "67  \t\t<dependency>\n68  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n69  \t\t\t<artifactId>jackson-core</artifactId>\n70  \t\t</dependency>\n71  \t\t<dependency>\n72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>"
+        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>"
         lineNumber: 76
         variables:
           data: dependency
@@ -729,7 +665,7 @@
           matchingXML: <groupId>org.springframework.data</groupId><artifactId>spring-data-jpa</artifactId>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>'
-        codeSnip: "72  \t\t\t<groupId>com.fasterxml.jackson.core</groupId>\n73  \t\t\t<artifactId>jackson-databind</artifactId>\n74  \t\t</dependency>\n75  \t\t<dependency>\n76  \t\t\t<groupId>org.springframework.data</groupId>\n77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>"
+        codeSnip: "82  \t\t\t<artifactId>spring-jdbc</artifactId>"
         lineNumber: 81
         variables:
           data: dependency
@@ -737,7 +673,7 @@
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId><version>${spring-framework.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>'
-        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>\n93  \t\t\t<version>${spring-framework.version}</version>\n94  \t\t</dependency>\n95  \t\t<dependency>\n96  \t\t\t<groupId>org.springframework.boot</groupId>\n97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
+        codeSnip: "87  \t\t\t<artifactId>spring-webmvc</artifactId>"
         lineNumber: 86
         variables:
           data: dependency
@@ -745,7 +681,7 @@
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>${spring-framework.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>'
-        codeSnip: "77  \t\t\t<artifactId>spring-data-jpa</artifactId>\n78  \t\t</dependency>\n79  \n80  \t\t<dependency>\n81  \t\t\t<groupId>org.springframework</groupId>\n82  \t\t\t<artifactId>spring-jdbc</artifactId>\n83  \t\t\t<version>${spring-framework.version}</version>\n84  \t\t</dependency>\n85  \t\t<dependency>\n86  \t\t\t<groupId>org.springframework</groupId>\n87  \t\t\t<artifactId>spring-webmvc</artifactId>\n88  \t\t\t<version>${spring-framework.version}</version>\n89  \t\t</dependency>\n90  \t\t<dependency>\n91  \t\t\t<groupId>org.springframework</groupId>\n92  \t\t\t<artifactId>spring-web</artifactId>\n93  \t\t\t<version>${spring-framework.version}</version>\n94  \t\t</dependency>\n95  \t\t<dependency>\n96  \t\t\t<groupId>org.springframework.boot</groupId>\n97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
+        codeSnip: "87  \t\t\t<artifactId>spring-webmvc</artifactId>"
         lineNumber: 86
         variables:
           data: dependency
@@ -753,7 +689,7 @@
           matchingXML: <groupId>org.springframework</groupId><artifactId>spring-webmvc</artifactId><version>${spring-framework.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>'
-        codeSnip: " 87  \t\t\t<artifactId>spring-webmvc</artifactId>\n 88  \t\t\t<version>${spring-framework.version}</version>\n 89  \t\t</dependency>\n 90  \t\t<dependency>\n 91  \t\t\t<groupId>org.springframework</groupId>\n 92  \t\t\t<artifactId>spring-web</artifactId>\n 93  \t\t\t<version>${spring-framework.version}</version>\n 94  \t\t</dependency>\n 95  \t\t<dependency>\n 96  \t\t\t<groupId>org.springframework.boot</groupId>\n 97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>\n 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>"
+        codeSnip: "97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>"
         lineNumber: 96
         variables:
           data: dependency
@@ -761,7 +697,7 @@
           matchingXML: <groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId><version>2.5.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>'
-        codeSnip: " 92  \t\t\t<artifactId>spring-web</artifactId>\n 93  \t\t\t<version>${spring-framework.version}</version>\n 94  \t\t</dependency>\n 95  \t\t<dependency>\n 96  \t\t\t<groupId>org.springframework.boot</groupId>\n 97  \t\t\t<artifactId>spring-boot-starter-actuator</artifactId>\n 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>"
+        codeSnip: "102  \t\t\t<artifactId>tomcat-jdbc</artifactId>"
         lineNumber: 101
         variables:
           data: dependency
@@ -769,7 +705,7 @@
           matchingXML: <groupId>org.apache.tomcat</groupId><artifactId>tomcat-jdbc</artifactId><version>${tomcat.version}</version><scope>runtime</scope>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>'
-        codeSnip: " 98  \t\t\t<version>2.5.0</version>\n 99  \t\t</dependency>\n100  \t\t<dependency>\n101  \t\t\t<groupId>org.apache.tomcat</groupId>\n102  \t\t\t<artifactId>tomcat-jdbc</artifactId>\n103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>"
+        codeSnip: "108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>"
         lineNumber: 107
         variables:
           data: dependency
@@ -777,7 +713,7 @@
           matchingXML: <groupId>org.hibernate</groupId><artifactId>hibernate-entitymanager</artifactId><version>${hibernate.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>'
-        codeSnip: "103  \t\t\t<version>${tomcat.version}</version>\n104  \t\t\t<scope>runtime</scope>\n105  \t\t</dependency>\n106  \t\t<dependency>\n107  \t\t\t<groupId>org.hibernate</groupId>\n108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>"
+        codeSnip: "113  \t\t\t<artifactId>hibernate-validator</artifactId>"
         lineNumber: 112
         variables:
           data: dependency
@@ -785,7 +721,7 @@
           matchingXML: <groupId>org.hibernate.validator</groupId><artifactId>hibernate-validator</artifactId><version>${hibernate-validator.version}</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>'
-        codeSnip: "108  \t\t\t<artifactId>hibernate-entitymanager</artifactId>\n109  \t\t\t<version>${hibernate.version}</version>\n110  \t\t</dependency>\n111  \t\t<dependency>\n112  \t\t\t<groupId>org.hibernate.validator</groupId>\n113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>"
+        codeSnip: "118  \t\t\t<artifactId>logback-classic</artifactId>"
         lineNumber: 117
         variables:
           data: dependency
@@ -793,7 +729,7 @@
           matchingXML: <groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.1.7</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>'
-        codeSnip: "113  \t\t\t<artifactId>hibernate-validator</artifactId>\n114  \t\t\t<version>${hibernate-validator.version}</version>\n115  \t\t</dependency>\n116  \t\t<dependency>\n117  \t\t\t<groupId>ch.qos.logback</groupId>\n118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>"
+        codeSnip: "123  \t\t\t<artifactId>ojdbc8</artifactId>"
         lineNumber: 122
         variables:
           data: dependency
@@ -801,7 +737,7 @@
           matchingXML: <groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc8</artifactId><version>21.1.0.0</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>'
-        codeSnip: "118  \t\t\t<artifactId>logback-classic</artifactId>\n119  \t\t\t<version>1.1.7</version>\n120  \t\t</dependency>\n121  \t\t<dependency>\n122  \t\t\t<groupId>com.oracle.database.jdbc</groupId>\n123  \t\t\t<artifactId>ojdbc8</artifactId>\n124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>\n134  \t\t\t<artifactId>config-utils</artifactId>\n135  \t\t\t<version>1.0.0</version>\n136  \t\t</dependency>\n137  \n138  \t</dependencies>"
+        codeSnip: "128  \t\t\t<artifactId>postgresql</artifactId>"
         lineNumber: 127
         variables:
           data: dependency
@@ -809,7 +745,7 @@
           matchingXML: <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.23</version>
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/pom.xml
         message: POM XML dependencies - '<groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>'
-        codeSnip: "124  \t\t\t<version>21.1.0.0</version>\n125  \t\t</dependency>\n126  \t\t<dependency>\n127  \t\t\t<groupId>org.postgresql</groupId>\n128  \t\t\t<artifactId>postgresql</artifactId>\n129  \t\t\t<version>42.2.23</version>\n130  \t\t</dependency>\n131  \t\t<!-- Corporate libraries -->\n132  \t\t<dependency>\n133  \t\t\t<groupId>io.konveyor.demo</groupId>\n134  \t\t\t<artifactId>config-utils</artifactId>\n135  \t\t\t<version>1.0.0</version>\n136  \t\t</dependency>\n137  \n138  \t</dependencies>\n139  \t<build>\n140  \t\t<plugins>\n141  \t\t\t<plugin>\n142  \t\t\t\t<groupId>org.apache.maven.plugins</groupId>\n143  \t\t\t\t<artifactId>maven-compiler-plugin</artifactId>\n144  \t\t\t\t<version>${maven-compiler-plugin.version}</version>"
+        codeSnip: "134  \t\t\t<artifactId>config-utils</artifactId>"
         lineNumber: 133
         variables:
           data: dependency
@@ -817,8 +753,12 @@
           matchingXML: <groupId>io.konveyor.demo</groupId><artifactId>config-utils</artifactId><version>1.0.0</version>
       - uri: file:///analyzer-lsp/examples/java-project/pom.xml
         message: POM XML dependencies - '<groupId>io.quarkus</groupId><artifactId>quarkus-universe-bom</artifactId><version>${quarkus.version}</version><type>pom</type><scope>import</scope>'
+<<<<<<< HEAD
         codeSnip: "19      <maven.compiler.target>11</maven.compiler.target>\n20      <quarkus.version>1.10.5.Final</quarkus.version>\n21      <compiler-plugin.version>3.8.1</compiler-plugin.version>\n22      <maven.compiler.parameters>true</maven.compiler.parameters>\n23    </properties>\n24  \n25    <dependencyManagement>\n26      <dependencies>\n27        <dependency>\n28          <groupId>io.quarkus</groupId>\n29          <artifactId>quarkus-universe-bom</artifactId>\n30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>"
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
+=======
+        codeSnip: 29          <artifactId>quarkus-universe-bom</artifactId>
+>>>>>>> db59421 (Adding back progress reporting)
         lineNumber: 28
         variables:
           data: dependency
@@ -830,7 +770,7 @@
       - uri: file:///analyzer-lsp/examples/java-project/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: POM XML dependencies - '<groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-quarkus-extension</artifactId><version>${project.version}</version>'
-        codeSnip: "30          <version>${quarkus.version}</version>\n31          <type>pom</type>\n32          <scope>import</scope>\n33        </dependency>\n34      </dependencies>\n35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>"
+        codeSnip: 40        <artifactId>operator-framework-quarkus-extension</artifactId>
         lineNumber: 39
         variables:
           data: dependency
@@ -842,7 +782,7 @@
       - uri: file:///analyzer-lsp/examples/java-project/pom.xml
 >>>>>>> 059e273 (fixing up dockerfiles as well as handling mvn: locations for builtin config)
         message: POM XML dependencies - '<groupId>io.javaoperatorsdk</groupId><artifactId>operator-framework-samples-common</artifactId><version>${project.version}</version>'
-        codeSnip: "35    </dependencyManagement>\n36  \n37    <dependencies>\n38      <dependency>\n39        <groupId>io.javaoperatorsdk</groupId>\n40        <artifactId>operator-framework-quarkus-extension</artifactId>\n41        <version>${project.version}</version>\n42      </dependency>\n43      <dependency>\n44        <groupId>io.javaoperatorsdk</groupId>\n45        <artifactId>operator-framework-samples-common</artifactId>\n46        <version>${project.version}</version>\n47      </dependency>\n48    </dependencies>\n49  \n50    <build>\n51      <plugins>\n52        <plugin>\n53          <groupId>org.apache.maven.plugins</groupId>\n54          <artifactId>maven-compiler-plugin</artifactId>\n55          <version>${compiler-plugin.version}</version>"
+        codeSnip: 45        <artifactId>operator-framework-samples-common</artifactId>
         lineNumber: 44
         variables:
           data: dependency
@@ -891,7 +831,7 @@
 =======
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>'
-        codeSnip: "20    <properties>\n21      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n22      <maven.compiler.source>1.7</maven.compiler.source>\n23      <maven.compiler.target>1.7</maven.compiler.target>\n24      <javaee-api.version>7.0</javaee-api.version>\n25    </properties>\n26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>"
+        codeSnip: 30        <artifactId>junit</artifactId>
         lineNumber: 29
         variables:
           data: dependency
@@ -899,7 +839,7 @@
           matchingXML: <groupId>junit</groupId><artifactId>junit</artifactId><version>4.11</version><scope>test</scope>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>'
-        codeSnip: "26  \n27    <dependencies>\n28      <dependency>\n29        <groupId>junit</groupId>\n30        <artifactId>junit</artifactId>\n31        <version>4.11</version>\n32        <scope>test</scope>\n33      </dependency>\n34      <dependency>\n35        <groupId>io.fabric8</groupId>\n36        <artifactId>kubernetes-client</artifactId>\n37        <version>6.0.0</version>\n38      </dependency>\n39      <dependency>\n40        <groupId>io.fabric8</groupId>\n41        <artifactId>kubernetes-client-api</artifactId>\n42        <version>6.0.0</version>\n43      </dependency>\n44      <dependency>\n45        <groupId>javax</groupId>\n46        <artifactId>javaee-api</artifactId>"
+        codeSnip: 36        <artifactId>kubernetes-client</artifactId>
         lineNumber: 35
         variables:
           data: dependency
@@ -907,28 +847,7 @@
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>'
-        codeSnip: |-
-          31        <version>4.11</version>
-          32        <scope>test</scope>
-          33      </dependency>
-          34      <dependency>
-          35        <groupId>io.fabric8</groupId>
-          36        <artifactId>kubernetes-client</artifactId>
-          37        <version>6.0.0</version>
-          38      </dependency>
-          39      <dependency>
-          40        <groupId>io.fabric8</groupId>
-          41        <artifactId>kubernetes-client-api</artifactId>
-          42        <version>6.0.0</version>
-          43      </dependency>
-          44      <dependency>
-          45        <groupId>javax</groupId>
-          46        <artifactId>javaee-api</artifactId>
-          47        <version>${javaee-api.version}</version>
-          48        <scope>provided</scope>
-          49      </dependency>
-          50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
-          51      <dependency>
+        codeSnip: 41        <artifactId>kubernetes-client-api</artifactId>
         lineNumber: 40
         variables:
           data: dependency
@@ -936,28 +855,7 @@
           matchingXML: <groupId>io.fabric8</groupId><artifactId>kubernetes-client-api</artifactId><version>6.0.0</version>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>javax</groupId><artifactId>javaee-api</artifactId><version>${javaee-api.version}</version><scope>provided</scope>'
-        codeSnip: |-
-          36        <artifactId>kubernetes-client</artifactId>
-          37        <version>6.0.0</version>
-          38      </dependency>
-          39      <dependency>
-          40        <groupId>io.fabric8</groupId>
-          41        <artifactId>kubernetes-client-api</artifactId>
-          42        <version>6.0.0</version>
-          43      </dependency>
-          44      <dependency>
-          45        <groupId>javax</groupId>
-          46        <artifactId>javaee-api</artifactId>
-          47        <version>${javaee-api.version}</version>
-          48        <scope>provided</scope>
-          49      </dependency>
-          50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->
-          51      <dependency>
-          52        <groupId>io.netty</groupId>
-          53        <artifactId>netty-transport-native-epoll</artifactId>
-          54        <version>4.1.76.Final</version>
-          55        <classifier>linux-x86_64</classifier>
-          56        <scope>runtime</scope>
+        codeSnip: 46        <artifactId>javaee-api</artifactId>
         lineNumber: 45
         variables:
           data: dependency
@@ -965,7 +863,7 @@
           matchingXML: <groupId>javax</groupId><artifactId>javaee-api</artifactId><version>${javaee-api.version}</version><scope>provided</scope>
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: POM XML dependencies - '<groupId>io.netty</groupId><artifactId>netty-transport-native-epoll</artifactId><version>4.1.76.Final</version><classifier>linux-x86_64</classifier><scope>runtime</scope>'
-        codeSnip: "43      </dependency>\n44      <dependency>\n45        <groupId>javax</groupId>\n46        <artifactId>javaee-api</artifactId>\n47        <version>${javaee-api.version}</version>\n48        <scope>provided</scope>\n49      </dependency>\n50      <!-- This currently leads to https://github.com/konveyor/analyzer-lsp/issues/392 -->\n51      <dependency>\n52        <groupId>io.netty</groupId>\n53        <artifactId>netty-transport-native-epoll</artifactId>\n54        <version>4.1.76.Final</version>\n55        <classifier>linux-x86_64</classifier>\n56        <scope>runtime</scope>\n57      </dependency>\n58    </dependencies>\n59  \n60    <build>\n61      <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->\n62        <plugins>\n63          <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->"
+        codeSnip: 53        <artifactId>netty-transport-native-epoll</artifactId>
         lineNumber: 52
         variables:
           data: dependency
@@ -978,7 +876,7 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/java/beans.xml
         message: The code snippet should point to <beans> in the beans.xml file
-        codeSnip: " 8   *\n 9   * http://www.apache.org/licenses/LICENSE-2.0\n10   *\n11   * Unless required by applicable law or agreed to in writing, software\n12   * distributed under the License is distributed on an \"AS IS\" BASIS,\n13   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n14   * See the License for the specific language governing permissions and\n15   * limitations under the License.\n16  -->\n17  <beans xmlns=\"http://xmlns.jcp.org/xml/ns/javaee\"\n18         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n19         xsi:schemaLocation=\"http://xmlns.jcp.org/xml/ns/javaee \n20                             http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd\"\n21         version=\"1.1\" bean-discovery-mode=\"all\">\n22  </beans>\n"
+        codeSnip: 18         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         lineNumber: 17
         variables:
           data: beans
@@ -1034,37 +932,37 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: ""
-        codeSnip: " 1  module github.com/konveyor/analyzer-lsp/examples/golang\n 2  \n 3  go 1.18\n 4  \n 5  require k8s.io/apiextensions-apiserver v0.24.4\n 6  \n 7  require (\n 8  \tgithub.com/go-logr/logr v1.2.0 // indirect\n 9  \tgithub.com/gogo/protobuf v1.3.2 // indirect\n10  \tgithub.com/google/gofuzz v1.1.0 // indirect\n11  \tgithub.com/json-iterator/go v1.1.12 // indirect\n12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect"
+        codeSnip: '6  '
         lineNumber: 5
         variables:
           matchingText: require k8s.io/apiextensions-apiserver v0.24.4
       - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: ""
-        codeSnip: " 9  \tgithub.com/gogo/protobuf v1.3.2 // indirect\n10  \tgithub.com/google/gofuzz v1.1.0 // indirect\n11  \tgithub.com/json-iterator/go v1.1.12 // indirect\n12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        codeSnip: "19  \tk8s.io/klog/v2 v2.60.1 // indirect"
         lineNumber: 18
         variables:
           matchingText: "\tk8s.io/apimachinery v0.24.4 // indirect"
       - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: ""
-        codeSnip: "10  \tgithub.com/google/gofuzz v1.1.0 // indirect\n11  \tgithub.com/json-iterator/go v1.1.12 // indirect\n12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        codeSnip: "20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect"
         lineNumber: 19
         variables:
           matchingText: "\tk8s.io/klog/v2 v2.60.1 // indirect"
       - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: ""
-        codeSnip: "11  \tgithub.com/json-iterator/go v1.1.12 // indirect\n12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        codeSnip: "21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect"
         lineNumber: 20
         variables:
           matchingText: "\tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect"
       - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: ""
-        codeSnip: "12  \tgithub.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect\n13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        codeSnip: "22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect"
         lineNumber: 21
         variables:
           matchingText: "\tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect"
       - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: ""
-        codeSnip: "13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
+        codeSnip: 23  )
         lineNumber: 22
         variables:
           matchingText: "\tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect"
@@ -1075,546 +973,1399 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/exception/ResourceNotFoundException.java
         message: ""
-        codeSnip: |2-
-           1  /*
-           2   * Copyright 2016-2017 Red Hat, Inc, and individual contributors.
-           3   *
-           4   * Licensed under the Apache License, Version 2.0 (the "License");
-           5   * you may not use this file except in compliance with the License.
-           6   * You may obtain a copy of the License at
-           7   *
-           8   * http://www.apache.org/licenses/LICENSE-2.0
-           9   *
-          10   * Unless required by applicable law or agreed to in writing, software
-          11   * distributed under the License is distributed on an "AS IS" BASIS,
-          12   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-          13   * See the License for the specific language governing permissions and
-          14   * limitations under the License.
-          15   */
+        codeSnip: 5   * you may not use this file except in compliance with the License.
         lineNumber: 4
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/examples/golang/LICENSE
         message: ""
-        codeSnip: " 1                                   Apache License\n 2                             Version 2.0, January 2004\n 3                          http://www.apache.org/licenses/\n 4  \n 5     TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n 6  \n 7     1. Definitions.\n 8  \n 9        \"License\" shall mean the terms and conditions for use, reproduction,\n10        and distribution as defined by Sections 1 through 9 of this document.\n11  \n12        \"Licensor\" shall mean the copyright owner or entity authorized by"
+        codeSnip: 2                             Version 2.0, January 2004
         lineNumber: 1
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/examples/golang/LICENSE
         message: ""
-        codeSnip: "169        License. However, in accepting such obligations, You may act only\n170        on Your own behalf and on Your sole responsibility, not on behalf\n171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]"
+        codeSnip: '179  '
         lineNumber: 178
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/examples/golang/LICENSE
         message: ""
-        codeSnip: "171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");"
+        codeSnip: 181        boilerplate notice, with the fields enclosed by brackets "[]"
         lineNumber: 180
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/examples/golang/LICENSE
         message: ""
-        codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
+        codeSnip: 192     you may not use this file except in compliance with the License.
         lineNumber: 191
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF
         message: ""
-        codeSnip: " 1  Manifest-Version: 1.0\n 2  Archiver-Version: Plexus Archiver\n 3  Created-By: Apache Maven 3.6.3\n 4  Built-By: runner\n 5  Build-Jdk: 11.0.9\n 6  \n"
+        codeSnip: '4  Built-By: runner'
         lineNumber: 3
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/examples/java/beans.xml
         message: ""
-        codeSnip: " 1  <?xml version=\"1.0\" encoding=\"UTF-8\"?>\n 2  <!-- \n 3   * (C) Copyright IBM Corporation 2015.\n 4   *\n 5   * Licensed under the Apache License, Version 2.0 (the \"License\");\n 6   * you may not use this file except in compliance with the License.\n 7   * You may obtain a copy of the License at\n 8   *\n 9   * http://www.apache.org/licenses/LICENSE-2.0\n10   *\n11   * Unless required by applicable law or agreed to in writing, software\n12   * distributed under the License is distributed on an \"AS IS\" BASIS,\n13   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n14   * See the License for the specific language governing permissions and\n15   * limitations under the License.\n16  -->"
+        codeSnip: 6   * you may not use this file except in compliance with the License.
         lineNumber: 5
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |2-
-           1  - name: konveyor-analysis
-           2    tags:
-           3    - Backend=Golang
-           4    - Infra=Kubernetes
-           5    - Java
-           6    - Language=Golang
-           7    - License=Apache
-           8    violations:
-           9      builtin-inclusion-test-json:
-          10        description: |
-          11          This is same as java-io-file-usage but for the builtin providers. There are multiple instances of the same incidents in different directories.
-          12          We are filtering some out using includedPaths setting.
-          13        category: optional
-          14        incidents:
-          15        - uri: file:///analyzer-lsp/examples/builtin/inclusion_tests/dir-0/inclusion-test.json
-          16          message: Only incidents in dir-0/test.json should be found
-          17          codeSnip: |2
-          18             1  {
+        codeSnip: '8    violations:'
         lineNumber: 7
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          881        - uri: file:///analyzer-lsp/examples/golang/go.mod
-          882          message: ""
-          883          codeSnip: "13  \tgithub.com/modern-go/reflect2 v1.0.2 // indirect\n14  \tgolang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect\n15  \tgolang.org/x/text v0.3.7 // indirect\n16  \tgopkg.in/inf.v0 v0.9.1 // indirect\n17  \tgopkg.in/yaml.v2 v2.4.0 // indirect\n18  \tk8s.io/apimachinery v0.24.4 // indirect\n19  \tk8s.io/klog/v2 v2.60.1 // indirect\n20  \tk8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect\n21  \tsigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect\n22  \tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect\n23  )\n"
-          884          lineNumber: 22
-          885          variables:
-          886            matchingText: "\tsigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect"
-          887      tag-license:
-          888        description: ""
-          889        labels:
-          890        - tag=License=Apache
-          891        incidents:
-          892        - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/exception/ResourceNotFoundException.java
-          893          message: ""
-          894          codeSnip: |2-
-          895             1  /*
-          896             2   * Copyright 2016-2017 Red Hat, Inc, and individual contributors.
-          897             3   *
-          898             4   * Licensed under the Apache License, Version 2.0 (the "License");
-          899             5   * you may not use this file except in compliance with the License.
-          900             6   * You may obtain a copy of the License at
-          901             7   *
+        codeSnip: '891        incidents:'
         lineNumber: 890
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          889        labels:
-          890        - tag=License=Apache
-          891        incidents:
-          892        - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/exception/ResourceNotFoundException.java
-          893          message: ""
-          894          codeSnip: |2-
-          895             1  /*
-          896             2   * Copyright 2016-2017 Red Hat, Inc, and individual contributors.
-          897             3   *
-          898             4   * Licensed under the Apache License, Version 2.0 (the "License");
-          899             5   * you may not use this file except in compliance with the License.
-          900             6   * You may obtain a copy of the License at
-          901             7   *
-          902             8   * http://www.apache.org/licenses/LICENSE-2.0
-          903             9   *
-          904            10   * Unless required by applicable law or agreed to in writing, software
-          905            11   * distributed under the License is distributed on an "AS IS" BASIS,
-          906            12   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-          907            13   * See the License for the specific language governing permissions and
-          908            14   * limitations under the License.
-          909            15   */
+        codeSnip: 899             5   * you may not use this file except in compliance with the License.
         lineNumber: 898
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          903             9   *
-          904            10   * Unless required by applicable law or agreed to in writing, software
-          905            11   * distributed under the License is distributed on an "AS IS" BASIS,
-          906            12   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-          907            13   * See the License for the specific language governing permissions and
-          908            14   * limitations under the License.
-          909            15   */
-          910          lineNumber: 4
-          911          variables:
-          912            matchingText: Apache
-          913        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          914          message: ""
-          915          codeSnip: " 1                                   Apache License\n 2                             Version 2.0, January 2004\n 3                          http://www.apache.org/licenses/\n 4  \n 5     TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n 6  \n 7     1. Definitions.\n 8  \n 9        \"License\" shall mean the terms and conditions for use, reproduction,\n10        and distribution as defined by Sections 1 through 9 of this document.\n11  \n12        \"Licensor\" shall mean the copyright owner or entity authorized by"
-          916          lineNumber: 1
-          917          variables:
-          918            matchingText: Apache
-          919        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          920          message: ""
-          921          codeSnip: "169        License. However, in accepting such obligations, You may act only\n170        on Your own behalf and on Your sole responsibility, not on behalf\n171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]"
-          922          lineNumber: 178
-          923          variables:
+        codeSnip: '913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
         lineNumber: 912
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          906            12   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-          907            13   * See the License for the specific language governing permissions and
-          908            14   * limitations under the License.
-          909            15   */
-          910          lineNumber: 4
-          911          variables:
-          912            matchingText: Apache
-          913        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          914          message: ""
-          915          codeSnip: " 1                                   Apache License\n 2                             Version 2.0, January 2004\n 3                          http://www.apache.org/licenses/\n 4  \n 5     TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n 6  \n 7     1. Definitions.\n 8  \n 9        \"License\" shall mean the terms and conditions for use, reproduction,\n10        and distribution as defined by Sections 1 through 9 of this document.\n11  \n12        \"Licensor\" shall mean the copyright owner or entity authorized by"
-          916          lineNumber: 1
-          917          variables:
-          918            matchingText: Apache
-          919        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          920          message: ""
-          921          codeSnip: "169        License. However, in accepting such obligations, You may act only\n170        on Your own behalf and on Your sole responsibility, not on behalf\n171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]"
-          922          lineNumber: 178
-          923          variables:
-          924            matchingText: Apache
-          925        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          926          message: ""
+        codeSnip: '916          lineNumber: 1'
         lineNumber: 915
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          909            15   */
-          910          lineNumber: 4
-          911          variables:
-          912            matchingText: Apache
-          913        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          914          message: ""
-          915          codeSnip: " 1                                   Apache License\n 2                             Version 2.0, January 2004\n 3                          http://www.apache.org/licenses/\n 4  \n 5     TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n 6  \n 7     1. Definitions.\n 8  \n 9        \"License\" shall mean the terms and conditions for use, reproduction,\n10        and distribution as defined by Sections 1 through 9 of this document.\n11  \n12        \"Licensor\" shall mean the copyright owner or entity authorized by"
-          916          lineNumber: 1
-          917          variables:
-          918            matchingText: Apache
-          919        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          920          message: ""
-          921          codeSnip: "169        License. However, in accepting such obligations, You may act only\n170        on Your own behalf and on Your sole responsibility, not on behalf\n171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]"
-          922          lineNumber: 178
-          923          variables:
-          924            matchingText: Apache
-          925        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          926          message: ""
-          927          codeSnip: "171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");"
-          928          lineNumber: 180
-          929          variables:
+        codeSnip: '919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
         lineNumber: 918
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          912            matchingText: Apache
-          913        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          914          message: ""
-          915          codeSnip: " 1                                   Apache License\n 2                             Version 2.0, January 2004\n 3                          http://www.apache.org/licenses/\n 4  \n 5     TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n 6  \n 7     1. Definitions.\n 8  \n 9        \"License\" shall mean the terms and conditions for use, reproduction,\n10        and distribution as defined by Sections 1 through 9 of this document.\n11  \n12        \"Licensor\" shall mean the copyright owner or entity authorized by"
-          916          lineNumber: 1
-          917          variables:
-          918            matchingText: Apache
-          919        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          920          message: ""
-          921          codeSnip: "169        License. However, in accepting such obligations, You may act only\n170        on Your own behalf and on Your sole responsibility, not on behalf\n171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]"
-          922          lineNumber: 178
-          923          variables:
-          924            matchingText: Apache
-          925        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          926          message: ""
-          927          codeSnip: "171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");"
-          928          lineNumber: 180
-          929          variables:
-          930            matchingText: Apache
-          931        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          932          message: ""
+        codeSnip: '922          lineNumber: 178'
         lineNumber: 921
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          915          codeSnip: " 1                                   Apache License\n 2                             Version 2.0, January 2004\n 3                          http://www.apache.org/licenses/\n 4  \n 5     TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n 6  \n 7     1. Definitions.\n 8  \n 9        \"License\" shall mean the terms and conditions for use, reproduction,\n10        and distribution as defined by Sections 1 through 9 of this document.\n11  \n12        \"Licensor\" shall mean the copyright owner or entity authorized by"
-          916          lineNumber: 1
-          917          variables:
-          918            matchingText: Apache
-          919        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          920          message: ""
-          921          codeSnip: "169        License. However, in accepting such obligations, You may act only\n170        on Your own behalf and on Your sole responsibility, not on behalf\n171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]"
-          922          lineNumber: 178
-          923          variables:
-          924            matchingText: Apache
-          925        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          926          message: ""
-          927          codeSnip: "171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");"
-          928          lineNumber: 180
-          929          variables:
-          930            matchingText: Apache
-          931        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          932          message: ""
-          933          codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
-          934          lineNumber: 191
-          935          variables:
+        codeSnip: '925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
         lineNumber: 924
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          918            matchingText: Apache
-          919        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          920          message: ""
-          921          codeSnip: "169        License. However, in accepting such obligations, You may act only\n170        on Your own behalf and on Your sole responsibility, not on behalf\n171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]"
-          922          lineNumber: 178
-          923          variables:
-          924            matchingText: Apache
-          925        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          926          message: ""
-          927          codeSnip: "171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");"
-          928          lineNumber: 180
-          929          variables:
-          930            matchingText: Apache
-          931        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          932          message: ""
-          933          codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
-          934          lineNumber: 191
-          935          variables:
-          936            matchingText: Apache
-          937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF
-          938          message: ""
+        codeSnip: '928          lineNumber: 180'
         lineNumber: 927
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          921          codeSnip: "169        License. However, in accepting such obligations, You may act only\n170        on Your own behalf and on Your sole responsibility, not on behalf\n171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]"
-          922          lineNumber: 178
-          923          variables:
-          924            matchingText: Apache
-          925        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          926          message: ""
-          927          codeSnip: "171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");"
-          928          lineNumber: 180
-          929          variables:
-          930            matchingText: Apache
-          931        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          932          message: ""
-          933          codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
-          934          lineNumber: 191
-          935          variables:
-          936            matchingText: Apache
-          937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF
-          938          message: ""
-          939          codeSnip: " 1  Manifest-Version: 1.0\n 2  Archiver-Version: Plexus Archiver\n 3  Created-By: Apache Maven 3.6.3\n 4  Built-By: runner\n 5  Build-Jdk: 11.0.9\n 6  \n"
-          940          lineNumber: 3
-          941          variables:
+        codeSnip: '931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
         lineNumber: 930
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          924            matchingText: Apache
-          925        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          926          message: ""
-          927          codeSnip: "171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");"
-          928          lineNumber: 180
-          929          variables:
-          930            matchingText: Apache
-          931        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          932          message: ""
-          933          codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
-          934          lineNumber: 191
-          935          variables:
-          936            matchingText: Apache
-          937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF
-          938          message: ""
-          939          codeSnip: " 1  Manifest-Version: 1.0\n 2  Archiver-Version: Plexus Archiver\n 3  Created-By: Apache Maven 3.6.3\n 4  Built-By: runner\n 5  Build-Jdk: 11.0.9\n 6  \n"
-          940          lineNumber: 3
-          941          variables:
-          942            matchingText: Apache
-          943        - uri: file:///analyzer-lsp/examples/java/beans.xml
-          944          message: ""
+        codeSnip: '934          lineNumber: 191'
         lineNumber: 933
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          927          codeSnip: "171        of any other Contributor, and only if You agree to indemnify,\n172        defend, and hold each Contributor harmless for any liability\n173        incurred by, or claims asserted against, such Contributor by reason\n174        of your accepting any such warranty or additional liability.\n175  \n176     END OF TERMS AND CONDITIONS\n177  \n178     APPENDIX: How to apply the Apache License to your work.\n179  \n180        To apply the Apache License to your work, attach the following\n181        boilerplate notice, with the fields enclosed by brackets \"[]\"\n182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");"
-          928          lineNumber: 180
-          929          variables:
-          930            matchingText: Apache
-          931        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          932          message: ""
-          933          codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
-          934          lineNumber: 191
-          935          variables:
-          936            matchingText: Apache
-          937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF
-          938          message: ""
-          939          codeSnip: " 1  Manifest-Version: 1.0\n 2  Archiver-Version: Plexus Archiver\n 3  Created-By: Apache Maven 3.6.3\n 4  Built-By: runner\n 5  Build-Jdk: 11.0.9\n 6  \n"
-          940          lineNumber: 3
-          941          variables:
-          942            matchingText: Apache
-          943        - uri: file:///analyzer-lsp/examples/java/beans.xml
-          944          message: ""
-          945          codeSnip: " 1  <?xml version=\"1.0\" encoding=\"UTF-8\"?>\n 2  <!-- \n 3   * (C) Copyright IBM Corporation 2015.\n 4   *\n 5   * Licensed under the Apache License, Version 2.0 (the \"License\");\n 6   * you may not use this file except in compliance with the License.\n 7   * You may obtain a copy of the License at\n 8   *\n 9   * http://www.apache.org/licenses/LICENSE-2.0\n10   *\n11   * Unless required by applicable law or agreed to in writing, software\n12   * distributed under the License is distributed on an \"AS IS\" BASIS,\n13   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n14   * See the License for the specific language governing permissions and\n15   * limitations under the License.\n16  -->"
-          946          lineNumber: 5
-          947          variables:
+        codeSnip: '937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
         lineNumber: 936
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          930            matchingText: Apache
-          931        - uri: file:///analyzer-lsp/examples/golang/LICENSE
-          932          message: ""
-          933          codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
-          934          lineNumber: 191
-          935          variables:
-          936            matchingText: Apache
-          937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF
-          938          message: ""
-          939          codeSnip: " 1  Manifest-Version: 1.0\n 2  Archiver-Version: Plexus Archiver\n 3  Created-By: Apache Maven 3.6.3\n 4  Built-By: runner\n 5  Build-Jdk: 11.0.9\n 6  \n"
-          940          lineNumber: 3
-          941          variables:
-          942            matchingText: Apache
-          943        - uri: file:///analyzer-lsp/examples/java/beans.xml
-          944          message: ""
-          945          codeSnip: " 1  <?xml version=\"1.0\" encoding=\"UTF-8\"?>\n 2  <!-- \n 3   * (C) Copyright IBM Corporation 2015.\n 4   *\n 5   * Licensed under the Apache License, Version 2.0 (the \"License\");\n 6   * you may not use this file except in compliance with the License.\n 7   * You may obtain a copy of the License at\n 8   *\n 9   * http://www.apache.org/licenses/LICENSE-2.0\n10   *\n11   * Unless required by applicable law or agreed to in writing, software\n12   * distributed under the License is distributed on an \"AS IS\" BASIS,\n13   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n14   * See the License for the specific language governing permissions and\n15   * limitations under the License.\n16  -->"
-          946          lineNumber: 5
-          947          variables:
-          948            matchingText: Apache
-          949        - uri: file:///analyzer-lsp/rule-example.yaml
-          950          message: ""
+        codeSnip: '940          lineNumber: 3'
         lineNumber: 939
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          933          codeSnip: "182        replaced with your own identifying information. (Don't include\n183        the brackets!)  The text should be enclosed in the appropriate\n184        comment syntax for the file format. We also recommend that a\n185        file or class name and description of purpose be included on the\n186        same \"printed page\" as the copyright notice for easier\n187        identification within third-party archives.\n188  \n189     Copyright [yyyy] [name of copyright owner]\n190  \n191     Licensed under the Apache License, Version 2.0 (the \"License\");\n192     you may not use this file except in compliance with the License.\n193     You may obtain a copy of the License at\n194  \n195         http://www.apache.org/licenses/LICENSE-2.0\n196  \n197     Unless required by applicable law or agreed to in writing, software\n198     distributed under the License is distributed on an \"AS IS\" BASIS,\n199     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n200     See the License for the specific language governing permissions and\n201     limitations under the License.\n"
-          934          lineNumber: 191
-          935          variables:
-          936            matchingText: Apache
-          937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF
-          938          message: ""
-          939          codeSnip: " 1  Manifest-Version: 1.0\n 2  Archiver-Version: Plexus Archiver\n 3  Created-By: Apache Maven 3.6.3\n 4  Built-By: runner\n 5  Build-Jdk: 11.0.9\n 6  \n"
-          940          lineNumber: 3
-          941          variables:
-          942            matchingText: Apache
-          943        - uri: file:///analyzer-lsp/examples/java/beans.xml
-          944          message: ""
-          945          codeSnip: " 1  <?xml version=\"1.0\" encoding=\"UTF-8\"?>\n 2  <!-- \n 3   * (C) Copyright IBM Corporation 2015.\n 4   *\n 5   * Licensed under the Apache License, Version 2.0 (the \"License\");\n 6   * you may not use this file except in compliance with the License.\n 7   * You may obtain a copy of the License at\n 8   *\n 9   * http://www.apache.org/licenses/LICENSE-2.0\n10   *\n11   * Unless required by applicable law or agreed to in writing, software\n12   * distributed under the License is distributed on an \"AS IS\" BASIS,\n13   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n14   * See the License for the specific language governing permissions and\n15   * limitations under the License.\n16  -->"
-          946          lineNumber: 5
-          947          variables:
-          948            matchingText: Apache
-          949        - uri: file:///analyzer-lsp/rule-example.yaml
-          950          message: ""
-          951          codeSnip: |-
-          952            59            pattern: "*CustomResourceDefinition*"
-          953            60      - java.referenced:
+        codeSnip: '943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
         lineNumber: 942
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          936            matchingText: Apache
-          937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF
-          938          message: ""
-          939          codeSnip: " 1  Manifest-Version: 1.0\n 2  Archiver-Version: Plexus Archiver\n 3  Created-By: Apache Maven 3.6.3\n 4  Built-By: runner\n 5  Build-Jdk: 11.0.9\n 6  \n"
-          940          lineNumber: 3
-          941          variables:
-          942            matchingText: Apache
-          943        - uri: file:///analyzer-lsp/examples/java/beans.xml
-          944          message: ""
-          945          codeSnip: " 1  <?xml version=\"1.0\" encoding=\"UTF-8\"?>\n 2  <!-- \n 3   * (C) Copyright IBM Corporation 2015.\n 4   *\n 5   * Licensed under the Apache License, Version 2.0 (the \"License\");\n 6   * you may not use this file except in compliance with the License.\n 7   * You may obtain a copy of the License at\n 8   *\n 9   * http://www.apache.org/licenses/LICENSE-2.0\n10   *\n11   * Unless required by applicable law or agreed to in writing, software\n12   * distributed under the License is distributed on an \"AS IS\" BASIS,\n13   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n14   * See the License for the specific language governing permissions and\n15   * limitations under the License.\n16  -->"
-          946          lineNumber: 5
-          947          variables:
-          948            matchingText: Apache
-          949        - uri: file:///analyzer-lsp/rule-example.yaml
-          950          message: ""
-          951          codeSnip: |-
-          952            59            pattern: "*CustomResourceDefinition*"
-          953            60      - java.referenced:
-          954            61            pattern: "*CustomResourceDefinition*"
-          955            62            location: TYPE
-          956            63  - tag:
+        codeSnip: '946          lineNumber: 5'
         lineNumber: 945
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          939          codeSnip: " 1  Manifest-Version: 1.0\n 2  Archiver-Version: Plexus Archiver\n 3  Created-By: Apache Maven 3.6.3\n 4  Built-By: runner\n 5  Build-Jdk: 11.0.9\n 6  \n"
-          940          lineNumber: 3
-          941          variables:
-          942            matchingText: Apache
-          943        - uri: file:///analyzer-lsp/examples/java/beans.xml
-          944          message: ""
-          945          codeSnip: " 1  <?xml version=\"1.0\" encoding=\"UTF-8\"?>\n 2  <!-- \n 3   * (C) Copyright IBM Corporation 2015.\n 4   *\n 5   * Licensed under the Apache License, Version 2.0 (the \"License\");\n 6   * you may not use this file except in compliance with the License.\n 7   * You may obtain a copy of the License at\n 8   *\n 9   * http://www.apache.org/licenses/LICENSE-2.0\n10   *\n11   * Unless required by applicable law or agreed to in writing, software\n12   * distributed under the License is distributed on an \"AS IS\" BASIS,\n13   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n14   * See the License for the specific language governing permissions and\n15   * limitations under the License.\n16  -->"
-          946          lineNumber: 5
-          947          variables:
-          948            matchingText: Apache
-          949        - uri: file:///analyzer-lsp/rule-example.yaml
-          950          message: ""
-          951          codeSnip: |-
-          952            59            pattern: "*CustomResourceDefinition*"
-          953            60      - java.referenced:
-          954            61            pattern: "*CustomResourceDefinition*"
-          955            62            location: TYPE
-          956            63  - tag:
-          957            64      - License={{matchingText}}
-          958            65    ruleID: tag-license
-          959            66    when:
+        codeSnip: '949        - uri: file:///analyzer-lsp/output.yaml'
         lineNumber: 948
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: |-
-          952            59            pattern: "*CustomResourceDefinition*"
-          953            60      - java.referenced:
-          954            61            pattern: "*CustomResourceDefinition*"
-          955            62            location: TYPE
-          956            63  - tag:
-          957            64      - License={{matchingText}}
-          958            65    ruleID: tag-license
-          959            66    when:
-          960            67      builtin.filecontent:
-          961            68        pattern: "Apache"
-          962            69  - tag:
-          963            70      - Language=Golang
-          964            71    ruleID: tag-go-000
-          965            72    when:
-          966            73      builtin.file:
-          967            74        pattern: "go.mod"
-          968            75  - tag:
-          969            76      - Infra=Kubernetes
-          970            77    ruleID: tag-k8s-000
-          971            78    when:
-          972            79      builtin.filecontent:
-        lineNumber: 961
+        codeSnip: '959             8    violations:'
+        lineNumber: 958
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        lineNumber: 975
+        codeSnip: '973        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 972
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '986            891        incidents:'
+        lineNumber: 985
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: 994            899             5   * you may not use this file except in compliance with the License.
+        lineNumber: 993
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1000        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 999
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1005            891        incidents:'
+        lineNumber: 1004
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: 1013            899             5   * you may not use this file except in compliance with the License.
+        lineNumber: 1012
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1027        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1026
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1040            913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1039
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1043            916          lineNumber: 1'
+        lineNumber: 1042
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1046            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1045
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1049            922          lineNumber: 178'
+        lineNumber: 1048
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1054        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1053
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1064            913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1063
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1067            916          lineNumber: 1'
+        lineNumber: 1066
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1070            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1069
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1073            922          lineNumber: 178'
+        lineNumber: 1072
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1076            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1075
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1081        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1080
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1088            913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1087
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1091            916          lineNumber: 1'
+        lineNumber: 1090
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1094            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1093
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1097            922          lineNumber: 178'
+        lineNumber: 1096
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1100            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1099
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1103            928          lineNumber: 180'
+        lineNumber: 1102
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1108        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1107
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1112            913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1111
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1115            916          lineNumber: 1'
+        lineNumber: 1114
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1118            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1117
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1121            922          lineNumber: 178'
+        lineNumber: 1120
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1124            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1123
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1127            928          lineNumber: 180'
+        lineNumber: 1126
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1130            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1129
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1135        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1134
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1139            916          lineNumber: 1'
+        lineNumber: 1138
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1142            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1141
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1145            922          lineNumber: 178'
+        lineNumber: 1144
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1148            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1147
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1151            928          lineNumber: 180'
+        lineNumber: 1150
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1154            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1153
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1157            934          lineNumber: 191'
+        lineNumber: 1156
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1162        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1161
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1166            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1165
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1169            922          lineNumber: 178'
+        lineNumber: 1168
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1172            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1171
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1175            928          lineNumber: 180'
+        lineNumber: 1174
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1178            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1177
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1181            934          lineNumber: 191'
+        lineNumber: 1180
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1184            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
+        lineNumber: 1183
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1189        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1188
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1193            922          lineNumber: 178'
+        lineNumber: 1192
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1196            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1195
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1199            928          lineNumber: 180'
+        lineNumber: 1198
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1202            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1201
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1205            934          lineNumber: 191'
+        lineNumber: 1204
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1208            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
+        lineNumber: 1207
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1211            940          lineNumber: 3'
+        lineNumber: 1210
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1216        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1215
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1220            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1219
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1223            928          lineNumber: 180'
+        lineNumber: 1222
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1226            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1225
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1229            934          lineNumber: 191'
+        lineNumber: 1228
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1232            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
+        lineNumber: 1231
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1235            940          lineNumber: 3'
+        lineNumber: 1234
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1238            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
+        lineNumber: 1237
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1243        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1242
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1247            928          lineNumber: 180'
+        lineNumber: 1246
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1250            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1249
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1253            934          lineNumber: 191'
+        lineNumber: 1252
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1256            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
+        lineNumber: 1255
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1259            940          lineNumber: 3'
+        lineNumber: 1258
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1262            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
+        lineNumber: 1261
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1265            946          lineNumber: 5'
+        lineNumber: 1264
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1270        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1269
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1274            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 1273
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1277            934          lineNumber: 191'
+        lineNumber: 1276
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1280            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
+        lineNumber: 1279
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1283            940          lineNumber: 3'
+        lineNumber: 1282
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1286            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
+        lineNumber: 1285
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1289            946          lineNumber: 5'
+        lineNumber: 1288
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1292            949        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1291
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1297        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1296
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1301            934          lineNumber: 191'
+        lineNumber: 1300
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1304            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
+        lineNumber: 1303
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1307            940          lineNumber: 3'
+        lineNumber: 1306
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1310            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
+        lineNumber: 1309
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1313            946          lineNumber: 5'
+        lineNumber: 1312
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1316            949        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1315
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1324        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1323
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1328            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
+        lineNumber: 1327
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1331            940          lineNumber: 3'
+        lineNumber: 1330
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1334            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
+        lineNumber: 1333
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1337            946          lineNumber: 5'
+        lineNumber: 1336
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1340            949        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1339
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1351        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1350
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1355            940          lineNumber: 3'
+        lineNumber: 1354
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1358            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
+        lineNumber: 1357
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1361            946          lineNumber: 5'
+        lineNumber: 1360
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1364            949        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1363
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1374            959             8    violations:'
+        lineNumber: 1373
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1378        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1377
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1391            959             8    violations:'
+        lineNumber: 1390
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1405        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1404
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1410        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1409
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1415        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1414
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1420        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1419
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1425        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1424
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1430        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1429
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1435        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1434
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1440        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1439
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1445        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1444
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1450        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1449
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1455        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1454
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1460        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1459
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1465        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1464
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1470        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1469
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1475        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1474
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1480        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1479
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1485        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1484
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1490        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1489
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1495        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1494
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1500        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1499
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1505        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1504
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1510        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1509
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1515        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1514
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1520        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1519
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1525        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1524
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1530        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1529
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1535        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1534
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1540        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1539
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1545        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1544
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1550        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1549
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1555        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1554
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1560        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1559
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1565        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1564
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1570        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1569
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1575        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1574
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1580        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1579
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1585        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1584
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1590        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1589
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1595        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1594
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1600        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1599
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1605        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1604
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1610        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1609
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1615        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1614
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1620        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1619
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1625        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1624
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1630        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1629
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1635        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1634
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1640        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1639
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1645        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1644
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1650        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1649
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1655        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1654
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1660        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1659
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1665        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1664
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1670        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1669
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1675        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1674
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1680        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1679
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1685        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1684
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1690        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1689
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1695        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1694
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1700        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1699
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1705        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1704
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1710        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1709
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1715        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1714
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1720        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1719
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1725        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1724
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1730        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1729
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1735        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1734
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1740        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1739
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1745        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1744
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1750        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1749
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1755        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1754
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1760        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1759
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1765        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1764
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1770        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1769
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1775        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1774
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1780        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1779
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1785        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1784
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1790        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1789
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1795        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1794
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1800        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1799
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1805        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1804
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1810        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1809
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1815        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1814
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1820        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1819
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1825        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1824
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1830        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1829
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1835        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1834
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1840        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1839
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1845        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1844
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1850        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1849
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1855        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1854
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1860        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1859
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1865        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1864
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1870        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1869
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1875        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1874
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1880        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1879
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1885        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1884
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1890        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1889
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1895        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1894
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1900        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1899
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1905        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1904
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1910        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1909
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1915        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1914
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1920        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1919
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1925        - uri: file:///analyzer-lsp/rule-example.yaml'
+        lineNumber: 1924
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1938            69  - tag:'
+        lineNumber: 1937
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1952      tech-tag-001:'
+        lineNumber: 1951
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/rule-example.yaml
         message: ""
-        codeSnip: |-
-          59            pattern: "*CustomResourceDefinition*"
-          60      - java.referenced:
-          61            pattern: "*CustomResourceDefinition*"
-          62            location: TYPE
-          63  - tag:
-          64      - License={{matchingText}}
-          65    ruleID: tag-license
-          66    when:
-          67      builtin.filecontent:
-          68        pattern: "Apache"
-          69  - tag:
-          70      - Language=Golang
-          71    ruleID: tag-go-000
-          72    when:
-          73      builtin.file:
-          74        pattern: "go.mod"
-          75  - tag:
-          76      - Infra=Kubernetes
-          77    ruleID: tag-k8s-000
-          78    when:
-          79      builtin.filecontent:
+        codeSnip: '69  - tag:'
         lineNumber: 68
         variables:
           matchingText: Apache

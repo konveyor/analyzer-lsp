@@ -16,6 +16,8 @@ import (
 	"github.com/konveyor/analyzer-lsp/engine"
 	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
+	"github.com/konveyor/analyzer-lsp/progress"
+	"github.com/konveyor/analyzer-lsp/progress/reporter"
 	"github.com/konveyor/analyzer-lsp/provider/grpc/socket"
 	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"go.lsp.dev/uri"
@@ -30,6 +32,10 @@ import (
 const (
 	JWT_SECRET_ENV_VAR = "JWT_SECRET"
 )
+
+type progressSetter interface {
+	SetProgress(progress *progress.Progress)
+}
 
 type Server interface {
 	// This will start the GRPC server and will wait until the context is cancelled.
@@ -47,9 +53,11 @@ type server struct {
 	SecretKey           string
 	SocketPath          string
 
-	mutex   sync.RWMutex
-	clients map[int64]clientMapItem
-	rand    rand.Rand
+	mutex           sync.RWMutex
+	clients         map[int64]clientMapItem
+	rand            rand.Rand
+	progress        *progress.Progress
+	channelReporter *reporter.ChannelReporter
 	libgrpc.UnimplementedProviderCodeLocationServiceServer
 	libgrpc.UnimplementedProviderDependencyLocationServiceServer
 	libgrpc.UnimplementedProviderServiceServer
@@ -82,6 +90,16 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, sec
 		secretKey = os.Getenv(JWT_SECRET_ENV_VAR)
 	}
 
+	channelReport := reporter.NewChannelReporter(context.Background(), reporter.WithLogger(logger.WithName("channel-reporter")))
+	p, err := progress.New(progress.WithReporters(channelReport))
+	if err != nil {
+		return nil
+	}
+
+	if settable, ok := client.(progressSetter); ok {
+		settable.SetProgress(p)
+	}
+
 	return &server{
 		Client:                             client,
 		Port:                               port,
@@ -96,6 +114,8 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, sec
 		rand:                               *rand.New(s),
 		DepLocationResolver:                depLocationResolver,
 		CodeSnipeResolver:                  codeSnip,
+		progress:                           p,
+		channelReporter:                    channelReport,
 	}
 }
 
@@ -590,38 +610,22 @@ func (s *server) NotifyFileChanges(ctx context.Context, in *libgrpc.NotifyFileCh
 }
 
 func (s *server) StreamPrepareProgress(in *libgrpc.PrepareProgressRequest, stream libgrpc.ProviderService_StreamPrepareProgressServer) error {
-	s.mutex.RLock()
-	client, ok := s.clients[in.Id]
-	s.mutex.RUnlock()
-
-	if !ok {
-		return nil
-	}
-
-	// Check if client supports progress streaming
-	streamer, ok := client.client.(PrepareProgressStreamer)
-	if !ok {
-		// Not an error, client just doesn't support streaming
-		return nil
-	}
-
-	// Start the progress stream
-	progressChan := streamer.StartProgressStream()
-	defer streamer.StopProgressStream()
-
 	// Stream events to the GRPC client
-	for event := range progressChan {
+	for event := range s.channelReporter.Events() {
+		if event.Stage != progress.StageProviderPrepare {
+			return nil
+		}
+		name, _ := event.Metadata["providerName"].(string)
 		pbEvent := &libgrpc.ProgressEvent{
 			Type:           libgrpc.ProgressEventType_PREPARE,
-			ProviderName:   event.ProviderName,
-			FilesProcessed: int32(event.FilesProcessed),
-			TotalFiles:     int32(event.TotalFiles),
+			ProviderName:   name,
+			FilesProcessed: int32(event.Current),
+			TotalFiles:     int32(event.Total),
 		}
 		if err := stream.Send(pbEvent); err != nil {
 			s.Log.Error(err, "failed to send progress event")
 			return err
 		}
 	}
-
 	return nil
 }
