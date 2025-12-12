@@ -93,6 +93,9 @@ func (g *GenericServiceClientBuilder) Init(ctx context.Context, log logr.Logger,
 		params.InitializationOptions = InitializationOptions
 	}
 
+	if g.Progress == nil {
+		fmt.Printf("HALKSJHLJF")
+	}
 	// Initialize the base client
 	scBase, err := base.NewLSPServiceClientBase(
 		ctx, log, c,

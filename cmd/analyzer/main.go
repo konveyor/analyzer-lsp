@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 	"sync"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
@@ -28,21 +27,15 @@ const (
 )
 
 var (
-	settingsFile      string
-	rulesFile         []string
+	// AnalyzerConfig holds the analyzer configuration
+	analyzerConfig = &konveyor.AnalyzerConfig{}
+
+	// Additional CLI-specific flags
 	outputViolations  string
 	errorOnViolations bool
-	labelSelector     string
-	depLabelSelector  string
-	incidentSelector  string
 	logLevel          int
 	enableJaeger      bool
 	jaegerEndpoint    string
-	limitIncidents    int
-	limitCodeSnips    int
-	analysisMode      string
-	noDependencyRules bool
-	contextLines      int
 	getOpenAPISpec    string
 	treeOutput        bool
 	depOutputFile     string
@@ -79,7 +72,7 @@ func AnalysisCmd() *cobra.Command {
 			// setting verbose 2 -> V(3) logs show up
 			// setting verbose 3 -> .V(4) I believe show up
 			// setting verbose 4 -> .V(5) I believe show up
-			logrusLog.SetLevel(logrus.Level(logLevel + 5))
+			logrusLog.SetLevel(logrus.Level(logLevel + 4))
 			log := logrusr.New(logrusLog)
 			// This will globally prevent the yaml library from auto-wrapping lines at 80 characters
 			yaml.FutureLineWrap()
@@ -95,19 +88,15 @@ func AnalysisCmd() *cobra.Command {
 				progress.WithContext(ctx),
 			)
 
-			analyzer, err := konveyor.NewAnalyzer(
+			// Build options from config and add CLI-specific options
+			options := analyzerConfig.ToOptions()
+			options = append(options,
 				konveyor.WithLogger(log),
-				konveyor.WithProviderConfigFilePath(settingsFile),
-				konveyor.WithRuleFilepaths(rulesFile),
-				konveyor.WithLabelSelector(labelSelector),
-				konveyor.WithDepLabelSelector(depLabelSelector),
-				konveyor.WithIncidentSelector(incidentSelector),
-				konveyor.WithIncidentLimit(limitIncidents),
-				konveyor.WithCodeSnipLimit(limitCodeSnips),
-				konveyor.WithContextLinesLimit(contextLines),
-				konveyor.WithAnalysisMode(analysisMode),
+				konveyor.WithContext(ctx),
 				konveyor.WithProgress(analyzerProgress),
 			)
+
+			analyzer, err := konveyor.NewAnalyzer(options...)
 
 			if err != nil {
 				errLog.Error(err, "Unable to create new Analyzer")
@@ -175,21 +164,22 @@ func AnalysisCmd() *cobra.Command {
 		},
 	}
 
-	rootCmd.Flags().StringVar(&settingsFile, "provider-settings", "provider_settings.json", "path to the provider settings")
-	rootCmd.Flags().StringArrayVar(&rulesFile, "rules", []string{"rule-example.yaml"}, "filename or directory containing rule files")
+	// Add analyzer configuration flags
+	analyzerConfig.AddFlags(rootCmd)
+
+	// Set default values for analyzer config
+	rootCmd.Flags().Lookup("provider-settings").DefValue = "provider_settings.json"
+	rootCmd.Flags().Lookup("rules").DefValue = "rule-example.yaml"
+	rootCmd.Flags().Lookup("incident-limit").DefValue = "1500"
+	rootCmd.Flags().Lookup("code-snip-limit").DefValue = "20"
+	rootCmd.Flags().Lookup("context-lines").DefValue = "10"
+
+	// Add CLI-specific flags
 	rootCmd.Flags().StringVar(&outputViolations, "output-file", "output.yaml", "filepath to to store rule violations")
 	rootCmd.Flags().BoolVar(&errorOnViolations, "error-on-violation", false, "exit with 3 if any violation are found will also print violations to console")
-	rootCmd.Flags().StringVar(&labelSelector, "label-selector", "", "an expression to select rules based on labels")
-	rootCmd.Flags().StringVar(&depLabelSelector, "dep-label-selector", "", "an expression to select dependencies based on labels. This will filter out the violations from these dependencies as well these dependencies when matching dependency conditions")
-	rootCmd.Flags().StringVar(&incidentSelector, "incident-selector", "", "an expression to select incidents based on custom variables. ex: (!package=io.konveyor.demo.config-utils)")
 	rootCmd.Flags().IntVar(&logLevel, "verbose", 0, "level for logging output")
 	rootCmd.Flags().BoolVar(&enableJaeger, "enable-jaeger", false, "enable tracer exports to jaeger endpoint")
 	rootCmd.Flags().StringVar(&jaegerEndpoint, "jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
-	rootCmd.Flags().IntVar(&limitIncidents, "limit-incidents", 1500, "Set this to the limit incidents that a given rule can give, zero means no limit")
-	rootCmd.Flags().IntVar(&limitCodeSnips, "limit-code-snips", 20, "limit the number code snippets that are retrieved for a file while evaluating a rule, 0 means no limit")
-	rootCmd.Flags().StringVar(&analysisMode, "analysis-mode", "", "select one of full or source-only to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
-	rootCmd.Flags().BoolVar(&noDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
-	rootCmd.Flags().IntVar(&contextLines, "context-lines", 10, "When violation occurs, A part of source code is added to the output, So this flag configures the number of source code lines to be printed to the output.")
 	rootCmd.Flags().StringVar(&getOpenAPISpec, "get-openapi-spec", "", "Get the openAPI spec for the rulesets, rules and provider capabilities and put in file passed in.")
 	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
 	rootCmd.Flags().StringVar(&depOutputFile, "dep-output-file", "", "path to dependency output file")
@@ -208,24 +198,21 @@ func main() {
 }
 
 func validateFlags() error {
-	_, err := os.Stat(settingsFile)
+	_, err := os.Stat(analyzerConfig.ProviderSettings)
 	if err != nil {
 		return fmt.Errorf("unable to find provider settings file")
 	}
 
 	if getOpenAPISpec == "" {
-		for _, f := range rulesFile {
+		for _, f := range analyzerConfig.Rules {
 			_, err = os.Stat(f)
 			if err != nil {
 				return fmt.Errorf("unable to find rule path or file")
 			}
 		}
 	}
-	m := provider.AnalysisMode(strings.ToLower(analysisMode))
-	if analysisMode != "" && !(m == provider.FullAnalysisMode || m == provider.SourceOnlyAnalysisMode) {
-		return fmt.Errorf("must select one of %s or %s for analysis mode", provider.FullAnalysisMode, provider.SourceOnlyAnalysisMode)
-	}
 
+	// Note: Analysis mode validation is now handled by WithAnalysisMode option function
 	return nil
 }
 

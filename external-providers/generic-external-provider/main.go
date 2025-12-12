@@ -56,7 +56,7 @@ func main() {
 		// panic(fmt.Errorf("must pass in the name of the lsp server"))
 	}
 
-	client := generic_external_provider.NewGenericProvider(*lspServerName, log)
+	client := generic_external_provider.NewGenericProvider(*lspServerName, log, nil)
 
 	if (socket == nil || *socket == "") && (port == nil || *port == 0) {
 		log.Error(fmt.Errorf("no serving location"), "port or socket must be set.")

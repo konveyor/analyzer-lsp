@@ -274,6 +274,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	if len(incidents) == 0 {
 		return resp{Matched: false}, nil
 	}
+	sc.Log.Info("incidents for referenced condition", "incidents", len(incidents), "condition", query)
 	return resp{
 		Matched:   true,
 		Incidents: incidents,

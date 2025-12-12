@@ -1,6 +1,79 @@
 - name: konveyor-analysis
-  unmatched:
-  - node-sample-rule-001
-  - node-sample-rule-002
-  - node-sample-rule-003
-  - test-tsx-support-00010
+  violations:
+    node-sample-rule-001:
+      description: Testing that the node provider works - type
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/nodejs/test_a.ts
+        message: nodejs sample rule 001
+        codeSnip: '7    name: "Person1",'
+        lineNumber: 6
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/test_a.ts
+      - uri: file:///analyzer-lsp/examples/nodejs/test_b.ts
+        message: nodejs sample rule 001
+        codeSnip: '2  '
+        lineNumber: 1
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/test_b.ts
+      - uri: file:///analyzer-lsp/examples/nodejs/test_b.ts
+        message: nodejs sample rule 001
+        lineNumber: 3
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/test_b.ts
+      effort: 1
+    node-sample-rule-002:
+      description: Testing that the node provider works - function
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/nodejs/test_a.ts
+        message: nodejs sample rule 002
+        codeSnip: 4  }
+        lineNumber: 3
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/test_a.ts
+      - uri: file:///analyzer-lsp/examples/nodejs/test_a.ts
+        message: nodejs sample rule 002
+        codeSnip: 9      return `Hello, I'm ${this.name}`;
+        lineNumber: 8
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/test_a.ts
+      - uri: file:///analyzer-lsp/examples/nodejs/test_b.ts
+        message: nodejs sample rule 002
+        lineNumber: 3
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/test_b.ts
+      effort: 1
+    node-sample-rule-003:
+      description: Testing that the node module files are not matched
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/nodejs/test_b.ts
+        message: nodejs sample rule 003
+        lineNumber: 3
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/test_b.ts
+      effort: 1
+    test-tsx-support-00010:
+      description: Test that nodejs provider can find references in TypeScript/React files
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/nodejs/Component.tsx
+        message: Found React reference using nodejs provider
+        codeSnip: '2  '
+        lineNumber: 1
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/Component.tsx
+      - uri: file:///analyzer-lsp/examples/nodejs/Component.tsx
+        message: Found React reference using nodejs provider
+        codeSnip: 4    return <div>Hello from TypeScript React</div>;
+        lineNumber: 3
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/Component.tsx
+      - uri: file:///analyzer-lsp/examples/nodejs/LegacyComponent.jsx
+        message: Found React reference using nodejs provider
+        codeSnip: '2  '
+        lineNumber: 1
+        variables:
+          file: file:///analyzer-lsp/examples/nodejs/LegacyComponent.jsx
+      effort: 1

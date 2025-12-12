@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -73,6 +74,7 @@ func NewThrottledCollector(stageName progress.Stage) *ThrottledCollector {
 		throttleInterval: 500 * time.Millisecond,
 		id:               rand.Int(),
 		streamChan:       make(chan progress.Event, 100),
+		reportMutex:      sync.Mutex{},
 	}
 }
 
@@ -108,6 +110,8 @@ func (t *ThrottledCollector) Report(event progress.Event) {
 		if r := recover(); r != nil {
 			// Channel was closed during send, ignore the panic
 			// This can happen during shutdown
+			fmt.Printf("recover panic: %v", r)
+			t.reportMutex.Unlock()
 		}
 	}()
 
