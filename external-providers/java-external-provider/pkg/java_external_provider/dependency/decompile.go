@@ -2,6 +2,7 @@ package dependency
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -307,7 +308,7 @@ func (d *decompiler) DecompileIntoProject(ctx context.Context, artifactPath, pro
 	cancelFunc()
 
 	if len(errs) > 0 {
-		return artifacts, errs[0]
+		return artifacts, errors.Join(errs...)
 	}
 
 	return artifacts, nil

@@ -49,7 +49,6 @@ type Progress struct {
 	ctx                context.Context
 	reporters          []Reporter
 	reporterChannels   []chan Event
-	reporterWG         sync.WaitGroup
 	collectors         []Collector
 	collectorChan      chan Event
 	collecterCancelMap map[int]context.CancelFunc
@@ -134,13 +133,15 @@ func WithCollectors(collectors ...Collector) ProgressOption {
 //	)
 func New(opts ...ProgressOption) (*Progress, error) {
 	pg := &Progress{
-		reporterWG:         sync.WaitGroup{},
 		collectorChan:      make(chan Event, 100),
 		collecterCancelMap: map[int]context.CancelFunc{},
 		subscribeMutex:     sync.Mutex{},
 	}
 	for _, opt := range opts {
 		opt(pg)
+	}
+	if pg.ctx == nil {
+		pg.ctx = context.Background()
 	}
 
 	if len(pg.reporters) == 0 {
@@ -149,7 +150,6 @@ func New(opts ...ProgressOption) (*Progress, error) {
 	}
 
 	for _, reporter := range pg.reporters {
-		pg.reporterWG.Add(1)
 		reporterChannel := make(chan Event, 100)
 		pg.reporterChannels = append(pg.reporterChannels, reporterChannel)
 		go pg.reporterWorker(reporter, reporterChannel)
@@ -216,7 +216,6 @@ func (p *Progress) Subscribe(collector Collector) {
 // slow reporters from blocking event collection. The worker stops when the
 // Progress context is cancelled.
 func (p *Progress) reporterWorker(reporter Reporter, events chan Event) {
-	defer p.reporterWG.Done()
 	for {
 		select {
 		case event := <-events:

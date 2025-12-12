@@ -7,6 +7,7 @@ The `konveyor` package provides a high-level, programmatic API for running analy
 - [Overview](#overview)
 - [Quick Start](#quick-start)
 - [Core Concepts](#core-concepts)
+- [Option Validation](#option-validation)
 - [API Reference](#api-reference)
 - [Usage Examples](#usage-examples)
 - [Advanced Topics](#advanced-topics)
@@ -155,6 +156,88 @@ The engine:
 - Collects violations and incidents
 - Returns results as RuleSets
 
+## Option Validation
+
+The konveyor package implements comprehensive validation for analyzer options. Validation errors are caught early during `NewAnalyzer()` initialization, preventing runtime issues and providing clear error messages.
+
+### Validated Options
+
+The following options have validation constraints:
+
+#### File Path Options
+
+**`WithRuleFilepaths(rules []string)`**
+- Validates: Non-empty array
+- Validates: Each individual path is not empty
+- Returns error: "rule filepaths cannot be empty" if array is empty
+- Returns error: "rule filepath at index X is empty" if any path is empty
+
+**`WithProviderConfigFilePath(path string)`**
+- Validates: Non-empty path
+- Returns error: "provider config file path cannot be empty"
+
+#### Numeric Limit Options
+
+**`WithIncidentLimit(limit int)`**
+- Validates: Non-negative value (>= 0)
+- Returns error: "incident limit must be non-negative, got: X"
+
+**`WithCodeSnipLimit(limit int)`**
+- Validates: Non-negative value (>= 0)
+- Returns error: "code snippet limit must be non-negative, got: X"
+
+**`WithContextLinesLimit(limit int)`**
+- Validates: Non-negative value (>= 0)
+- Returns error: "context lines limit must be non-negative, got: X"
+
+#### Mode Options
+
+**`WithAnalysisMode(mode string)`**
+- Validates: Must be "full", "source-only", or empty string
+- Empty string is allowed (uses default mode)
+- Returns error: "invalid analysis mode: X (valid values: full or source-only)"
+
+#### Context Options
+
+**`WithContext(ctx context.Context)`**
+- Validates: Context must not be nil
+- Returns error: "context cannot be nil"
+- Note: If not provided, `context.Background()` is used automatically
+
+#### Selector Options
+
+**`WithLabelSelector(selector string)`**
+- Selector syntax is validated during analyzer initialization
+- Returns error if selector syntax is invalid
+- See [labels.md](labels.md) for selector syntax
+
+### Validation Behavior
+
+All validation errors are collected during `NewAnalyzer()` and returned as a combined error:
+
+```go
+analyzer, err := konveyor.NewAnalyzer(
+    konveyor.WithIncidentLimit(-1),           // Invalid: negative
+    konveyor.WithAnalysisMode("invalid"),      // Invalid: unknown mode
+    konveyor.WithRuleFilepaths([]string{}),   // Invalid: empty array
+)
+if err != nil {
+    // err contains all validation errors combined
+    log.Fatalf("Validation failed: %v", err)
+}
+```
+
+### Options Without Validation
+
+The following options accept any value and do not perform validation:
+
+- `WithDepLabelSelector(selector)` - Accepts any string
+- `WithIncidentSelector(selector)` - Accepts any string
+- `WithDependencyRulesDisabled()` - No parameters
+- `WithLogger(log)` - Accepts any logger
+- `WithProgress(progress)` - Accepts any progress tracker
+- `WithReporters(reporters...)` - Accepts any reporters
+
 ## API Reference
 
 ### Creating an Analyzer
@@ -165,22 +248,24 @@ Creates a new analyzer instance.
 
 **Options:**
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| `WithLogger(log)` | Set the logger | `konveyor.WithLogger(logr.Logger)` |
-| `WithProviderConfigFilePath(path)` | Path to provider settings | `konveyor.WithProviderConfigFilePath("settings.json")` |
-| `WithRuleFilepaths(paths)` | Paths to rule files/directories | `konveyor.WithRuleFilepaths([]string{"rules/"})` |
-| `WithLabelSelector(selector)` | Filter rules by labels | `konveyor.WithLabelSelector("konveyor.io/target=quarkus")` |
-| `WithDepLabelSelector(selector)` | Filter dependencies by labels | `konveyor.WithDepLabelSelector("konveyor.io/dep=critical")` |
-| `WitIncidentSelector(selector)` | Filter incidents by custom variables | `konveyor.WitIncidentSelector("(!package=io.konveyor)")` |
-| `WithIncidentLimit(n)` | Max incidents per rule (0=unlimited) | `konveyor.WithIncidentLimit(1500)` |
-| `WithCodeSnipLimit(n)` | Max code snippets per file (0=unlimited) | `konveyor.WithCodeSnipLimit(20)` |
-| `WithContextLinesLimit(n)` | Lines of context in violations | `konveyor.WithContextLinesLimit(10)` |
-| `WithAnalysisMode(mode)` | "full" or "source-only" | `konveyor.WithAnalysisMode("full")` |
-| `WithDependencyRulesDisabled()` | Disable dependency analysis | `konveyor.WithDependencyRulesDisabled()` |
-| `WithContext(ctx)` | Set context for cancellation | `konveyor.WithContext(ctx)` |
-| `WithProgress(progress)` | Custom progress tracker | `konveyor.WithProgress(p)` |
-| `WithReporters(reporters...)` | Progress reporters | `konveyor.WithReporters(r1, r2)` |
+| Option | Description | Validated | Example |
+|--------|-------------|-----------|---------|
+| `WithLogger(log)` | Set the logger | No | `konveyor.WithLogger(logr.Logger)` |
+| `WithProviderConfigFilePath(path)` | Path to provider settings | Yes (non-empty) | `konveyor.WithProviderConfigFilePath("settings.json")` |
+| `WithRuleFilepaths(paths)` | Paths to rule files/directories | Yes (non-empty array, non-empty paths) | `konveyor.WithRuleFilepaths([]string{"rules/"})` |
+| `WithLabelSelector(selector)` | Filter rules by labels | Yes (syntax) | `konveyor.WithLabelSelector("konveyor.io/target=quarkus")` |
+| `WithDepLabelSelector(selector)` | Filter dependencies by labels | No | `konveyor.WithDepLabelSelector("konveyor.io/dep=critical")` |
+| `WithIncidentSelector(selector)` | Filter incidents by custom variables | No | `konveyor.WithIncidentSelector("(!package=io.konveyor)")` |
+| `WithIncidentLimit(n)` | Max incidents per rule (0=unlimited) | Yes (>= 0) | `konveyor.WithIncidentLimit(1500)` |
+| `WithCodeSnipLimit(n)` | Max code snippets per file (0=unlimited) | Yes (>= 0) | `konveyor.WithCodeSnipLimit(20)` |
+| `WithContextLinesLimit(n)` | Lines of context in violations | Yes (>= 0) | `konveyor.WithContextLinesLimit(10)` |
+| `WithAnalysisMode(mode)` | "full" or "source-only" | Yes (known modes) | `konveyor.WithAnalysisMode("full")` |
+| `WithDependencyRulesDisabled()` | Disable dependency analysis | No | `konveyor.WithDependencyRulesDisabled()` |
+| `WithContext(ctx)` | Set context for cancellation | Yes (non-nil) | `konveyor.WithContext(ctx)` |
+| `WithProgress(progress)` | Custom progress tracker | No | `konveyor.WithProgress(p)` |
+| `WithReporters(reporters...)` | Progress reporters | No | `konveyor.WithReporters(r1, r2)` |
+
+See [Option Validation](#option-validation) for details on validation constraints and error messages.
 
 ### Parsing Rules
 
@@ -351,7 +436,64 @@ func main() {
 }
 ```
 
-### Example 2: With Label Filtering
+### Example 2: Using AnalyzerConfig with Cobra
+
+For cobra-based CLIs, use `AnalyzerConfig` to easily bind command-line flags:
+
+```go
+package main
+
+import (
+    "log"
+
+    "github.com/konveyor/analyzer-lsp/konveyor"
+    "github.com/spf13/cobra"
+)
+
+func main() {
+    config := &konveyor.AnalyzerConfig{}
+
+    cmd := &cobra.Command{
+        Use:   "analyze",
+        Short: "Run analysis on the codebase",
+        RunE: func(cmd *cobra.Command, args []string) error {
+            // Create analyzer from config
+            analyzer, err := konveyor.NewAnalyzer(config.ToOptions()...)
+            if err != nil {
+                return err
+            }
+            defer analyzer.Stop()
+
+            // Parse rules
+            if _, err = analyzer.ParseRules(); err != nil {
+                return err
+            }
+
+            // Start providers
+            if err = analyzer.ProviderStart(); err != nil {
+                return err
+            }
+
+            // Run analysis
+            results := analyzer.Run()
+            log.Printf("Analysis complete: %d rulesets", len(results))
+
+            return nil
+        },
+    }
+
+    // Add all analyzer flags to the command
+    config.AddFlags(cmd)
+
+    if err := cmd.Execute(); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+Now users can run: `analyzer --provider-settings=settings.json --rules=rules/ --incident-limit=1500`
+
+### Example 3: With Label Filtering
 
 ```go
 analyzer, err := konveyor.NewAnalyzer(
@@ -365,7 +507,7 @@ analyzer, err := konveyor.NewAnalyzer(
 results := analyzer.Run()
 ```
 
-### Example 3: Custom Progress Reporting
+### Example 4: Custom Progress Reporting
 
 ```go
 import (
@@ -386,7 +528,7 @@ analyzer, err := konveyor.NewAnalyzer(
 // Progress will be reported to stdout
 ```
 
-### Example 4: Error Handling and Validation
+### Example 5: Error Handling and Validation
 
 ```go
 analyzer, err := konveyor.NewAnalyzer(
@@ -415,7 +557,7 @@ if len(results) > 0 {
 }
 ```
 
-### Example 5: Dynamic Rule Paths
+### Example 6: Dynamic Rule Paths
 
 ```go
 analyzer, err := konveyor.NewAnalyzer(
@@ -430,7 +572,7 @@ err = analyzer.ProviderStart()
 results := analyzer.Run()
 ```
 
-### Example 6: Context Cancellation
+### Example 7: Context Cancellation
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
@@ -446,7 +588,7 @@ defer analyzer.Stop()
 // Analysis will be cancelled after 30 minutes
 ```
 
-### Example 7: Source-Only Analysis
+### Example 8: Source-Only Analysis
 
 ```go
 analyzer, err := konveyor.NewAnalyzer(
@@ -504,7 +646,7 @@ See [labels.md](labels.md) for label selector syntax.
 Incident selectors filter violations based on custom variables:
 
 ```go
-konveyor.WitIncidentSelector("(!package=io.konveyor.demo.config-utils)")
+konveyor.WithIncidentSelector("(!package=io.konveyor.demo.config-utils)")
 ```
 
 See [incident_selector.md](incident_selector.md) for syntax details.
@@ -527,6 +669,15 @@ results := analyzer.Run(
 ### Error Handling
 
 The package uses Go's standard error handling. Errors can occur at each phase:
+
+**Validation errors (during NewAnalyzer):**
+- Empty or invalid file paths
+- Negative limit values
+- Invalid analysis mode
+- Nil context
+- Invalid label selector syntax
+
+All validation errors are collected and returned as a combined error. See [Option Validation](#option-validation) for details.
 
 **Initialization errors:**
 - Invalid provider settings file
