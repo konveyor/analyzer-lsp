@@ -232,7 +232,7 @@ func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provi
 		g.streamPrepareProgress(streamContext, &ready)
 	}()
 	// Execute Prepare with progress streaming if configured
-
+	ready.Wait()
 	prepareResponse, err := g.client.Prepare(ctx, prepareRequest)
 	streamCancel()
 	if err != nil {
@@ -241,6 +241,7 @@ func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provi
 	if prepareResponse.Error != "" {
 		return fmt.Errorf(prepareResponse.Error)
 	}
+	g.log.Info("finished prepare")
 	return nil
 }
 

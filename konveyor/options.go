@@ -105,6 +105,7 @@ func WithRuleFilepaths(rules []string) AnalyzerOption {
 		return nil
 	}
 }
+
 // WithProviderConfigFilePath sets the path to the provider configuration file.
 //
 // Validation:
@@ -120,6 +121,7 @@ func WithProviderConfigFilePath(providerConfigFilePath string) AnalyzerOption {
 		return
 	}
 }
+
 // WithLabelSelector sets the label selector for filtering rules.
 // The selector syntax is validated during analyzer initialization.
 func WithLabelSelector(labelSelector string) AnalyzerOption {
@@ -128,6 +130,7 @@ func WithLabelSelector(labelSelector string) AnalyzerOption {
 		return
 	}
 }
+
 // WithDepLabelSelector sets the label selector for filtering dependency rules.
 func WithDepLabelSelector(selector string) AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
@@ -135,6 +138,7 @@ func WithDepLabelSelector(selector string) AnalyzerOption {
 		return
 	}
 }
+
 // WithIncidentSelector sets the selector for filtering incidents in the analysis results.
 func WithIncidentSelector(selector string) AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
@@ -142,6 +146,7 @@ func WithIncidentSelector(selector string) AnalyzerOption {
 		return
 	}
 }
+
 // WithIncidentLimit sets the maximum number of incidents to report per rule.
 //
 // Validation:
@@ -157,6 +162,7 @@ func WithIncidentLimit(limit int) AnalyzerOption {
 		return
 	}
 }
+
 // WithCodeSnipLimit sets the maximum number of characters to include in code snippets.
 //
 // Validation:
@@ -172,6 +178,7 @@ func WithCodeSnipLimit(limit int) AnalyzerOption {
 		return
 	}
 }
+
 // WithContextLinesLimit sets the number of context lines to include around code snippets.
 //
 // Validation:
@@ -187,6 +194,7 @@ func WithContextLinesLimit(limit int) AnalyzerOption {
 		return
 	}
 }
+
 // WithAnalysisMode sets the analysis mode for the analyzer.
 //
 // Validation:
@@ -209,6 +217,7 @@ func WithAnalysisMode(mode string) AnalyzerOption {
 		return
 	}
 }
+
 // WithDependencyRulesDisabled disables dependency analysis rules.
 func WithDependencyRulesDisabled() AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
@@ -216,6 +225,7 @@ func WithDependencyRulesDisabled() AnalyzerOption {
 		return
 	}
 }
+
 // WithLogger sets a custom logger for the analyzer.
 // If not provided, a discard logger will be used.
 func WithLogger(log logr.Logger) AnalyzerOption {
@@ -224,6 +234,7 @@ func WithLogger(log logr.Logger) AnalyzerOption {
 		return
 	}
 }
+
 // WithContext sets a custom context for the analyzer.
 //
 // Validation:
@@ -240,6 +251,7 @@ func WithContext(ctx context.Context) AnalyzerOption {
 		return
 	}
 }
+
 // WithProgress sets a custom progress tracker for the analyzer.
 // If not provided, a new progress tracker will be created automatically.
 func WithProgress(progress *progress.Progress) AnalyzerOption {
@@ -248,6 +260,7 @@ func WithProgress(progress *progress.Progress) AnalyzerOption {
 		return
 	}
 }
+
 // WithReporters sets custom progress reporters for the analyzer.
 // Multiple reporters can be provided to receive progress updates.
 func WithReporters(reporters ...progress.Reporter) AnalyzerOption {

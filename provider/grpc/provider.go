@@ -367,11 +367,12 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// For right now, the only progress reported by a init config will be the
 	// provider prepare
 	collector := collector.NewThrottledCollector(progress.StageProviderPrepare)
+	g.progress.Subscribe(collector)
 	return &grpcServiceClient{
 		id:     r.Id,
 		config: config,
 		client: g.Client,
-		log:    log.WithName("grpcServiceClient"),
+		log:    log.WithName("grpcServiceClient").WithValues("location", config.Location),
 		// Note this is a collector
 		// But we only need the reporter interface
 		reporter: collector,

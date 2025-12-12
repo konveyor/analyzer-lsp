@@ -28,6 +28,8 @@ func setupProviderConfigs(providerConfigs []provider.Config) ([]provider.Config,
 			if err != nil {
 				continue
 			}
+			// If a extra config is sent back but a builtin config is also passed to use
+			// Then we should overwrite the config with the builtin one.
 			if builtinConfig, ok := defaultBuiltinConfigs[location]; ok {
 				if config.Name == "builtin" {
 					builtinConfig.ProviderSpecificConfig = initConfig.ProviderSpecificConfig
