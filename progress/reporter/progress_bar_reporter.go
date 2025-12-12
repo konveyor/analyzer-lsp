@@ -113,12 +113,11 @@ func (p *ProgressBarReporter) Report(event progress.Event) {
 			fmt.Fprintf(p.writer, "Loaded %d rules\n", event.Total)
 		}
 
-	case StageProviderPrepare:
+	case progress.StageProviderPrepare:
 		if event.Total > 0 {
 			p.updateProviderPrepareBar(event)
 		}
 
-	case StageRuleExecution:
 	case progress.StageRuleExecution:
 		if event.Total > 0 {
 			p.updateProgressBar(event)
@@ -182,7 +181,7 @@ func (p *ProgressBarReporter) updateProgressBar(event progress.Event) {
 // updateProviderPrepareBar renders and updates the visual progress bar for provider preparation.
 //
 // Format: Preparing nodejs provider  92% |███████████████████████░░| 546/592 files
-func (p *ProgressBarReporter) updateProviderPrepareBar(event ProgressEvent) {
+func (p *ProgressBarReporter) updateProviderPrepareBar(event progress.Event) {
 	// Build the progress bar string
 	barString := p.buildProviderPrepareBar(event)
 
@@ -212,7 +211,7 @@ func (p *ProgressBarReporter) updateProviderPrepareBar(event ProgressEvent) {
 // buildProviderPrepareBar constructs the provider preparation progress bar string.
 //
 // Returns a string like: "Preparing nodejs provider  92% |███████████████████████░░| 546/592 files"
-func (p *ProgressBarReporter) buildProviderPrepareBar(event ProgressEvent) string {
+func (p *ProgressBarReporter) buildProviderPrepareBar(event progress.Event) string {
 	// Calculate filled portion of the bar
 	filledWidth := int(float64(p.barWidth) * event.Percent / 100.0)
 	if filledWidth > p.barWidth {

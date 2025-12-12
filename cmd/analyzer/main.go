@@ -101,12 +101,11 @@ func AnalysisCmd() *cobra.Command {
 				konveyor.WithRuleFilepaths(rulesFile),
 				konveyor.WithLabelSelector(labelSelector),
 				konveyor.WithDepLabelSelector(depLabelSelector),
-				konveyor.WitIncidentSelector(incidentSelector),
+				konveyor.WithIncidentSelector(incidentSelector),
 				konveyor.WithIncidentLimit(limitIncidents),
 				konveyor.WithCodeSnipLimit(limitCodeSnips),
 				konveyor.WithContextLinesLimit(contextLines),
 				konveyor.WithAnalysisMode(analysisMode),
-				konveyor.WitIncidentSelector(incidentSelector),
 				konveyor.WithProgress(analyzerProgress),
 			)
 

@@ -1,7 +1,6 @@
 - name: konveyor-analysis
-  errors:
-    test-tsx-support-00010: 'failed to perform search - failed to walk all dirs - lstat : no such file or directory'
   unmatched:
   - node-sample-rule-001
   - node-sample-rule-002
   - node-sample-rule-003
+  - test-tsx-support-00010
