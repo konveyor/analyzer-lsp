@@ -102,7 +102,14 @@
     java.referenced:
       pattern: io.konveyor.demo.ordermanagement.repository.CustomerRepository
       location: FIELD
-
+- category: mandatory
+  description: Sample field declaration rule (field_declaration)
+  message: "Field found"
+  ruleID: field-rule-00002
+  when:
+    java.referenced:
+      pattern: io.konveyor.demo.ordermanagement.repository.CustomerRepository
+      location: FIELD_DECLARATION
 - category: mandatory
   description: |
     This rule looks for a given class annotated with a given annotation

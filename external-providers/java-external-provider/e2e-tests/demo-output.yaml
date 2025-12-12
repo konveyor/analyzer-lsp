@@ -218,6 +218,19 @@
           kind: Field
           name: repository
           package: io.konveyor.demo.ordermanagement.service
+    field-rule-00002:
+      description: Sample field declaration rule (field_declaration)
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
+        message: Field found
+        codeSnip: "\n 8  import org.springframework.data.domain.Page;\n 9  import org.springframework.data.domain.Pageable;\n10  import org.springframework.stereotype.Service;\n11  import org.springframework.transaction.annotation.Transactional;\n12  \n13  @Service\n14  @Transactional\n15  public class CustomerService implements ICustomerService{\n16  \n17  @Autowired\n18  private CustomerRepository repository;\n19  \n20  private static Logger logger = Logger.getLogger( CustomerService.class.getName() );\n21  \n22  public Customer findById(Long id) {\n23  logger.debug(\"Entering CustomerService.findById()\");\n24  Customer c = repository.findById(id).orElse(null);\n25  logger.debug(\"Returning element: \" + c);\n26  return c;\n27  }\n28  "
+        lineNumber: 18
+        variables:
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/service/CustomerService.java
+          kind: Field
+          name: repository
+          package: io.konveyor.demo.ordermanagement.service
     java-annotation-inspection-01:
       description: |
         This rule looks for a given class annotated with a given annotation
