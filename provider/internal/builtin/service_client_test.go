@@ -943,6 +943,24 @@ func Test_builtinServiceClient_Evaluate_ExcludeDirs(t *testing.T) {
 				filepath.Join("dir_a", "a.json"),
 			},
 		},
+		{
+			name:       "(XML) Exclude a non existent dir using a relative path",
+			capability: "xml",
+			// the name of the dir ab intentionally matches file ab.xml
+			// this addresses an edge case introduced in PR #1042
+			excludedDirsFromConfig: []string{"ab"},
+			condition: builtinCondition{
+				XML: xmlCondition{
+					XPath: "//name[text()='Test name']",
+				},
+			},
+			wantFilePaths: []string{
+				filepath.Join("dir_a", "dir_b", "ab.xml"),
+				filepath.Join("dir_a", "a.xml"),
+				filepath.Join("dir_b", "b.xml"),
+				filepath.Join("dir_b", "dir_a", "ba.xml"),
+			},
+		},
 	}
 
 	getAbsolutePaths := func(baseLocation string, relativePaths []string) []string {
