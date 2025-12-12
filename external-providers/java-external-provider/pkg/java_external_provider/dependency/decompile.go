@@ -442,6 +442,7 @@ func (d *decompiler) internalDecompileClasses(ctx context.Context, classDirPath,
 		decompileTool:    d.decompileTool,
 		responseChanndel: responseChan,
 		wg:               waitGroup,
+		javaPath:         d.java,
 		log:              logr.Logger{},
 	}
 	return nil
