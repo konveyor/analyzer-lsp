@@ -11,6 +11,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/nodejs"
 	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/pylsp"
 	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/yaml_language_server"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
@@ -25,12 +26,17 @@ type genericProvider struct {
 	// Limit this instance of the generic provider to one lsp server type
 	lspServerName        string
 	serviceClientBuilder serverconf.ServiceClientBuilder
+	progress             *progress.Progress
+}
+
+func (p *genericProvider) SetProgress(progress *progress.Progress) {
+	p.progress = progress
 }
 
 // Create a generic provider locked to a specific service client found in the
 // server_configuration maps. If the lspServerName is not found, then it
 // defaults to "generic"
-func NewGenericProvider(lspServerName string, log logr.Logger) provider.BaseClient {
+func NewGenericProvider(lspServerName string, log logr.Logger, progress *progress.Progress) provider.BaseClient {
 	// Get the constructor associated with the server
 	ctor, ok := serverconf.SupportedLanguages[lspServerName]
 	if !ok {
@@ -70,6 +76,14 @@ func (p *genericProvider) Capabilities() []provider.Capability {
 // here just sort of... doesn't matter at all
 func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
 
+	if p.progress == nil {
+		var err error
+		p.progress, err = progress.New()
+		if err != nil {
+			return nil, provider.InitConfig{}, nil
+		}
+	}
+
 	fmt.Fprintf(os.Stderr, "started generic provider init")
 	lspServerName, ok := c.ProviderSpecificConfig["lspServerName"].(string)
 	if !ok {
@@ -81,21 +95,20 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 		// we want to be able to set which generic provider to use by tne provider config
 		// because 'generic' is selected from the start, we need to update that if needed
 		p.lspServerName = lspServerName
-		// these have already been verified in NewGenericProvider() - no need to err
-		switch p.lspServerName {
-		case serverconf.GenericClient:
-			p.serviceClientBuilder = &generic.GenericServiceClientBuilder{}
-		case serverconf.PythonClient:
-			p.serviceClientBuilder = &pylsp.PythonServiceClientBuilder{}
-		case serverconf.NodeClient:
-			p.serviceClientBuilder = &nodejs.NodeServiceClientBuilder{}
-		case serverconf.YamlClient:
-			p.serviceClientBuilder = &yaml_language_server.YamlServiceClientBuilder{}
-		default:
-			return nil, provider.InitConfig{}, fmt.Errorf("generic client name not found")
-		}
-
 	}
+	switch p.lspServerName {
+	case serverconf.GenericClient:
+		p.serviceClientBuilder = &generic.GenericServiceClientBuilder{Progress: p.progress}
+	case serverconf.PythonClient:
+		p.serviceClientBuilder = &pylsp.PythonServiceClientBuilder{Progress: p.progress}
+	case serverconf.NodeClient:
+		p.serviceClientBuilder = &nodejs.NodeServiceClientBuilder{Progress: p.progress}
+	case serverconf.YamlClient:
+		p.serviceClientBuilder = &yaml_language_server.YamlServiceClientBuilder{Progress: p.progress}
+	default:
+		return nil, provider.InitConfig{}, fmt.Errorf("generic client name not found")
+	}
+
 	// Simple matter of calling the constructor that we set earlier to get the
 	// service client
 	sc, err := p.serviceClientBuilder.Init(ctx, log, c)
