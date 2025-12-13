@@ -125,6 +125,8 @@ type Config struct {
 	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
 	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
 	ContextLines int
+	LogLevel     *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
+
 	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
 	// Used by GRPC providers to report progress during provider initialization.
 	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
