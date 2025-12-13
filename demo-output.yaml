@@ -1021,710 +1021,626 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '891        incidents:'
-        lineNumber: 890
+        codeSnip: '785        incidents:'
+        lineNumber: 784
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: 899             5   * you may not use this file except in compliance with the License.
-        lineNumber: 898
+        codeSnip: '792        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 791
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 912
+        codeSnip: '798        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 797
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '916          lineNumber: 1'
-        lineNumber: 915
+        codeSnip: '804        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 803
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 918
+        codeSnip: '810        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
+        lineNumber: 809
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '922          lineNumber: 178'
-        lineNumber: 921
+        codeSnip: '816        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
+        lineNumber: 815
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 924
+        codeSnip: '822        - uri: file:///analyzer-lsp/examples/java/beans.xml'
+        lineNumber: 821
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '928          lineNumber: 180'
-        lineNumber: 927
+        codeSnip: '828        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 827
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 930
+        codeSnip: '834        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 833
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '934          lineNumber: 191'
-        lineNumber: 933
+        codeSnip: '840        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 839
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
-        lineNumber: 936
+        codeSnip: '846        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 845
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '940          lineNumber: 3'
-        lineNumber: 939
+        codeSnip: '852        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 851
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
-        lineNumber: 942
+        codeSnip: '858        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 857
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '946          lineNumber: 5'
-        lineNumber: 945
+        codeSnip: '864        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 863
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '949        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 948
+        codeSnip: '870        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 869
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '959             8    violations:'
-        lineNumber: 958
+        codeSnip: '876        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 875
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '973        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 972
+        codeSnip: '882        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 881
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '986            891        incidents:'
-        lineNumber: 985
+        codeSnip: '888        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 887
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: 994            899             5   * you may not use this file except in compliance with the License.
-        lineNumber: 993
+        codeSnip: '894        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 893
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1000        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 999
+        codeSnip: '900        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 899
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1005            891        incidents:'
-        lineNumber: 1004
+        codeSnip: '906        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 905
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: 1013            899             5   * you may not use this file except in compliance with the License.
-        lineNumber: 1012
+        codeSnip: '912        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 911
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1027        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1026
+        codeSnip: '918        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 917
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1040            913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1039
+        codeSnip: '924        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 923
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1043            916          lineNumber: 1'
-        lineNumber: 1042
+        codeSnip: '930        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 929
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1046            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1045
+        codeSnip: '936        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 935
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1049            922          lineNumber: 178'
-        lineNumber: 1048
+        codeSnip: '942        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 941
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1054        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1053
+        codeSnip: '948        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 947
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1064            913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1063
+        codeSnip: '954        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 953
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1067            916          lineNumber: 1'
-        lineNumber: 1066
+        codeSnip: '960        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 959
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1070            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1069
+        codeSnip: '966        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 965
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1073            922          lineNumber: 178'
-        lineNumber: 1072
+        codeSnip: '972        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 971
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1076            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1075
+        codeSnip: '978        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 977
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1081        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1080
+        codeSnip: '984        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 983
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1088            913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1087
+        codeSnip: '990        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 989
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1091            916          lineNumber: 1'
-        lineNumber: 1090
+        codeSnip: '996        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 995
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1094            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1093
+        codeSnip: '1002        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1001
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1097            922          lineNumber: 178'
-        lineNumber: 1096
+        codeSnip: '1008        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1007
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1100            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1099
+        codeSnip: '1014        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1013
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1103            928          lineNumber: 180'
-        lineNumber: 1102
+        codeSnip: '1020        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1019
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1108        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1107
+        codeSnip: '1026        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1025
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1112            913        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1111
+        codeSnip: '1032        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1031
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1115            916          lineNumber: 1'
-        lineNumber: 1114
+        codeSnip: '1038        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1037
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1118            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1117
+        codeSnip: '1044        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1043
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1121            922          lineNumber: 178'
-        lineNumber: 1120
+        codeSnip: '1050        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1049
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1124            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1123
+        codeSnip: '1056        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1055
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1127            928          lineNumber: 180'
-        lineNumber: 1126
+        codeSnip: '1062        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1061
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1130            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1129
+        codeSnip: '1068        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1067
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1135        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1134
+        codeSnip: '1074        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1073
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1139            916          lineNumber: 1'
-        lineNumber: 1138
+        codeSnip: '1080        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1079
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1142            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1141
+        codeSnip: '1086        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1085
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1145            922          lineNumber: 178'
-        lineNumber: 1144
+        codeSnip: '1092        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1091
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1148            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1147
+        codeSnip: '1098        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1097
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1151            928          lineNumber: 180'
-        lineNumber: 1150
+        codeSnip: '1104        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1103
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1154            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1153
+        codeSnip: '1110        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1109
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1157            934          lineNumber: 191'
-        lineNumber: 1156
+        codeSnip: '1116        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1115
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1162        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1161
+        codeSnip: '1122        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1121
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1166            919        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1165
+        codeSnip: '1128        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1127
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1169            922          lineNumber: 178'
-        lineNumber: 1168
+        codeSnip: '1134        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1133
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1172            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1171
+        codeSnip: '1140        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1139
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1175            928          lineNumber: 180'
-        lineNumber: 1174
+        codeSnip: '1146        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1145
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1178            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1177
+        codeSnip: '1152        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1151
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1181            934          lineNumber: 191'
-        lineNumber: 1180
+        codeSnip: '1158        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1157
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1184            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
-        lineNumber: 1183
+        codeSnip: '1164        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1163
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1189        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1188
+        codeSnip: '1170        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1169
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1193            922          lineNumber: 178'
-        lineNumber: 1192
+        codeSnip: '1176        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1175
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1196            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1195
+        codeSnip: '1182        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1181
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1199            928          lineNumber: 180'
-        lineNumber: 1198
+        codeSnip: '1188        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1187
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1202            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1201
+        codeSnip: '1194        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1193
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1205            934          lineNumber: 191'
-        lineNumber: 1204
+        codeSnip: '1200        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1199
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1208            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
-        lineNumber: 1207
+        codeSnip: '1206        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1205
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1211            940          lineNumber: 3'
-        lineNumber: 1210
+        codeSnip: '1212        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1211
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1216        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1215
+        codeSnip: '1218        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1217
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1220            925        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1219
+        codeSnip: '1224        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1223
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1223            928          lineNumber: 180'
-        lineNumber: 1222
+        codeSnip: '1230        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1229
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1226            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1225
+        codeSnip: '1236        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1235
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1229            934          lineNumber: 191'
-        lineNumber: 1228
+        codeSnip: '1242        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1241
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1232            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
-        lineNumber: 1231
+        codeSnip: '1248        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1247
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1235            940          lineNumber: 3'
-        lineNumber: 1234
+        codeSnip: '1254        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1253
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1238            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
-        lineNumber: 1237
+        codeSnip: '1260        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1259
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1243        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1242
+        codeSnip: '1266        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1265
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1247            928          lineNumber: 180'
-        lineNumber: 1246
+        codeSnip: '1272        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1271
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1250            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1249
+        codeSnip: '1278        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1277
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1253            934          lineNumber: 191'
-        lineNumber: 1252
+        codeSnip: '1284        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1283
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1256            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
-        lineNumber: 1255
+        codeSnip: '1290        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1289
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1259            940          lineNumber: 3'
-        lineNumber: 1258
+        codeSnip: '1296        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1295
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1262            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
-        lineNumber: 1261
+        codeSnip: '1302        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1301
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1265            946          lineNumber: 5'
-        lineNumber: 1264
+        codeSnip: '1308        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1307
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1270        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1269
+        codeSnip: '1314        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1313
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1274            931        - uri: file:///analyzer-lsp/examples/golang/LICENSE'
-        lineNumber: 1273
+        codeSnip: '1320        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1319
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1277            934          lineNumber: 191'
-        lineNumber: 1276
+        codeSnip: '1326        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1325
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1280            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
-        lineNumber: 1279
+        codeSnip: '1332        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1331
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1283            940          lineNumber: 3'
-        lineNumber: 1282
+        codeSnip: '1338        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1337
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1286            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
-        lineNumber: 1285
+        codeSnip: '1344        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1343
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1289            946          lineNumber: 5'
-        lineNumber: 1288
+        codeSnip: '1350        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1349
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1292            949        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1291
+        codeSnip: '1356        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1355
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1297        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1296
+        codeSnip: '1362        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1361
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1301            934          lineNumber: 191'
-        lineNumber: 1300
+        codeSnip: '1368        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1367
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1304            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
-        lineNumber: 1303
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1307            940          lineNumber: 3'
-        lineNumber: 1306
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1310            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
-        lineNumber: 1309
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1313            946          lineNumber: 5'
-        lineNumber: 1312
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1316            949        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1315
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1324        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1323
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1328            937        - uri: file:///analyzer-lsp/examples/java-project/META-INF/MANIFEST.MF'
-        lineNumber: 1327
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1331            940          lineNumber: 3'
-        lineNumber: 1330
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1334            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
-        lineNumber: 1333
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1337            946          lineNumber: 5'
-        lineNumber: 1336
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1340            949        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1339
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1351        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1350
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1355            940          lineNumber: 3'
-        lineNumber: 1354
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1358            943        - uri: file:///analyzer-lsp/examples/java/beans.xml'
-        lineNumber: 1357
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1361            946          lineNumber: 5'
-        lineNumber: 1360
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1364            949        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1363
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1374            959             8    violations:'
+        codeSnip: '1374        - uri: file:///analyzer-lsp/output.yaml'
         lineNumber: 1373
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1378        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1377
+        codeSnip: '1380        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1379
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1391            959             8    violations:'
-        lineNumber: 1390
+        codeSnip: '1386        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1385
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1405        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1404
+        codeSnip: '1392        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1391
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1398        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1397
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1404        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1403
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -1735,32 +1651,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1415        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1414
+        codeSnip: '1416        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1415
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1420        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1419
+        codeSnip: '1422        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1421
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1425        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1424
+        codeSnip: '1428        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1427
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1430        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1429
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1435        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1434
+        codeSnip: '1434        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1433
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -1771,32 +1681,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1445        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1444
+        codeSnip: '1446        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1445
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1450        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1449
+        codeSnip: '1452        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1451
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1455        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1454
+        codeSnip: '1458        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1457
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1460        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1459
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1465        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1464
+        codeSnip: '1464        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1463
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -1807,32 +1711,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1475        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1474
+        codeSnip: '1476        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1475
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1480        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1479
+        codeSnip: '1482        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1481
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1485        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1484
+        codeSnip: '1488        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1487
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1490        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1489
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1495        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1494
+        codeSnip: '1494        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1493
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -1843,32 +1741,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1505        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1504
+        codeSnip: '1506        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1505
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1510        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1509
+        codeSnip: '1512        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1511
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1515        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1514
+        codeSnip: '1518        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1517
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1520        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1519
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1525        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1524
+        codeSnip: '1524        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1523
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -1879,32 +1771,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1535        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1534
+        codeSnip: '1536        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1535
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1540        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1539
+        codeSnip: '1542        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1541
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1545        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1544
+        codeSnip: '1548        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1547
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1550        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1549
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1555        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1554
+        codeSnip: '1554        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1553
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -1915,32 +1801,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1565        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1564
+        codeSnip: '1566        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1565
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1570        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1569
+        codeSnip: '1572        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1571
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1575        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1574
+        codeSnip: '1578        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1577
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1580        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1579
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1585        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1584
+        codeSnip: '1584        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1583
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -1951,32 +1831,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1595        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1594
+        codeSnip: '1596        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1595
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1600        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1599
+        codeSnip: '1602        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1601
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1605        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1604
+        codeSnip: '1608        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1607
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1610        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1609
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1615        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1614
+        codeSnip: '1614        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1613
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -1987,32 +1861,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1625        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1624
+        codeSnip: '1626        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1625
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1630        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1629
+        codeSnip: '1632        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1631
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1635        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1634
+        codeSnip: '1638        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1637
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1640        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1639
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1645        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1644
+        codeSnip: '1644        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1643
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2023,32 +1891,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1655        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1654
+        codeSnip: '1656        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1655
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1660        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1659
+        codeSnip: '1662        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1661
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1665        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1664
+        codeSnip: '1668        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1667
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1670        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1669
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1675        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1674
+        codeSnip: '1674        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1673
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2059,32 +1921,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1685        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1684
+        codeSnip: '1686        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1685
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1690        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1689
+        codeSnip: '1692        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1691
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1695        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1694
+        codeSnip: '1698        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1697
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1700        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1699
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1705        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1704
+        codeSnip: '1704        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1703
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2095,32 +1951,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1715        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1714
+        codeSnip: '1716        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1715
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1720        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1719
+        codeSnip: '1722        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1721
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1725        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1724
+        codeSnip: '1728        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1727
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1730        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1729
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1735        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1734
+        codeSnip: '1734        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1733
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2131,32 +1981,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1745        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1744
+        codeSnip: '1746        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1745
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1750        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1749
+        codeSnip: '1752        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1751
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1755        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1754
+        codeSnip: '1758        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1757
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1760        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1759
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1765        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1764
+        codeSnip: '1764        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1763
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2167,32 +2011,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1775        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1774
+        codeSnip: '1776        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1775
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1780        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1779
+        codeSnip: '1782        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1781
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1785        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1784
+        codeSnip: '1788        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1787
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1790        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1789
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1795        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1794
+        codeSnip: '1794        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1793
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2203,32 +2041,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1805        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1804
+        codeSnip: '1806        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1805
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1810        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1809
+        codeSnip: '1812        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1811
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1815        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1814
+        codeSnip: '1818        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1817
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1820        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1819
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1825        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1824
+        codeSnip: '1824        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1823
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2239,32 +2071,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1835        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1834
+        codeSnip: '1836        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1835
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1840        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1839
+        codeSnip: '1842        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1841
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1845        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1844
+        codeSnip: '1848        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1847
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1850        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1849
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1855        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1854
+        codeSnip: '1854        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1853
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2275,32 +2101,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1865        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1864
+        codeSnip: '1866        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1865
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1870        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1869
+        codeSnip: '1872        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1871
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1875        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1874
+        codeSnip: '1878        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1877
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1880        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1879
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1885        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1884
+        codeSnip: '1884        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1883
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2311,32 +2131,26 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1895        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1894
+        codeSnip: '1896        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1895
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1900        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1899
+        codeSnip: '1902        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1901
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1905        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1904
+        codeSnip: '1908        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1907
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1910        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1909
-        variables:
-          matchingText: Apache
-      - uri: file:///analyzer-lsp/output.yaml
-        message: ""
-        codeSnip: '1915        - uri: file:///analyzer-lsp/output.yaml'
-        lineNumber: 1914
+        codeSnip: '1914        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1913
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
@@ -2347,20 +2161,326 @@
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1925        - uri: file:///analyzer-lsp/rule-example.yaml'
-        lineNumber: 1924
+        codeSnip: '1926        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1925
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1938            69  - tag:'
+        codeSnip: '1932        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1931
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1938        - uri: file:///analyzer-lsp/output.yaml'
         lineNumber: 1937
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/output.yaml
         message: ""
-        codeSnip: '1952      tech-tag-001:'
-        lineNumber: 1951
+        codeSnip: '1944        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1943
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1950        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1949
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1956        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1955
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1962        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1961
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1968        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1967
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1974        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1973
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1980        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1979
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1986        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1985
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1992        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1991
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '1998        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 1997
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2004        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2003
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2010        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2009
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2016        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2015
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2022        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2021
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2028        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2027
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2034        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2033
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2040        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2039
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2046        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2045
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2052        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2051
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2058        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2057
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2064        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2063
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2070        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2069
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2076        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2075
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2082        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2081
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2088        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2087
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2094        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2093
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2100        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2099
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2106        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2105
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2112        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2111
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2118        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2117
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2124        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2123
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2130        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2129
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2136        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2135
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2142        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2141
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2148        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2147
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2154        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2153
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2160        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2159
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2166        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2165
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2172        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2171
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2178        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2177
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2184        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2183
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2190        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2189
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2196        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2195
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2202        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2201
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2208        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2207
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2214        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2213
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2220        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2219
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2226        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2225
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2232        - uri: file:///analyzer-lsp/output.yaml'
+        lineNumber: 2231
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2238        - uri: file:///analyzer-lsp/rule-example.yaml'
+        lineNumber: 2237
+        variables:
+          matchingText: Apache
+      - uri: file:///analyzer-lsp/output.yaml
+        message: ""
+        codeSnip: '2244      tech-tag-001:'
+        lineNumber: 2243
         variables:
           matchingText: Apache
       - uri: file:///analyzer-lsp/rule-example.yaml
