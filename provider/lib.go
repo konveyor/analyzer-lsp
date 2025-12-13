@@ -225,11 +225,16 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 					}
 				}
 			} else {
+				rPattern := pattern
+				// if the pattern doesn't contain a wildcard, do an exact match only
+				if regexp.QuoteMeta(pattern) == pattern {
+					rPattern = "^" + pattern + "$"
+				}
 				// try matching as go regex pattern
-				regex, regexErr := regexp.Compile(pattern)
+				regex, regexErr := regexp.Compile(rPattern)
 				if regexErr == nil && (regex.MatchString(file) || regex.MatchString(filepath.Base(file))) {
 					patternMatched = true
-				} else {
+				} else if strings.Contains(pattern, "*") || strings.Contains(pattern, "?") {
 					// fallback to filepath.Match for simple patterns
 					m, err := filepath.Match(pattern, file)
 					if err == nil {
