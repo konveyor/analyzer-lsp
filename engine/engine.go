@@ -3,6 +3,7 @@ package engine
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"net/url"
@@ -732,12 +733,19 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 
 	rule.Labels = deduplicateLabels(rule.Labels)
 
+	extrasJSON := []byte{}
+	if len(rule.Extras) > 0 {
+		if data, err := json.Marshal(rule.Extras); err == nil {
+			extrasJSON = data
+		}
+	}
+
 	return konveyor.Violation{
 		Description: rule.Description,
 		Labels:      rule.Labels,
 		Category:    rule.Category,
 		Incidents:   incidents,
-		Extras:      []byte{},
+		Extras:      extrasJSON,
 		Effort:      rule.Effort,
 		Links:       rule.Perform.Message.Links,
 	}, nil
