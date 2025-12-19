@@ -1010,3 +1010,96 @@ func Test_builtinServiceClient_Evaluate_ExcludeDirs(t *testing.T) {
 		})
 	}
 }
+
+func Test_builtinServiceClient_performFileContentSearch_Multiline(t *testing.T) {
+	baseLocation := filepath.Join(".", "testdata")
+	baseLocation, err := filepath.Abs(baseLocation)
+	if err != nil {
+		t.Fatalf("unable to get absolute path for testdata: %v", err)
+	}
+
+	tests := []struct {
+		name          string
+		pattern       string
+		filePattern   string
+		wantMatches   int
+		wantLineNums  []int // expected line numbers for matches
+		description   string
+	}{
+		{
+			name:        "multiline pattern matches across newlines",
+			pattern:     `<Masthead[^>]*>[^<]*<MastheadToggle`,
+			filePattern: `\.(j|t)sx?$`,
+			wantMatches: 2,
+			wantLineNums: []int{7, 13}, // lines 7 and 13 (0-based)
+			description: "Should match both multiline (line 7) and single-line (line 13) JSX",
+		},
+		{
+			name:        "multiline pattern with alternative matches MastheadBrand",
+			pattern:     `<Masthead[^>]*>[^<]*<MastheadBrand`,
+			filePattern: `\.(j|t)sx?$`,
+			wantMatches: 1,
+			wantLineNums: []int{16}, // line 16 only (0-based) - line 7 has MastheadToggle in between
+			description: "Should match multiline patterns with lots of whitespace",
+		},
+		{
+			name:        "combined pattern with OR",
+			pattern:     `<Masthead[^>]*>[^<]*<MastheadToggle|<Masthead[^>]*>[^<]*<MastheadBrand`,
+			filePattern: `\.(j|t)sx?$`,
+			wantMatches: 3,
+			wantLineNums: []int{7, 13, 16}, // 7=multiline MastheadToggle, 13=single-line MastheadToggle, 16=multiline MastheadBrand (all 0-based)
+			description: "Should match all multiline and single-line occurrences",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sc := &builtinServiceClient{
+				config: provider.InitConfig{
+					Location: baseLocation,
+				},
+				log:            testr.New(t),
+				locationCache:  map[string]float64{},
+				cacheMutex:     sync.RWMutex{},
+				workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
+			}
+
+			condition := builtinCondition{
+				Filecontent: fileContentCondition{
+					Pattern:     tt.pattern,
+					FilePattern: tt.filePattern,
+				},
+			}
+
+			conditionInfo, err := yaml.Marshal(&condition)
+			if err != nil {
+				t.Fatalf("failed to marshal condition: %v", err)
+			}
+
+			got, err := sc.Evaluate(context.TODO(), "filecontent", conditionInfo)
+			if err != nil {
+				t.Fatalf("Evaluate() error = %v", err)
+			}
+
+			if len(got.Incidents) != tt.wantMatches {
+				t.Errorf("%s: got %d matches, want %d matches", tt.description, len(got.Incidents), tt.wantMatches)
+				for i, incident := range got.Incidents {
+					t.Logf("  Match %d: line %d, file %s", i+1, incident.LineNumber, incident.FileURI.Filename())
+				}
+			}
+
+			// Verify line numbers
+			gotLineNums := []int{}
+			for _, incident := range got.Incidents {
+				if filepath.Base(incident.FileURI.Filename()) == "multiline-test.tsx" {
+					gotLineNums = append(gotLineNums, *incident.LineNumber)
+				}
+			}
+			sort.Ints(gotLineNums)
+
+			if !reflect.DeepEqual(gotLineNums, tt.wantLineNums) {
+				t.Errorf("%s: got line numbers %v, want %v", tt.description, gotLineNums, tt.wantLineNums)
+			}
+		})
+	}
+}
