@@ -59,7 +59,7 @@ when:
   <condition>
 ```
 
-All custom fields will be collected and included in the violation output's `extras` field as JSON. See [Violation Extras](./output.md#extras) for details on how to access these fields in the analysis output.
+All custom fields will be collected and included in the violation output's `extras` field as JSON. See [Violation Extras](./output.md#example-with-extras) for details on how to access these fields in the analysis output.
 
 #### Rule Categories
 

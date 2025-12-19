@@ -737,6 +737,8 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 	if len(rule.Extras) > 0 {
 		if data, err := json.Marshal(rule.Extras); err == nil {
 			extrasJSON = data
+		} else {
+			r.logger.Error(err, "failed to marshal rule extras to JSON", "ruleID", rule.RuleID)
 		}
 	}
 
