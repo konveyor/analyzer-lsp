@@ -29,6 +29,10 @@ import (
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
+// dollarBracePattern matches Maven-style property placeholders in rule messages.
+// Pattern: ${{property.name}} should be converted to ${property.name}
+var dollarBracePattern = regexp.MustCompile(`\$\{\{([^}]+)\}\}`)
+
 // RuleEngine is the interface for running analysis rules
 type RuleEngine interface {
 	// RunRules runs the given rulesets with optional selectors
@@ -797,7 +801,38 @@ func (r *ruleEngine) getCodeLocation(_ context.Context, m IncidentContext, rule 
 }
 
 func (r *ruleEngine) createPerformString(messageTemplate string, ctx map[string]any) (string, error) {
-	return mustache.Render(messageTemplate, ctx)
+	// Step 1: Protect ${{...}} patterns from Mustache processing
+	// These should be converted to ${...} (Maven property syntax) not processed as Mustache variables
+	placeholderMap := make(map[string]string)
+	placeholderIndex := 0
+
+	protected := dollarBracePattern.ReplaceAllStringFunc(messageTemplate, func(match string) string {
+		// Extract the content between ${{ and }}
+		// We use FindStringSubmatch on the match to extract the captured group
+		matches := dollarBracePattern.FindStringSubmatch(match)
+		if len(matches) < 2 {
+			// Should not happen if regex matched, but safety check
+			return match
+		}
+		content := matches[1]
+		placeholder := fmt.Sprintf("___DOLLAR_BRACE_%d___", placeholderIndex)
+		placeholderMap[placeholder] = content
+		placeholderIndex++
+		return placeholder
+	})
+
+	// Step 2: Render with Mustache (this processes {{...}} variables from context)
+	rendered, err := mustache.Render(protected, ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// Step 3: Replace placeholders with ${...} (Maven property syntax)
+	for placeholder, content := range placeholderMap {
+		rendered = strings.ReplaceAll(rendered, placeholder, fmt.Sprintf("${%s}", content))
+	}
+
+	return rendered, nil
 }
 
 // matchesAllSelectors returns false when any one of the selectors does not match

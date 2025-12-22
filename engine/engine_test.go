@@ -1548,6 +1548,85 @@ func TestCreateViolation(t *testing.T) {
 			},
 		},
 		{
+			name: "message template with dollar brace placeholders",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
+				lineNum := 10
+				msg := "Use the Quarkus BOM to omit version specification:\n<groupId>${{quarkus.platform.group-id}}</groupId>\n<artifactId>${{quarkus.platform.artifact-id}}</artifactId>\n<version>${{quarkus.platform.version}}</version>"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///pom.xml",
+							LineNumber: &lineNum,
+							Variables:  map[string]any{},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				expectedMsg := "Use the Quarkus BOM to omit version specification:\n<groupId>${quarkus.platform.group-id}</groupId>\n<artifactId>${quarkus.platform.artifact-id}</artifactId>\n<version>${quarkus.platform.version}</version>"
+				if violation.Incidents[0].Message != expectedMsg {
+					t.Errorf("Expected message '%s', got '%s'", expectedMsg, violation.Incidents[0].Message)
+				}
+			},
+		},
+		{
+			name: "message template mixing mustache variables and dollar brace placeholders",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
+				lineNum := 10
+				msg := "Found dependency {{dependency}} - replace with:\n<groupId>${{quarkus.group-id}}</groupId>\n<artifactId>{{artifact}}</artifactId>"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///pom.xml",
+							LineNumber: &lineNum,
+							Variables: map[string]any{
+								"dependency": "javax.enterprise",
+								"artifact":   "quarkus-arc",
+							},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				expectedMsg := "Found dependency javax.enterprise - replace with:\n<groupId>${quarkus.group-id}</groupId>\n<artifactId>quarkus-arc</artifactId>"
+				if violation.Incidents[0].Message != expectedMsg {
+					t.Errorf("Expected message '%s', got '%s'", expectedMsg, violation.Incidents[0].Message)
+				}
+			},
+		},
+		{
 			name: "duplicate incident filtering",
 			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
 				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
