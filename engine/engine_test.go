@@ -1627,6 +1627,44 @@ func TestCreateViolation(t *testing.T) {
 			},
 		},
 		{
+			name: "message template with duplicate dollar brace placeholders",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
+				lineNum := 10
+				msg := "Set property ${{maven.compiler.source}} in your POM. Also ensure ${{maven.compiler.source}} matches your target JDK version and that ${{maven.compiler.target}} is set to ${{maven.compiler.source}}."
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:    "file:///pom.xml",
+							LineNumber: &lineNum,
+							Variables:  map[string]any{},
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				expectedMsg := "Set property ${maven.compiler.source} in your POM. Also ensure ${maven.compiler.source} matches your target JDK version and that ${maven.compiler.target} is set to ${maven.compiler.source}."
+				if violation.Incidents[0].Message != expectedMsg {
+					t.Errorf("Expected message '%s', got '%s'", expectedMsg, violation.Incidents[0].Message)
+				}
+			},
+		},
+		{
 			name: "duplicate incident filtering",
 			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
 				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
