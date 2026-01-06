@@ -10,7 +10,9 @@
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "lspServerPath": "/jdtls/bin/jdtls",
-                    "mavenIndexPath": "/usr/local/etc"
+                    "mavenIndexPath": "/usr/local/etc",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-java"
                 },
                 "analysisMode": "source-only"
             },
@@ -24,7 +26,9 @@
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "includedPaths": [
                         "src/main/java/io/konveyor/util/FileReader.java"
-                    ]
+                    ],
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-inclusion"
                 },
                 "analysisMode": "source-only"
             },
@@ -35,7 +39,9 @@
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "mavenIndexPath": "/usr/local/etc",
-                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-customers"
                 },
                 "analysisMode": "source-only"
             },
@@ -46,7 +52,9 @@
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "mavenIndexPath": "/usr/local/etc",
-                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-gradle"
                 },
                 "analysisMode": "source-only"
             },
@@ -57,7 +65,9 @@
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
                     "mavenIndexPath": "/usr/local/etc",
-                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-binary"
                 },
                 "analysisMode": "full"
             }
