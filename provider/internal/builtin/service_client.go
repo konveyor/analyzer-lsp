@@ -1072,7 +1072,7 @@ func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Re
 	reader = bytes.NewReader(content)
 	r := []fileSearchResult{}
 	scanner := bufio.NewScanner(reader)
-	lineNumber := 0
+	lineNumber := 1
 	for scanner.Scan() {
 		line := scanner.Text()
 		match, err := regex.FindStringMatch(line)
