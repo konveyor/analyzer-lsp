@@ -1031,15 +1031,15 @@ func Test_builtinServiceClient_performFileContentSearch_Multiline(t *testing.T) 
 			pattern:     `<Masthead[^>]*>[^<]*<MastheadToggle`,
 			filePattern: `\.(j|t)sx?$`,
 			wantMatches: 2,
-			wantLineNums: []int{7, 13}, // lines 7 and 13 (0-based)
-			description: "Should match both multiline (line 7) and single-line (line 13) JSX",
+			wantLineNums: []int{8, 14}, // lines 8 and 14 (1-based)
+			description: "Should match both multiline (line 8) and single-line (line 14) JSX",
 		},
 		{
 			name:        "multiline pattern with alternative matches MastheadBrand",
 			pattern:     `<Masthead[^>]*>[^<]*<MastheadBrand`,
 			filePattern: `\.(j|t)sx?$`,
 			wantMatches: 1,
-			wantLineNums: []int{16}, // line 16 only (0-based) - line 7 has MastheadToggle in between
+			wantLineNums: []int{17}, // line 17 only (1-based) - line 8 has MastheadToggle in between
 			description: "Should match multiline patterns with lots of whitespace",
 		},
 		{
@@ -1047,7 +1047,7 @@ func Test_builtinServiceClient_performFileContentSearch_Multiline(t *testing.T) 
 			pattern:     `<Masthead[^>]*>[^<]*<MastheadToggle|<Masthead[^>]*>[^<]*<MastheadBrand`,
 			filePattern: `\.(j|t)sx?$`,
 			wantMatches: 3,
-			wantLineNums: []int{7, 13, 16}, // 7=multiline MastheadToggle, 13=single-line MastheadToggle, 16=multiline MastheadBrand (all 0-based)
+			wantLineNums: []int{8, 14, 17}, // 8=multiline MastheadToggle, 14=single-line MastheadToggle, 17=multiline MastheadBrand (all 1-based)
 			description: "Should match all multiline and single-line occurrences",
 		},
 	}
