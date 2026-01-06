@@ -1058,6 +1058,7 @@ func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Re
 		if readErr == io.EOF {
 			break
 		}
+		buffer = make([]byte, 1024*1024) // Create a buffer to hold 1MB
 	}
 
 	if !foundMatch {
