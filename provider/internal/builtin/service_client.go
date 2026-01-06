@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/antchfx/jsonquery"
 	"github.com/antchfx/xmlquery"
@@ -647,7 +648,7 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 
 		// Calculate line numbers incrementally (zero-based for LSP)
 		lineNumber := 0
-		charNumber := 0
+		lineStart := 0
 		lastPos := 0
 
 		for _, match := range matches {
@@ -658,12 +659,13 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 			for i := lastPos; i < matchStart; i++ {
 				if content[i] == '\n' {
 					lineNumber++
-					charNumber = 0
-				} else {
-					charNumber++
+					lineStart = i + 1
 				}
 			}
 			lastPos = matchStart
+
+			// Calculate UTF-16 code units from start of line to match position
+			charNumber := utf16CodeUnits(content[lineStart:matchStart])
 
 			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
@@ -735,7 +737,7 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 
 		// Calculate line numbers incrementally to avoid recounting (zero-based for LSP)
 		lineNumber := 0
-		charNumber := 0
+		lineStart := 0
 		lastPos := 0
 
 		for _, match := range matches {
@@ -746,12 +748,13 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 			for i := lastPos; i < matchStart; i++ {
 				if content[i] == '\n' {
 					lineNumber++
-					charNumber = 0
-				} else {
-					charNumber++
+					lineStart = i + 1
 				}
 			}
 			lastPos = matchStart
+
+			// Calculate UTF-16 code units from start of line to match position
+			charNumber := utf16CodeUnits(content[lineStart:matchStart])
 
 			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
@@ -778,7 +781,7 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 
 		// Calculate line numbers incrementally to avoid recounting (zero-based for LSP)
 		lineNumber := 0
-		charNumber := 0
+		lineStart := 0
 		lastPos := 0
 
 		for match != nil {
@@ -786,12 +789,13 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 			for i := lastPos; i < match.Index; i++ {
 				if contentStr[i] == '\n' {
 					lineNumber++
-					charNumber = 0
-				} else {
-					charNumber++
+					lineStart = i + 1
 				}
 			}
 			lastPos = match.Index
+
+			// Calculate UTF-16 code units from start of line to match position
+			charNumber := utf16CodeUnits([]byte(contentStr[lineStart:match.Index]))
 
 			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
@@ -1081,13 +1085,17 @@ func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Re
 			return nil, err
 		}
 		if match != nil {
+			// Calculate UTF-16 code units from start of line to match position
+			charNumber := utf16CodeUnits([]byte(line[:match.Index]))
+
 			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
 					TextDocument: protocol.TextDocumentIdentifier{
 						URI: protocol.DocumentURI(uri.File(absPath)),
 					},
 					Position: protocol.Position{
-						Line: lineNumber,
+						Line:      lineNumber,
+						Character: uint32(charNumber),
 					},
 				},
 				match: match.String(),
@@ -1101,6 +1109,31 @@ func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Re
 	}
 
 	return r, nil
+}
+
+// utf16CodeUnits returns the number of UTF-16 code units in the given byte slice.
+// This is required for LSP Position.Character which must be measured in UTF-16 code units.
+// Most Unicode characters (< U+10000) use 1 code unit, while supplementary characters
+// (>= U+10000) use 2 code units (surrogate pairs).
+func utf16CodeUnits(b []byte) int {
+	count := 0
+	for len(b) > 0 {
+		r, size := utf8.DecodeRune(b)
+		if r == utf8.RuneError {
+			// Invalid UTF-8, count as 1
+			count++
+			b = b[1:]
+		} else {
+			// Runes >= 0x10000 require surrogate pairs in UTF-16 (2 code units)
+			if r >= 0x10000 {
+				count += 2
+			} else {
+				count++
+			}
+			b = b[size:]
+		}
+	}
+	return count
 }
 
 func isSlashEscaped(str string) bool {
