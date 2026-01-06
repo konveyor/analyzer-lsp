@@ -597,8 +597,18 @@ func (b *builtinServiceClient) parallelWalkWithLiteralCheck(paths []string, rege
 }
 
 func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *regexp2.Regexp, stdRegex *regexp.Regexp, literalPattern string, isLiteral bool) ([]fileSearchResult, error) {
+	// Check file size before loading to prevent OOM on large files (e.g., JARs)
+	const maxFileSize = 100 * 1024 * 1024 // 100MB limit
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if fileInfo.Size() > maxFileSize {
+		b.log.V(5).Info("skipping large file", "file", path, "size", fileInfo.Size(), "limit", maxFileSize)
+		return []fileSearchResult{}, nil
+	}
+
 	var content []byte
-	var err error
 	if b.encoding != "" {
 		content, err = engine.OpenFileWithEncoding(path, b.encoding)
 		if err != nil {
@@ -1015,8 +1025,18 @@ func (b *builtinServiceClient) parallelWalkWindows(paths []string, regex *regexp
 
 // processFileWindows processes a file on Windows using line-by-line scanning
 func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Regexp) ([]fileSearchResult, error) {
+	// Check file size before loading to prevent OOM on large files (e.g., JARs)
+	const maxFileSize = 100 * 1024 * 1024 // 100MB limit
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if fileInfo.Size() > maxFileSize {
+		b.log.V(5).Info("skipping large file", "file", path, "size", fileInfo.Size(), "limit", maxFileSize)
+		return []fileSearchResult{}, nil
+	}
+
 	var content []byte
-	var err error
 	if b.encoding != "" {
 		content, err = engine.OpenFileWithEncoding(path, b.encoding)
 		if err != nil {
