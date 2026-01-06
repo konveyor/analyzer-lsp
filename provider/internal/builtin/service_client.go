@@ -502,14 +502,14 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 	// Check if the pattern needs multiline support
 	// Patterns need multiline support if they:
 	// 1. Explicitly reference newlines (\n, \r)
-	// 2. Use regex flags for multiline ((?s), (?m))
-	// 3. Use character classes or quantifiers that could span lines ([^>]*, [^<]*, \s+, etc.)
-	//    These are common in XML/HTML/JSX patterns where content spans multiple lines
+	// 2. Use regex flags for multiline/dotall ((?s), (?m))
+	// 3. Use whitespace patterns that include newlines (\s)
+	// Note: This is a conservative heuristic. Patterns not matching these criteria
+	// will use the faster grep-based search which processes files line-by-line.
 	needsMultiline := strings.Contains(trimmedPattern, "\\n") ||
 		strings.Contains(trimmedPattern, "\\r") ||
 		strings.Contains(trimmedPattern, "(?s)") ||
 		strings.Contains(trimmedPattern, "(?m)") ||
-		strings.Contains(trimmedPattern, "[^") || // negated character class (could match newlines)
 		strings.Contains(trimmedPattern, "\\s") // whitespace (includes newlines)
 
 	b.log.V(5).Info("analyzing pattern", "pattern", pattern, "needsMultiline", needsMultiline)
