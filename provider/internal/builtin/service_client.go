@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"unicode/utf8"
 
 	"github.com/antchfx/jsonquery"
 	"github.com/antchfx/xmlquery"
@@ -678,8 +677,8 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 			}
 			lastPos = matchStart
 
-			// Calculate UTF-16 code units from start of line to match position
-			charNumber := utf16CodeUnits(content[lineStart:matchStart])
+			// Character position as byte offset from start of line
+			charNumber := matchStart - lineStart
 
 			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
@@ -767,8 +766,8 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 			}
 			lastPos = matchStart
 
-			// Calculate UTF-16 code units from start of line to match position
-			charNumber := utf16CodeUnits(content[lineStart:matchStart])
+			// Character position as byte offset from start of line
+			charNumber := matchStart - lineStart
 
 			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
@@ -808,8 +807,8 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 			}
 			lastPos = match.Index
 
-			// Calculate UTF-16 code units from start of line to match position
-			charNumber := utf16CodeUnits([]byte(contentStr[lineStart:match.Index]))
+			// Character position as byte offset from start of line
+			charNumber := match.Index - lineStart
 
 			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
@@ -1109,9 +1108,6 @@ func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Re
 			return nil, err
 		}
 		if match != nil {
-			// Calculate UTF-16 code units from start of line to match position
-			charNumber := utf16CodeUnits([]byte(line[:match.Index]))
-
 			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
 					TextDocument: protocol.TextDocumentIdentifier{
@@ -1119,7 +1115,7 @@ func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Re
 					},
 					Position: protocol.Position{
 						Line:      lineNumber,
-						Character: uint32(charNumber),
+						Character: uint32(match.Index),
 					},
 				},
 				match: match.String(),
@@ -1133,31 +1129,6 @@ func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Re
 	}
 
 	return r, nil
-}
-
-// utf16CodeUnits returns the number of UTF-16 code units in the given byte slice.
-// This is required for LSP Position.Character which must be measured in UTF-16 code units.
-// Most Unicode characters (< U+10000) use 1 code unit, while supplementary characters
-// (>= U+10000) use 2 code units (surrogate pairs).
-func utf16CodeUnits(b []byte) int {
-	count := 0
-	for len(b) > 0 {
-		r, size := utf8.DecodeRune(b)
-		if r == utf8.RuneError {
-			// Invalid UTF-8, count as 1
-			count++
-			b = b[1:]
-		} else {
-			// Runes >= 0x10000 require surrogate pairs in UTF-16 (2 code units)
-			if r >= 0x10000 {
-				count += 2
-			} else {
-				count++
-			}
-			b = b[size:]
-		}
-	}
-	return count
 }
 
 func isSlashEscaped(str string) bool {
