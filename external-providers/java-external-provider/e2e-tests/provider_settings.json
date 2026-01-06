@@ -27,7 +27,7 @@
                     "includedPaths": [
                         "src/main/java/io/konveyor/util/FileReader.java"
                     ],
-                    "jvmMaxMem": "2G",
+                    "jvmMaxMem": "3G",
                     "workspace": "/tmp/jdtls-workspace-inclusion"
                 },
                 "analysisMode": "source-only"
