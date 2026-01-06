@@ -656,8 +656,8 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 
 		r = make([]fileSearchResult, 0, len(matches))
 
-		// Calculate line numbers incrementally (1-based for display)
-		lineNumber := 1
+		// Calculate line numbers incrementally (0-based per LSP spec)
+		lineNumber := 0
 		lineStart := 0
 		lastPos := 0
 
@@ -745,8 +745,8 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 
 		r = make([]fileSearchResult, 0, len(matches))
 
-		// Calculate line numbers incrementally to avoid recounting (1-based for display)
-		lineNumber := 1
+		// Calculate line numbers incrementally to avoid recounting (0-based per LSP spec)
+		lineNumber := 0
 		lineStart := 0
 		lastPos := 0
 
@@ -789,8 +789,8 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 			return nil, err
 		}
 
-		// Calculate line numbers incrementally to avoid recounting (1-based for display)
-		lineNumber := 1
+		// Calculate line numbers incrementally to avoid recounting (0-based per LSP spec)
+		lineNumber := 0
 		lineStart := 0
 		lastPos := 0
 
@@ -1097,7 +1097,7 @@ func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Re
 	reader = bytes.NewReader(content)
 	r := []fileSearchResult{}
 	scanner := bufio.NewScanner(reader)
-	var lineNumber uint32 = 1
+	var lineNumber uint32 = 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		match, err := regex.FindStringMatch(line)
