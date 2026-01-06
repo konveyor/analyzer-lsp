@@ -656,8 +656,8 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 
 		r = make([]fileSearchResult, 0, len(matches))
 
-		// Calculate line numbers incrementally (zero-based for LSP)
-		lineNumber := 0
+		// Calculate line numbers incrementally (1-based for display)
+		lineNumber := 1
 		lineStart := 0
 		lastPos := 0
 
@@ -745,8 +745,8 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 
 		r = make([]fileSearchResult, 0, len(matches))
 
-		// Calculate line numbers incrementally to avoid recounting (zero-based for LSP)
-		lineNumber := 0
+		// Calculate line numbers incrementally to avoid recounting (1-based for display)
+		lineNumber := 1
 		lineStart := 0
 		lastPos := 0
 
@@ -789,8 +789,8 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 			return nil, err
 		}
 
-		// Calculate line numbers incrementally to avoid recounting (zero-based for LSP)
-		lineNumber := 0
+		// Calculate line numbers incrementally to avoid recounting (1-based for display)
+		lineNumber := 1
 		lineStart := 0
 		lastPos := 0
 
