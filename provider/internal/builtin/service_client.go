@@ -504,13 +504,17 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 	// 1. Explicitly reference newlines (\n, \r)
 	// 2. Use regex flags for multiline/dotall ((?s), (?m))
 	// 3. Use whitespace patterns that include newlines (\s)
+	// 4. Use negated character classes for markup matching ([^>], [^<])
+	//    These are common in HTML/XML/JSX patterns and can span newlines
 	// Note: This is a conservative heuristic. Patterns not matching these criteria
 	// will use the faster grep-based search which processes files line-by-line.
 	needsMultiline := strings.Contains(trimmedPattern, "\\n") ||
 		strings.Contains(trimmedPattern, "\\r") ||
 		strings.Contains(trimmedPattern, "(?s)") ||
 		strings.Contains(trimmedPattern, "(?m)") ||
-		strings.Contains(trimmedPattern, "\\s") // whitespace (includes newlines)
+		strings.Contains(trimmedPattern, "\\s") || // whitespace (includes newlines)
+		strings.Contains(trimmedPattern, "[^>") || // negated char class for markup (e.g., [^>]*)
+		strings.Contains(trimmedPattern, "[^<") // negated char class for markup (e.g., [^<]*)
 
 	b.log.V(5).Info("analyzing pattern", "pattern", pattern, "needsMultiline", needsMultiline)
 
