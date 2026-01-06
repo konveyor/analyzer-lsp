@@ -577,6 +577,10 @@ func (b *builtinServiceClient) parallelWalkWithLiteralCheck(paths []string, rege
 				return err
 			}
 
+			if len(pos) == 0 {
+				return nil
+			}
+
 			positionsMu.Lock()
 			defer positionsMu.Unlock()
 			positions = append(positions, pos...)
