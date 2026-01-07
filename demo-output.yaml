@@ -216,6 +216,7 @@
         message: |-
           <groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
                            as the property cannot be resolved here but only in the parent POM --><version>${javaee-api.version}</version><scope>provided</scope>
+        lineNumber: 15
         variables:
           data: dependency
           innerText: "\n            javax\n            javaee-api\n            \n            ${javaee-api.version}\n            provided\n        "
@@ -226,6 +227,7 @@
         message: |-
           <groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
                            as the property cannot be resolved here but only in the parent POM --><version>${javaee-api.version}</version><scope>provided</scope>
+        lineNumber: 15
         variables:
           data: dependency
           innerText: "\n            javax\n            javaee-api\n            \n            ${javaee-api.version}\n            provided\n        "
@@ -667,6 +669,7 @@
         message: |-
           POM XML dependencies - '<groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
                            as the property cannot be resolved here but only in the parent POM --><version>${javaee-api.version}</version><scope>provided</scope>'
+        lineNumber: 15
         variables:
           data: dependency
           innerText: "\n            javax\n            javaee-api\n            \n            ${javaee-api.version}\n            provided\n        "
@@ -677,6 +680,7 @@
         message: |-
           POM XML dependencies - '<groupId>javax</groupId><artifactId>javaee-api</artifactId><!-- This leads to https://github.com/konveyor/analyzer-lsp/issues/390
                            as the property cannot be resolved here but only in the parent POM --><version>${javaee-api.version}</version><scope>provided</scope>'
+        lineNumber: 15
         variables:
           data: dependency
           innerText: "\n            javax\n            javaee-api\n            \n            ${javaee-api.version}\n            provided\n        "

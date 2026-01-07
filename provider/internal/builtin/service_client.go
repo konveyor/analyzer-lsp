@@ -225,7 +225,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					incident := provider.IncidentContext{
 						FileURI: uri.File(absPath),
 						Variables: map[string]interface{}{
-							"matchingXML": node.OutputXML(false),
+							"matchingXML": compactXML(node.OutputXML(false)),
 							"innerText":   node.InnerText(),
 							"data":        node.Data,
 						},
@@ -239,6 +239,9 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 						incident.CodeLocation = &location
 						lineNo := int(location.StartPosition.Line)
 						incident.LineNumber = &lineNo
+					} else {
+						lineNum := node.LineNumber
+						incident.LineNumber = &lineNum
 					}
 					response.Incidents = append(response.Incidents, incident)
 				}
@@ -282,7 +285,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							response.Incidents = append(response.Incidents, provider.IncidentContext{
 								FileURI: uri.File(absPath),
 								Variables: map[string]interface{}{
-									"matchingXML": node.OutputXML(false),
+									"matchingXML": compactXML(node.OutputXML(false)),
 									"innerText":   node.InnerText(),
 									"data":        node.Data,
 								},
@@ -437,6 +440,19 @@ func (b *builtinServiceClient) getLocation(ctx context.Context, path, content st
 	return location, nil
 }
 
+// compactXML strips formatting from XML output to produce single-line compact
+// format to match to previous behavior of xmlquery (pre-1.4 release)
+func compactXML(xml string) string {
+	// Use regex to remove whitespace between XML tags
+	re := regexp.MustCompile(`>\s+<`)
+	compacted := re.ReplaceAllString(xml, "><")
+
+	// Remove leading/trailing whitespace
+	compacted = strings.TrimSpace(compacted)
+
+	return compacted
+}
+
 func (b *builtinServiceClient) queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
 	var content []byte
 	if b.encoding != "" {
@@ -457,7 +473,7 @@ func (b *builtinServiceClient) queryXMLFile(filePath string, query *xpath.Expr) 
 
 	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
 	var doc *xmlquery.Node
-	doc, err = xmlquery.ParseWithOptions(strings.NewReader(string(content)), xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
+	doc, err = xmlquery.ParseWithOptions(strings.NewReader(string(content)), xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}, WithLineNumbers: true})
 	if err != nil {
 		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
 			// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
