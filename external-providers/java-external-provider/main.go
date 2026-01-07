@@ -33,8 +33,14 @@ func main() {
 	log := logrusr.New(logrusLog)
 	log = log.WithName("java-provider")
 
+	// Get log level value
+	logLevelValue := 5
+	if logLevel != nil {
+		logLevelValue = *logLevel
+	}
+
 	// must use lspServerName for use of multiple grpc providers
-	client := java.NewJavaProvider(log, *lspServerName, *contextLines, provider.Config{})
+	client := java.NewJavaProvider(log, *lspServerName, *contextLines, logLevelValue, provider.Config{})
 
 	if logLevel != nil && *logLevel != 5 {
 		logrusLog.SetLevel(logrus.Level(*logLevel))
