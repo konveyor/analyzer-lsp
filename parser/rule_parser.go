@@ -582,6 +582,31 @@ func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interfa
 		}
 		rule.CustomVariables = s
 	}
+
+	// Collect any extra fields not in the core schema
+	knownFields := map[string]bool{
+		"ruleID":          true,
+		"when":            true,
+		"message":         true,
+		"tag":             true,
+		"description":     true,
+		"category":        true,
+		"labels":          true,
+		"effort":          true,
+		"links":           true,
+		"customVariables": true,
+	}
+
+	extras := make(map[string]interface{})
+	for key, value := range ruleMap {
+		if !knownFields[key] {
+			extras[key] = value
+		}
+	}
+
+	if len(extras) > 0 {
+		rule.Extras = extras
+	}
 }
 
 func (r *RuleParser) addCustomVarFields(m map[interface{}]interface{}, customVar *engine.CustomVariable) error {
