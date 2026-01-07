@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/progress"
+	"github.com/konveyor/analyzer-lsp/progress/reporter"
 	"github.com/sirupsen/logrus"
 	"go.lsp.dev/uri"
 )
@@ -857,19 +858,19 @@ func TestRunRulesWithProgressReporter(t *testing.T) {
 	logrusLog.SetLevel(logrus.PanicLevel)
 	log := logrusr.New(logrusLog)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	ruleEngine := CreateRuleEngine(ctx, 10, log)
 	defer ruleEngine.Stop()
 
 	// Create a channel reporter to capture progress events
-	reporter := progress.NewChannelReporter(ctx)
-	defer reporter.Close()
+	rep := reporter.NewChannelReporter(ctx)
 
 	// Collect events in background
-	events := []progress.ProgressEvent{}
+	events := []progress.Event{}
 	eventsDone := make(chan struct{})
 	go func() {
-		for event := range reporter.Events() {
+		for event := range rep.Events() {
 			events = append(events, event)
 		}
 		close(eventsDone)
@@ -895,10 +896,10 @@ func TestRunRulesWithProgressReporter(t *testing.T) {
 
 	// Run rules with progress reporter
 	ruleEngine.RunRulesWithOptions(ctx, rules, []RunOption{
-		WithProgressReporter(reporter),
+		WithProgressReporter(rep),
 	})
 
-	reporter.Close()
+	cancel() // Cancel context to close reporter channel
 	<-eventsDone
 
 	// Verify we got progress events
@@ -981,15 +982,15 @@ func TestConcurrentRunsWithSeparateProgressReporters(t *testing.T) {
 	// Create two separate reporters
 	ctx1, cancel1 := context.WithCancel(ctx)
 	defer cancel1()
-	reporter1 := progress.NewChannelReporter(ctx1)
+	reporter1 := reporter.NewChannelReporter(ctx1)
 
 	ctx2, cancel2 := context.WithCancel(ctx)
 	defer cancel2()
-	reporter2 := progress.NewChannelReporter(ctx2)
+	reporter2 := reporter.NewChannelReporter(ctx2)
 
 	// Collect events separately
-	events1 := []progress.ProgressEvent{}
-	events2 := []progress.ProgressEvent{}
+	events1 := []progress.Event{}
+	events2 := []progress.Event{}
 
 	done1 := make(chan struct{})
 	done2 := make(chan struct{})
@@ -1044,7 +1045,7 @@ func TestConcurrentRunsWithSeparateProgressReporters(t *testing.T) {
 		ruleEngine.RunRulesWithOptions(ctx1, rules1, []RunOption{
 			WithProgressReporter(reporter1),
 		})
-		reporter1.Close()
+		cancel1() // Cancel context to close reporter channel
 	}()
 
 	go func() {
@@ -1052,7 +1053,7 @@ func TestConcurrentRunsWithSeparateProgressReporters(t *testing.T) {
 		ruleEngine.RunRulesWithOptions(ctx2, rules2, []RunOption{
 			WithProgressReporter(reporter2),
 		})
-		reporter2.Close()
+		cancel2() // Cancel context to close reporter channel
 	}()
 
 	wg.Wait()

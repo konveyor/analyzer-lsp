@@ -14,9 +14,10 @@ import (
 // NOTE: Dial should only be called once. This is because closing CmdDialer also
 // kills the underlying process
 type CmdDialer struct {
-	Cmd    *exec.Cmd
-	Stdin  io.WriteCloser
-	Stdout io.ReadCloser
+	Cmd        *exec.Cmd
+	Stdin      io.WriteCloser
+	Stdout     io.ReadCloser
+	cancelFunc context.CancelFunc
 
 	err error
 }
@@ -25,7 +26,10 @@ type CmdDialer struct {
 func NewCmdDialer(ctx context.Context, name string, arg ...string) (*CmdDialer, error) {
 	cmdDialer := CmdDialer{}
 
-	Cmd := exec.CommandContext(ctx, name, arg...)
+	cmdCtx, cancelFunc := context.WithCancel(ctx)
+	cmdDialer.cancelFunc = cancelFunc
+
+	Cmd := exec.CommandContext(cmdCtx, name, arg...)
 
 	Stdin, err := Cmd.StdinPipe()
 	if err != nil {
@@ -69,12 +73,8 @@ func (rwc *CmdDialer) Write(p []byte) (int, error) {
 }
 
 func (rwc *CmdDialer) Close() error {
-	err := rwc.Cmd.Process.Kill()
-	if err != nil {
-		return err
-	}
-
-	return rwc.Cmd.Wait()
+	rwc.cancelFunc()
+	return nil
 }
 
 // CmdDialer.Dial returns itself as a CmdDialer is a ReadWriteCloser.
