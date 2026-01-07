@@ -20,6 +20,10 @@ type testProvider struct {
 	caps []provider.Capability
 }
 
+func (t testProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
 func (t testProvider) Capabilities() []provider.Capability {
 	return t.caps
 }
@@ -361,8 +365,10 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ShouldErr:    true,
-			ErrorMessage: "unable to find provider for: builtin",
+			// With the fix, missing providers are gracefully skipped, not errors
+			// The rule will be skipped since provider is unavailable
+			ShouldErr:    false,
+			ErrorMessage: "",
 		},
 		{
 			Name:         "rule no conditions",
@@ -819,7 +825,7 @@ func TestLoadRules(t *testing.T) {
 				Log:                  logrusr.New(logrusLog),
 			}
 
-			ruleSets, clients, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
+			ruleSets, clients, _, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
 			if err != nil {
 				if tc.ShouldErr && tc.ErrorMessage == err.Error() {
 					return

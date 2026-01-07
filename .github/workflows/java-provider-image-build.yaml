@@ -1,0 +1,33 @@
+name: Multiple Architecture Java Provider Image Build
+
+on:
+  repository_dispatch:
+    types: [rebuild-java-provider]
+
+jobs:
+  compute-deps-refs:
+    runs-on: ubuntu-latest
+    outputs:
+      java-bundle-tag: ${{ steps.dep_tag.outputs.java_bundle_tag }}
+    steps:
+      - name: Determine image tags for dependencies
+        id: dep_tag
+        run: |
+          TAG="${{ github.event.client_payload.ref == 'refs/heads/main' && 'latest' || github.event.client_payload.ref_name }}"
+          echo "java_bundle_tag=${TAG:-latest}" >> $GITHUB_OUTPUT
+
+  java-provider-image-build:
+    needs: [compute-deps-refs]
+    uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
+    with:
+      registry: "quay.io/konveyor"
+      image_name: java-external-provider
+      containerfile: "external-providers/java-external-provider/Dockerfile"
+      extra-args: "--build-arg JAVA_BUNDLE_TAG=${{ needs.compute-deps-refs.outputs.java-bundle-tag }}"
+      architectures: '[ "amd64", "arm64" ]'
+      context: "."
+      ref: ${{ github.event.client_payload.ref }}
+      tag: ${{ needs.compute-deps-refs.outputs.java-bundle-tag }}
+    secrets:
+      registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
+      registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}

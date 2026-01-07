@@ -3,6 +3,7 @@ module github.com/konveyor/analyzer-lsp
 go 1.23.9
 
 require (
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/PaesslerAG/gval v1.2.2
 	github.com/antchfx/jsonquery v1.3.0
 	github.com/antchfx/xmlquery v1.4.5-0.20250930041715-a4181c99a362
@@ -17,11 +18,11 @@ require (
 	github.com/swaggest/jsonschema-go v0.3.70
 	github.com/swaggest/openapi-go v0.2.50
 	go.lsp.dev/uri v0.3.0
-	go.opentelemetry.io/otel/trace v1.34.0
-	golang.org/x/oauth2 v0.26.0
-	golang.org/x/sync v0.11.0
-	google.golang.org/grpc v1.72.2
-	google.golang.org/protobuf v1.36.5
+	go.opentelemetry.io/otel/trace v1.35.0
+	golang.org/x/oauth2 v0.28.0
+	golang.org/x/sync v0.12.0
+	google.golang.org/grpc v1.73.0
+	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -34,8 +35,8 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/swaggest/refl v1.3.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel/metric v1.34.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
+	go.opentelemetry.io/otel/metric v1.35.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 )
 
 require (
@@ -46,12 +47,12 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/hashicorp/go-version v1.6.0
 	github.com/shopspring/decimal v1.3.1 // indirect
-	go.opentelemetry.io/otel v1.34.0
+	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
-	go.opentelemetry.io/otel/sdk v1.34.0
-	golang.org/x/net v0.35.0
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.35.0
+	golang.org/x/net v0.38.0
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0
 )
 
 replace github.com/spf13/cobra v1.3.0 => github.com/spf13/cobra v1.9.1

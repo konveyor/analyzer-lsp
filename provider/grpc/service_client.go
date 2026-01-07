@@ -3,7 +3,9 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
 	pb "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"go.lsp.dev/uri"
@@ -13,6 +15,7 @@ type grpcServiceClient struct {
 	id     int64
 	config provider.InitConfig
 	client pb.ProviderServiceClient
+	log    logr.Logger
 }
 
 var _ provider.ServiceClient = &grpcServiceClient{}
@@ -25,12 +28,20 @@ func (g *grpcServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}
 
 	r, err := g.client.Evaluate(ctx, &m)
+	g.log.Info("Made call to Evaluate", "err", err)
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, err
 	}
 
 	if !r.Successful {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf(r.Error)
+	}
+
+	// The response is optional, if the provider says that it was successful but no response then nothing matched.
+	if r.Response == nil {
+		return provider.ProviderEvaluateResponse{
+			Matched: false,
+		}, nil
 	}
 
 	if !r.Response.Matched {
@@ -172,12 +183,13 @@ func (g *grpcServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 
 	for _, change := range changes {
 		fileChanges = append(fileChanges, &pb.FileChange{
+			Saved:   change.Saved,
 			Uri:     change.Path,
 			Content: change.Content,
 		})
 	}
 
-	fileChangeResponse, err := g.client.NotifyFileChanges(ctx, &pb.NotifyFileChangesRequest{Changes: fileChanges})
+	fileChangeResponse, err := g.client.NotifyFileChanges(ctx, &pb.NotifyFileChangesRequest{Changes: fileChanges, Id: g.id})
 	if err != nil {
 		return err
 	}
@@ -189,4 +201,101 @@ func (g *grpcServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 
 func (g *grpcServiceClient) Stop() {
 	g.client.Stop(context.TODO(), &pb.ServiceRequest{Id: g.id})
+}
+
+func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	conditionsByCapability := []*pb.ConditionsByCapability{}
+	for _, condition := range conditionsByCap {
+		conditions := []string{}
+		for _, conditionInfo := range condition.Conditions {
+			conditions = append(conditions, string(conditionInfo))
+		}
+		conditionsByCapability = append(conditionsByCapability, &pb.ConditionsByCapability{
+			Cap:           condition.Cap,
+			ConditionInfo: conditions,
+		})
+	}
+	prepareRequest := &pb.PrepareRequest{
+		Conditions: conditionsByCapability,
+		Id:         g.id,
+	}
+
+	// Execute Prepare with progress streaming if configured
+	return g.withPrepareProgressStreaming(ctx, func() error {
+		prepareResponse, err := g.client.Prepare(ctx, prepareRequest)
+		if err != nil {
+			return err
+		}
+		if prepareResponse.Error != "" {
+			return fmt.Errorf(prepareResponse.Error)
+		}
+		return nil
+	})
+}
+
+// withPrepareProgressStreaming wraps a function call with prepare progress streaming.
+// It handles starting the stream, waiting for it to be ready (with timeout), executing
+// the function, and waiting for the stream to complete.
+func (g *grpcServiceClient) withPrepareProgressStreaming(ctx context.Context, fn func() error) error {
+	// If no progress reporter configured, just execute the function
+	if g.config.PrepareProgressReporter == nil {
+		return fn()
+	}
+
+	// Start progress streaming BEFORE calling the function so we don't miss any events
+	streamDone := make(chan struct{})
+	streamReady := make(chan struct{})
+	go func() {
+		g.streamPrepareProgress(ctx, streamReady)
+		close(streamDone)
+	}()
+
+	// Wait for stream to be established before proceeding (with timeout)
+	select {
+	case <-streamReady:
+		// Stream is ready, continue
+	case <-time.After(5 * time.Second):
+		// Timeout waiting for stream - continue anyway without streaming
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	// Execute the function
+	err := fn()
+
+	// Wait for streaming to complete
+	<-streamDone
+
+	return err
+}
+
+// streamPrepareProgress receives progress events from the GRPC server and forwards them
+// to the configured PrepareProgressReporter.
+func (g *grpcServiceClient) streamPrepareProgress(ctx context.Context, ready chan struct{}) {
+	stream, err := g.client.StreamPrepareProgress(ctx, &pb.PrepareProgressRequest{Id: g.id})
+	if err != nil {
+		// Not an error - server might not support streaming or provider might not implement it
+		close(ready) // Signal ready even on error so we don't block
+		return
+	}
+
+	// Signal that the stream is ready
+	close(ready)
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			// Stream ended (either normally or with error)
+			return
+		}
+
+		// Forward the event to the progress reporter
+		if g.config.PrepareProgressReporter != nil {
+			g.config.PrepareProgressReporter.ReportProgress(
+				event.ProviderName,
+				int(event.FilesProcessed),
+				int(event.TotalFiles),
+			)
+		}
+	}
 }

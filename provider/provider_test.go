@@ -19,6 +19,9 @@ type fakeClient struct {
 	dependencies []*Dep
 }
 
+func (c *fakeClient) Prepare(ctx context.Context, conditionsByCap []ConditionsByCap) error {
+	return nil
+}
 func (c *fakeClient) Capabilities() []Capability { return nil }
 func (c *fakeClient) HasCapability(string) bool  { return true }
 func (c *fakeClient) Evaluate(context.Context, string, []byte) (ProviderEvaluateResponse, error) {
@@ -353,7 +356,7 @@ func Test_GetConfigs(t *testing.T) {
 			testdataFile: "testdata/provider_settings_nested_types.json",
 			expectedProviderSpecificConfig: map[string]interface{}{
 				"lspServerName":                  "generic",
-				"lspServerPath":                  "/root/go/bin/gopls",
+				"lspServerPath":                  "/usr/local/bin/gopls",
 				"lspServerArgs":                  []interface{}{"string"},
 				"lspServerInitializationOptions": "",
 				"workspaceFolders":               []interface{}{"file:///analyzer-lsp/examples/golang"},
@@ -370,7 +373,7 @@ func Test_GetConfigs(t *testing.T) {
 			testdataFile: "testdata/provider_settings_simple.yaml",
 			expectedProviderSpecificConfig: map[string]interface{}{
 				"lspServerName":                  "generic",
-				"lspServerPath":                  "/root/go/bin/gopls",
+				"lspServerPath":                  "/usr/local/bin/gopls",
 				"lspServerArgs":                  []interface{}{"string"},
 				"lspServerInitializationOptions": "",
 				"workspaceFolders":               []interface{}{"file:///analyzer-lsp/examples/golang"},

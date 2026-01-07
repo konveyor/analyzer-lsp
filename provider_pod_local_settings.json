@@ -59,7 +59,7 @@
                 "lspServerInitializationOptions": "",
 
                 "workspaceFolders": ["file:///analyzer-lsp/examples/nodejs"],
-                "dependencyFolders": [""],
+                "dependencyFolders": [],
 
                 "dependencyProviderPath": ""
             }
@@ -75,7 +75,8 @@
                     "lspServerName": "java",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
-                    "lspServerPath": "/jdtls/bin/jdtls"
+                    "lspServerPath": "/jdtls/bin/jdtls",
+                    "mavenIndexPath": "/usr/locl/etc"
                 },
                 "analysisMode": "source-only"
             },
@@ -85,6 +86,7 @@
                     "lspServerName": "java",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "mavenIndexPath": "/usr/locl/etc",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "includedPaths": [
                         "src/main/java/io/konveyor/util/FileReader.java"
@@ -98,6 +100,7 @@
                     "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "mavenIndexPath": "/usr/locl/etc",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
                 },
                 "analysisMode": "source-only"
@@ -108,6 +111,7 @@
                     "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "mavenIndexPath": "/usr/locl/etc",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
                 },
                 "analysisMode": "source-only"
@@ -118,9 +122,24 @@
                     "lspServerName": "java",
                     "lspServerPath": "/jdtls/bin/jdtls",
                     "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "mavenIndexPath": "/usr/locl/etc",
                     "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar"
                 },
                 "analysisMode": "full"
+            }
+        ]
+    },
+    {
+        "name": "c-sharp",
+        "address": "localhost:14656",
+        "initConfig": [
+            {
+                "analysisMode": "source-only",
+                "location": "/analyzer-lsp/examples/c-sharp-dummy-example",
+                "providerSpecificConfig": {
+                    "ilspy_cmd": "/usr/local/bin/ilspycmd",
+                    "paket_cmd": "/usr/local/bin/paket"
+                }
             }
         ]
     },
@@ -129,9 +148,10 @@
         "initConfig": [
             {"location": "examples/java/"},
             {"location": "examples/golang/"},
+            {"location": "examples/nodejs/"},
             {"location": "examples/customers-tomcat-legacy/"},
             {
-                "location": "examples/builtin/", 
+                "location": "examples/builtin/",
                 "providerSpecificConfig": {
                     "includedPaths": ["inclusion_tests/dir-0"]
                 }

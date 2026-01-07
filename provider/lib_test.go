@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -79,5 +81,171 @@ func BenchmarkMultilineGrepFileSizeBig(b *testing.B) {
 			"./testdata/big.xml",
 			"(<groupId>io.konveyor.demo</groupId>|<artifactId>config-utils</artifactId>).*?(<artifactId>config-utils</artifactId>|<groupId>io.konveyor.demo</groupId>).*")
 		canMe()
+	}
+}
+
+func TestGetExcludedDirsFromConfig(t *testing.T) {
+	defaultExcludes := []string{
+		"node_modules",
+		"vendor",
+		".git",
+		"dist",
+		"build",
+		"target",
+		".venv",
+		"venv",
+	}
+
+	tests := []struct {
+		name       string
+		initConfig InitConfig
+		want       []string
+	}{
+		{
+			name: "no user config - returns defaults only",
+			initConfig: InitConfig{
+				Location:               "/project",
+				ProviderSpecificConfig: map[string]interface{}{},
+			},
+			want: defaultExcludes,
+		},
+		{
+			name: "empty array - clears all defaults",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{},
+				},
+			},
+			want: []string{},
+		},
+		{
+			name: "user provides relative directory names - keeps them as-is",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{
+						"bower_components",
+						"jspm_packages",
+					},
+				},
+			},
+			want: append(defaultExcludes, "bower_components", "jspm_packages"),
+		},
+		{
+			name: "user provides absolute paths - keeps them as-is",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{
+						"/absolute/path/to/exclude",
+						"/another/absolute/path",
+					},
+				},
+			},
+			want: append(defaultExcludes, "/absolute/path/to/exclude", "/another/absolute/path"),
+		},
+		{
+			name: "mix of relative and absolute paths",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{
+						"bower_components",
+						"/absolute/path/to/specific/dir",
+						"custom_vendor",
+					},
+				},
+			},
+			want: append(defaultExcludes, "bower_components", "/absolute/path/to/specific/dir", "custom_vendor"),
+		},
+		{
+			name: "nested relative paths - keeps them as directory patterns",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{
+						"src/generated",
+						"test/fixtures",
+					},
+				},
+			},
+			want: append(defaultExcludes, "src/generated", "test/fixtures"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetExcludedDirsFromConfig(tt.initConfig)
+			if len(got) != len(tt.want) {
+				t.Errorf("GetExcludedDirsFromConfig() returned %d items, want %d items", len(got), len(tt.want))
+				t.Errorf("got: %v", got)
+				t.Errorf("want: %v", tt.want)
+				return
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("GetExcludedDirsFromConfig()[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestNormalizePathForComparison(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "file:// URI scheme",
+			input:    "file:///project/src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "file: URI scheme",
+			input:    "file:/project/src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "plain path",
+			input:    "/project/src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "path with ..",
+			input:    "/project/src/../src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "path with .",
+			input:    "/project/./src/Main.java",
+			expected: "/project/src/Main.java",
+		},
+		{
+			name:     "windows-style path",
+			input:    "file:///C:/project/src/Main.java",
+			expected: "/C:/project/src/Main.java",
+		},
+		{
+			name:     "csharp metadata URI",
+			input:    "csharp:/metadata/projects/MyApp/assemblies/System.Web.Mvc/symbols/Controller.cs",
+			expected: "csharp:/metadata/projects/MyApp/assemblies/System.Web.Mvc/symbols/Controller.cs",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := NormalizePathForComparison(tt.input)
+			expected := tt.expected
+			// On Windows, paths are normalized to lowercase (except csharp: URIs)
+			if runtime.GOOS == "windows" && !strings.HasPrefix(tt.input, "csharp:") {
+				expected = strings.ToLower(expected)
+			}
+			if result != expected {
+				t.Errorf("NormalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
+			}
+		})
 	}
 }

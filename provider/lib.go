@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -54,6 +55,13 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	f.Log.V(5).Info("searching for files", "criteria", s, "additionalPaths", f.AdditionalPaths,
 		"ruleScopedConstraints", f.RuleScopeConstraints, "providerScopeConstraints", f.ProviderConfigConstraints)
 
+	var excludedDirs, excludedPatterns []string
+	if len(f.RuleScopeConstraints.ExcludePathsOrPatterns) > 0 {
+		excludedDirs, _, excludedPatterns = splitPathsAndPatterns(statFunc, f.RuleScopeConstraints.ExcludePathsOrPatterns...)
+	} else {
+		excludedDirs, _, excludedPatterns = splitPathsAndPatterns(statFunc, f.ProviderConfigConstraints.ExcludePathsOrPatterns...)
+	}
+
 	// Patterns from search criteria take the highest priority
 	// they contain patterns from cond.ctx.Filepaths
 	searchCriteriaPaths := []string{}
@@ -65,7 +73,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	if len(searchCriteriaPatterns) > 0 {
 		allFiles := []string{}
 		for _, path := range append(f.AdditionalPaths, f.BasePath) {
-			files, walkError := walkDirFunc(path)
+			files, walkError := walkDirFunc(path, excludedDirs, excludedPatterns)
 			if walkError != nil {
 				if f.FailFast {
 					return nil, fmt.Errorf("failed to walk dirs - %w", walkError)
@@ -95,7 +103,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	// If there were included dirs, find files from them
 	filesFromIncludedDirs := []string{}
 	for _, dir := range includedDirs {
-		files, walkError := walkDirFunc(dir)
+		files, walkError := walkDirFunc(dir, excludedDirs, excludedPatterns)
 		if walkError != nil {
 			if f.FailFast {
 				return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
@@ -131,7 +139,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	// if there are any additional paths to search
 	// we need to include them e.g. working copies
 	for _, path := range f.AdditionalPaths {
-		files, walkError := walkDirFunc(path)
+		files, walkError := walkDirFunc(path, excludedDirs, excludedPatterns)
 		if walkError != nil {
 			if f.FailFast {
 				return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
@@ -150,7 +158,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 		// this is the next set of files we want to scope on
 		finalSearchResult = append(finalSearchResult, includedFiles...)
 		if len(includedPatterns) > 0 {
-			files, walkError := walkDirFunc(f.BasePath)
+			files, walkError := walkDirFunc(f.BasePath, excludedDirs, excludedPatterns)
 			if walkError != nil {
 				if f.FailFast {
 					return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
@@ -163,7 +171,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	} else {
 		// if there are no included files so far we have
 		// to search for all files in base path
-		files, walkError := walkDirFunc(f.BasePath)
+		files, walkError := walkDirFunc(f.BasePath, excludedDirs, excludedPatterns)
 		if walkError != nil {
 			if f.FailFast {
 				return nil, fmt.Errorf("failed to walk all dirs - %w", walkError)
@@ -188,7 +196,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 			statFunc, f.ProviderConfigConstraints.ExcludePathsOrPatterns, finalSearchResult, true)
 	}
 
-	f.Log.V(5).Info("returning file search result", "files", finalSearchResult)
+	f.Log.V(7).Info("returning file search result", "files", finalSearchResult)
 	return finalSearchResult, errors.Join(walkErrors...)
 }
 
@@ -217,18 +225,24 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 					}
 				}
 			} else {
-				// try matching as go regex or glob pattern
-				regex, regexErr := regexp.Compile(pattern)
+				rPattern := pattern
+				// if the pattern doesn't contain a wildcard, do an exact match only
+				if regexp.QuoteMeta(pattern) == pattern {
+					rPattern = "^" + pattern + "$"
+				}
+				// try matching as go regex pattern
+				regex, regexErr := regexp.Compile(rPattern)
 				if regexErr == nil && (regex.MatchString(file) || regex.MatchString(filepath.Base(file))) {
 					patternMatched = true
-				} else if regexErr != nil {
+				} else if strings.Contains(pattern, "*") || strings.Contains(pattern, "?") {
+					// fallback to filepath.Match for simple patterns
 					m, err := filepath.Match(pattern, file)
 					if err == nil {
-						patternMatched = m
+						patternMatched = patternMatched || m
 					}
 					m, err = filepath.Match(pattern, filepath.Base(file))
 					if err == nil {
-						patternMatched = m
+						patternMatched = patternMatched || m
 					}
 				}
 			}
@@ -274,14 +288,14 @@ func splitPathsAndPatterns(statFunc cachedOsStat, pathsOrPatterns ...string) (di
 	return
 }
 
-type cachedWalkDir func(path string) ([]string, error)
+type cachedWalkDir func(path string, excludedDirs []string, excludedPatterns []string) ([]string, error)
 
 func newCachedWalkDir() cachedWalkDir {
 	cache := make(map[string]struct {
 		files []string
 		err   error
 	})
-	return func(basePath string) ([]string, error) {
+	return func(basePath string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
 		val, ok := cache[basePath]
 		if !ok {
 			files := []string{}
@@ -290,7 +304,33 @@ func newCachedWalkDir() cachedWalkDir {
 					return err
 				}
 				if !d.IsDir() {
+					// Check if it is a symlink to a directory
+					if d.Type()&fs.ModeSymlink != 0 {
+						if stat, err := os.Stat(path); err == nil && stat.IsDir() {
+							return nil
+						}
+					}
 					files = append(files, path)
+					return nil
+				}
+				// do not recurse into excluded dirs
+				for _, excludedDir := range excludedDirs {
+					relPath, err := filepath.Rel(basePath, path)
+					if err == nil && (relPath == excludedDir || strings.HasPrefix(relPath, excludedDir)) {
+						return fs.SkipDir
+					}
+				}
+				for _, excludedPattern := range excludedPatterns {
+					if !strings.Contains(excludedPattern, "*") {
+						continue
+					}
+					regex, err := regexp.Compile(excludedPattern)
+					if err != nil {
+						continue
+					}
+					if regex.MatchString(path) || regex.MatchString(filepath.Base(path)) {
+						return fs.SkipDir
+					}
 				}
 				return nil
 			})
@@ -402,20 +442,99 @@ func GetIncludedPathsFromConfig(i InitConfig, allowFilePaths bool) []string {
 	return validatedPaths
 }
 
+// GetExcludedDirsFromConfig returns directories to exclude from analysis.
+// It starts with sensible defaults (node_modules, vendor, .git, dist, build, target, venv)
+// to prevent "argument list too long" errors when analyzing projects with large
+// dependency directories. User-configured excludes are appended to these defaults.
+// An empty array for excludedDirs explicitly clears the defaults (to analyze everything).
 func GetExcludedDirsFromConfig(i InitConfig) []string {
-	validatedPaths := []string{}
+	// Check if user explicitly configured excludedDirs
 	if excludedDirs, ok := i.ProviderSpecificConfig[ExcludedDirsConfigKey].([]interface{}); ok {
+		// Empty array means "no excludes, not even defaults" - analyze everything
+		if len(excludedDirs) == 0 {
+			return []string{}
+		}
+
+		// Non-empty array: start with defaults, then add user-configured excludes
+		validatedPaths := []string{
+			"node_modules", // JavaScript/TypeScript dependencies
+			"vendor",       // PHP/Go dependencies
+			".git",         // Git repository data
+			"dist",         // Common build output directory
+			"build",        // Common build output directory
+			"target",       // Java/Rust build output
+			".venv",        // Python virtual environment
+			"venv",         // Python virtual environment
+		}
+
 		for _, dir := range excludedDirs {
 			if expath, ok := dir.(string); ok {
-				ab := expath
-				var err error
-				if !filepath.IsAbs(expath) {
-					if ab, err = filepath.Abs(expath); err == nil {
-					}
-				}
-				validatedPaths = append(validatedPaths, ab)
+				// Keep relative paths as directory names (like defaults) for pattern matching
+				// Only absolute paths are kept as-is for exact path matching
+				validatedPaths = append(validatedPaths, expath)
+			}
+		}
+		return validatedPaths
+	}
+
+	// No config provided: use defaults only
+	return []string{
+		"node_modules", // JavaScript/TypeScript dependencies
+		"vendor",       // PHP/Go dependencies
+		".git",         // Git repository data
+		"dist",         // Common build output directory
+		"build",        // Common build output directory
+		"target",       // Java/Rust build output
+		".venv",        // Python virtual environment
+		"venv",         // Python virtual environment
+	}
+}
+
+func GetEncodingFromConfig(i InitConfig) string {
+	if encodingValue, ok := i.ProviderSpecificConfig[EncodingConfigKey]; ok {
+		if encoding, ok := encodingValue.(string); ok {
+			return encoding
+		}
+	}
+	return ""
+}
+
+// NormalizePathForComparison normalizes a file path for consistent comparison across platforms.
+// It handles:
+//   - URI schemes (file:///, file:)
+//   - Path separators (converts backslashes to forward slashes)
+//   - Case sensitivity (normalizes to lowercase on Windows)
+//   - Special URI schemes (preserves them as-is, e.g., csharp:)
+//
+// This function is commonly used when filtering paths or comparing file URIs from LSP servers.
+func NormalizePathForComparison(path string) string {
+	// Preserve special URI schemes as-is (e.g., csharp: for C# metadata)
+	// These don't represent real file paths and should be compared literally
+	if strings.Contains(path, ":") && !strings.HasPrefix(path, "file:") {
+		colonIdx := strings.Index(path, ":")
+		if colonIdx > 0 && colonIdx < len(path)-1 {
+			// Check if it's not a Windows drive letter (single letter followed by colon)
+			if colonIdx > 1 || (colonIdx == 1 && (path[0] < 'A' || path[0] > 'Z') && (path[0] < 'a' || path[0] > 'z')) {
+				// This looks like a special URI scheme, preserve it
+				return path
 			}
 		}
 	}
-	return validatedPaths
+
+	// Remove common URI schemes (some systems emit file: instead of file://)
+	path = strings.TrimPrefix(path, "file://")
+	path = strings.TrimPrefix(path, "file:")
+
+	// Clean the path to resolve . and .. elements
+	path = filepath.Clean(path)
+
+	// Convert to forward slashes for consistent comparison across platforms
+	path = filepath.ToSlash(path)
+
+	// On Windows, normalize to lowercase for case-insensitive comparison
+	if runtime.GOOS == "windows" {
+		path = strings.ToLower(path)
+	}
+
+	return path
 }

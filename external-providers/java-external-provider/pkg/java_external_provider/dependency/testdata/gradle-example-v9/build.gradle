@@ -1,0 +1,47 @@
+apply plugin: 'idea'
+
+ext {
+  log4jVersion = '2.9.1'
+}
+
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+//   dependencies {
+//     classpath 'com.gradleup.shadow:shadow-gradle-plugin:2.0.3'
+//   }
+}
+
+allprojects {
+  repositories {
+    mavenLocal()
+    mavenCentral() // maven { url: 'http://jcenter.bintray.com' }
+  }
+}
+
+apply from: file('gradle/check.gradle')
+apply from: file('gradle/heroku/clean.gradle')
+
+subprojects {
+//   apply plugin: 'com.github.johnrengelman.shadow'
+  apply plugin: 'java'
+
+  group = "io.jeffchao.${rootProject.name}"
+
+  dependencies {
+    implementation 'com.google.guava:guava:23.0'
+
+    implementation 'junit:junit:4.12'
+
+    implementation "org.apache.logging.log4j:log4j-api:$log4jVersion"
+    implementation "org.apache.logging.log4j:log4j-core:$log4jVersion"
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
+
+    implementation 'org.mockito:mockito-core:2.11.0'
+
+  }
+
+  apply from: file("$rootProject.projectDir/gradle/heroku/stage.gradle")
+
+}

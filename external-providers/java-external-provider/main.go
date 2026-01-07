@@ -14,6 +14,7 @@ import (
 
 var (
 	port          = flag.Int("port", 0, "Port must be set")
+	socket        = flag.String("socket", "", "Socket to be used")
 	logLevel      = flag.Int("log-level", 5, "Level to log")
 	lspServerName = flag.String("name", "java", "name of the lsp to be used in rules")
 	contextLines  = flag.Int("contxtLines", 10, "lines of context for the code snippet")
@@ -28,8 +29,9 @@ func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
-	logrusLog.SetLevel(logrus.Level(5))
+	logrusLog.SetLevel(20)
 	log := logrusr.New(logrusLog)
+	log = log.WithName("java-provider")
 
 	// must use lspServerName for use of multiple grpc providers
 	client := java.NewJavaProvider(log, *lspServerName, *contextLines, provider.Config{})
@@ -37,8 +39,8 @@ func main() {
 	if logLevel != nil && *logLevel != 5 {
 		logrusLog.SetLevel(logrus.Level(*logLevel))
 	}
-	if port == nil || *port == 0 {
-		log.Error(fmt.Errorf("port unspecified"), "port number must be specified")
+	if (socket == nil || *socket == "") && (port == nil || *port == 0) {
+		log.Error(fmt.Errorf("no serving location"), "port or socket must be set.")
 		panic(1)
 	}
 	var c string
@@ -57,7 +59,7 @@ func main() {
 		secret = *secretKey
 	}
 
-	s := provider.NewServer(client, *port, c, k, secret, log)
+	s := provider.NewServer(client, *port, c, k, secret, *socket, log)
 	ctx := context.TODO()
 	s.Start(ctx)
 }

@@ -1,0 +1,89 @@
+[
+    {
+        "name": "java",
+        "address":  "localhost:14651",
+        "initConfig": [
+            {
+                "location": "/analyzer-lsp/examples/java",
+                "providerSpecificConfig": {
+                    "lspServerName": "java",
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "lspServerPath": "/jdtls/bin/jdtls",
+                    "mavenIndexPath": "/usr/local/etc",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-java"
+                },
+                "analysisMode": "source-only"
+            },
+            {
+                "location": "/analyzer-lsp/examples/inclusion-tests",
+                "providerSpecificConfig": {
+                    "lspServerName": "java",
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "mavenIndexPath": "/usr/local/etc",
+                    "lspServerPath": "/jdtls/bin/jdtls",
+                    "includedPaths": [
+                        "src/main/java/io/konveyor/util/FileReader.java"
+                    ],
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-inclusion"
+                },
+                "analysisMode": "source-only"
+            },
+            {
+                "location": "/analyzer-lsp/examples/customers-tomcat-legacy",
+                "providerSpecificConfig": {
+                    "lspServerName": "java",
+                    "lspServerPath": "/jdtls/bin/jdtls",
+                    "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "mavenIndexPath": "/usr/local/etc",
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-customers"
+                },
+                "analysisMode": "source-only"
+            },
+            {
+                "location": "/analyzer-lsp/examples/gradle-multi-project-example",
+                "providerSpecificConfig": {
+                    "lspServerName": "java",
+                    "lspServerPath": "/jdtls/bin/jdtls",
+                    "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "mavenIndexPath": "/usr/local/etc",
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-gradle"
+                },
+                "analysisMode": "source-only"
+            },
+            {
+                "location": "mvn://io.javaoperatorsdk:quarkus:1.6.2:jar@/analyzer-lsp/examples/",
+                "providerSpecificConfig": {
+                    "lspServerName": "java",
+                    "lspServerPath": "/jdtls/bin/jdtls",
+                    "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "mavenIndexPath": "/usr/local/etc",
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-binary"
+                },
+                "analysisMode": "full"
+            }
+        ]
+    },
+    {
+        "name": "builtin",
+        "initConfig": [
+            {"location": "examples/java/"},
+            {"location": "examples/customers-tomcat-legacy/"},
+            {
+                "location": "examples/builtin/",
+                "providerSpecificConfig": {
+                    "includedPaths": ["inclusion_tests/dir-0"]
+                }
+            }
+        ]
+    }
+]

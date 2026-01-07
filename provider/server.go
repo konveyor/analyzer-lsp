@@ -14,7 +14,9 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/konveyor/analyzer-lsp/engine"
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
+	"github.com/konveyor/analyzer-lsp/provider/grpc/socket"
 	libgrpc "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"go.lsp.dev/uri"
 	"google.golang.org/grpc"
@@ -27,7 +29,6 @@ import (
 
 const (
 	JWT_SECRET_ENV_VAR = "JWT_SECRET"
-	MAX_MESSAGE_SIZE   = 1024 * 1024 * 8
 )
 
 type Server interface {
@@ -44,6 +45,7 @@ type server struct {
 	CertPath            string
 	KeyPath             string
 	SecretKey           string
+	SocketPath          string
 
 	mutex   sync.RWMutex
 	clients map[int64]clientMapItem
@@ -60,7 +62,7 @@ type clientMapItem struct {
 
 // Provider GRPC Service
 // TOOD: HANDLE INIT CONFIG CHANGES
-func NewServer(client BaseClient, port int, certPath string, keyPath string, secretKey string, logger logr.Logger) Server {
+func NewServer(client BaseClient, port int, certPath string, keyPath string, secretKey string, socketPath string, logger logr.Logger) Server {
 	s := rand.NewSource(time.Now().Unix())
 
 	var depLocationResolver DependencyLocationResolver
@@ -87,6 +89,7 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, sec
 		CertPath:                           certPath,
 		KeyPath:                            keyPath,
 		SecretKey:                          secretKey,
+		SocketPath:                         socketPath,
 		UnimplementedProviderServiceServer: libgrpc.UnimplementedProviderServiceServer{},
 		mutex:                              sync.RWMutex{},
 		clients:                            make(map[int64]clientMapItem),
@@ -97,11 +100,20 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, sec
 }
 
 func (s *server) Start(ctx context.Context) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+	var listen net.Listener
+	var err error
+	if s.Port != 0 {
+		listen, err = net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+	} else if s.SocketPath != "" {
+		listen, err = socket.Listen(s.SocketPath)
+	} else {
+		return fmt.Errorf("unable to start server no serving information present")
+	}
 	if err != nil {
 		s.Log.Error(err, "failed to listen")
 		return err
 	}
+
 	if s.SecretKey != "" && (s.CertPath == "" || s.KeyPath == "") {
 		return fmt.Errorf("to use JWT authentication you must use TLS")
 	}
@@ -117,7 +129,7 @@ func (s *server) Start(ctx context.Context) error {
 			gs = grpc.NewServer(grpc.Creds(creds))
 		}
 	} else if s.CertPath == "" && s.KeyPath == "" {
-		gs = grpc.NewServer(grpc.MaxRecvMsgSize(MAX_MESSAGE_SIZE), grpc.MaxSendMsgSize(MAX_MESSAGE_SIZE))
+		gs = grpc.NewServer(grpc.MaxRecvMsgSize(socket.MAX_MESSAGE_SIZE), grpc.MaxSendMsgSize(socket.MAX_MESSAGE_SIZE))
 	} else {
 		return fmt.Errorf("cert: %v, and key: %v are invalid", s.CertPath, s.KeyPath)
 	}
@@ -129,8 +141,8 @@ func (s *server) Start(ctx context.Context) error {
 	}
 	libgrpc.RegisterProviderServiceServer(gs, s)
 	reflection.Register(gs)
-	s.Log.Info(fmt.Sprintf("server listening at %v", lis.Addr()))
-	if err := gs.Serve(lis); err != nil {
+	s.Log.Info(fmt.Sprintf("server listening at %v", listen.Addr()))
+	if err := gs.Serve(listen); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 	return nil
@@ -234,6 +246,23 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 			HTTPSProxy: config.Proxy.HTTPSProxy,
 			NoProxy:    config.Proxy.NoProxy,
 		},
+		PipeName:    config.LanguageServerPipe,
+		Initialized: config.LanguageServerPipe != "",
+	}
+
+	newCtx := context.Background()
+
+	if config.LanguageServerPipe != "" {
+		s.Log.Info("language server pipe is set", "pipe", config.LanguageServerPipe)
+		var handler jsonrpc2.Handler
+		if h, ok := s.Client.(jsonrpc2.Handler); ok {
+			handler = h
+		}
+		rpc, err := socket.ConnectRPC(newCtx, config.LanguageServerPipe, handler)
+		if err != nil {
+			return nil, err
+		}
+		c.RPC = rpc
 	}
 
 	if config.ProviderSpecificConfig != nil {
@@ -242,7 +271,6 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 
 	id := rand.Int63()
 	log := s.Log.WithValues("client", id)
-	newCtx := context.Background()
 
 	client, builtinConf, err := s.Client.Init(newCtx, log, c)
 	if err != nil {
@@ -435,7 +463,7 @@ func recreateDAGAddedItems(items []DepDAGItem) []*libgrpc.DependencyDAGItem {
 	return deps
 }
 
-func (s *server) GetDependenciesLinkedList(ctx context.Context, in *libgrpc.ServiceRequest) (*libgrpc.DependencyDAGResponse, error) {
+func (s *server) GetDependenciesDAG(ctx context.Context, in *libgrpc.ServiceRequest) (*libgrpc.DependencyDAGResponse, error) {
 	s.mutex.RLock()
 	client := s.clients[in.Id]
 	s.mutex.RUnlock()
@@ -478,7 +506,7 @@ func (s *server) authUnaryInterceptor(ctx context.Context, req any, info *grpc.U
 
 	tokenString := strings.TrimPrefix(tokenRaw[0], "Bearer ")
 
-	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
 		return []byte(s.SecretKey), nil
 	})
 
@@ -499,4 +527,90 @@ func (s *server) authUnaryInterceptor(ctx context.Context, req any, info *grpc.U
 	s.Log.Info("user making request", "audience", a, "issuer", i, "subject", sub, "name", name)
 
 	return handler(ctx, req)
+}
+
+func (s *server) Prepare(ctx context.Context, in *libgrpc.PrepareRequest) (*libgrpc.PrepareResponse, error) {
+	s.mutex.RLock()
+	client := s.clients[in.Id]
+	s.mutex.RUnlock()
+	conditionsByCap := []ConditionsByCap{}
+	for _, condition := range in.Conditions {
+		conditions := [][]byte{}
+		for _, conditionInfo := range condition.ConditionInfo {
+			conditions = append(conditions, []byte(conditionInfo))
+		}
+		conditionsByCap = append(conditionsByCap, ConditionsByCap{
+			Cap:        condition.Cap,
+			Conditions: conditions,
+		})
+	}
+	err := client.client.Prepare(ctx, conditionsByCap)
+	if err != nil {
+		return &libgrpc.PrepareResponse{
+			Error: err.Error(),
+		}, nil
+	}
+	return &libgrpc.PrepareResponse{
+		Error: "",
+	}, nil
+}
+
+func (s *server) NotifyFileChanges(ctx context.Context, in *libgrpc.NotifyFileChangesRequest) (*libgrpc.NotifyFileChangesResponse, error) {
+	s.mutex.RLock()
+	client := s.clients[in.Id]
+	s.mutex.RUnlock()
+	changes := []FileChange{}
+	for _, change := range in.Changes {
+		changes = append(changes, FileChange{
+			Path:    change.Uri,
+			Content: change.Content,
+			Saved:   change.Saved,
+		})
+	}
+	err := client.client.NotifyFileChanges(ctx, changes...)
+	if err != nil {
+		return &libgrpc.NotifyFileChangesResponse{
+			Error: err.Error(),
+		}, nil
+	}
+	return &libgrpc.NotifyFileChangesResponse{
+		Error: "",
+	}, nil
+}
+
+func (s *server) StreamPrepareProgress(in *libgrpc.PrepareProgressRequest, stream libgrpc.ProviderService_StreamPrepareProgressServer) error {
+	s.mutex.RLock()
+	client, ok := s.clients[in.Id]
+	s.mutex.RUnlock()
+
+	if !ok {
+		return nil
+	}
+
+	// Check if client supports progress streaming
+	streamer, ok := client.client.(PrepareProgressStreamer)
+	if !ok {
+		// Not an error, client just doesn't support streaming
+		return nil
+	}
+
+	// Start the progress stream
+	progressChan := streamer.StartProgressStream()
+	defer streamer.StopProgressStream()
+
+	// Stream events to the GRPC client
+	for event := range progressChan {
+		pbEvent := &libgrpc.ProgressEvent{
+			Type:           libgrpc.ProgressEventType_PREPARE,
+			ProviderName:   event.ProviderName,
+			FilesProcessed: int32(event.FilesProcessed),
+			TotalFiles:     int32(event.TotalFiles),
+		}
+		if err := stream.Send(pbEvent); err != nil {
+			s.Log.Error(err, "failed to send progress event")
+			return err
+		}
+	}
+
+	return nil
 }

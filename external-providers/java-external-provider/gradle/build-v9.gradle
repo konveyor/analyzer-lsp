@@ -1,0 +1,100 @@
+/**
+ * Configuration cache compatible sources download task - compatible with Gradle 8.14+
+ * All project iteration happens at configuration time
+ */
+
+// Collect all source files at configuration time
+def allProjectSourceFiles = []
+
+allprojects { proj ->
+    // Process each project during configuration phase
+    def targetConfigs = [
+        'compileClasspath',
+        'runtimeClasspath',
+        'implementation',
+        'api'
+    ].findAll { configName ->
+        def config = proj.configurations.findByName(configName)
+        return config != null && config.canBeResolved
+    }
+
+    targetConfigs.each { configName ->
+        try {
+            def config = proj.configurations.getByName(configName)
+
+            // Use modern incoming artifacts API
+            def artifacts = config.incoming.artifacts
+            def artifactResults = artifacts.artifacts
+
+            // Extract module identifiers for source resolution
+            def moduleIds = artifactResults.collect { artifactResult ->
+                def componentId = artifactResult.id.componentIdentifier
+                if (componentId instanceof ModuleComponentIdentifier) {
+                    return [
+                        group: componentId.group,
+                        name: componentId.module,
+                        version: componentId.version
+                    ]
+                }
+                return null
+            }.findAll { it != null }.unique()
+
+            if (!moduleIds.isEmpty()) {
+                // Create source dependencies
+                def sourceDependencies = moduleIds.collect { moduleId ->
+                    proj.dependencies.create(
+                        "${moduleId.group}:${moduleId.name}:${moduleId.version}:sources"
+                    )
+                }
+
+                if (!sourceDependencies.isEmpty()) {
+                    def sourcesConfig = proj.configurations.detachedConfiguration(
+                        sourceDependencies as Dependency[]
+                    )
+                    sourcesConfig.transitive = false
+
+                    try {
+                        // Resolve and collect source files
+                        def sourceFiles = sourcesConfig.incoming.artifactView { view ->
+                            view.lenient(true)
+                        }.artifacts.artifacts.collect { it.file }.findAll {
+                            it != null && it.exists()
+                        }
+
+                        if (!sourceFiles.isEmpty()) {
+                            allProjectSourceFiles.addAll(sourceFiles)
+                            println "Found ${sourceFiles.size()} source files for ${proj.name}:${configName}"
+                        }
+                    } catch (Exception e) {
+                        println "Error resolving sources for ${proj.name}:${configName}: ${e.message}"
+                    }
+                }
+            }
+        } catch (Exception e) {
+            println "Error processing ${proj.name}:${configName}: ${e.message}"
+        }
+    }
+}
+
+task konveyorDownloadSources {
+    // Store the collected files as task input
+    def sourceFiles = allProjectSourceFiles
+
+    doLast {
+        // Copy all found source files
+        if (!sourceFiles.isEmpty()) {
+            def downloadDir = new File(project.layout.buildDirectory.get().asFile, "downloaded-sources")
+            downloadDir.mkdirs()
+
+            copy {
+                from sourceFiles
+                into downloadDir
+                duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+            }
+
+            println "Downloaded ${sourceFiles.size()} source files to ${downloadDir}"
+        } else {
+            println "No source files found to download"
+        }
+    }
+}

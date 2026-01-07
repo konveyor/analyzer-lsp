@@ -73,6 +73,7 @@ func (p *PythonServiceClientBuilder) Init(ctx context.Context, log logr.Logger, 
 		ctx, log, c,
 		base.LogHandler(log),
 		params,
+		nil,
 	)
 	if err != nil {
 		return nil, err

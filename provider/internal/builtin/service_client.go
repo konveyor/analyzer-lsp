@@ -21,6 +21,7 @@ import (
 	"github.com/antchfx/xpath"
 	"github.com/dlclark/regexp2"
 	"github.com/go-logr/logr"
+	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/tracing"
@@ -39,6 +40,7 @@ type builtinServiceClient struct {
 	locationCache map[string]float64
 	includedPaths []string
 	excludedDirs  []string
+	encoding      string
 
 	workingCopyMgr *workingCopyManager
 }
@@ -48,6 +50,33 @@ type fileTemplateContext struct {
 }
 
 var _ provider.ServiceClient = &builtinServiceClient{}
+
+func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
+func (b *builtinServiceClient) openFileWithEncoding(filePath string) (io.Reader, error) {
+	var content []byte
+	var err error
+	if b.encoding != "" {
+		content, err = engine.OpenFileWithEncoding(filePath, b.encoding)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", filePath)
+			content, readErr := os.ReadFile(filePath)
+			if readErr != nil {
+				return nil, readErr
+			}
+			return bytes.NewReader(content), nil
+		}
+	} else {
+		content, err = os.ReadFile(filePath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return bytes.NewReader(content), nil
+}
 
 func (p *builtinServiceClient) Stop() {
 	p.workingCopyMgr.stop()
@@ -131,8 +160,13 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 
+		patterns := []string{}
+		if c.FilePattern != "" {
+			patterns = append(patterns, c.FilePattern)
+		}
 		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
-			Patterns: []string{c.FilePattern},
+			Patterns:           patterns,
+			ConditionFilepaths: c.Filepaths,
 		})
 		if err != nil {
 			return response, fmt.Errorf("failed to perform search - %w", err)
@@ -176,7 +210,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 		for _, file := range xmlFiles {
-			nodes, err := queryXMLFile(file, query)
+			nodes, err := p.queryXMLFile(file, query)
 			if err != nil {
 				log.V(5).Error(err, "failed to query xml file", "file", file)
 				continue
@@ -226,13 +260,13 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 		xmlFiles, err := fileSearcher.Search(provider.SearchCriteria{
 			Patterns:           []string{"*.xml", "*.xhtml"},
-			ConditionFilepaths: cond.XML.Filepaths,
+			ConditionFilepaths: cond.XMLPublicID.Filepaths,
 		})
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 		for _, file := range xmlFiles {
-			nodes, err := queryXMLFile(file, query)
+			nodes, err := p.queryXMLFile(file, query)
 			if err != nil {
 				log.Error(err, "failed to query xml file", "file", file)
 				continue
@@ -271,18 +305,18 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 		jsonFiles, err := fileSearcher.Search(provider.SearchCriteria{
 			Patterns:           []string{"*.json"},
-			ConditionFilepaths: cond.XML.Filepaths,
+			ConditionFilepaths: cond.JSON.Filepaths,
 		})
 		if err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		}
 		for _, file := range jsonFiles {
-			f, err := os.Open(file)
+			reader, err := p.openFileWithEncoding(file)
 			if err != nil {
 				log.V(5).Error(err, "error opening json file", "file", file)
 				continue
 			}
-			doc, err := jsonquery.Parse(f)
+			doc, err := jsonquery.Parse(reader)
 			if err != nil {
 				log.V(5).Error(err, "error parsing json file", "file", file)
 				continue
@@ -419,24 +453,31 @@ func compactXML(xml string) string {
 	return compacted
 }
 
-func queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open file '%s': %w", filePath, err)
+func (b *builtinServiceClient) queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
+	var content []byte
+	if b.encoding != "" {
+		content, err = engine.OpenFileWithEncoding(filePath, b.encoding)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to convert file encoding for XML, using original file", "file", filePath)
+			content, err = os.ReadFile(filePath)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		content, err = os.ReadFile(filePath)
+		if err != nil {
+			return nil, err
+		}
 	}
-	defer f.Close()
+
 	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
 	var doc *xmlquery.Node
-	doc, err = xmlquery.ParseWithOptions(f, xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}, WithLineNumbers: true})
+	doc, err = xmlquery.ParseWithOptions(strings.NewReader(string(content)), xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}, WithLineNumbers: true})
 	if err != nil {
 		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
 			// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
-			var b []byte
-			b, err = os.ReadFile(filePath)
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
-			}
-			docString := strings.Replace(string(b), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
+			docString := strings.Replace(string(content), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
 			doc, err = xmlquery.Parse(strings.NewReader(docString))
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
@@ -486,51 +527,115 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 		return matches, nil
 	}
 
+	// Calculate total argument length to determine if we can use direct grep
+	// ARG_MAX on Linux is typically 2MB, use conservative 512KB threshold for safety
+	const argMaxSafeThreshold = 512 * 1024
+	totalArgLength := len(pattern) + 50 // pattern + grep flags overhead
+	for _, loc := range locations {
+		totalArgLength += len(loc) + 1 // +1 for space separator
+	}
+
 	var outputBytes bytes.Buffer
-	batchSize := 500
-	for start := 0; start < len(locations); start += batchSize {
-		end := int(math.Min(float64(start+batchSize), float64(len(locations))))
-		currBatch := locations[start:end]
-		b.log.V(5).Info("searching for pattern", "pattern", pattern, "batchSize", len(currBatch), "totalFiles", len(locations))
-		var currOutput []byte
-		switch runtime.GOOS {
-		case "darwin":
-			isEscaped := isSlashEscaped(pattern)
-			escapedPattern := pattern
-			// some rules already escape '/' while others do not
-			if !isEscaped {
-				escapedPattern = strings.ReplaceAll(escapedPattern, "/", "\\/")
-			}
-			// escape other chars used in perl pattern
-			escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
-			escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
-			var fileList bytes.Buffer
-			for _, f := range locations {
-				fileList.WriteString(f)
-				fileList.WriteByte('\x00')
-			}
-			cmdStr := fmt.Sprintf(
-				`xargs -0 perl -ne '/%v/ && print "$ARGV:$.:$1\n";'`,
-				escapedPattern,
-			)
-			b.log.V(7).Info("running perl", "cmd", cmdStr)
-			cmd := exec.Command("/bin/sh", "-c", cmdStr)
-			cmd.Stdin = &fileList
-			currOutput, err = cmd.Output()
-		default:
-			args := []string{"-o", "-n", "--with-filename", "-R", "-P", pattern}
-			b.log.V(7).Info("running grep with args", "args", args)
-			args = append(args, locations...)
-			cmd := exec.Command("grep", args...)
-			currOutput, err = cmd.Output()
-		}
+
+	// Fast path for small projects: use direct grep if args fit within ARG_MAX
+	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" && totalArgLength < argMaxSafeThreshold {
+		b.log.V(5).Info("using direct grep (fast path)", "pattern", pattern, "totalFiles", len(locations), "argLength", totalArgLength)
+		// Build grep command with all files as arguments
+		// Use -- to mark end of options, preventing patterns like --pf- from being interpreted as options
+		args := []string{"-o", "-n", "--with-filename", "-P", "--", pattern}
+		args = append(args, locations...)
+		cmd := exec.Command("grep", args...)
+		output, err := cmd.Output()
 		if err != nil {
-			if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
-				return nil, nil
+			if exitError, ok := err.(*exec.ExitError); ok {
+				if exitError.ExitCode() == 1 {
+					// No matches found, not an error
+					err = nil
+				}
 			}
-			return nil, fmt.Errorf("could not run grep with provided pattern %+v", err)
+			if err != nil {
+				return nil, fmt.Errorf("could not run grep with provided pattern %+v", err)
+			}
 		}
-		outputBytes.Write(currOutput)
+		outputBytes.Write(output)
+	} else {
+		// Slow path for large projects or macOS: use batching with xargs
+		batchSize := 500
+		for start := 0; start < len(locations); start += batchSize {
+			end := int(math.Min(float64(start+batchSize), float64(len(locations))))
+			currBatch := locations[start:end]
+			b.log.V(5).Info("searching for pattern", "pattern", pattern, "batchSize", len(currBatch), "totalFiles", len(locations))
+			var currOutput []byte
+			switch runtime.GOOS {
+			case "darwin":
+				isEscaped := isSlashEscaped(pattern)
+				escapedPattern := pattern
+				// some rules already escape '/' while others do not
+				if !isEscaped {
+					escapedPattern = strings.ReplaceAll(escapedPattern, "/", "\\/")
+				}
+				// escape other chars used in perl pattern
+				escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
+				escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
+				var fileList bytes.Buffer
+				for _, f := range currBatch {
+					fileList.WriteString(f)
+					fileList.WriteByte('\x00')
+				}
+				cmdStr := fmt.Sprintf(
+					`xargs -0 perl -ne 'if (/%v/) { print "$ARGV:$.:$1\n" } close ARGV if eof;'`,
+					escapedPattern,
+				)
+				b.log.V(7).Info("running perl", "cmd", cmdStr)
+				cmd := exec.Command("/bin/sh", "-c", cmdStr)
+				cmd.Stdin = &fileList
+				currOutput, err = cmd.Output()
+			default:
+				// Use xargs to avoid ARG_MAX limits when processing large numbers of files
+				// This prevents "argument list too long" errors when analyzing projects
+				// with many files (e.g., node_modules with 30,000+ files)
+				var fileList bytes.Buffer
+				for _, f := range currBatch {
+					fileList.WriteString(f)
+					fileList.WriteByte('\x00')
+				}
+				// Escape pattern for safe shell interpolation
+				escapedPattern := strings.ReplaceAll(pattern, "'", "'\"'\"'")
+				// Use -- to mark end of options, preventing patterns like --pf- from being interpreted as options
+				cmdStr := fmt.Sprintf(
+					`xargs -0 grep -o -n --with-filename -P -- '%s'`,
+					escapedPattern,
+				)
+				b.log.V(7).Info("running grep via xargs", "cmd", cmdStr)
+				cmd := exec.Command("/bin/sh", "-c", cmdStr)
+				cmd.Stdin = &fileList
+				currOutput, err = cmd.Output()
+			}
+			if err != nil {
+				if exitError, ok := err.(*exec.ExitError); ok {
+					// Exit code 1: grep found no matches
+					if exitError.ExitCode() == 1 {
+						err = nil // Clear error; no matches in this batch
+					}
+					// Exit code 123: GNU xargs exits with 123 when any child exits with 1-125
+					// This includes both "no matches" (grep exit 1) and real errors (grep exit 2)
+					// Only clear 123 if stderr is empty; otherwise surface the error
+					if exitError.ExitCode() == 123 {
+						stderrStr := strings.TrimSpace(string(exitError.Stderr))
+						if stderrStr == "" {
+							err = nil // mixed batches, but no actual error output
+						} else {
+							// Real grep error (e.g., exit 2) - include stderr in error message
+							return nil, fmt.Errorf("could not run grep with provided pattern %+v; stderr=%s", err, stderrStr)
+						}
+					}
+				}
+				if err != nil {
+					return nil, fmt.Errorf("could not run grep with provided pattern %+v", err)
+				}
+			}
+			outputBytes.Write(currOutput)
+		}
 	}
 
 	matches := []string{}
@@ -604,20 +709,33 @@ func (b *builtinServiceClient) parallelWalk(paths []string, regex *regexp2.Regex
 }
 
 func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp) ([]fileSearchResult, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
+	var content []byte
+	var err error
+	if b.encoding != "" {
+		content, err = engine.OpenFileWithEncoding(path, b.encoding)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", path)
+			content, err = os.ReadFile(path)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		content, err = os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
 	}
-	defer f.Close()
 
+	reader := bytes.NewReader(content)
 	nBytes := int64(0)
 	nCh := int64(0)
 	buffer := make([]byte, 1024*1024) // Create a buffer to hold 1MB
 	foundMatch := false
 	for {
-		n, readErr := io.ReadFull(f, buffer)
+		n, readErr := io.ReadFull(reader, buffer)
 		if readErr != io.ErrUnexpectedEOF && readErr != io.EOF {
-			return nil, err
+			return nil, readErr
 		} else if readErr != nil && foundMatch {
 			// This case probably shouldn't happen.
 			break
@@ -647,10 +765,10 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp) (
 	}
 
 	// Now we we need to go line by line to find the line numbers.
-	f.Seek(0, io.SeekStart)
+	reader = bytes.NewReader(content)
 	var r []fileSearchResult
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(reader)
 	lineNumber := 1
 	for scanner.Scan() {
 		line := scanner.Text()

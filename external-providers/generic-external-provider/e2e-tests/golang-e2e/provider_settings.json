@@ -1,0 +1,26 @@
+[
+    {
+        "name": "go",
+        "address": "localhost:14651",
+        "initConfig": [{
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "generic",
+                "lspServerPath": "/usr/local/bin/gopls",
+                "lspServerArgs": [],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/golang"],
+                "dependencyFolders": [],
+
+                "dependencyProviderPath": "/usr/local/bin/golang-dependency-provider"
+            }
+        }]
+    },
+    {
+        "name": "builtin",
+        "initConfig": [
+            {"location": "examples/golang/"}
+        ]
+    }
+]

@@ -3974,6 +3974,7 @@ type SemanticTokensWorkspaceClientCapabilities struct {
 // Defines the capabilities provided by a language
 // server.
 type ServerCapabilities struct {
+	AssumeWorks bool
 	// The position encoding the server picked from the encodings offered
 	// by the client via the client capability `general.positionEncodings`.
 	//

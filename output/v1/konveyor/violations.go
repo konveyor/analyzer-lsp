@@ -139,14 +139,6 @@ func (i *Incident) cmpLess(other *Incident) bool {
 		return i.URI < other.URI
 	}
 
-	if i.Message != other.Message {
-		return i.Message < other.Message
-	}
-
-	if i.CodeSnip != other.CodeSnip {
-		return i.CodeSnip < other.CodeSnip
-	}
-
 	if i.LineNumber == nil {
 		x := 0
 		i.LineNumber = &x
@@ -159,6 +151,13 @@ func (i *Incident) cmpLess(other *Incident) bool {
 
 	if *(*i).LineNumber != *(*other).LineNumber {
 		return *(*i).LineNumber < *(*other).LineNumber
+	}
+	if i.Message != other.Message {
+		return i.Message < other.Message
+	}
+
+	if i.CodeSnip != other.CodeSnip {
+		return i.CodeSnip < other.CodeSnip
 	}
 
 	return false

@@ -20,6 +20,8 @@ message Config {
   string analysisMode = 4;
   google.protobuf.Struct providerSpecificConfig= 5;
   Proxy proxy = 6;
+  string languageServerPipe = 7;
+  bool initialized= 8;
 
   // repeated string workspaceFolders = 7;
   // repeated string dependencyFolders = 8;
@@ -122,6 +124,8 @@ service ProviderService {
   rpc GetDependencies (ServiceRequest) returns (DependencyResponse) {};
   rpc GetDependenciesDAG(ServiceRequest) returns (DependencyDAGResponse) {};
   rpc NotifyFileChanges(NotifyFileChangesRequest) returns (NotifyFileChangesResponse) {};
+  rpc Prepare(PrepareRequest) returns (PrepareResponse) {};
+  rpc StreamPrepareProgress(PrepareProgressRequest) returns (stream ProgressEvent) {};
 }
 
 message Dependency {
@@ -181,8 +185,43 @@ message FileChange {
 
 message NotifyFileChangesRequest {
   repeated FileChange changes = 1;
+  int64 id = 2;
 }
 
 message NotifyFileChangesResponse {
   string error = 1;
+}
+
+message ConditionsByCapability {
+  string cap = 1;
+  repeated string conditionInfo = 2;
+}
+
+message PrepareRequest {
+  repeated ConditionsByCapability conditions = 1;
+  int64 id = 2;
+}
+
+message PrepareResponse {
+  string error = 1;
+}
+
+// ProgressEventType indicates which phase of provider execution is being reported.
+enum ProgressEventType {
+  // PREPARE indicates progress during the Prepare() phase (symbol cache population).
+  PREPARE = 0;
+  // Future types can be added here (e.g., EVALUATE, DEPENDENCY_ANALYSIS, etc.)
+}
+
+// ProgressEvent represents a progress update during provider execution.
+// This message is streamed to clients during long-running operations.
+message ProgressEvent {
+  ProgressEventType type = 1;
+  string providerName = 2;
+  int32 filesProcessed = 3;
+  int32 totalFiles = 4;
+}
+
+message PrepareProgressRequest {
+  int64 id = 1;
 }
