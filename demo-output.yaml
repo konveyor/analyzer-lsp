@@ -411,24 +411,6 @@
         lineNumber: 11
         variables:
           file: file:///examples/golang/main.go
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
-        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: "\n 1  package com.example.apps;\n 2  \n 3  import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;\n 4  \n 5  public class App\n 6  {\n 7  \n 8  /**\n 9  * {@link CustomResourceDefinition}\n10  * @param args\n11  */\n12  public static void main( String[] args )\n13  {"
-        lineNumber: 3
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/App.java
-          kind: Module
-          name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
-          package: com.example.apps
-      - uri: file:///examples/java/example/src/main/java/com/example/apps/App.java
-        message: apiextensions/v1beta1/customresourcedefinitions is deprecated, apiextensions/v1/customresourcedefinitions should be used instead
-        codeSnip: "\n 4  \n 5  public class App\n 6  {\n 7  \n 8  /**\n 9  * {@link CustomResourceDefinition}\n10  * @param args\n11  */\n12  public static void main( String[] args )\n13  {\n14  CustomResourceDefinition crd = new CustomResourceDefinition();\n15  System.out.println( crd );\n16  \n17  GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18  element.get();\n19  }\n20  }"
-        lineNumber: 14
-        variables:
-          file: file:///examples/java/example/src/main/java/com/example/apps/App.java
-          kind: Method
-          name: main
-          package: com.example.apps
       effort: 1
     test-regex-pattern-00000:
       description: Test regex pattern for TypeScript/JavaScript files
