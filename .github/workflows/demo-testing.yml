@@ -62,7 +62,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build ${{ matrix.provider }} image
-        uses: shawn-hurley/ci/build-image@main
+        uses: konveyor/ci/build-image@main
         with:
           repo: konveyor/analyzer-lsp
           checked_out: true
@@ -98,13 +98,14 @@ jobs:
             dockerfile: Dockerfile
             repo: konveyor/c-sharp-analyzer-provider
             checked_out: false
+            cache-key-file: Cargo.lock
     steps:
       - uses: actions/checkout@v3
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
 
       - name: Build ${{ matrix.provider }} provider image
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
-        uses: shawn-hurley/ci/build-image@main
+        uses: konveyor/ci/build-image@main
         with:
           repo: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
           checked_out: ${{ matrix.checked_out }}
@@ -114,6 +115,7 @@ jobs:
           build_context: .
           base_image: ${{ matrix.needs_golang_dep == true && format('golang-dep-provider--{0}', needs.detect-changes.outputs.image_tag) || '' }}
           build_args: ${{ matrix.build_args || '' }}
+          cache-key-file: ${{ matrix.cache-key-file || 'go.sum' }}
 
   provider-tests:
     needs: [detect-changes, build-all-providers]
