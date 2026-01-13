@@ -22,6 +22,7 @@ message Config {
   Proxy proxy = 6;
   string languageServerPipe = 7;
   bool initialized= 8;
+  optional int32 logLevel = 9;
 
   // repeated string workspaceFolders = 7;
   // repeated string dependencyFolders = 8;

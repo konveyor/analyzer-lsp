@@ -128,6 +128,7 @@ type Config struct {
 	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
 	// Used by GRPC providers to report progress during provider initialization.
 	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
+	LogLevel     *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
 }
 
 type Proxy httpproxy.Config
@@ -189,6 +190,9 @@ type InitConfig struct {
 
 	// Given a pipe name for the init config, we will use that pipe and connect to an already inited provider.
 	Initialized bool `yaml:"initialized" json:"initialized"`
+
+	// LogLevel for the provider logger verbosity
+	LogLevel *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
 
 	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
 	// If provided, the provider will call ReportProgress() as it processes files during symbol cache population.

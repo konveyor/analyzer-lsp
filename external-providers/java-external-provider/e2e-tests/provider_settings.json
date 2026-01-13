@@ -1,6 +1,7 @@
 [
     {
         "name": "java",
+        "logLevel": 99,
         "address":  "localhost:14651",
         "initConfig": [
             {
@@ -75,6 +76,7 @@
     },
     {
         "name": "builtin",
+        "logLevel": 99,
         "initConfig": [
             {"location": "examples/java/"},
             {"location": "examples/customers-tomcat-legacy/"},
