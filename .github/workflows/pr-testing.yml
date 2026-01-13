@@ -1,6 +1,14 @@
 name: Build and Test
 
-on: ["push", "pull_request"]
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: Tag name to attach binaries to (e.g., v0.9.0-alpha.4)
+  push:
+  pull_request:
 
 jobs: 
   test:
@@ -25,6 +33,8 @@ jobs:
     runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -89,3 +99,18 @@ jobs:
           name: analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip
           path: analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip
           retention-days: 30
+
+      - name: Upload binaries to release
+        if: ${{ startsWith(github.ref, 'refs/tags/v') || github.event.inputs.tag }}
+        env:
+          OS: ${{ matrix.goos }}
+          OS_ARCH: ${{ matrix.goarch }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.event.inputs.tag || github.ref_name }}
+          artifacts: "analyzer-lsp-binaries.${{ env.OS }}-${{ env.OS_ARCH }}.zip"
+          allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          omitPrereleaseDuringUpdate: true
+          token: ${{ secrets.GITHUB_TOKEN }}
