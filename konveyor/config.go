@@ -71,16 +71,16 @@ type AnalyzerConfig struct {
 //	rootCmd := &cobra.Command{Use: "analyzer"}
 //	config.AddFlags(rootCmd)
 func (c *AnalyzerConfig) AddFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&c.ProviderSettings, "provider-settings", "", "Path to provider settings file (required)")
-	cmd.Flags().StringSliceVar(&c.Rules, "rules", []string{}, "Paths to rule files or directories (can be specified multiple times)")
+	cmd.Flags().StringVar(&c.ProviderSettings, "provider-settings", "provider_settings.json", "Path to provider settings file (required)")
+	cmd.Flags().StringSliceVar(&c.Rules, "rules", []string{"rule-example.yaml"}, "Paths to rule files or directories (can be specified multiple times)")
 	cmd.Flags().StringVar(&c.LabelSelector, "label-selector", "", "Filter rules by label selector (e.g., 'konveyor.io/target=quarkus')")
 	cmd.Flags().StringVar(&c.DepLabelSelector, "dep-label-selector", "", "Filter dependency rules by label selector")
 	cmd.Flags().StringVar(&c.IncidentSelector, "incident-selector", "", "Filter incidents by selector expression")
-	cmd.Flags().IntVar(&c.IncidentLimit, "incident-limit", 0, "Maximum incidents per rule (0 = unlimited)")
-	cmd.Flags().IntVar(&c.CodeSnipLimit, "code-snip-limit", 0, "Maximum characters in code snippets (0 = unlimited)")
-	cmd.Flags().IntVar(&c.ContextLines, "context-lines", 0, "Number of context lines around code snippets")
+	cmd.Flags().IntVar(&c.IncidentLimit, "limit-incidents", 1500, "Maximum incidents per rule (0 = unlimited)")
+	cmd.Flags().IntVar(&c.CodeSnipLimit, "limit-code-snips", 20, "number of code snipets per rule violation to be gotten")
+	cmd.Flags().IntVar(&c.ContextLines, "context-lines", 10, "Number of context lines around code snippets")
 	cmd.Flags().StringVar(&c.AnalysisMode, "analysis-mode", "", "Analysis mode: 'full' or 'source-only'")
-	cmd.Flags().BoolVar(&c.DisableDependencyRules, "disable-dep-rules", false, "Disable dependency analysis rules")
+	cmd.Flags().BoolVar(&c.DisableDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
 }
 
 // ToOptions converts the AnalyzerConfig to a slice of AnalyzerOptions.

@@ -4,6 +4,7 @@
         "address": "localhost:14653",
         "initConfig": [{
             "analysisMode": "full",
+            "location": "/analyzer-lsp/examples/golang",
             "providerSpecificConfig": {
                 "lspServerName": "generic",
                 "lspServerPath": "/usr/local/bin/gopls",
@@ -34,6 +35,7 @@
         "address": "localhost:14655",
         "initConfig": [{
             "analysisMode": "full",
+            "location": "/analyzer-lsp/examples/python",
             "providerSpecificConfig": {
                 "lspServerName": "pylsp",
                 "lspServerPath": "/usr/local/bin/pylsp",
@@ -52,6 +54,7 @@
         "address": "localhost:14654",
         "initConfig": [{
             "analysisMode": "full",
+            "location": "/analyzer-lsp/examples/nodejs",
             "providerSpecificConfig": {
                 "lspServerName": "nodejs",
                 "lspServerPath": "/usr/local/bin/typescript-language-server",
@@ -156,12 +159,8 @@
     {
         "name": "builtin",
         "initConfig": [
-            {"location": "examples/java/"},
-            {"location": "examples/golang/"},
-            {"location": "examples/nodejs/"},
-            {"location": "examples/customers-tomcat-legacy/"},
             {
-                "location": "examples/builtin/",
+                "location": "/analyzer-lsp/examples/builtin/",
                 "providerSpecificConfig": {
                     "includedPaths": ["inclusion_tests/dir-0"]
                 }

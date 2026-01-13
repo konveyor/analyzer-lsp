@@ -6,18 +6,19 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/nodejs/test_a.ts
         message: nodejs sample rule 001
-        codeSnip: '7    name: "Person1",'
+        codeSnip: " 1  export interface Greeter {\n 2    name: string;\n 3    hello(): string;\n 4  }\n 5  \n 6  export const greeter: Greeter = {\n 7    name: \"Person1\",\n 8    hello() {\n 9      return `Hello, I'm ${this.name}`;\n10    },\n11  };\n"
         lineNumber: 6
         variables:
           file: file:///analyzer-lsp/examples/nodejs/test_a.ts
       - uri: file:///analyzer-lsp/examples/nodejs/test_b.ts
         message: nodejs sample rule 001
-        codeSnip: '2  '
+        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
         lineNumber: 1
         variables:
           file: file:///analyzer-lsp/examples/nodejs/test_b.ts
       - uri: file:///analyzer-lsp/examples/nodejs/test_b.ts
         message: nodejs sample rule 001
+        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
         lineNumber: 3
         variables:
           file: file:///analyzer-lsp/examples/nodejs/test_b.ts
@@ -28,18 +29,19 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/nodejs/test_a.ts
         message: nodejs sample rule 002
-        codeSnip: 4  }
+        codeSnip: " 1  export interface Greeter {\n 2    name: string;\n 3    hello(): string;\n 4  }\n 5  \n 6  export const greeter: Greeter = {\n 7    name: \"Person1\",\n 8    hello() {\n 9      return `Hello, I'm ${this.name}`;\n10    },\n11  };\n"
         lineNumber: 3
         variables:
           file: file:///analyzer-lsp/examples/nodejs/test_a.ts
       - uri: file:///analyzer-lsp/examples/nodejs/test_a.ts
         message: nodejs sample rule 002
-        codeSnip: 9      return `Hello, I'm ${this.name}`;
+        codeSnip: " 1  export interface Greeter {\n 2    name: string;\n 3    hello(): string;\n 4  }\n 5  \n 6  export const greeter: Greeter = {\n 7    name: \"Person1\",\n 8    hello() {\n 9      return `Hello, I'm ${this.name}`;\n10    },\n11  };\n"
         lineNumber: 8
         variables:
           file: file:///analyzer-lsp/examples/nodejs/test_a.ts
       - uri: file:///analyzer-lsp/examples/nodejs/test_b.ts
         message: nodejs sample rule 002
+        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
         lineNumber: 3
         variables:
           file: file:///analyzer-lsp/examples/nodejs/test_b.ts
@@ -50,6 +52,7 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/nodejs/test_b.ts
         message: nodejs sample rule 003
+        codeSnip: " 1  import { greeter } from './test_a';\n 2  \n 3  console.log(greeter.hello());\n"
         lineNumber: 3
         variables:
           file: file:///analyzer-lsp/examples/nodejs/test_b.ts
@@ -60,19 +63,19 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/nodejs/Component.tsx
         message: Found React reference using nodejs provider
-        codeSnip: '2  '
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
         lineNumber: 1
         variables:
           file: file:///analyzer-lsp/examples/nodejs/Component.tsx
       - uri: file:///analyzer-lsp/examples/nodejs/Component.tsx
         message: Found React reference using nodejs provider
-        codeSnip: 4    return <div>Hello from TypeScript React</div>;
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const MyComponent: React.FC = () => {\n 4    return <div>Hello from TypeScript React</div>;\n 5  };\n"
         lineNumber: 3
         variables:
           file: file:///analyzer-lsp/examples/nodejs/Component.tsx
       - uri: file:///analyzer-lsp/examples/nodejs/LegacyComponent.jsx
         message: Found React reference using nodejs provider
-        codeSnip: '2  '
+        codeSnip: " 1  import React from 'react';\n 2  \n 3  export const LegacyComponent = () => {\n 4    return <div>Hello from JavaScript React</div>;\n 5  };\n"
         lineNumber: 1
         variables:
           file: file:///analyzer-lsp/examples/nodejs/LegacyComponent.jsx
