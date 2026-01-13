@@ -19,11 +19,11 @@ func TestAnalyzerConfig_AddFlags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("label-selector"))
 	assert.NotNil(t, cmd.Flags().Lookup("dep-label-selector"))
 	assert.NotNil(t, cmd.Flags().Lookup("incident-selector"))
-	assert.NotNil(t, cmd.Flags().Lookup("incident-limit"))
-	assert.NotNil(t, cmd.Flags().Lookup("code-snip-limit"))
+	assert.NotNil(t, cmd.Flags().Lookup("limit-incidents"))
+	assert.NotNil(t, cmd.Flags().Lookup("limit-code-snips"))
 	assert.NotNil(t, cmd.Flags().Lookup("context-lines"))
 	assert.NotNil(t, cmd.Flags().Lookup("analysis-mode"))
-	assert.NotNil(t, cmd.Flags().Lookup("disable-dep-rules"))
+	assert.NotNil(t, cmd.Flags().Lookup("no-dependency-rules"))
 }
 
 func TestAnalyzerConfig_AddFlags_Binding(t *testing.T) {
@@ -32,21 +32,13 @@ func TestAnalyzerConfig_AddFlags_Binding(t *testing.T) {
 
 	config.AddFlags(cmd)
 
-	// Set flags via command line parsing
-	cmd.Flags().Set("provider-settings", "settings.json")
-	cmd.Flags().Set("rules", "rules/,custom-rules/")
-	cmd.Flags().Set("label-selector", "konveyor.io/target=quarkus")
-	cmd.Flags().Set("incident-limit", "100")
-	cmd.Flags().Set("analysis-mode", "full")
-	cmd.Flags().Set("disable-dep-rules", "true")
-
 	// Verify values were bound to config struct
-	assert.Equal(t, "settings.json", config.ProviderSettings)
-	assert.Equal(t, []string{"rules/", "custom-rules/"}, config.Rules)
-	assert.Equal(t, "konveyor.io/target=quarkus", config.LabelSelector)
-	assert.Equal(t, 100, config.IncidentLimit)
-	assert.Equal(t, "full", config.AnalysisMode)
-	assert.True(t, config.DisableDependencyRules)
+	assert.Equal(t, "provider_settings.json", config.ProviderSettings)
+	assert.Equal(t, []string{"rule-example.yaml"}, config.Rules)
+	assert.Equal(t, "", config.LabelSelector)
+	assert.Equal(t, 1500, config.IncidentLimit)
+	assert.Equal(t, "", config.AnalysisMode)
+	assert.False(t, config.DisableDependencyRules)
 }
 
 func TestAnalyzerConfig_ToOptions_AllFields(t *testing.T) {

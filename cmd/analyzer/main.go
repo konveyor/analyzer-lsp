@@ -161,18 +161,13 @@ func AnalysisCmd() *cobra.Command {
 				os.Exit(1) // Treat the error as a fatal error
 			}
 			wg.Wait()
+			// Stop analyzer
+			analyzer.Stop()
 		},
 	}
 
 	// Add analyzer configuration flags
 	analyzerConfig.AddFlags(rootCmd)
-
-	// Set default values for analyzer config
-	rootCmd.Flags().Lookup("provider-settings").DefValue = "provider_settings.json"
-	rootCmd.Flags().Lookup("rules").DefValue = "rule-example.yaml"
-	rootCmd.Flags().Lookup("incident-limit").DefValue = "1500"
-	rootCmd.Flags().Lookup("code-snip-limit").DefValue = "20"
-	rootCmd.Flags().Lookup("context-lines").DefValue = "10"
 
 	// Add CLI-specific flags
 	rootCmd.Flags().StringVar(&outputViolations, "output-file", "output.yaml", "filepath to to store rule violations")
