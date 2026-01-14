@@ -86,11 +86,11 @@ type RunOption func(*runConfig)
 
 // runConfig holds configuration for a specific run
 type runConfig struct {
-	progressReporter progress.ProgressReporter
+	progressReporter progress.Reporter
 }
 
 // WithProgressReporter sets the progress reporter for this run
-func WithProgressReporter(reporter progress.ProgressReporter) RunOption {
+func WithProgressReporter(reporter progress.Reporter) RunOption {
 	return func(cfg *runConfig) {
 		cfg.progressReporter = reporter
 	}
@@ -165,7 +165,7 @@ func (r *ruleEngine) Stop() {
 }
 
 // reportProgress sends a progress event to the given reporter
-func reportProgress(reporter progress.ProgressReporter, event progress.ProgressEvent) {
+func reportProgress(reporter progress.Reporter, event progress.Event) {
 	if reporter != nil {
 		reporter.Report(event)
 	}
@@ -276,7 +276,7 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 
 	// Report total number of rules to process
 	totalRules := len(otherRules)
-	reportProgress(cfg.progressReporter, progress.ProgressEvent{
+	reportProgress(cfg.progressReporter, progress.Event{
 		Stage:   progress.StageRuleExecution,
 		Current: 0,
 		Total:   totalRules,
@@ -334,7 +334,7 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 
 					// Report progress after each rule completes
 					completed := int(matchedRules + unmatchedRules + failedRules)
-					reportProgress(cfg.progressReporter, progress.ProgressEvent{
+					reportProgress(cfg.progressReporter, progress.Event{
 						Stage:   progress.StageRuleExecution,
 						Current: completed,
 						Total:   totalRules,
@@ -372,7 +372,7 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 	case <-done:
 		r.logger.V(2).Info("done processing all the rules")
 		// Report completion
-		reportProgress(cfg.progressReporter, progress.ProgressEvent{
+		reportProgress(cfg.progressReporter, progress.Event{
 			Stage:   progress.StageComplete,
 			Current: totalRules,
 			Total:   totalRules,

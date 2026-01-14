@@ -5,26 +5,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 
 	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/engine/labels"
-	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
+	"github.com/konveyor/analyzer-lsp/konveyor"
 	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/progress"
+	"github.com/konveyor/analyzer-lsp/progress/collector"
+	"github.com/konveyor/analyzer-lsp/progress/reporter"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/konveyor/analyzer-lsp/provider/lib"
-	"github.com/konveyor/analyzer-lsp/tracing"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/swaggest/openapi-go/openapi3"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	"gopkg.in/yaml.v2"
 )
 
@@ -33,21 +27,15 @@ const (
 )
 
 var (
-	settingsFile      string
-	rulesFile         []string
+	// AnalyzerConfig holds the analyzer configuration
+	analyzerConfig = &konveyor.AnalyzerConfig{}
+
+	// Additional CLI-specific flags
 	outputViolations  string
 	errorOnViolations bool
-	labelSelector     string
-	depLabelSelector  string
-	incidentSelector  string
 	logLevel          int
 	enableJaeger      bool
 	jaegerEndpoint    string
-	limitIncidents    int
-	limitCodeSnips    int
-	analysisMode      string
-	noDependencyRules bool
-	contextLines      int
 	getOpenAPISpec    string
 	treeOutput        bool
 	depOutputFile     string
@@ -79,305 +67,81 @@ func AnalysisCmd() *cobra.Command {
 			logrusLog := logrus.New()
 			logrusLog.SetOutput(os.Stdout)
 			logrusLog.SetFormatter(&logrus.TextFormatter{})
-			// need to do research on mapping in logrusr to level here TODO
-			logrusLog.SetLevel(logrus.Level(logLevel))
+			// Adding 5 here to move logs to info level
+			// setting verbose 1 -> V(2) logs show up
+			// setting verbose 2 -> V(3) logs show up
+			// setting verbose 3 -> .V(4) I believe show up
+			// setting verbose 4 -> .V(5) I believe show up
+			logrusLog.SetLevel(logrus.Level(logLevel + 4))
 			log := logrusr.New(logrusLog)
-
 			// This will globally prevent the yaml library from auto-wrapping lines at 80 characters
 			yaml.FutureLineWrap()
 
 			ctx, cancelFunc := context.WithCancel(context.Background())
 			defer cancelFunc()
 
-			selectors := []engine.RuleSelector{}
-			if labelSelector != "" {
-				selector, err := labels.NewLabelSelector[*engine.RuleMeta](labelSelector, nil)
-				if err != nil {
-					errLog.Error(err, "failed to create label selector from expression", "selector", labelSelector)
-					os.Exit(1)
-				}
-				selectors = append(selectors, selector)
-			}
-
-			var dependencyLabelSelector *labels.LabelSelector[*konveyor.Dep]
-			var err error
-			if depLabelSelector != "" {
-				dependencyLabelSelector, err = labels.NewLabelSelector[*konveyor.Dep](depLabelSelector, nil)
-				if err != nil {
-					errLog.Error(err, "failed to create label selector from expression", "selector", labelSelector)
-					os.Exit(1)
-				}
-			}
-
-			tracerOptions := tracing.Options{
-				EnableJaeger:   enableJaeger,
-				JaegerEndpoint: jaegerEndpoint,
-			}
-			tp, err := tracing.InitTracerProvider(log, tracerOptions)
-			if err != nil {
-				errLog.Error(err, "failed to initialize tracing")
-				os.Exit(1)
-			}
-
-			defer tracing.Shutdown(ctx, log, tp)
-
-			ctx, mainSpan := tracing.StartNewSpan(ctx, "main")
-			defer mainSpan.End()
-
-			// Get the configs
-			configs, err := provider.GetConfig(settingsFile)
-			if err != nil {
-				errLog.Error(err, "unable to get configuration")
-				os.Exit(1)
-			}
-
-			// we add builtin configs by default for all locations
-			defaultBuiltinConfigs := []provider.InitConfig{}
-			seenBuiltinConfigs := map[string]bool{}
-			finalConfigs := []provider.Config{}
-			for _, config := range configs {
-				if config.Name != "builtin" {
-					finalConfigs = append(finalConfigs, config)
-				}
-				for _, initConf := range config.InitConfig {
-					builtinConf := provider.InitConfig{}
-					_, ok := seenBuiltinConfigs[initConf.Location]
-					if !ok {
-						if initConf.Location != "" {
-							if stat, err := os.Stat(initConf.Location); err == nil && stat.IsDir() {
-								builtinLocation, err := filepath.Abs(initConf.Location)
-								if err != nil {
-									builtinLocation = initConf.Location
-								}
-								seenBuiltinConfigs[builtinLocation] = true
-								builtinConf = provider.InitConfig{Location: builtinLocation}
-								if config.Name == "builtin" {
-									builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
-								}
-								defaultBuiltinConfigs = append(defaultBuiltinConfigs, builtinConf)
-							}
-						}
-					}
-					//builtin config that already has location as other prov configs
-					if config.Name == "builtin" && ok {
-						builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
-						for i, c := range defaultBuiltinConfigs {
-							if initConf.Location == c.Location {
-								defaultBuiltinConfigs[i] = initConf
-							}
-						}
-					}
-
-				}
-			}
-			finalConfigs = append(finalConfigs, provider.Config{
-				Name:       "builtin",
-				InitConfig: defaultBuiltinConfigs,
-			})
-
-			// Create progress reporter early so we can report provider initialization
-			progressReporter, progressCleanup := createProgressReporter()
-			defer progressCleanup()
-
-			providers := map[string]provider.InternalProviderClient{}
-			providerLocations := []string{}
-			var encoding string
-			for _, config := range finalConfigs {
-				config.ContextLines = contextLines
-				for _, ind := range config.InitConfig {
-					providerLocations = append(providerLocations, ind.Location)
-				}
-
-				for _, initConfig := range config.InitConfig {
-					if encodingVal, ok := initConfig.ProviderSpecificConfig["encoding"]; ok {
-						encoding = encodingVal.(string)
-						break
-					}
-				}
-
-				// IF analsyis mode is set from the CLI, then we will override this for each init config
-				if analysisMode != "" {
-					inits := []provider.InitConfig{}
-					for _, i := range config.InitConfig {
-						i.AnalysisMode = provider.AnalysisMode(analysisMode)
-						inits = append(inits, i)
-					}
-					config.InitConfig = inits
-				}
-
-				// Add prepare progress reporter to config (for GRPC providers) and all init configs (for LSP providers)
-				config.PrepareProgressReporter = provider.NewPrepareProgressAdapter(progressReporter)
-				for i := range config.InitConfig {
-					config.InitConfig[i].PrepareProgressReporter = provider.NewPrepareProgressAdapter(progressReporter)
-				}
-
-				// Report provider initialization starting
-				progressReporter.Report(progress.ProgressEvent{
-					Stage:   progress.StageProviderInit,
-					Message: fmt.Sprintf("Initializing %s provider", config.Name),
-				})
-
-				prov, err := lib.GetProviderClient(config, log)
-				if err != nil {
-					// Report provider initialization failed
-					progressReporter.Report(progress.ProgressEvent{
-						Stage:   progress.StageProviderInit,
-						Message: fmt.Sprintf("Provider %s failed to initialize", config.Name),
-						Metadata: map[string]interface{}{
-							"error": err.Error(),
-						},
-					})
-					errLog.Error(err, "unable to create provider client")
-					progressCleanup()
-					os.Exit(1)
-				}
-				providers[config.Name] = prov
-				if s, ok := prov.(provider.Startable); ok {
-					if err := s.Start(ctx); err != nil {
-						// Report provider startup failed
-						progressReporter.Report(progress.ProgressEvent{
-							Stage:   progress.StageProviderInit,
-							Message: fmt.Sprintf("Provider %s failed to start", config.Name),
-							Metadata: map[string]interface{}{
-								"error": err.Error(),
-							},
-						})
-						errLog.Error(err, "unable to create provider client")
-						progressCleanup()
-						os.Exit(1)
-					}
-				}
-
-				// Report provider ready
-				progressReporter.Report(progress.ProgressEvent{
-					Stage:   progress.StageProviderInit,
-					Message: fmt.Sprintf("Provider %s ready", config.Name),
-				})
-			}
-
-			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
-
-			//start up the rule eng
-			eng := engine.CreateRuleEngine(engineCtx,
-				10,
-				log,
-				engine.WithIncidentLimit(limitIncidents),
-				engine.WithCodeSnipLimit(limitCodeSnips),
-				engine.WithContextLines(contextLines),
-				engine.WithIncidentSelector(incidentSelector),
-				engine.WithLocationPrefixes(providerLocations),
-				engine.WithEncoding(encoding),
+			progressReporter := createProgressReporter()
+			analyzerCollector := collector.New()
+			analyzerProgress, err := progress.New(
+				progress.WithCollectors(analyzerCollector),
+				progress.WithReporters(progressReporter),
+				progress.WithContext(ctx),
 			)
 
+			// Build options from config and add CLI-specific options
+			options := analyzerConfig.ToOptions()
+			options = append(options,
+				konveyor.WithLogger(log),
+				konveyor.WithContext(ctx),
+				konveyor.WithProgress(analyzerProgress),
+			)
+
+			analyzer, err := konveyor.NewAnalyzer(options...)
+
+			if err != nil {
+				errLog.Error(err, "Unable to create new Analyzer")
+				os.Exit(1)
+			}
+
+			// TODO: Add back getting this.
 			if getOpenAPISpec != "" {
-				sc := createOpenAPISchema(providers, log)
+				sc := []byte{}
 				b, err := json.Marshal(sc)
 				if err != nil {
 					errLog.Error(err, "unable to create inital schema")
-					progressCleanup()
 					os.Exit(1)
 				}
 
 				err = os.WriteFile(getOpenAPISpec, b, 0644)
 				if err != nil {
 					errLog.Error(err, "error writing output file", "file", getOpenAPISpec)
-					progressCleanup()
 					os.Exit(1) // Treat the error as a fatal error
 				}
-				progressCleanup()
 				os.Exit(0)
 			}
 
-			parser := parser.RuleParser{
-				ProviderNameToClient: providers,
-				Log:                  log.WithName("parser"),
-				NoDependencyRules:    noDependencyRules,
-				DepLabelSelector:     dependencyLabelSelector,
-			}
-			ruleSets := []engine.RuleSet{}
-			needProviders := map[string]provider.InternalProviderClient{}
-			providerConditions := map[string][]provider.ConditionsByCap{}
-			for _, f := range rulesFile {
-				internRuleSet, internNeedProviders, provConditions, err := parser.LoadRules(f)
-				if err != nil {
-					errLog.Error(err, "unable to parse all the rules for ruleset", "file", f)
-				}
-				ruleSets = append(ruleSets, internRuleSet...)
-				for k, v := range internNeedProviders {
-					needProviders[k] = v
-				}
-				for k, v := range provConditions {
-					if _, ok := providerConditions[k]; !ok {
-						providerConditions[k] = []provider.ConditionsByCap{}
-					}
-					providerConditions[k] = append(providerConditions[k], v...)
-				}
+			_, err = analyzer.ParseRules()
+			if err != nil {
+				errLog.Error(err, "unable to parse rules")
 			}
 
-			// Now that we have all the providers, we need to start them.
-			additionalBuiltinConfigs := []provider.InitConfig{}
-			for name, provider := range needProviders {
-				switch name {
-				// other providers can return additional configs for the builtin provider
-				// therefore, we initiate builtin provider separately at the end
-				case "builtin":
-					continue
-				default:
-					initCtx, initSpan := tracing.StartNewSpan(ctx, "init",
-						attribute.Key("provider").String(name))
-					additionalBuiltinConfs, err := provider.ProviderInit(initCtx, nil)
-					if err != nil {
-						errLog.Error(err, "unable to init the providers", "provider", name)
-						progressCleanup()
-						os.Exit(1)
-					}
-					if additionalBuiltinConfs != nil {
-						additionalBuiltinConfigs = append(additionalBuiltinConfigs, additionalBuiltinConfs...)
-					}
-					initSpan.End()
-				}
+			err = analyzer.ProviderStart()
+			if err != nil {
+				errLog.Error(err, "unable to start providers")
 			}
 
-			if builtinClient, ok := needProviders["builtin"]; ok {
-				if _, err = builtinClient.ProviderInit(ctx, additionalBuiltinConfigs); err != nil {
-					errLog.Error(err, "unable to init builtin provider")
-					progressCleanup()
-					os.Exit(1)
-				}
-			}
-
-			// Call Prepare() on all providers
-			for name, conditions := range providerConditions {
-				if provider, ok := needProviders[name]; ok {
-					if err := provider.Prepare(ctx, conditions); err != nil {
-						errLog.Error(err, "unable to prepare provider", "provider", name)
-					}
-				}
-			}
-
-			wg := &sync.WaitGroup{}
-			var depSpan trace.Span
-			var depCtx context.Context
+			wg := sync.WaitGroup{}
 			if depOutputFile != "" {
-				depCtx, depSpan = tracing.StartNewSpan(ctx, "dep")
 				wg.Add(1)
-				go DependencyOutput(depCtx, providers, log, errLog, depOutputFile, wg)
+				go func() {
+					defer wg.Done()
+					analyzer.GetDependencies(depOutputFile, treeOutput)
+				}()
 			}
 
-			// This will already wait
-			rulesets := eng.RunRulesWithOptions(ctx, ruleSets, []engine.RunOption{
-				engine.WithProgressReporter(progressReporter),
-			}, selectors...)
-			engineSpan.End()
-			wg.Wait()
-			if depSpan != nil {
-				depSpan.End()
-			}
-			eng.Stop()
-
-			for _, provider := range needProviders {
-				provider.Stop()
-			}
+			// All the information should already be set on analyzer
+			// We don't need to override.
+			rulesets := analyzer.Run()
 
 			sort.SliceStable(rulesets, func(i, j int) bool {
 				return rulesets[i].Name < rulesets[j].Name
@@ -387,34 +151,30 @@ func AnalysisCmd() *cobra.Command {
 			b, _ := yaml.Marshal(rulesets)
 			if errorOnViolations && len(rulesets) != 0 {
 				fmt.Printf("%s", string(b))
-				progressCleanup()
 				os.Exit(EXIT_ON_ERROR_CODE)
 			}
 
+			log.Info("writing violations to file", "file", outputViolations)
 			err = os.WriteFile(outputViolations, b, 0644)
 			if err != nil {
 				errLog.Error(err, "error writing output file", "file", outputViolations)
-				progressCleanup()
 				os.Exit(1) // Treat the error as a fatal error
 			}
+			wg.Wait()
+			// Stop analyzer
+			analyzer.Stop()
 		},
 	}
 
-	rootCmd.Flags().StringVar(&settingsFile, "provider-settings", "provider_settings.json", "path to the provider settings")
-	rootCmd.Flags().StringArrayVar(&rulesFile, "rules", []string{"rule-example.yaml"}, "filename or directory containing rule files")
+	// Add analyzer configuration flags
+	analyzerConfig.AddFlags(rootCmd)
+
+	// Add CLI-specific flags
 	rootCmd.Flags().StringVar(&outputViolations, "output-file", "output.yaml", "filepath to to store rule violations")
 	rootCmd.Flags().BoolVar(&errorOnViolations, "error-on-violation", false, "exit with 3 if any violation are found will also print violations to console")
-	rootCmd.Flags().StringVar(&labelSelector, "label-selector", "", "an expression to select rules based on labels")
-	rootCmd.Flags().StringVar(&depLabelSelector, "dep-label-selector", "", "an expression to select dependencies based on labels. This will filter out the violations from these dependencies as well these dependencies when matching dependency conditions")
-	rootCmd.Flags().StringVar(&incidentSelector, "incident-selector", "", "an expression to select incidents based on custom variables. ex: (!package=io.konveyor.demo.config-utils)")
-	rootCmd.Flags().IntVar(&logLevel, "verbose", 5, "level for logging output")
+	rootCmd.Flags().IntVar(&logLevel, "verbose", 0, "level for logging output")
 	rootCmd.Flags().BoolVar(&enableJaeger, "enable-jaeger", false, "enable tracer exports to jaeger endpoint")
 	rootCmd.Flags().StringVar(&jaegerEndpoint, "jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
-	rootCmd.Flags().IntVar(&limitIncidents, "limit-incidents", 1500, "Set this to the limit incidents that a given rule can give, zero means no limit")
-	rootCmd.Flags().IntVar(&limitCodeSnips, "limit-code-snips", 20, "limit the number code snippets that are retrieved for a file while evaluating a rule, 0 means no limit")
-	rootCmd.Flags().StringVar(&analysisMode, "analysis-mode", "", "select one of full or source-only to tell the providers what to analyize. This can be given on a per provider setting, but this flag will override")
-	rootCmd.Flags().BoolVar(&noDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
-	rootCmd.Flags().IntVar(&contextLines, "context-lines", 10, "When violation occurs, A part of source code is added to the output, So this flag configures the number of source code lines to be printed to the output.")
 	rootCmd.Flags().StringVar(&getOpenAPISpec, "get-openapi-spec", "", "Get the openAPI spec for the rulesets, rules and provider capabilities and put in file passed in.")
 	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
 	rootCmd.Flags().StringVar(&depOutputFile, "dep-output-file", "", "path to dependency output file")
@@ -433,37 +193,33 @@ func main() {
 }
 
 func validateFlags() error {
-	_, err := os.Stat(settingsFile)
+	_, err := os.Stat(analyzerConfig.ProviderSettings)
 	if err != nil {
 		return fmt.Errorf("unable to find provider settings file")
 	}
 
 	if getOpenAPISpec == "" {
-		for _, f := range rulesFile {
+		for _, f := range analyzerConfig.Rules {
 			_, err = os.Stat(f)
 			if err != nil {
 				return fmt.Errorf("unable to find rule path or file")
 			}
 		}
 	}
-	m := provider.AnalysisMode(strings.ToLower(analysisMode))
-	if analysisMode != "" && !(m == provider.FullAnalysisMode || m == provider.SourceOnlyAnalysisMode) {
-		return fmt.Errorf("must select one of %s or %s for analysis mode", provider.FullAnalysisMode, provider.SourceOnlyAnalysisMode)
-	}
 
+	// Note: Analysis mode validation is now handled by WithAnalysisMode option function
 	return nil
 }
 
 // createProgressReporter creates a progress reporter based on CLI flags
-func createProgressReporter() (progress.ProgressReporter, func()) {
+func createProgressReporter() progress.Reporter {
 	// If no output specified, return noop reporter
 	if progressOutput == "" {
-		return progress.NewNoopReporter(), func() {}
+		return progress.NewNoopReporter()
 	}
 
 	// Determine output writer
 	var writer *os.File
-	cleanup := func() {}
 	switch progressOutput {
 	case "stderr":
 		writer = os.Stderr
@@ -478,21 +234,20 @@ func createProgressReporter() (progress.ProgressReporter, func()) {
 			writer = os.Stderr
 		} else {
 			writer = file
-			cleanup = func() { _ = file.Close() }
 		}
 	}
 
 	// Create reporter based on format
 	switch progressFormat {
 	case "json":
-		return progress.NewJSONReporter(writer), cleanup
+		return reporter.NewJSONReporter(writer)
 	case "text":
-		return progress.NewTextReporter(writer), cleanup
+		return reporter.NewTextReporter(writer)
 	case "bar":
-		return progress.NewProgressBarReporter(writer), cleanup
+		return reporter.NewProgressBarReporter(writer)
 	default:
 		// Default to progress bar
-		return progress.NewProgressBarReporter(writer), cleanup
+		return reporter.NewProgressBarReporter(writer)
 	}
 }
 
@@ -618,82 +373,4 @@ func createOpenAPISchema(providers map[string]provider.InternalProviderClient, l
 	}
 
 	return sc
-}
-
-func DependencyOutput(ctx context.Context, providers map[string]provider.InternalProviderClient, log logr.Logger, errLog logr.Logger, depOutputFile string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	var depsFlat []konveyor.DepsFlatItem
-	var depsTree []konveyor.DepsTreeItem
-	for name, prov := range providers {
-		if !provider.HasCapability(prov.Capabilities(), "dependency") {
-			log.Info("provider does not have dependency capability", "provider", name)
-			continue
-		}
-
-		if treeOutput {
-			deps, err := prov.GetDependenciesDAG(ctx)
-			if err != nil {
-				errLog.Error(err, "failed to get list of dependencies for provider", "provider", name)
-				continue
-			}
-			for u, ds := range deps {
-				depsTree = append(depsTree, konveyor.DepsTreeItem{
-					FileURI:      string(u),
-					Provider:     name,
-					Dependencies: ds,
-				})
-			}
-		} else {
-			deps, err := prov.GetDependencies(ctx)
-			if err != nil {
-				errLog.Error(err, "failed to get list of dependencies for provider", "provider", name)
-				continue
-			}
-			for u, ds := range deps {
-				newDeps := ds
-				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
-					Provider:     name,
-					FileURI:      string(u),
-					Dependencies: newDeps,
-				})
-			}
-		}
-	}
-
-	if depsFlat == nil && depsTree == nil {
-		errLog.Info("failed to get dependencies from all given providers")
-		return
-	}
-
-	var b []byte
-	var err error
-	if treeOutput {
-		b, err = yaml.Marshal(depsTree)
-		if err != nil {
-			errLog.Error(err, "failed to marshal dependency data as yaml")
-			return
-		}
-	} else {
-		// Sort depsFlat
-		sort.SliceStable(depsFlat, func(i, j int) bool {
-			if depsFlat[i].Provider == depsFlat[j].Provider {
-				return depsFlat[i].FileURI < depsFlat[j].FileURI
-			} else {
-				return depsFlat[i].Provider < depsFlat[j].Provider
-			}
-		})
-
-		b, err = yaml.Marshal(depsFlat)
-		if err != nil {
-			errLog.Error(err, "failed to marshal dependency data as yaml")
-			return
-		}
-	}
-
-	err = os.WriteFile(depOutputFile, b, 0644)
-	if err != nil {
-		errLog.Error(err, "failed to write dependencies to output file", "file", depOutputFile)
-		return
-	}
-
 }

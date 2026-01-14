@@ -13,7 +13,7 @@ COPY parser /analyzer-lsp/parser
 COPY provider /analyzer-lsp/provider
 COPY progress /analyzer-lsp/progress
 COPY tracing /analyzer-lsp/tracing
-COPY external-providers /analyzer-lsp/external-providers
+COPY konveyor /analyzer-lsp/konveyor
 COPY go.mod /analyzer-lsp/go.mod
 COPY go.sum /analyzer-lsp/go.sum
 COPY Makefile /analyzer-lsp/Makefile

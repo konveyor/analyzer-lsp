@@ -49,36 +49,6 @@ var (
 	SchemaTypeBool   openapi3.SchemaType = openapi3.SchemaTypeBoolean
 )
 
-// PrepareProgressReporter is an interface for reporting progress during the Prepare() phase.
-// Implementations should handle concurrent calls safely as progress updates may come from
-// multiple goroutines.
-type PrepareProgressReporter interface {
-	// ReportProgress reports progress for a specific provider.
-	// providerName: Name of the provider (e.g., "nodejs", "java")
-	// filesProcessed: Number of files processed so far
-	// totalFiles: Total number of files to process
-	ReportProgress(providerName string, filesProcessed, totalFiles int)
-}
-
-// PrepareProgressEvent represents a progress update during Prepare() phase.
-// This struct is used for GRPC streaming between external providers and the main analyzer.
-type PrepareProgressEvent struct {
-	ProviderName   string
-	FilesProcessed int
-	TotalFiles     int
-}
-
-// PrepareProgressStreamer is an optional interface that ServiceClient implementations
-// can provide to support streaming progress events over GRPC.
-type PrepareProgressStreamer interface {
-	// StartProgressStream creates and returns a channel for streaming progress events.
-	// The returned channel will receive progress events during Prepare() phase.
-	StartProgressStream() <-chan *PrepareProgressEvent
-
-	// StopProgressStream stops the progress stream and closes the channel.
-	StopProgressStream()
-}
-
 // This will need a better name, may we want to move it to top level
 // Will be used by providers for common interface way of passing in configuration values.
 var builtinConfig = Config{
@@ -125,9 +95,6 @@ type Config struct {
 	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
 	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
 	ContextLines int
-	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
-	// Used by GRPC providers to report progress during provider initialization.
-	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
 	LogLevel     *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
 }
 
@@ -193,10 +160,6 @@ type InitConfig struct {
 
 	// LogLevel for the provider logger verbosity
 	LogLevel *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
-
-	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
-	// If provided, the provider will call ReportProgress() as it processes files during symbol cache population.
-	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
 }
 
 type RPCClient interface {

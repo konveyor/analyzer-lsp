@@ -1,139 +1,227 @@
-// Package progress provides real-time progress reporting for analyzer execution.
-//
-// This package enables tracking and reporting of analysis progress through multiple
-// stages including provider initialization, rule parsing, and rule execution. It
-// supports multiple output formats (JSON, text, channel-based) and is designed to
-// have zero overhead when disabled.
-//
-// Basic usage:
-//
-//	// Create a text reporter
-//	reporter := progress.NewTextReporter(os.Stderr)
-//
-//	// Create engine
-//	eng := engine.CreateRuleEngine(ctx, workers, log)
-//
-//	// Run analysis with progress reporting
-//	results := eng.RunRulesWithOptions(ctx, ruleSets, []engine.RunOption{
-//	    engine.WithProgressReporter(reporter),
-//	})
-//
-//	// Progress events will be automatically emitted during analysis
-//
-// For programmatic consumption:
-//
-//	// Use channel-based reporter
-//	ctx, cancel := context.WithCancel(context.Background())
-//	defer cancel()
-//	reporter := progress.NewChannelReporter(ctx)
-//
-//	go func() {
-//	    for event := range reporter.Events() {
-//	        // Handle progress event
-//	        fmt.Printf("Progress: %d%%\n", int(event.Percent))
-//	    }
-//	}()
 package progress
 
 import (
-	"time"
+	"context"
+	"sync"
 )
 
-// ProgressReporter is the interface for reporting analysis progress.
+// Progress coordinates the flow of progress events between collectors and reporters.
 //
-// Implementations must be safe for concurrent use. The Report method should
-// not block to avoid impacting analysis performance.
-type ProgressReporter interface {
-	// Report emits a progress event. This method may be called concurrently
-	// and should not block. Implementations should handle errors internally
-	// to avoid disrupting the analysis.
-	Report(event ProgressEvent)
+// Progress acts as the central hub for progress reporting, managing the lifecycle
+// of event collection and distribution. It receives events from multiple collectors
+// (which gather progress from various sources) and distributes them to multiple
+// reporters (which output progress in different formats).
+//
+// Architecture:
+//   - Collectors send events via channels that Progress subscribes to
+//   - Progress multiplexes events from all collectors into a central channel
+//   - Events are then fanned out to all registered reporters
+//   - Each reporter runs in its own goroutine with buffered channels
+//
+// Lifecycle:
+//  1. Create with New() and options (WithContext, WithReporters, WithCollectors)
+//  2. Progress automatically subscribes to collectors and starts reporter workers
+//  3. Events flow: Collector -> Progress.collectorChan -> Reporter channels -> Reporters
+//  4. Cleanup via context cancellation stops all goroutines
+//
+// Example:
+//
+//	ctx := context.Background()
+//	textReporter := reporter.NewTextReporter(os.Stderr)
+//	throttledCollector := collector.NewThrottledCollector("provider_init")
+//
+//	prog, err := progress.New(
+//	    progress.WithContext(ctx),
+//	    progress.WithReporters(textReporter),
+//	    progress.WithCollectors(throttledCollector),
+//	)
+//
+//	// Events sent to collectors automatically flow to reporters
+//	throttledCollector.Report(progress.Event{
+//	    Stage: progress.StageProviderInit,
+//	    Message: "Starting initialization",
+//	})
+//
+// Thread Safety:
+// Progress is safe for concurrent use. Multiple collectors can send events
+// simultaneously, and all reporters receive events concurrently.
+type Progress struct {
+	ctx                context.Context
+	reporters          []Reporter
+	reporterChannels   []chan Event
+	collectors         []Collector
+	collectorChan      chan Event
+	collecterCancelMap map[int]context.CancelFunc
+	subscribeMutex     sync.Mutex
 }
 
-// ProgressEvent represents a progress update at a specific point in time.
+// ProgressOption configures a Progress instance during creation.
+type ProgressOption func(p *Progress)
+
+// WithContext sets the context for the Progress instance.
 //
-// Events are emitted at key points during analysis:
-//   - Provider initialization (start and completion)
-//   - Rule parsing (total count discovered)
-//   - Rule execution (per-rule completion with percentage)
-//   - Analysis completion
-//
-// Not all fields are populated for all events. For example, init events
-// may only have Stage and Message, while rule execution events include
-// Current, Total, and Percent.
-type ProgressEvent struct {
-	// Timestamp is when the event occurred. If not set by the caller,
-	// reporters will populate it automatically.
-	Timestamp time.Time `json:"timestamp"`
-
-	// Stage indicates which phase of analysis this event relates to.
-	Stage Stage `json:"stage"`
-
-	// Message provides human-readable context (e.g., rule ID, provider name).
-	Message string `json:"message,omitempty"`
-
-	// Current is the number of items completed so far (e.g., rules processed).
-	Current int `json:"current,omitempty"`
-
-	// Total is the total number of items to process.
-	Total int `json:"total,omitempty"`
-
-	// Percent is the completion percentage (0-100).
-	// This field is automatically calculated from Current and Total if not set.
-	Percent float64 `json:"percent,omitempty"`
-
-	// Metadata contains additional stage-specific information.
-	// For example, error details for failed providers.
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+// The context is used to control the lifecycle of all background goroutines.
+// When the context is cancelled, all reporters and collector subscriptions
+// will stop processing events.
+func WithContext(ctx context.Context) ProgressOption {
+	return func(p *Progress) {
+		p.ctx = ctx
+	}
 }
 
-// normalize updates the event with calculated values.
-// - Sets Timestamp to now if zero
-// - Calculates Percent from Current/Total if Percent is zero and Total > 0
-func (e *ProgressEvent) normalize() {
-	if e.Timestamp.IsZero() {
-		e.Timestamp = time.Now()
+// WithReporters adds one or more reporters to the Progress instance.
+//
+// Reporters receive events and output them in various formats (text, JSON,
+// progress bar, etc.). Multiple reporters can be active simultaneously,
+// each receiving all events.
+//
+// Example:
+//
+//	progress.New(
+//	    progress.WithReporters(
+//	        reporter.NewTextReporter(os.Stderr),
+//	        reporter.NewJSONReporter(logFile),
+//	    ),
+//	)
+func WithReporters(reporters ...Reporter) ProgressOption {
+	return func(p *Progress) {
+		p.reporters = append(p.reporters, reporters...)
+	}
+}
+
+// WithCollectors adds one or more collectors to the Progress instance.
+//
+// Collectors gather progress events from various sources and send them
+// to Progress for distribution to reporters. Progress automatically
+// subscribes to all collectors during initialization.
+//
+// Example:
+//
+//	progress.New(
+//	    progress.WithCollectors(
+//	        collector.NewThrottledCollector("provider_init"),
+//	        collector.NewThrottledCollector("rule_execution"),
+//	    ),
+//	)
+func WithCollectors(collectors ...Collector) ProgressOption {
+	return func(p *Progress) {
+		p.collectors = append(p.collectors, collectors...)
+	}
+}
+
+// New creates a new Progress instance with the provided options.
+//
+// If no reporters are specified, a NoopReporter is used by default to ensure
+// zero overhead when progress reporting is disabled. If no context is provided,
+// the Progress will run until explicitly cancelled.
+//
+// Options:
+//   - WithContext: Provides a context for lifecycle management
+//   - WithReporters: Adds reporters for output (text, JSON, progress bar, etc.)
+//   - WithCollectors: Adds collectors that will send events to Progress
+//
+// The function starts background goroutines for:
+//   - Multiplexing collector events to reporter channels
+//   - Running each reporter worker
+//   - Subscribing to each collector's event channel
+//
+// Example:
+//
+//	prog, err := progress.New(
+//	    progress.WithContext(ctx),
+//	    progress.WithReporters(reporter.NewTextReporter(os.Stderr)),
+//	)
+func New(opts ...ProgressOption) (*Progress, error) {
+	pg := &Progress{
+		collectorChan:      make(chan Event, 100),
+		collecterCancelMap: map[int]context.CancelFunc{},
+		subscribeMutex:     sync.Mutex{},
+	}
+	for _, opt := range opts {
+		opt(pg)
+	}
+	if pg.ctx == nil {
+		pg.ctx = context.Background()
 	}
 
-	// Auto-calculate percent if not set and we have total
-	if e.Percent == 0.0 && e.Total > 0 {
-		e.Percent = float64(e.Current) / float64(e.Total) * 100.0
+	if len(pg.reporters) == 0 {
+		// No reporets, will create a no-op reporter
+		pg.reporters = append(pg.reporters, &NoopReporter{})
 	}
+
+	for _, reporter := range pg.reporters {
+		reporterChannel := make(chan Event, 100)
+		pg.reporterChannels = append(pg.reporterChannels, reporterChannel)
+		go pg.reporterWorker(reporter, reporterChannel)
+	}
+
+	go func() {
+		for {
+			select {
+			case event := <-pg.collectorChan:
+				for _, ch := range pg.reporterChannels {
+					ch <- event
+				}
+			case <-pg.ctx.Done():
+				return
+			}
+		}
+	}()
+
+	for _, collector := range pg.collectors {
+		pg.Subscribe(collector)
+	}
+
+	return pg, nil
+
 }
 
-// Stage represents a phase of the analysis process.
+// Unsubscribe stops receiving events from the specified collector.
 //
-// Stages occur in a typical sequence:
-//  1. StageInit - Analysis starting
-//  2. StageProviderInit - Initializing language providers
-//  3. StageRuleParsing - Loading and parsing rules
-//  4. StageRuleExecution - Processing rules
-//  5. StageComplete - Analysis finished
-type Stage string
+// This cancels the goroutine that was listening to the collector's channel.
+// Events already in flight may still be processed.
+func (p *Progress) Unsubscribe(collector Collector) {
+	p.subscribeMutex.Lock()
+	subscribeCancel := p.collecterCancelMap[collector.ID()]
+	p.subscribeMutex.Unlock()
+	subscribeCancel()
+}
 
-const (
-	// StageInit indicates analysis initialization.
-	StageInit Stage = "init"
+// Subscribe starts receiving events from the specified collector.
+//
+// This starts a goroutine that reads from the collector's event channel
+// and forwards events to Progress's central collector channel. The goroutine
+// continues until either the Progress context is cancelled or Unsubscribe is called.
+func (p *Progress) Subscribe(collector Collector) {
+	subscribeContext, subscribeCancel := context.WithCancel(p.ctx)
+	p.subscribeMutex.Lock()
+	p.collecterCancelMap[collector.ID()] = subscribeCancel
+	p.subscribeMutex.Unlock()
 
-	// StageProviderInit indicates provider initialization.
-	// Events include provider name and readiness status.
-	StageProviderInit Stage = "provider_init"
+	go func() {
+		for {
+			select {
+			case event := <-collector.CollectChannel():
+				p.collectorChan <- event
+			case <-subscribeContext.Done():
+				return
+			}
+		}
+	}()
+}
 
-	// StageProviderPrepare indicates provider Prepare() phase (symbol cache population).
-	// Events include provider name, files processed, and total files.
-	StageProviderPrepare Stage = "provider_prepare"
-
-	// StageRuleParsing indicates rule loading and parsing.
-	// Events include the total number of rules discovered.
-	StageRuleParsing Stage = "rule_parsing"
-
-	// StageRuleExecution indicates rule processing.
-	// Events include current/total counts and percentage completion.
-	StageRuleExecution Stage = "rule_execution"
-
-	// StageDependencyAnalysis indicates dependency analysis (future).
-	StageDependencyAnalysis Stage = "dependency_analysis"
-
-	// StageComplete indicates analysis completion.
-	StageComplete Stage = "complete"
-)
+// reporterWorker runs in a goroutine, forwarding events to a reporter.
+//
+// Each reporter has its own worker goroutine and buffered channel to prevent
+// slow reporters from blocking event collection. The worker stops when the
+// Progress context is cancelled.
+func (p *Progress) reporterWorker(reporter Reporter, events chan Event) {
+	for {
+		select {
+		case event := <-events:
+			reporter.Report(event)
+		case <-p.ctx.Done():
+			return
+		}
+	}
+}
