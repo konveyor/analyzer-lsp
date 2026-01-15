@@ -14,11 +14,7 @@ A **provider** refers to the entity or service that supplies these rulesets. Pro
 
 ### Initialization
 
-When you run the `mta-cli` tool, it first determines the type of application and the corresponding provider needed (e.g., Java provider for a Java application).
-
-### Starting the Provider
-
-The `mta-cli` tool starts the provider in a container using a containerization tool like Docker or Podman. This containerized environment includes all necessary dependencies and tools required by the provider.
+When you run the `analyzer-lsp` tool, it first determines the type of application and the corresponding provider needed (e.g., Java provider for a Java application).
 
 ### Code Submission
 
