@@ -1,0 +1,21 @@
+- message: 'golang apiextensions/v1/customresourcedefinitions found {{file}}:{{lineNumber}}'
+  ruleID: go-lang-ref-001
+  effort: 1
+  when:
+    go.referenced:
+        pattern: "v1beta1.CustomResourceDefinition"
+- message: "dependency {{name}} with {{version}} is bad and you should feel bad for using it"
+  ruleID: golang-gomod-dependencies
+  effort: 1
+  when:
+    and:
+      - go.dependency:
+          name: golang.org/x/text
+          upperbound: v0.3.8
+      - go.dependency:
+          name: k8s.io/apimachinery
+          lowerbound: v0.24.3
+      - go.dependency:
+          name: sigs.k8s.io/structured-merge-diff/v4
+          lowerbound: v4.2.0
+          upperbound: v4.2.2

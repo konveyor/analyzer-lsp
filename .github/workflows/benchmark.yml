@@ -1,0 +1,71 @@
+name: Run benchmark tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  benchmark:
+    runs-on: ${{ matrix.os.id }}
+
+    strategy:
+      matrix:
+        os:
+        - id: macos-latest
+          name: mac
+        - id: windows-latest
+          name: windows
+        - id: ubuntu-latest
+          name: linux
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23.9'
+
+    - name: Run benchmark tests
+      shell: bash
+      run: |
+        go install golang.org/x/perf/cmd/benchstat@latest
+        go mod tidy
+        GOMAXPROCS=2 go test -run=^$ -bench=. -benchmem -count=6 $(go list ./... | grep -v 'event') |\
+          sed -e 's/cpu:.*/cpu:/g' -e 's/goarch:.*/goarch:/g' > benchmark_results.${{ matrix.os.name }}
+
+    - name: Display Benchstat results
+      shell: bash
+      run: |
+        benchstat ./benchmarks/${{ matrix.os.name }} benchmark_results.${{ matrix.os.name }} > benchmark.diff
+        ./benchmarks/compare.sh benchmark.diff
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results-${{ matrix.os.name }}
+        path: benchmark_results.${{ matrix.os.name }}
+
+  combine-results:
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: always()
+    
+    steps:
+    - name: Download all benchmark results
+      uses: actions/download-artifact@v4
+      with:
+        pattern: benchmark-results-*
+        merge-multiple: true
+    
+    - name: Upload combined benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results-all
+        path: benchmark_results.*

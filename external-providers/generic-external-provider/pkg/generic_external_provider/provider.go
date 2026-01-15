@@ -6,8 +6,12 @@ import (
 	"os"
 
 	"github.com/go-logr/logr"
+	serverconf "github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations"
+	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/generic"
+	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/nodejs"
+	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/pylsp"
+	"github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/server_configurations/yaml_language_server"
 	"github.com/konveyor/analyzer-lsp/provider"
-	serverconf "github.com/konveyor/generic-external-provider/pkg/server_configurations"
 )
 
 // TODO(shawn-hurley): Pipe the logger through Determine how and where external
@@ -26,7 +30,7 @@ type genericProvider struct {
 // Create a generic provider locked to a specific service client found in the
 // server_configuration maps. If the lspServerName is not found, then it
 // defaults to "generic"
-func NewGenericProvider(lspServerName string, log logr.Logger) *genericProvider {
+func NewGenericProvider(lspServerName string, log logr.Logger) provider.BaseClient {
 	// Get the constructor associated with the server
 	ctor, ok := serverconf.SupportedLanguages[lspServerName]
 	if !ok {
@@ -65,25 +69,37 @@ func (p *genericProvider) Capabilities() []provider.Capability {
 // a provider.ServiceClient to the original analyzer process. genericProvider
 // here just sort of... doesn't matter at all
 func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
-	// return nil, fmt.Errorf("nothing")
 
-	log.Error(fmt.Errorf("Nothing"), "Started generic provider init")
 	fmt.Fprintf(os.Stderr, "started generic provider init")
 	lspServerName, ok := c.ProviderSpecificConfig["lspServerName"].(string)
 	if !ok {
 		lspServerName = "generic"
 	}
 
+	// because we spawn a generic client first, before knowing which service client we will need
 	if p.lspServerName != lspServerName {
-		log.Error(fmt.Errorf("lspServerName must be the same for each instantiation of the generic-external-provider (%s != %s)", p.lspServerName, lspServerName), "Inside genericProvider init")
-		fmt.Fprintf(os.Stderr, "lspservername blah")
+		// we want to be able to set which generic provider to use by tne provider config
+		// because 'generic' is selected from the start, we need to update that if needed
+		p.lspServerName = lspServerName
+		// these have already been verified in NewGenericProvider() - no need to err
+		switch p.lspServerName {
+		case serverconf.GenericClient:
+			p.serviceClientBuilder = &generic.GenericServiceClientBuilder{}
+		case serverconf.PythonClient:
+			p.serviceClientBuilder = &pylsp.PythonServiceClientBuilder{}
+		case serverconf.NodeClient:
+			p.serviceClientBuilder = &nodejs.NodeServiceClientBuilder{}
+		case serverconf.YamlClient:
+			p.serviceClientBuilder = &yaml_language_server.YamlServiceClientBuilder{}
+		default:
+			return nil, provider.InitConfig{}, fmt.Errorf("generic client name not found")
+		}
 
-		return nil, provider.InitConfig{}, fmt.Errorf("lspServerName must be the same for each instantiation of the generic-external-provider (%s != %s)", p.lspServerName, lspServerName)
 	}
-
 	// Simple matter of calling the constructor that we set earlier to get the
 	// service client
 	sc, err := p.serviceClientBuilder.Init(ctx, log, c)
+
 	if err != nil {
 		log.Error(err, "ctor error")
 		fmt.Fprintf(os.Stderr, "ctor blah")

@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/jsonrpc2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
@@ -26,7 +25,6 @@ import (
 )
 
 type yqServiceClient struct {
-	rpc        *jsonrpc2.Conn
 	cancelFunc context.CancelFunc
 	log        logr.Logger
 	cmd        *exec.Cmd
@@ -52,6 +50,14 @@ var _ provider.ServiceClient = &yqServiceClient{}
 func (p *yqServiceClient) Stop() {
 	p.cancelFunc()
 	p.cmd.Wait()
+}
+
+func (p *yqServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}
+
+func (p *yqServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
 }
 
 func (p *yqServiceClient) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
@@ -137,26 +143,25 @@ func (p *yqServiceClient) GetAllValuesForKey(ctx context.Context, query []string
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	matchingYAMLFiles, err := provider.FindFilesMatchingPattern(p.config.Location, "*.yaml")
-	if err != nil {
-		fmt.Printf("unable to find any YAML files: %v\n", err)
+	fileSearcher := provider.FileSearcher{
+		BasePath: p.config.Location,
+		Log:      p.log,
 	}
-	matchingYMLFiles, err := provider.FindFilesMatchingPattern(p.config.Location, "*.yml")
+	matchingYAMLFiles, err := fileSearcher.Search(provider.SearchCriteria{
+		Patterns: []string{"*.yaml", "*.yml"},
+	})
 	if err != nil {
-		fmt.Printf("unable to find any YML files: %v\n", err)
+		return results, fmt.Errorf("failed to search files - %w", err)
 	}
-	matchingYAMLFiles = append(matchingYAMLFiles, matchingYMLFiles...)
 
 	for _, file := range matchingYAMLFiles {
 		wg.Add(1)
 		go func(file string) {
 			defer wg.Done()
 
-			fmt.Printf("Reading YAML file: %s\n", file)
-
 			data, err := os.ReadFile(file)
 			if err != nil {
-				fmt.Printf("Error reading YAML file '%s': %v\n", file, err)
+				p.log.Error(err, "error reading YAML file", "file", file)
 				return
 			}
 

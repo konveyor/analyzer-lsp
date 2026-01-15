@@ -1,0 +1,26 @@
+[
+    {
+        "name": "nodejs",
+        "address": "localhost:14651",
+        "initConfig": [{
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "nodejs",
+                "lspServerPath": "/usr/local/bin/typescript-language-server",
+                "lspServerArgs": ["--stdio"],
+                "lspServerInitializationOptions": "",
+
+                "workspaceFolders": ["file:///analyzer-lsp/examples/nodejs"],
+                "dependencyFolders": [""],
+
+                "dependencyProviderPath": ""
+            }
+        }]
+    },
+    {
+        "name": "builtin",
+        "initConfig": [
+            {"location": "examples/python/"}
+        ]
+    }
+]

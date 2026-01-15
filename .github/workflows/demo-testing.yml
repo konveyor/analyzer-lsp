@@ -1,37 +1,262 @@
 name: Demo Testing
 
-on: ["push", "pull_request"]
+on:
+  pull_request:
+  push:
+    branches:
+    - "main"
+    - "release-*"
+    - "v*"
 
 jobs:
-  test:
+  detect-changes:
     runs-on: ubuntu-latest
     outputs:
+      java: ${{ steps.filter.outputs.java }}
+      generic: ${{ steps.filter.outputs.generic }}
+      yq: ${{ steps.filter.outputs.yq}}
+      c-sharp: ${{ steps.filter.outputs.c-sharp }}
+      image_tag: ${{ steps.set-tag.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set image tag
+        id: set-tag
+        run: |
+          echo "image_tag=${{ github.sha }}-${{ github.run_id }}" >> $GITHUB_OUTPUT
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            java:
+              - '**'
+              - '!external-providers/**'
+              - 'external-providers/java-external-provider/**'
+            generic:
+              - '**'
+              - '!external-providers/**'
+              - 'external-providers/generic-external-provider/**'
+            yq:
+              - '**'
+              - '!external-providers/**'
+              - 'external-providers/yq-external-provider/**'
+            c-sharp:
+              - '**'
+              - '!external-providers/**'
+
+  build-bases:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - provider: golang-dep-provider
+            image_name: golang-dep-provider
+            dockerfile: external-providers/golang-dependency-provider/Dockerfile
+          - provider: analyzer-lsp
+            image_name: konveyor-analyzer-lsp
+            dockerfile: Dockerfile
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build ${{ matrix.provider }} image
+        uses: konveyor/ci/build-image@main
+        with:
+          repo: konveyor/analyzer-lsp
+          checked_out: true
+          image_name: ${{ matrix.image_name }}
+          image_tag: ${{ needs.detect-changes.outputs.image_tag }}
+          dockerfile_path: ${{ matrix.dockerfile }}
+          build_context: .
+
+  build-all-providers:
+    needs: [detect-changes, build-bases]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - provider: java
+            image_name: java-provider
+            dockerfile: external-providers/java-external-provider/Dockerfile
+            build_args: JAVA_BUNDLE_TAG=latest
+            checked_out: true
+          - provider: generic
+            image_name: generic-provider
+            dockerfile: external-providers/generic-external-provider/Dockerfile
+            needs_golang_dep: true
+            build_args: GOLANG_DEP_IMAGE=localhost/golang-dep-provider:${{ needs.detect-changes.outputs.image_tag }}
+            checked_out: true
+          - provider: yq
+            image_name: yq-provider
+            dockerfile: external-providers/yq-external-provider/Dockerfile
+            checked_out: true
+          - provider: c-sharp
+            image_name: c-sharp-provider
+            dockerfile: Dockerfile
+            repo: konveyor/c-sharp-analyzer-provider
+            checked_out: false
+            cache-key-file: Cargo.lock
+    steps:
+      - uses: actions/checkout@v3
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+
+      - name: Build ${{ matrix.provider }} provider image
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+        uses: konveyor/ci/build-image@main
+        with:
+          repo: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
+          checked_out: ${{ matrix.checked_out }}
+          image_name: ${{ matrix.image_name }}
+          image_tag: ${{ needs.detect-changes.outputs.image_tag }}
+          dockerfile_path: ${{ matrix.dockerfile }}
+          build_context: .
+          base_image: ${{ matrix.needs_golang_dep == true && format('golang-dep-provider--{0}', needs.detect-changes.outputs.image_tag) || '' }}
+          build_args: ${{ matrix.build_args || '' }}
+          cache-key-file: ${{ matrix.cache-key-file || 'go.sum' }}
+
+  provider-tests:
+    needs: [detect-changes, build-all-providers]
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.detect-changes.outputs.image_tag }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - provider: java
+            artifact_pattern: "{konveyor-analyzer-lsp,java-provider}"
+            test-data: external-providers/java-external-provider/examples
+            image_name: java-provider
+            demo-output-path: external-providers/java-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/java-external-provider/e2e-tests/provider_settings.json
+            testing-rules: external-providers/java-external-provider/e2e-tests/rule-example.yaml
+            # Generic golang
+          - provider: generic
+            artifact_pattern: "{konveyor-analyzer-lsp,generic-provider,golang-dep-provider}"
+            test-data: examples
+            image_name: generic-provider
+            demo-output-path: external-providers/generic-external-provider/e2e-tests/golang-e2e/demo-output.yaml
+            provider_settings-path: external-providers/generic-external-provider/e2e-tests/golang-e2e/provider_settings.json
+            testing-rules: external-providers/generic-external-provider/e2e-tests/golang-e2e/rule-example.yaml
+            # Generic python
+          - provider: generic
+            artifact_pattern: "{konveyor-analyzer-lsp,generic-provider}"
+            test-data: examples
+            image_name: generic-provider
+            demo-output-path: external-providers/generic-external-provider/e2e-tests/python-e2e/demo-output.yaml
+            provider_settings-path: external-providers/generic-external-provider/e2e-tests/python-e2e/provider_settings.json
+            testing-rules: external-providers/generic-external-provider/e2e-tests/python-e2e/rule-example.yaml
+            # Generic nodejs
+          - provider: generic
+            artifact_pattern: "{konveyor-analyzer-lsp,generic-provider}"
+            test-data: examples
+            image_name: generic-provider
+            demo-output-path: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/demo-output.yaml
+            provider_settings-path: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/provider_settings.json
+            testing-rules: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/rule-example.yaml
+          - provider: yq
+            artifact_pattern: "{konveyor-analyzer-lsp,yq-provider}"
+            test-data: examples
+            image_name: yq-provider
+            demo-output-path: external-providers/yq-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/yq-external-provider/e2e-tests/provider_settings.json
+            testing-rules: external-providers/yq-external-provider/e2e-tests/rule-example.yaml
+          - provider: c-sharp
+            repo: "konveyor/c-sharp-analyzer-provider"
+            artifact_pattern: "{konveyor-analyzer-lsp,c-sharp-provider}"
+            test-data: testdata
+            image_name: c-sharp-provider
+            demo-output-path: e2e-tests/demo-output.yaml
+            provider_settings-path: e2e-tests/provider_settings.json
+            testing-rules: rulesets
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+
+      - name: Download provider image artifacts
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ format('{0}--{1}', matrix.artifact_pattern, needs.detect-changes.outputs.image_tag) }}
+          path: /tmp/images
+          merge-multiple: true
+
+      - name: Load images into podman
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+        run: |
+          for image in $(find /tmp/images -type f -name "*.tar"); do
+            echo "Loading image: ${image}"
+            podman load -i "${image}"
+          done
+          echo "Loaded images:"
+          podman images
+          rm -rf /tmp/images
+
+      - name: Run provider-specific test
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+        run: |
+          podman volume create test-data
+          podman run --rm -v test-data:/target:U,Z -v $(pwd)/${{ matrix.test-data }}:/src/:U,Z --entrypoint=cp alpine -a /src/. /target/
+          podman pod create --name=analyzer-${{ matrix.provider }}
+          podman run --pod analyzer-${{ matrix.provider }} --name ${{ matrix.provider }}-provider -d -v test-data:/analyzer-lsp/examples:U,Z localhost/${{ matrix.image_name }}:${{ needs.detect-changes.outputs.image_tag }} --port 14651
+          podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-${{ matrix.provider }} \
+            -v test-data:/analyzer-lsp/examples:U,Z \
+            -v $(pwd)/${{ matrix.demo-output-path }}:/analyzer-lsp/output.yaml:U,Z \
+            -v $(pwd)/${{ matrix.provider_settings-path }}:/analyzer-lsp/provider_settings.json:U,Z \
+            -v $(pwd)/${{ matrix.testing-rules }}:/analyzer-lsp/rules:U,Z \
+            localhost/konveyor-analyzer-lsp:${{ needs.detect-changes.outputs.image_tag }} \
+            --output-file=/analyzer-lsp/output.yaml \
+            --rules=/analyzer-lsp/rules \
+            --provider-settings=/analyzer-lsp/provider_settings.json \
+            --dep-label-selector='!konveyor.io/dep-source=open-source'
+
+      - name: Run e2e verification
+        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+        shell: bash
+        run: |
+          git diff --exit-code HEAD -- ${{ matrix.demo-output-path }}
+
+
+  test:
+    needs: [detect-changes, build-all-providers, provider-tests]
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.detect-changes.outputs.image_tag }}
+      IMG_C_SHARP_PROVIDER: localhost/c-sharp-provider:${{ needs.detect-changes.outputs.image_tag }}
+      IMG_ANALYZER: localhost/konveyor-analyzer-lsp:${{ needs.detect-changes.outputs.image_tag }}
+    outputs:
       api_tests_ref: ${{ steps.extract-info.outputs.API_TESTS_REF }}
+      tackle2_hub_tag: ${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}
     steps:
       - name: Extract pull request number from inputs or PR description
         id: extract-info
         env:
           PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: |
-          echo "IMG_JAVA_PROVIDER=ttl.sh/konveyor-java-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
-          echo "IMG_DOTNET_PROVIDER=ttl.sh/konveyor-dotnet-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
-          echo "IMG_GENERIC_PROVIDER=ttl.sh/konveyor-generic-external-provider-${GITHUB_SHA}:2h" >>$GITHUB_OUTPUT
-
           echo "BUILD_BUNDLE=false" >> $GITHUB_OUTPUT
           # if this is a PR, we should use the base branch
           # else, use the branch on which this is running
-          if [ ! -z ${GITHUB_BASE_REF} ]; then 
+          if [ ! -z ${GITHUB_BASE_REF} ]; then
               echo "Using ${GITHUB_BASE_REF}"
               echo "API_TESTS_REF=${GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
               echo "ADDON_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
               echo "JAVA_BUNDLE_REF=${GITHUB_BASE_REF}" >>$GITHUB_OUTPUT
+              echo "BUNDLE_IMAGE_TAG=${GITHUB_BASE_REF/main/latest}" >>$GITHUB_OUTPUT
+              echo "TACKLE2_HUB_TAG=${GITHUB_BASE_REF/main/latest}" >> $GITHUB_OUTPUT
           else
               echo "Using ${GITHUB_REF_NAME}"
               echo "API_TESTS_REF=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
               echo "ADDON_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
               echo "JAVA_BUNDLE_REF=${GITHUB_REF_NAME}" >>$GITHUB_OUTPUT
+              echo "BUNDLE_IMAGE_TAG=${GITHUB_REF_NAME/main/latest}" >>$GITHUB_OUTPUT
+              echo "TACKLE2_HUB_TAG=${GITHUB_REF_NAME/main/latest}" >> $GITHUB_OUTPUT
           fi
-          
+
           # override with explicitely set value in PR description
           echo "${PULL_REQUEST_BODY}"
           ADDON_PULL_REQUEST_NUMBER=$(echo "${PULL_REQUEST_BODY}" | grep -oP '[A|a]ddon [P|p][R|r]: \K\d+' || true)
@@ -45,43 +270,33 @@ jobs:
             echo "Using bundle PR pull/${JAVA_BUNDLE_PR_NUMBER}"
             echo "JAVA_BUNDLE_REF=refs/pull/$JAVA_BUNDLE_PR_NUMBER/merge" >> $GITHUB_OUTPUT
             echo "BUILD_BUNDLE=true" >>$GITHUB_OUTPUT
+            echo "BUNDLE_IMAGE_TAG=latest" >>$GITHUB_OUTPUT
           fi
 
       - uses: actions/checkout@v3
-        if: steps.extract-info.outputs.BUILD_BUNDLE == 'true'
+
+      - name: Download all provider image artifacts
+        uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
-          repository: konveyor/java-analyzer-bundle
-          ref: "${{ steps.extract-info.outputs.JAVA_BUNDLE_REF }}"
-          path: java-analyzer-bundle
-      
-      - name: build java analyzer bundle image
-        if: steps.extract-info.outputs.BUILD_BUNDLE == 'true'
-        working-directory: java-analyzer-bundle
-        run: |
-          podman build -t quay.io/konveyor/jdtls-server-base:latest -f Dockerfile .
+          path: /tmp/images
+          pattern: ${{ format('*--{0}', needs.detect-changes.outputs.image_tag) }}
+          merge-multiple: true
 
-      - uses: actions/checkout@v3
 
-      # build all provider images and the analyzer-lsp image
-      - name: build images
+      - name: Load images into podman
         run: |
-          make \
-            IMG_JAVA_PROVIDER=${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}\
-            IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
-            IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
-            build-external
-          podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
+          for image in $(find /tmp/images -type f -name "*.tar"); do
+            echo "Loading image: ${image}"
+            podman load -i "${image}"
+          done
+          echo "Loaded images:"
+          podman images
+          rm -rf /tmp/images
 
       # run the demo in a podman pod
       - name: run demo image
         run : |
-          make \
-            IMG_JAVA_PROVIDER=${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}\
-            IMG_DOTNET_PROVIDER=${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}\
-            IMG_GENERIC_PROVIDER=${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}\
-            run-external-providers-pod
-          podman build -f demo-local.Dockerfile -t localhost/testing:latest
+          make run-external-providers-pod
           make run-demo-image
       
       - name: install yq for testing
@@ -96,6 +311,13 @@ jobs:
             <(yq -P 'sort_keys(..)' -o=props <(git show HEAD:demo-dep-output.yaml)) \
             <(yq -P 'sort_keys(..)' -o=props <(cat demo-dep-output.yaml))
 
+      - name: Re-tag and push provider images to ttl.sh
+        run: |
+          podman tag localhost/java-provider:${{ needs.detect-changes.outputs.image_tag }} ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
+          podman tag localhost/generic-provider:${{ needs.detect-changes.outputs.image_tag }} ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
+          podman push ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
+          podman push ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
+
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -108,17 +330,15 @@ jobs:
         run: |
           IMG=ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h make image-podman
           podman push ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h
-          podman push ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
-          podman push ${{steps.extract-info.outputs.IMG_DOTNET_PROVIDER  }}
-          podman push ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
       
       - name: Make bundle image
         uses: konveyor/operator/.github/actions/make-bundle@main
         with:
           operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
           addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
-          provider_generic: ${{steps.extract-info.outputs.IMG_GENERIC_PROVIDER }}
-          provider_java: ${{steps.extract-info.outputs.IMG_JAVA_PROVIDER }}
+          tackle_hub: "quay.io/konveyor/tackle2-hub:${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}"
+          provider_generic: ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
+          provider_java: ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
       - name: push bundle image 
         run: |
           docker push ttl.sh/konveyor-operator-bundle-${GITHUB_SHA}:2h
@@ -127,4 +347,5 @@ jobs:
     uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
       operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
+      tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"
       api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"

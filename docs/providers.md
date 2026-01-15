@@ -126,3 +126,64 @@ The `builtin` provider is configured by default. To override the default config,
 The `builtin` provider takes following additional configuration options in `providerSpecificConfig`:
 
 * `tagsFile`: Path to YAML file that contains a list of tags for the application being analyzed
+
+* `excludedDirs`: List of directory names, paths, or patterns to exclude from analysis.
+
+  **Path types:**
+  - **Directory names** (e.g., `"node_modules"`, `"bower_components"`): Matched anywhere in the project tree
+  - **Relative paths** (e.g., `"src/generated"`, `"test/fixtures"`): Treated as patterns relative to analyzed files
+  - **Absolute paths** (e.g., `"/path/to/specific/dir"`): Match exact directory locations
+
+  The following directories are excluded by default to prevent performance issues and "argument list too long" errors:
+  - `node_modules` - JavaScript/TypeScript dependencies
+  - `vendor` - PHP/Go dependencies
+  - `.git` - Git repository data
+  - `dist` - Build output
+  - `build` - Build output
+  - `target` - Java/Rust build output
+  - `.venv`, `venv` - Python virtual environments
+
+  **Behavior based on configuration:**
+
+  - **Not configured** (default): The default excludes listed above are applied
+  - **Empty array** (`[]`): No directories are excluded - analyzes everything including dependencies
+  - **Non-empty array**: Default excludes are applied, plus any additional directories specified
+
+  To add custom excludes in addition to the defaults:
+
+  ```json
+  {
+      "name": "builtin",
+      "initConfig": [
+          {
+              "location": "/path/to/application",
+              "providerSpecificConfig": {
+                  "excludedDirs": [
+                      "bower_components",        // Exclude all bower_components dirs
+                      "jspm_packages",            // Exclude all jspm_packages dirs
+                      "generated",                // Exclude all dirs named "generated"
+                      "/path/to/specific/dir"     // Exclude this specific directory only
+                  ]
+              }
+          }
+      ]
+  }
+  ```
+
+  To disable all excludes and analyze everything (including dependencies):
+
+  ```json
+  {
+      "name": "builtin",
+      "initConfig": [
+          {
+              "location": "/path/to/application",
+              "providerSpecificConfig": {
+                  "excludedDirs": []
+              }
+          }
+      ]
+  }
+  ```
+
+  **Note:** Analyzing dependency directories like `node_modules` can significantly increase analysis time and may cause "argument list too long" errors on projects with many files.

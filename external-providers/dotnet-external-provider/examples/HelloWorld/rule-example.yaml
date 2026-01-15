@@ -1,7 +1,0 @@
-- message: This method is not portable
-  ruleID: dotnet-lang-ref-example-001
-  when:
-    or:
-    - dotnet.referenced:
-        namespace: "HelloWorld"
-        pattern: "NonPortableMethod"

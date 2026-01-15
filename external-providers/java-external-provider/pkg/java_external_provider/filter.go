@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -198,6 +198,11 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 		jarPath = filepath.Join(filepath.Dir(u.Path), jarName)
 	}
 
+	// these are added in bundle
+	if runtime.GOOS == "windows" {
+		jarPath = strings.TrimPrefix(jarPath, "\\")
+	}
+
 	path := filepath.Join(strings.Split(strings.TrimSuffix(packageName, ".class"), ".")...) // path: org/apache/logging/log4j/core/appender/FileManager
 
 	javaFileName := fmt.Sprintf("%s.java", filepath.Base(path))
@@ -205,50 +210,9 @@ func (p *javaServiceClient) getURI(refURI string) (string, uri.URI, error) {
 		javaFileName = fmt.Sprintf("%v.java", javaFileName[0:i])
 	}
 
-	javaFileAbsolutePath := ""
-	if p.GetBuildTool() == maven {
-		javaFileAbsolutePath = filepath.Join(filepath.Dir(jarPath), filepath.Dir(path), javaFileName)
-
-		// attempt to decompile when directory for the expected java file doesn't exist
-		// if directory exists, assume .java file is present within, this avoids decompiling every Jar
-		if _, err := os.Stat(filepath.Dir(javaFileAbsolutePath)); err != nil {
-			cmd := exec.Command("jar", "xf", filepath.Base(jarPath))
-			cmd.Dir = filepath.Dir(jarPath)
-			err := cmd.Run()
-			if err != nil {
-				fmt.Printf("\n java error%v", err)
-				return "", "", err
-			}
-		}
-	} else if p.GetBuildTool() == gradle {
-		sourcesFile := ""
-		jarFile := filepath.Base(jarPath)
-		walker := func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				return fmt.Errorf("found error traversing files: %w", err)
-			}
-			if !d.IsDir() && d.Name() == jarFile {
-				sourcesFile = path
-				return nil
-			}
-			return nil
-		}
-		root := filepath.Join(jarPath, "..", "..")
-		err := filepath.WalkDir(root, walker)
-		if err != nil {
-			return "", "", err
-		}
-		javaFileAbsolutePath = filepath.Join(filepath.Dir(sourcesFile), filepath.Dir(path), javaFileName)
-
-		if _, err := os.Stat(filepath.Dir(javaFileAbsolutePath)); err != nil {
-			cmd := exec.Command("jar", "xf", filepath.Base(sourcesFile))
-			cmd.Dir = filepath.Dir(sourcesFile)
-			err = cmd.Run()
-			if err != nil {
-				fmt.Printf("\n java error%v", err)
-				return "", "", err
-			}
-		}
+	javaFileAbsolutePath, err := p.buildTool.GetSourceFileLocation(path, jarPath, javaFileName)
+	if err != nil {
+		return "", "", err
 	}
 
 	ui := uri.New(javaFileAbsolutePath)

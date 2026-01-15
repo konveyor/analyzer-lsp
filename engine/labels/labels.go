@@ -77,6 +77,10 @@ func (l *LabelSelector[T]) MatchList(list []T) ([]T, error) {
 	return newList, nil
 }
 
+func (l *LabelSelector[T]) Expression() string {
+	return l.expr
+}
+
 type Labeled interface {
 	GetLabels() []string
 }

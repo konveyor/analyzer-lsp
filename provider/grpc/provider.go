@@ -5,13 +5,15 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os/exec"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	reflectClient "github.com/jhump/protoreflect/grpcreflect"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"github.com/konveyor/analyzer-lsp/provider/grpc/socket"
 	pb "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
 	"github.com/phayes/freeport"
 	"go.lsp.dev/uri"
@@ -25,21 +27,150 @@ import (
 )
 
 type grpcProvider struct {
-	Client pb.ProviderServiceClient
-	log    logr.Logger
-	ctx    context.Context
-	conn   *grpc.ClientConn
-	config provider.Config
+	Client    pb.ProviderServiceClient
+	log       logr.Logger
+	ctx       context.Context
+	conn      *grpc.ClientConn
+	config    provider.Config
+	cancelCmd context.CancelFunc
 
 	serviceClients []provider.ServiceClient
 }
 
 var _ provider.InternalProviderClient = &grpcProvider{}
 
+// convertTypedSlices recursively converts typed slices (e.g., []string, []int) to []interface{}
+// to ensure compatibility with structpb.NewStruct() which only accepts []interface{}.
+// This allows callers to use natural Go types without needing to know about protobuf marshaling internals.
+func convertTypedSlices(data map[string]interface{}) map[string]interface{} {
+	if data == nil {
+		return nil
+	}
+
+	result := make(map[string]interface{}, len(data))
+	for key, value := range data {
+		result[key] = convertValue(value)
+	}
+	return result
+}
+
+// convertValue recursively converts a value, handling slices, maps, and primitive types.
+func convertValue(value interface{}) interface{} {
+	if value == nil {
+		return nil
+	}
+
+	v := reflect.ValueOf(value)
+
+	// Check for typed nil (e.g., nil map, nil slice, nil pointer)
+	// This ensures nil maps are marshaled as null instead of empty structs
+	// Note: Arrays are never nil, so we exclude them from this check
+	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice {
+		if v.IsNil() {
+			return nil
+		}
+	}
+
+	switch v.Kind() {
+	case reflect.Slice, reflect.Array:
+		// If it's already []interface{}, check if nested conversion is needed
+		if slice, ok := value.([]interface{}); ok {
+			// Check if any element needs conversion to avoid unnecessary allocation
+			needsConversion := false
+			for _, elem := range slice {
+				if requiresConversion(elem) {
+					needsConversion = true
+					break
+				}
+			}
+			if !needsConversion {
+				return slice
+			}
+			// Convert elements that need it
+			result := make([]interface{}, len(slice))
+			for i, elem := range slice {
+				result[i] = convertValue(elem)
+			}
+			return result
+		}
+
+		// Convert typed slice to []interface{}
+		length := v.Len()
+		result := make([]interface{}, length)
+		for i := 0; i < length; i++ {
+			result[i] = convertValue(v.Index(i).Interface())
+		}
+		return result
+
+	case reflect.Map:
+		// Handle nested maps
+		if m, ok := value.(map[string]interface{}); ok {
+			return convertTypedSlices(m)
+		}
+		// Handle other map types (rare, as ProviderSpecificConfig is map[string]interface{})
+		// Convert keys to strings using fmt.Sprintf for consistency with protobuf expectations
+		result := make(map[string]interface{})
+		iter := v.MapRange()
+		for iter.Next() {
+			key := iter.Key().Interface()
+			keyStr := fmt.Sprintf("%v", key)
+			result[keyStr] = convertValue(iter.Value().Interface())
+		}
+		return result
+
+	default:
+		// Primitive types and other values pass through unchanged
+		return value
+	}
+}
+
+// requiresConversion checks if a value needs type conversion for protobuf compatibility.
+func requiresConversion(value interface{}) bool {
+	if value == nil {
+		return false
+	}
+
+	v := reflect.ValueOf(value)
+
+	// Typed nil values don't need conversion
+	// Note: Arrays are never nil, so we exclude them from this check
+	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Slice {
+		if v.IsNil() {
+			return false
+		}
+	}
+
+	switch v.Kind() {
+	case reflect.Slice, reflect.Array:
+		// Typed slices need conversion, []interface{} might have nested structures
+		if _, ok := value.([]interface{}); ok {
+			// Check elements for nested structures
+			slice := value.([]interface{})
+			for _, elem := range slice {
+				if requiresConversion(elem) {
+					return true
+				}
+			}
+			return false
+		}
+		// Any other slice type needs conversion
+		return true
+
+	case reflect.Map:
+		// Maps always need recursive processing
+		return true
+
+	default:
+		// Primitives don't need conversion
+		return false
+	}
+}
+
 func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalProviderClient, error) {
 	log = log.WithName(config.Name)
 	log = log.WithValues("provider", "grpc")
-	conn, out, err := start(context.Background(), config)
+	ctxCmd, cancelCmd := context.WithCancel(context.Background())
+	conn, _, err := start(ctxCmd, config, log)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +180,7 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 
 	services, err := checkServicesRunning(refClt, log)
 	if err != nil {
-		fmt.Printf("\n%v\n", err)
+		log.Error(err, "failed to check if services are running")
 		return nil, err
 	}
 	foundCodeSnip := false
@@ -71,10 +202,8 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 		ctx:            refCltCtx,
 		conn:           conn,
 		config:         config,
+		cancelCmd:      cancelCmd,
 		serviceClients: []provider.ServiceClient{},
-	}
-	if out != nil {
-		go gp.LogProviderOut(context.Background(), out)
 	}
 	if foundCodeSnip && foundDepResolve {
 		// create the clients, create the struct that will have all the methods
@@ -186,11 +315,18 @@ func (g *grpcProvider) Capabilities() []provider.Capability {
 }
 
 func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
-	s, err := structpb.NewStruct(config.ProviderSpecificConfig)
+	// Convert typed slices to []interface{} for protobuf compatibility
+	convertedConfig := convertTypedSlices(config.ProviderSpecificConfig)
+	s, err := structpb.NewStruct(convertedConfig)
 	if err != nil {
 		return nil, provider.InitConfig{}, err
 	}
 
+	if config.PipeName != "" {
+		config.Initialized = true
+	}
+
+	g.log.Info("provider configuration", "config", config)
 	c := pb.Config{
 		Location:               config.Location,
 		DependencyPath:         config.DependencyPath,
@@ -201,6 +337,14 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 			HTTPSProxy: config.Proxy.HTTPSProxy,
 			NoProxy:    config.Proxy.NoProxy,
 		},
+		LanguageServerPipe: config.PipeName,
+		Initialized:        config.Initialized,
+	}
+
+	// Set logLevel if available in provider config
+	if g.config.LogLevel != nil {
+		logLevel := int32(*g.config.LogLevel)
+		c.LogLevel = &logLevel
 	}
 
 	r, err := g.Client.Init(ctx, &c)
@@ -219,10 +363,12 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 		id:     r.Id,
 		config: config,
 		client: g.Client,
+		log:    log.WithName("grpcServiceClient"),
 	}, additionalBuiltinConfig, nil
 }
 
 func (g *grpcProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
+	g.log.Info("connection", "conn", g.conn.GetState())
 	return provider.FullResponseFromServiceClients(ctx, g.serviceClients, cap, conditionInfo)
 }
 
@@ -234,21 +380,25 @@ func (g *grpcProvider) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]pr
 	return provider.FullDepDAGResponse(ctx, g.serviceClients)
 }
 
+func (g *grpcProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return provider.FullPrepareResponse(ctx, g.serviceClients, conditionsByCap)
+}
+
 func (g *grpcProvider) Stop() {
 	for _, c := range g.serviceClients {
 		c.Stop()
 	}
 	g.conn.Close()
+	g.cancelCmd()
 }
 
-func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.ReadCloser, error) {
+func (g *grpcProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return provider.FullNotifyFileChangesResponse(ctx, g.serviceClients, changes...)
+}
+
+func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.ClientConn, io.ReadCloser, error) {
 	// Here the Provider will start the GRPC Server if a binary is set.
 	if config.BinaryPath != "" {
-		port, err := freeport.GetFreePort()
-		if err != nil {
-			return nil, nil, err
-		}
-
 		ic := config.InitConfig
 		// For the generic external provider
 		name := "generic"
@@ -258,7 +408,37 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 			}
 		}
 
-		cmd := exec.CommandContext(ctx, config.BinaryPath, "--port", fmt.Sprintf("%v", port), "--name", name)
+		var cmd *exec.Cmd
+		var connectionString string
+
+		// Prepare common arguments
+		args := []string{}
+
+		if config.UseSocket {
+			fileName, err := socket.GetAddress(name)
+			if err != nil {
+				return nil, nil, err
+			}
+			args = append(args, "--socket", fileName)
+			connectionString = socket.GetConnectionString(fileName)
+		} else {
+			port, err := freeport.GetFreePort()
+			if err != nil {
+				return nil, nil, err
+			}
+			connectionString = fmt.Sprintf("localhost:%v", port)
+			args = append(args, "--port", fmt.Sprintf("%v", port))
+		}
+
+		// Add common flags
+		args = append(args, "--name", name)
+
+		// Add logLevel if specified
+		if config.LogLevel != nil {
+			args = append(args, "--log-level", fmt.Sprintf("%d", *config.LogLevel))
+		}
+
+		cmd = exec.CommandContext(ctx, config.BinaryPath, args...)
 		// TODO: For each output line, log that line here, allows the server's to output to the main log file. Make sure we name this correctly
 		// cmd will exit with the ending of the ctx.
 		out, err := cmd.StdoutPipe()
@@ -266,64 +446,84 @@ func start(ctx context.Context, config provider.Config) (*grpc.ClientConn, io.Re
 			return nil, nil, err
 		}
 
+		fmt.Printf("\ncommand: %v\n", cmd)
+		if out != nil {
+			go LogProviderOut(context.Background(), out, log)
+		}
+
 		err = cmd.Start()
 		if err != nil {
 			return nil, nil, err
 		}
-		conn, err := grpc.Dial(fmt.Sprintf("localhost:%v", port),
-			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
-			grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+		conn, err := socket.ConnectGRPC(connectionString)
+
 		if err != nil {
-			log.Fatalf("did not connect: %v", err)
+			log.Error(err, "did not connect")
 		}
 		return conn, out, nil
 	}
 	if config.Address != "" {
 		if config.CertPath == "" {
-			conn, err := grpc.Dial(fmt.Sprintf(config.Address),
-				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
-				grpc.WithTransportCredentials(insecure.NewCredentials()))
-			if err != nil {
-				log.Fatalf("did not connect: %v", err)
+			var conn *grpc.ClientConn
+			var err error
+
+			if config.UseSocket && (strings.HasPrefix(config.Address, "unix://") || strings.HasPrefix(config.Address, "passthrough:")) {
+				// Use socket connection
+				// for windows, we will use passthrough to connect to the socket
+				// which is defined in the socket/pipe_windows.go file
+				// Supports: unix://path (Unix) and passthrough:unix://path (Windows)
+				conn, err = socket.ConnectGRPC(config.Address)
+			} else {
+				// Use regular HTTP connection
+				conn, err = grpc.NewClient(fmt.Sprintf(config.Address),
+					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
+					grpc.WithTransportCredentials(insecure.NewCredentials()),
+				)
 			}
-			return conn, nil, nil
-		} else {
-			creds, err := credentials.NewClientTLSFromFile(config.CertPath, "")
 			if err != nil {
+				log.Error(err, "did not connect")
 				return nil, nil, err
 			}
-			if config.JWTToken == "" {
-				conn, err := grpc.Dial(fmt.Sprintf(config.Address),
-					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
-					grpc.WithTransportCredentials(creds))
-				if err != nil {
-					log.Fatalf("did not connect: %v", err)
-				}
-				return conn, nil, nil
-
-			} else {
-				i := &jwtTokeInterceptor{
-					Token: config.JWTToken,
-				}
-				conn, err := grpc.Dial(fmt.Sprintf(config.Address),
-					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(provider.MAX_MESSAGE_SIZE)),
-					grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
-				if err != nil {
-					log.Fatalf("did not connect: %v", err)
-				}
-				return conn, nil, nil
-
+			return conn, nil, nil
+		}
+		creds, err := credentials.NewClientTLSFromFile(config.CertPath, "")
+		if err != nil {
+			return nil, nil, err
+		}
+		if config.JWTToken == "" {
+			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
+				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
+				grpc.WithTransportCredentials(creds))
+			if err != nil {
+				log.Error(err, "did not connect")
+				return nil, nil, err
 			}
+			return conn, nil, nil
+
+		} else {
+			i := &jwtTokeInterceptor{
+				Token: config.JWTToken,
+			}
+			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
+				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
+				grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
+			if err != nil {
+				log.Error(err, "did not connect")
+				return nil, nil, err
+			}
+			return conn, nil, nil
+
 		}
 	}
 	return nil, nil, fmt.Errorf("must set Address or Binary Path for a GRPC provider")
 }
 
-func (g *grpcProvider) LogProviderOut(ctx context.Context, out io.ReadCloser) {
+func LogProviderOut(ctx context.Context, out io.ReadCloser, log logr.Logger) {
 	scan := bufio.NewScanner(out)
 
 	for scan.Scan() {
-		g.log.V(3).Info(scan.Text())
+		log.V(3).Info(scan.Text())
 	}
 }
 

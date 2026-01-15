@@ -3,18 +3,21 @@ package java
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/jsonrpc2"
+	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/bldtool"
+	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
@@ -22,25 +25,22 @@ import (
 )
 
 type javaServiceClient struct {
-	rpc               *jsonrpc2.Conn
-	cancelFunc        context.CancelFunc
-	config            provider.InitConfig
-	log               logr.Logger
-	cmd               *exec.Cmd
-	bundles           []string
-	workspace         string
-	depToLabels       map[string]*depLabelItem
-	isLocationBinary  bool
-	mvnSettingsFile   string
-	depsMutex         sync.RWMutex
-	depsCache         map[uri.URI][]*provider.Dep
-	depsLocationCache map[string]int
-	includedPaths     []string
-}
-
-type depLabelItem struct {
-	r      *regexp.Regexp
-	labels map[string]interface{}
+	rpc                provider.RPCClient
+	cancelFunc         context.CancelFunc
+	config             provider.InitConfig
+	log                logr.Logger
+	cmd                *exec.Cmd
+	bundles            []string
+	workspace          string
+	globalSettings     string
+	includedPaths      []string
+	cleanExplodedBins  []string
+	activeRPCCalls     sync.WaitGroup
+	depsLocationCache  map[string]int
+	buildTool          bldtool.BuildTool
+	mvnIndexPath       string
+	mvnSettingsFile    string
+	jdtlsProcessExited *chan bool
 }
 
 var _ provider.ServiceClient = &javaServiceClient{}
@@ -52,11 +52,21 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	if err != nil {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get query info: %v", err)
 	}
+	// filepaths get rendered as a string and must be converted
+	if len(cond.Referenced.Filepaths) > 0 {
+		cond.Referenced.Filepaths = strings.Split(cond.Referenced.Filepaths[0], " ")
+	}
+
+	condCtx := &provider.ProviderContext{}
+	err = yaml.Unmarshal(conditionInfo, condCtx)
+	if err != nil {
+		return provider.ProviderEvaluateResponse{}, fmt.Errorf("unable to get condition context info: %v", err)
+	}
 
 	if cond.Referenced.Pattern == "" {
 		return provider.ProviderEvaluateResponse{}, fmt.Errorf("provided query pattern empty")
 	}
-	symbols, err := p.GetAllSymbols(ctx, cond.Referenced.Pattern, cond.Referenced.Location, cond.Referenced.Annotated)
+	symbols, err := p.GetAllSymbols(ctx, *cond, condCtx)
 	if err != nil {
 		p.log.Error(err, "unable to get symbols", "symbols", symbols, "cap", cap, "conditionInfo", cond)
 		return provider.ProviderEvaluateResponse{}, err
@@ -64,32 +74,21 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	p.log.Info("Symbols retrieved", "symbols", len(symbols), "cap", cap, "conditionInfo", cond)
 
 	incidents := []provider.IncidentContext{}
-	switch locationToCode[strings.ToLower(cond.Referenced.Location)] {
-	case 0:
-		// Filter handle for type, find all the referneces to this type.
+	locationCode := GetLocationTypeFromString(cond.Referenced.Location)
+	switch locationCode {
+	case LocationTypeDefault, LocationConstructorCall, LocationAnnotation, LocationEnum, LocationTypeKeyword, LocationPackage, LocationField, LocationMethod, LocationClass:
+		// Filter handle for type, find all the references to this type.
 		incidents, err = p.filterDefault(symbols)
-	case 1, 5:
+	case LocationInheritance, LocationImplementsType:
 		incidents, err = p.filterTypesInheritance(symbols)
-	case 2:
+	case LocationMethodCall:
 		incidents, err = p.filterMethodSymbols(symbols)
-	case 3:
-		incidents, err = p.filterDefault(symbols)
-	case 4:
-		incidents, err = p.filterDefault(symbols)
-	case 7:
+	case LocationReturnType:
 		incidents, err = p.filterMethodSymbols(symbols)
-	case 8:
+	case LocationImport:
 		incidents, err = p.filterModulesImports(symbols)
-	case 9:
+	case LocationVariableDeclaration:
 		incidents, err = p.filterVariableDeclaration(symbols)
-	case 10:
-		incidents, err = p.filterDefault(symbols)
-	case 11:
-		incidents, err = p.filterDefault(symbols)
-	case 12:
-		incidents, err = p.filterDefault(symbols)
-	case 13:
-		incidents, err = p.filterDefault(symbols)
 	default:
 
 	}
@@ -109,24 +108,110 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}, nil
 }
 
-func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location string, annotation annotated) ([]protocol.WorkspaceSymbol, error) {
+func (p *javaServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
+func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, condCTX *provider.ProviderContext) ([]protocol.WorkspaceSymbol, error) {
 	// This command will run the added bundle to the language server. The command over the wire needs too look like this.
 	// in this case the project is hardcoded in the init of the Langauge Server above
 	// workspace/executeCommand '{"command": "io.konveyor.tackle.ruleEntry", "arguments": {"query":"*customresourcedefinition","project": "java"}}'
-	argumentsMap := map[string]interface{}{
-		"query":        query,
-		"project":      "java",
-		"location":     fmt.Sprintf("%v", locationToCode[strings.ToLower(location)]),
-		"analysisMode": string(p.config.AnalysisMode),
+	argumentsMap := map[string]any{
+		"query":                      c.Referenced.Pattern,
+		"project":                    "java",
+		"location":                   fmt.Sprintf("%v", int(GetLocationTypeFromString(c.Referenced.Location))),
+		"analysisMode":               string(p.config.AnalysisMode),
+		"includeOpenSourceLibraries": true,
+		"mavenLocalRepo":             p.buildTool.GetLocalRepoPath(),
 	}
 
-	if !reflect.DeepEqual(annotation, annotated{}) {
-		argumentsMap["annotationQuery"] = annotation
+	if p.mvnIndexPath != "" {
+		argumentsMap["mavenIndexPath"] = p.mvnIndexPath
 	}
 
-	if p.includedPaths != nil && len(p.includedPaths) > 0 {
-		argumentsMap[provider.IncludedPathsConfigKey] = p.includedPaths
-		p.log.V(5).Info("setting search scope by filepaths", "paths", p.includedPaths)
+	canRestrict, err := labels.CanRestrictSelector(condCTX.DepLabelSelector)
+	if err != nil {
+		p.log.Error(err, "could not construct dep label selector from condition context, search scope will not be limited", "label selector", condCTX.DepLabelSelector)
+	} else if !canRestrict {
+		// only set to false, when explicitely set to exclude oss libraries
+		// this makes it backward compatible
+		argumentsMap["includeOpenSourceLibraries"] = false
+	}
+
+	if !reflect.DeepEqual(c.Referenced.Annotated, annotated{}) {
+		argumentsMap["annotationQuery"] = c.Referenced.Annotated
+	}
+
+	log := p.log.WithValues("ruleID", condCTX.RuleID)
+
+	// Get filepath constraints from rule scope (e.g., chained conditions)
+	includedFilepaths, excludedFilepaths := condCTX.GetScopedFilepaths()
+
+	// Determine which filepaths to pass to the language server query
+	// Provider-level includes take precedence over rule-scope includes
+	var lspIncludedPaths []string
+	if len(p.includedPaths) > 0 {
+		lspIncludedPaths = p.includedPaths
+		log.V(8).Info("setting LSP search scope by provider-level filepaths", "paths", p.includedPaths)
+	} else if len(includedFilepaths) > 0 {
+		lspIncludedPaths = includedFilepaths
+		log.V(8).Info("setting LSP search scope by rule-scope filepaths", "paths", includedFilepaths)
+	}
+
+	if len(lspIncludedPaths) > 0 {
+		argumentsMap[provider.IncludedPathsConfigKey] = lspIncludedPaths
+	}
+
+	// Check if we need file-level filtering beyond what the language server provides
+	// The language server filters at package-level, we need file-level precision for:
+	// 1. Excluded paths (language server only handles included paths)
+	// 2. Condition-level filepaths (pattern matching and normalization)
+	// 3. Rule-scope included paths when provider-level paths were used for LSP query
+	hasAdditionalConstraints := len(excludedFilepaths) > 0 ||
+		len(c.Referenced.Filepaths) > 0 ||
+		(len(p.includedPaths) > 0 && len(includedFilepaths) > 0)
+
+	// Start file search in parallel with language server query (if needed)
+	type fileSearchResult struct {
+		fileMap map[string]struct{}
+		err     error
+	}
+	var resultCh chan fileSearchResult
+	if hasAdditionalConstraints {
+		resultCh = make(chan fileSearchResult, 1)
+		go func() {
+			defer close(resultCh)
+
+			fileSearcher := provider.FileSearcher{
+				BasePath: p.workspace,
+				ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+					IncludePathsOrPatterns: p.includedPaths,
+				},
+				RuleScopeConstraints: provider.IncludeExcludeConstraints{
+					IncludePathsOrPatterns: includedFilepaths,
+					ExcludePathsOrPatterns: excludedFilepaths,
+				},
+				FailFast: true,
+				Log:      log,
+			}
+
+			paths, err := fileSearcher.Search(provider.SearchCriteria{
+				ConditionFilepaths: c.Referenced.Filepaths,
+			})
+			if err != nil {
+				log.Error(err, "failed to search for files")
+				resultCh <- fileSearchResult{err: err}
+				return
+			}
+
+			// Build map of allowed files for quick lookup
+			fileMap := make(map[string]struct{})
+			for _, path := range paths {
+				normalizedPath := provider.NormalizePathForComparison(path)
+				fileMap[normalizedPath] = struct{}{}
+			}
+			resultCh <- fileSearchResult{fileMap: fileMap}
+		}()
 	}
 
 	argumentsBytes, _ := json.Marshal(argumentsMap)
@@ -138,20 +223,61 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, query, location s
 	}
 
 	var refs []protocol.WorkspaceSymbol
-	// If it takes us 5min to complete a request, then we are in trouble
-	timeOutCtx, _ := context.WithTimeout(ctx, 5*time.Minute)
-	err := p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp, &refs)
+	// If it takes us 5 min to complete a request, then we are in trouble
+	timeout := 5 * time.Minute
+	// certain wildcard queries are known to perform worse especially in containers
+	if strings.HasSuffix(c.Referenced.Pattern, "*") || strings.HasSuffix(c.Referenced.Pattern, "*)") {
+		timeout = 10 * time.Minute
+	}
+	p.activeRPCCalls.Add(1)
+	defer p.activeRPCCalls.Done()
+
+	timeOutCtx, cancelFunc := context.WithTimeout(ctx, timeout)
+	defer cancelFunc()
+	err = p.rpc.Call(timeOutCtx, "workspace/executeCommand", wsp).Await(timeOutCtx, &refs)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
-			p.log.Error(err, "connection to the language server is closed, language server is not running")
+			log.Error(err, "connection to the language server is closed, language server is not running")
 			return refs, fmt.Errorf("connection to the language server is closed, language server is not running")
 		} else {
-			p.log.Error(err, "unable to ask for Konveyor rule entry")
+			log.Error(err, "unable to ask for Konveyor rule entry")
 			return refs, fmt.Errorf("unable to ask for Konveyor rule entry")
 		}
 	}
 
-	return refs, nil
+	// If no additional filtering needed, return language server results as-is
+	if !hasAdditionalConstraints {
+		return refs, nil
+	}
+
+	// Wait for file search to complete and get result
+	searchResult := <-resultCh
+
+	// If file search failed, return all language server results to avoid false negatives
+	if searchResult.err != nil {
+		return refs, nil
+	}
+
+	// Filter refs to only those in allowed files
+	var filteredRefs []protocol.WorkspaceSymbol
+	for _, ref := range refs {
+		var refURI protocol.DocumentURI
+		switch x := ref.Location.Value.(type) {
+		case protocol.Location:
+			refURI = x.URI
+		case protocol.PLocationMsg_workspace_symbol:
+			refURI = x.URI
+		default:
+			// Skip symbols with unknown location types
+			continue
+		}
+		normalizedRefURI := provider.NormalizePathForComparison(string(refURI))
+		if _, ok := searchResult.fileMap[normalizedRefURI]; ok {
+			filteredRefs = append(filteredRefs, ref)
+		}
+	}
+
+	return filteredRefs, nil
 }
 
 func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protocol.WorkspaceSymbol) []protocol.Location {
@@ -186,21 +312,89 @@ func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protoco
 		},
 	}
 
+	p.activeRPCCalls.Add(1)
+	defer p.activeRPCCalls.Done()
+
 	res := []protocol.Location{}
-	err := p.rpc.Call(ctx, "textDocument/references", params, &res)
+	err := p.rpc.Call(ctx, "textDocument/references", params).Await(ctx, &res)
 	if err != nil {
 		if jsonrpc2.IsRPCClosed(err) {
 			p.log.Error(err, "connection to the language server is closed, language server is not running")
 		} else {
-			fmt.Printf("Error rpc: %v", err)
+			p.log.Error(err, "unknown error in RPC connection")
 		}
 	}
 	return res
 }
 
+// TODO (pgaikwad) - implement this for real
+func (p *javaServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}
+
 func (p *javaServiceClient) Stop() {
-	p.cancelFunc()
-	p.cmd.Wait()
+	err := p.shutdown()
+	if err != nil {
+		p.log.Error(err, "failed to gracefully shutdown java provider")
+	}
+
+	if p.jdtlsProcessExited != nil {
+		<-*p.jdtlsProcessExited
+	}
+
+	if len(p.cleanExplodedBins) > 0 {
+		for _, explodedPath := range p.cleanExplodedBins {
+			os.RemoveAll(explodedPath)
+		}
+	}
+}
+
+func (p *javaServiceClient) shutdown() error {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	p.log.Info("waiting for active RPC calls to complete")
+	done := make(chan struct{})
+	go func() {
+		p.activeRPCCalls.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		p.log.V(7).Info("all active RPC calls completed")
+	case <-time.After(10 * time.Second):
+		p.log.Info("timeout waiting for active RPC calls to complete, proceeding with shutdown")
+	}
+
+	var shutdownResult interface{}
+	err := p.rpc.Call(shutdownCtx, "shutdown", nil).Await(shutdownCtx, &shutdownResult)
+	if err != nil {
+		p.log.Error(err, "failed to send shutdown request to language server")
+		return err
+	}
+	err = p.rpc.Notify(shutdownCtx, "exit", nil)
+	if err != nil {
+		p.log.Error(err, "failed to send exit notification to language server")
+		return err
+	}
+	return nil
+}
+
+func isSafeErr(err error) bool {
+	if errors.Is(err, context.Canceled) {
+		return true
+	}
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
+			if status.Signaled() && (status.Signal() == syscall.SIGTERM || status.Signal() == syscall.SIGKILL) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func (p *javaServiceClient) initialization(ctx context.Context) {
@@ -227,32 +421,33 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 
 	//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
 	params := &protocol.InitializeParams{}
-	params.RootURI = fmt.Sprintf("file://%v", absLocation)
+	params.RootURI = string(uri.File(absLocation))
 	params.Capabilities = protocol.ClientCapabilities{}
-	params.ExtendedClientCapilities = map[string]interface{}{
+	params.ExtendedClientCapilities = map[string]any{
 		"classFileContentsSupport": true,
 	}
 	// See https://github.com/eclipse-jdtls/eclipse.jdt.ls/blob/1a3dd9323756113bf39cfab82746d57a2fd19474/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/preferences/Preferences.java
 	java8home := os.Getenv("JAVA8_HOME")
-	params.InitializationOptions = map[string]interface{}{
+	params.InitializationOptions = map[string]any{
 		"bundles":          absBundles,
-		"workspaceFolders": []string{fmt.Sprintf("file://%v", absLocation)},
-		"settings": map[string]interface{}{
-			"java": map[string]interface{}{
-				"configuration": map[string]interface{}{
-					"maven": map[string]interface{}{
-						"userSettings": p.mvnSettingsFile,
+		"workspaceFolders": []string{string(uri.File(absLocation))},
+		"settings": map[string]any{
+			"java": map[string]any{
+				"configuration": map[string]any{
+					"maven": map[string]any{
+						"userSettings":   p.mvnSettingsFile,
+						"globalSettings": p.globalSettings,
 					},
 				},
-				"autobuild": map[string]interface{}{
+				"autobuild": map[string]any{
 					"enabled": false,
 				},
-				"maven": map[string]interface{}{
+				"maven": map[string]any{
 					"downloadSources": downloadSources,
 				},
-				"import": map[string]interface{}{
-					"gradle": map[string]interface{}{
-						"java": map[string]interface{}{
+				"import": map[string]any{
+					"gradle": map[string]any{
+						"java": map[string]any{
 							"home": java8home,
 						},
 					},
@@ -261,9 +456,20 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 		},
 	}
 
+	// when neither pom or gradle build is present, the language server cannot initialize project
+	// we have to trick it into initializing it by creating a .classpath and .project file if one doesn't exist
+	//TODO: This needs to happen only when
+	if p.buildTool == nil {
+		err = createProjectAndClasspathFiles(p.config.Location, filepath.Base(p.config.Location))
+		if err != nil {
+			p.log.Error(err, "unable to create .classpath and .project files, analysis may be degraded")
+		}
+	}
+
 	var result protocol.InitializeResult
 	for i := 0; i < 10; i++ {
-		if err := p.rpc.Call(ctx, "initialize", params, &result); err != nil {
+		err := p.rpc.Call(ctx, "initialize", params).Await(ctx, &result)
+		if err != nil {
 			if jsonrpc2.IsRPCClosed(err) {
 				p.log.Error(err, "connection to the language server is closed, language server is not running")
 			} else {
@@ -274,9 +480,42 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 		break
 	}
 	if err := p.rpc.Notify(ctx, "initialized", &protocol.InitializedParams{}); err != nil {
-		fmt.Printf("initialized failed: %v", err)
 		p.log.Error(err, "initialize failed")
 	}
 	p.log.V(2).Info("java connection initialized")
 
+}
+
+func createProjectAndClasspathFiles(basePath string, projectName string) error {
+	projectXML := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+    <name>%s</name>
+    <comment></comment>
+    <projects></projects>
+    <buildSpec></buildSpec>
+    <natures>
+        <nature>org.eclipse.jdt.core.javanature</nature>
+    </natures>
+</projectDescription>
+`, projectName)
+
+	if _, err := os.Stat(filepath.Join(basePath, ".project")); err != nil && os.IsNotExist(err) {
+		if err := os.WriteFile(filepath.Join(basePath, ".project"), []byte(projectXML), 0644); err != nil {
+			return fmt.Errorf("failed to write .project: %w", err)
+		}
+	}
+
+	classpathXML := `<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+    <classpathentry kind="src" path="."/>
+    <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+    <classpathentry kind="output" path="bin"/>
+</classpath>
+`
+	if _, err := os.Stat(filepath.Join(basePath, ".classpath")); err != nil && os.IsNotExist(err) {
+		if err := os.WriteFile(filepath.Join(basePath, ".classpath"), []byte(classpathXML), 0644); err != nil {
+			return fmt.Errorf("failed to write .classpath: %w", err)
+		}
+	}
+	return nil
 }

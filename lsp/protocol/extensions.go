@@ -1,14 +1,13 @@
 package protocol
 
-import (
-	"fmt"
-)
-
 // Whether the server supports the given method or not. Servers, such as pylsp,
 // crash when given a method they do not support.
 // FIXME: Implement all requests!
 // TODO: Evaluate tradeoffs of turning this into a map?
 func (c *ServerCapabilities) Supports(method string) bool {
+	if c.AssumeWorks {
+		return true
+	}
 	switch method {
 	// case "$/cancelRequest":
 	// case "$/logTrace":
@@ -159,8 +158,5 @@ func (c *ServerCapabilities) Supports(method string) bool {
 		// case "workspaceSymbol/resolve":
 	}
 
-	// Default to false for now. May cause headaches until all request checks are
-	// implemented unfortunately.
-	fmt.Printf("Method `%s` is not supported!\n", method)
 	return false
 }

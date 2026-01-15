@@ -20,6 +20,10 @@ type testProvider struct {
 	caps []provider.Capability
 }
 
+func (t testProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
+}
+
 func (t testProvider) Capabilities() []provider.Capability {
 	return t.caps
 }
@@ -30,6 +34,10 @@ func (t testProvider) Init(ctx context.Context, log logr.Logger, config provider
 
 func (t testProvider) Evaluate(ctx context.Context, cap string, conditionInfo []byte) (provider.ProviderEvaluateResponse, error) {
 	return provider.ProviderEvaluateResponse{}, nil
+}
+
+func (t testProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
 }
 
 func (t testProvider) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
@@ -357,8 +365,10 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
-			ShouldErr:    true,
-			ErrorMessage: "unable to find provider for: builtin",
+			// With the fix, missing providers are gracefully skipped, not errors
+			// The rule will be skipped since provider is unavailable
+			ShouldErr:    false,
+			ErrorMessage: "",
 		},
 		{
 			Name:         "rule no conditions",
@@ -815,7 +825,7 @@ func TestLoadRules(t *testing.T) {
 				Log:                  logrusr.New(logrusLog),
 			}
 
-			ruleSets, clients, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
+			ruleSets, clients, _, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
 			if err != nil {
 				if tc.ShouldErr && tc.ErrorMessage == err.Error() {
 					return

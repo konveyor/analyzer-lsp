@@ -30,7 +30,8 @@ func (p *yqProvider) Capabilities() []provider.Capability {
 	r := openapi3.NewReflector()
 	k8sResourceMatched, err := provider.ToProviderCap(r, p.log, k8sResourceCondition{}, "k8sResourceMatched")
 	if err != nil {
-		fmt.Printf("not working")
+		p.log.Error(err, "error generating capabilities")
+		return caps
 	}
 	caps = append(caps, k8sResourceMatched)
 	return caps
@@ -105,7 +106,7 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 	go func() {
 		err := cmd.Run()
 		if err != nil {
-			fmt.Printf("cmd failed - %v", err)
+			log.Error(err, "failed to start LSP server")
 			// TODO: Probably should cancel the ctx here, to shut everything down
 			return
 		}
@@ -119,4 +120,12 @@ func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 	}
 
 	return &svcClient, provider.InitConfig{}, nil
+}
+
+func (p *yqProvider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
+	return nil
+}
+
+func (p *yqProvider) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	return nil
 }

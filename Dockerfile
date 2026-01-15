@@ -1,22 +1,37 @@
-FROM golang:1.20 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.23 as builder
+
+USER 0
 WORKDIR /analyzer-lsp
 
 COPY cmd /analyzer-lsp/cmd
 COPY engine /analyzer-lsp/engine
-COPY  event /analyzer-lsp/event
+COPY event /analyzer-lsp/event
 COPY output /analyzer-lsp/output
-COPY jsonrpc2 /analyzer-lsp/jsonrpc2
-COPY  jsonrpc2_v2 /analyzer-lsp/jsonrpc2_v2
+COPY jsonrpc2_v2 /analyzer-lsp/jsonrpc2_v2
 COPY lsp /analyzer-lsp/lsp
 COPY parser /analyzer-lsp/parser
 COPY provider /analyzer-lsp/provider
+COPY progress /analyzer-lsp/progress
 COPY tracing /analyzer-lsp/tracing
 COPY external-providers /analyzer-lsp/external-providers
 COPY go.mod /analyzer-lsp/go.mod
 COPY go.sum /analyzer-lsp/go.sum
 COPY Makefile /analyzer-lsp/Makefile
 
-RUN make build
+RUN mkdir -p build /opt/app-root/src/go && \
+    chgrp -R 0 /analyzer-lsp /opt/app-root/src/go && \
+    chmod -R g=u /analyzer-lsp /opt/app-root/src/go
+
+USER 0
+
+# Fix cache ownership if it was populated by previous builds
+RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod \
+    chown -R 1001:0 /opt/app-root/src/go/pkg/mod && \
+    chmod -R g+w /opt/app-root/src/go/pkg/mod
+
+USER 1001
+
+RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod make analyzer deps
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as yq-builder
 RUN microdnf install -y wget tar xz gzip && \
@@ -29,31 +44,17 @@ RUN wget "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_B
 
 FROM jaegertracing/all-in-one:latest AS jaeger-builder
 
-FROM quay.io/konveyor/jdtls-server-base
-
-RUN microdnf install gcc-c++ python-devel python3-devel -y
-RUN python3 -m ensurepip --upgrade
-RUN python3 -m pip install 'python-lsp-server>=1.8.2'
-
-ENV NODEJS_VERSION=18
-RUN echo -e "[nodejs]\nname=nodejs\nstream=${NODEJS_VERSION}\nprofiles=\nstate=enabled\n" > /etc/dnf/modules.d/nodejs.module
-RUN microdnf install nodejs -y
-RUN npm install -g typescript-language-server typescript
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/local/bin/all-in-one-linux
-COPY --from=yq-builder /usr/bin/yq /usr/local/bin/yq
-COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/local/bin/konveyor-analyzer
-COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/local/bin/konveyor-analyzer-dep
-COPY --from=builder /analyzer-lsp/external-providers/generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
-COPY --from=builder /analyzer-lsp/external-providers/yq-external-provider/yq-external-provider /usr/local/bin/yq-external-provider
-COPY --from=builder /analyzer-lsp/external-providers/golang-dependency-provider/golang-dependency-provider /usr/local/bin/golang-dependency-provider
-COPY --from=builder /analyzer-lsp/external-providers/java-external-provider/java-external-provider /usr/local/bin/java-external-provider
-
-COPY provider_container_settings.json /analyzer-lsp/provider_settings.json
+COPY --from=builder /analyzer-lsp/build/konveyor-analyzer /usr/local/bin/konveyor-analyzer
+COPY --from=builder /analyzer-lsp/build/konveyor-analyzer-dep /usr/local/bin/konveyor-analyzer-dep
 
 WORKDIR /analyzer-lsp
 RUN chgrp -R 0 /analyzer-lsp && chmod -R g=u /analyzer-lsp
 
 EXPOSE 16686
+
+USER 1001
 
 ENTRYPOINT ["sh", "-c", "all-in-one-linux &> /dev/null & sleep 5 && konveyor-analyzer"]

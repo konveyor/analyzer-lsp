@@ -16,6 +16,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/parser"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/konveyor/analyzer-lsp/tracing"
@@ -50,6 +51,8 @@ var (
 	getOpenAPISpec    string
 	treeOutput        bool
 	depOutputFile     string
+	progressOutput    string
+	progressFormat    string
 )
 
 func AnalysisCmd() *cobra.Command {
@@ -137,7 +140,9 @@ func AnalysisCmd() *cobra.Command {
 					finalConfigs = append(finalConfigs, config)
 				}
 				for _, initConf := range config.InitConfig {
-					if _, ok := seenBuiltinConfigs[initConf.Location]; !ok {
+					builtinConf := provider.InitConfig{}
+					_, ok := seenBuiltinConfigs[initConf.Location]
+					if !ok {
 						if initConf.Location != "" {
 							if stat, err := os.Stat(initConf.Location); err == nil && stat.IsDir() {
 								builtinLocation, err := filepath.Abs(initConf.Location)
@@ -145,7 +150,7 @@ func AnalysisCmd() *cobra.Command {
 									builtinLocation = initConf.Location
 								}
 								seenBuiltinConfigs[builtinLocation] = true
-								builtinConf := provider.InitConfig{Location: builtinLocation}
+								builtinConf = provider.InitConfig{Location: builtinLocation}
 								if config.Name == "builtin" {
 									builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
 								}
@@ -153,6 +158,16 @@ func AnalysisCmd() *cobra.Command {
 							}
 						}
 					}
+					//builtin config that already has location as other prov configs
+					if config.Name == "builtin" && ok {
+						builtinConf.ProviderSpecificConfig = initConf.ProviderSpecificConfig
+						for i, c := range defaultBuiltinConfigs {
+							if initConf.Location == c.Location {
+								defaultBuiltinConfigs[i] = initConf
+							}
+						}
+					}
+
 				}
 			}
 			finalConfigs = append(finalConfigs, provider.Config{
@@ -160,13 +175,26 @@ func AnalysisCmd() *cobra.Command {
 				InitConfig: defaultBuiltinConfigs,
 			})
 
+			// Create progress reporter early so we can report provider initialization
+			progressReporter, progressCleanup := createProgressReporter()
+			defer progressCleanup()
+
 			providers := map[string]provider.InternalProviderClient{}
 			providerLocations := []string{}
+			var encoding string
 			for _, config := range finalConfigs {
 				config.ContextLines = contextLines
 				for _, ind := range config.InitConfig {
 					providerLocations = append(providerLocations, ind.Location)
 				}
+
+				for _, initConfig := range config.InitConfig {
+					if encodingVal, ok := initConfig.ProviderSpecificConfig["encoding"]; ok {
+						encoding = encodingVal.(string)
+						break
+					}
+				}
+
 				// IF analsyis mode is set from the CLI, then we will override this for each init config
 				if analysisMode != "" {
 					inits := []provider.InitConfig{}
@@ -176,21 +204,59 @@ func AnalysisCmd() *cobra.Command {
 					}
 					config.InitConfig = inits
 				}
+
+				// Add prepare progress reporter to config (for GRPC providers) and all init configs (for LSP providers)
+				config.PrepareProgressReporter = provider.NewPrepareProgressAdapter(progressReporter)
+				for i := range config.InitConfig {
+					config.InitConfig[i].PrepareProgressReporter = provider.NewPrepareProgressAdapter(progressReporter)
+				}
+
+				// Report provider initialization starting
+				progressReporter.Report(progress.ProgressEvent{
+					Stage:   progress.StageProviderInit,
+					Message: fmt.Sprintf("Initializing %s provider", config.Name),
+				})
+
 				prov, err := lib.GetProviderClient(config, log)
 				if err != nil {
+					// Report provider initialization failed
+					progressReporter.Report(progress.ProgressEvent{
+						Stage:   progress.StageProviderInit,
+						Message: fmt.Sprintf("Provider %s failed to initialize", config.Name),
+						Metadata: map[string]interface{}{
+							"error": err.Error(),
+						},
+					})
 					errLog.Error(err, "unable to create provider client")
+					progressCleanup()
 					os.Exit(1)
 				}
 				providers[config.Name] = prov
 				if s, ok := prov.(provider.Startable); ok {
 					if err := s.Start(ctx); err != nil {
+						// Report provider startup failed
+						progressReporter.Report(progress.ProgressEvent{
+							Stage:   progress.StageProviderInit,
+							Message: fmt.Sprintf("Provider %s failed to start", config.Name),
+							Metadata: map[string]interface{}{
+								"error": err.Error(),
+							},
+						})
 						errLog.Error(err, "unable to create provider client")
+						progressCleanup()
 						os.Exit(1)
 					}
 				}
+
+				// Report provider ready
+				progressReporter.Report(progress.ProgressEvent{
+					Stage:   progress.StageProviderInit,
+					Message: fmt.Sprintf("Provider %s ready", config.Name),
+				})
 			}
 
 			engineCtx, engineSpan := tracing.StartNewSpan(ctx, "rule-engine")
+
 			//start up the rule eng
 			eng := engine.CreateRuleEngine(engineCtx,
 				10,
@@ -200,6 +266,7 @@ func AnalysisCmd() *cobra.Command {
 				engine.WithContextLines(contextLines),
 				engine.WithIncidentSelector(incidentSelector),
 				engine.WithLocationPrefixes(providerLocations),
+				engine.WithEncoding(encoding),
 			)
 
 			if getOpenAPISpec != "" {
@@ -207,14 +274,17 @@ func AnalysisCmd() *cobra.Command {
 				b, err := json.Marshal(sc)
 				if err != nil {
 					errLog.Error(err, "unable to create inital schema")
+					progressCleanup()
 					os.Exit(1)
 				}
 
 				err = os.WriteFile(getOpenAPISpec, b, 0644)
 				if err != nil {
 					errLog.Error(err, "error writing output file", "file", getOpenAPISpec)
+					progressCleanup()
 					os.Exit(1) // Treat the error as a fatal error
 				}
+				progressCleanup()
 				os.Exit(0)
 			}
 
@@ -226,8 +296,9 @@ func AnalysisCmd() *cobra.Command {
 			}
 			ruleSets := []engine.RuleSet{}
 			needProviders := map[string]provider.InternalProviderClient{}
+			providerConditions := map[string][]provider.ConditionsByCap{}
 			for _, f := range rulesFile {
-				internRuleSet, internNeedProviders, err := parser.LoadRules(f)
+				internRuleSet, internNeedProviders, provConditions, err := parser.LoadRules(f)
 				if err != nil {
 					errLog.Error(err, "unable to parse all the rules for ruleset", "file", f)
 				}
@@ -235,7 +306,14 @@ func AnalysisCmd() *cobra.Command {
 				for k, v := range internNeedProviders {
 					needProviders[k] = v
 				}
+				for k, v := range provConditions {
+					if _, ok := providerConditions[k]; !ok {
+						providerConditions[k] = []provider.ConditionsByCap{}
+					}
+					providerConditions[k] = append(providerConditions[k], v...)
+				}
 			}
+
 			// Now that we have all the providers, we need to start them.
 			additionalBuiltinConfigs := []provider.InitConfig{}
 			for name, provider := range needProviders {
@@ -250,6 +328,7 @@ func AnalysisCmd() *cobra.Command {
 					additionalBuiltinConfs, err := provider.ProviderInit(initCtx, nil)
 					if err != nil {
 						errLog.Error(err, "unable to init the providers", "provider", name)
+						progressCleanup()
 						os.Exit(1)
 					}
 					if additionalBuiltinConfs != nil {
@@ -262,7 +341,17 @@ func AnalysisCmd() *cobra.Command {
 			if builtinClient, ok := needProviders["builtin"]; ok {
 				if _, err = builtinClient.ProviderInit(ctx, additionalBuiltinConfigs); err != nil {
 					errLog.Error(err, "unable to init builtin provider")
+					progressCleanup()
 					os.Exit(1)
+				}
+			}
+
+			// Call Prepare() on all providers
+			for name, conditions := range providerConditions {
+				if provider, ok := needProviders[name]; ok {
+					if err := provider.Prepare(ctx, conditions); err != nil {
+						errLog.Error(err, "unable to prepare provider", "provider", name)
+					}
 				}
 			}
 
@@ -276,7 +365,9 @@ func AnalysisCmd() *cobra.Command {
 			}
 
 			// This will already wait
-			rulesets := eng.RunRules(ctx, ruleSets, selectors...)
+			rulesets := eng.RunRulesWithOptions(ctx, ruleSets, []engine.RunOption{
+				engine.WithProgressReporter(progressReporter),
+			}, selectors...)
 			engineSpan.End()
 			wg.Wait()
 			if depSpan != nil {
@@ -296,12 +387,14 @@ func AnalysisCmd() *cobra.Command {
 			b, _ := yaml.Marshal(rulesets)
 			if errorOnViolations && len(rulesets) != 0 {
 				fmt.Printf("%s", string(b))
+				progressCleanup()
 				os.Exit(EXIT_ON_ERROR_CODE)
 			}
 
 			err = os.WriteFile(outputViolations, b, 0644)
 			if err != nil {
 				errLog.Error(err, "error writing output file", "file", outputViolations)
+				progressCleanup()
 				os.Exit(1) // Treat the error as a fatal error
 			}
 		},
@@ -314,7 +407,7 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&labelSelector, "label-selector", "", "an expression to select rules based on labels")
 	rootCmd.Flags().StringVar(&depLabelSelector, "dep-label-selector", "", "an expression to select dependencies based on labels. This will filter out the violations from these dependencies as well these dependencies when matching dependency conditions")
 	rootCmd.Flags().StringVar(&incidentSelector, "incident-selector", "", "an expression to select incidents based on custom variables. ex: (!package=io.konveyor.demo.config-utils)")
-	rootCmd.Flags().IntVar(&logLevel, "verbose", 9, "level for logging output")
+	rootCmd.Flags().IntVar(&logLevel, "verbose", 5, "level for logging output")
 	rootCmd.Flags().BoolVar(&enableJaeger, "enable-jaeger", false, "enable tracer exports to jaeger endpoint")
 	rootCmd.Flags().StringVar(&jaegerEndpoint, "jaeger-endpoint", "http://localhost:14268/api/traces", "jaeger endpoint to collect tracing data")
 	rootCmd.Flags().IntVar(&limitIncidents, "limit-incidents", 1500, "Set this to the limit incidents that a given rule can give, zero means no limit")
@@ -325,6 +418,8 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&getOpenAPISpec, "get-openapi-spec", "", "Get the openAPI spec for the rulesets, rules and provider capabilities and put in file passed in.")
 	rootCmd.Flags().BoolVar(&treeOutput, "tree", false, "output dependencies as a tree")
 	rootCmd.Flags().StringVar(&depOutputFile, "dep-output-file", "", "path to dependency output file")
+	rootCmd.Flags().StringVar(&progressOutput, "progress-output", "", "where to write progress events (stderr, stdout, or file path)")
+	rootCmd.Flags().StringVar(&progressFormat, "progress-format", "bar", "format for progress output: bar, text, or json")
 
 	return rootCmd
 }
@@ -357,6 +452,48 @@ func validateFlags() error {
 	}
 
 	return nil
+}
+
+// createProgressReporter creates a progress reporter based on CLI flags
+func createProgressReporter() (progress.ProgressReporter, func()) {
+	// If no output specified, return noop reporter
+	if progressOutput == "" {
+		return progress.NewNoopReporter(), func() {}
+	}
+
+	// Determine output writer
+	var writer *os.File
+	cleanup := func() {}
+	switch progressOutput {
+	case "stderr":
+		writer = os.Stderr
+	case "stdout":
+		writer = os.Stdout
+	default:
+		// It's a file path
+		file, err := os.Create(progressOutput)
+		if err != nil {
+			// If we can't create the file, fallback to stderr
+			fmt.Fprintf(os.Stderr, "Warning: failed to create progress output file %s: %v\n", progressOutput, err)
+			writer = os.Stderr
+		} else {
+			writer = file
+			cleanup = func() { _ = file.Close() }
+		}
+	}
+
+	// Create reporter based on format
+	switch progressFormat {
+	case "json":
+		return progress.NewJSONReporter(writer), cleanup
+	case "text":
+		return progress.NewTextReporter(writer), cleanup
+	case "bar":
+		return progress.NewProgressBarReporter(writer), cleanup
+	default:
+		// Default to progress bar
+		return progress.NewProgressBarReporter(writer), cleanup
+	}
 }
 
 func createOpenAPISchema(providers map[string]provider.InternalProviderClient, log logr.Logger) openapi3.Spec {

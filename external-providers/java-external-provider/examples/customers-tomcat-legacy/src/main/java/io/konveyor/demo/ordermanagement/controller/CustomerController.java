@@ -22,7 +22,7 @@ public class CustomerController {
 	
 	private static Logger logger = Logger.getLogger( CustomerController.class.getName() );
 	
-	@GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+	@GetMapping(value = "id", produces = MediaType.APPLICATION_JSON_VALUE)
     public Customer getById(@PathVariable("id") Long id) {
 		Customer c = customerService.findById(id);
 		if (c == null) {

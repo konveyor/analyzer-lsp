@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
+	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/tracing"
 	jsonschema "github.com/swaggest/jsonschema-go"
@@ -34,6 +36,8 @@ const (
 	// LspServerPath is a provider specific config used to specify path to a LSP server
 	LspServerPathConfigKey = "lspServerPath"
 	IncludedPathsConfigKey = "includedPaths"
+	ExcludedDirsConfigKey  = "excludedDirs"
+	EncodingConfigKey      = "encoding"
 )
 
 // We need to make these Vars, because you can not take a pointer of the constant.
@@ -44,6 +48,36 @@ var (
 	SchemaTypeNumber openapi3.SchemaType = openapi3.SchemaTypeInteger
 	SchemaTypeBool   openapi3.SchemaType = openapi3.SchemaTypeBoolean
 )
+
+// PrepareProgressReporter is an interface for reporting progress during the Prepare() phase.
+// Implementations should handle concurrent calls safely as progress updates may come from
+// multiple goroutines.
+type PrepareProgressReporter interface {
+	// ReportProgress reports progress for a specific provider.
+	// providerName: Name of the provider (e.g., "nodejs", "java")
+	// filesProcessed: Number of files processed so far
+	// totalFiles: Total number of files to process
+	ReportProgress(providerName string, filesProcessed, totalFiles int)
+}
+
+// PrepareProgressEvent represents a progress update during Prepare() phase.
+// This struct is used for GRPC streaming between external providers and the main analyzer.
+type PrepareProgressEvent struct {
+	ProviderName   string
+	FilesProcessed int
+	TotalFiles     int
+}
+
+// PrepareProgressStreamer is an optional interface that ServiceClient implementations
+// can provide to support streaming progress events over GRPC.
+type PrepareProgressStreamer interface {
+	// StartProgressStream creates and returns a channel for streaming progress events.
+	// The returned channel will receive progress events during Prepare() phase.
+	StartProgressStream() <-chan *PrepareProgressEvent
+
+	// StopProgressStream stops the progress stream and closes the channel.
+	StopProgressStream()
+}
 
 // This will need a better name, may we want to move it to top level
 // Will be used by providers for common interface way of passing in configuration values.
@@ -85,11 +119,16 @@ type Config struct {
 	Name         string       `yaml:"name,omitempty" json:"name,omitempty"`
 	BinaryPath   string       `yaml:"binaryPath,omitempty" json:"binaryPath,omitempty"`
 	Address      string       `yaml:"address,omitempty" json:"address,omitempty"`
+	UseSocket    bool         `yaml:"useSocket,omitempty" json:"useSocket,omitempty"`
 	CertPath     string       `yaml:"certPath,omitempty" json:"certPath,omitempty"`
 	JWTToken     string       `yaml:"jwtToken,omitempty" json:"jwtToken,omitempty"`
 	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
 	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
 	ContextLines int
+	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
+	// Used by GRPC providers to report progress during provider initialization.
+	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
+	LogLevel     *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
 }
 
 type Proxy httpproxy.Config
@@ -143,6 +182,27 @@ type InitConfig struct {
 	ProviderSpecificConfig map[string]interface{} `yaml:"providerSpecificConfig,omitempty" json:"providerSpecificConfig,omitempty"`
 
 	Proxy *Proxy `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
+
+	// This will be unusable connecting over a network but can be used in code.
+	RPC RPCClient `yaml:"-" json:"-"`
+
+	PipeName string `yaml:"pipeName" json:"pipeName"`
+
+	// Given a pipe name for the init config, we will use that pipe and connect to an already inited provider.
+	Initialized bool `yaml:"initialized" json:"initialized"`
+
+	// LogLevel for the provider logger verbosity
+	LogLevel *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
+
+	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
+	// If provided, the provider will call ReportProgress() as it processes files during symbol cache population.
+	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
+}
+
+type RPCClient interface {
+	Call(context.Context, string, any) *jsonrpc2.AsyncCall
+	Notify(context.Context, string, any) error
+	Close() error
 }
 
 func GetConfig(filepath string) ([]Config, error) {
@@ -328,8 +388,17 @@ type ExternalLinks struct {
 }
 
 type ProviderContext struct {
-	Tags     map[string]interface{}          `yaml:"tags"`
-	Template map[string]engine.ChainTemplate `yaml:"template"`
+	Tags             map[string]interface{}          `yaml:"tags"`
+	Template         map[string]engine.ChainTemplate `yaml:"template"`
+	RuleID           string                          `yaml:"ruleID"`
+	DepLabelSelector string                          `yaml:"depLabelSelector,omitempty"`
+}
+
+func (p *ProviderContext) GetScopedFilepaths() (included []string, excluded []string) {
+	if value, ok := p.Template[engine.TemplateContextPathScopeKey]; ok {
+		return value.Filepaths, value.ExcludedPaths
+	}
+	return
 }
 
 func HasCapability(caps []Capability, name string) bool {
@@ -378,6 +447,16 @@ func FullDepsResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI
 	return deps, nil
 }
 
+func FullNotifyFileChangesResponse(ctx context.Context, clients []ServiceClient, changes ...FileChange) error {
+	errs := []error{}
+	for _, c := range clients {
+		if err := c.NotifyFileChanges(ctx, changes...); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
 func FullDepDAGResponse(ctx context.Context, clients []ServiceClient) (map[uri.URI][]DepDAGItem, error) {
 	deps := map[uri.URI][]DepDAGItem{}
 	for _, c := range clients {
@@ -390,6 +469,16 @@ func FullDepDAGResponse(ctx context.Context, clients []ServiceClient) (map[uri.U
 		}
 	}
 	return deps, nil
+}
+
+func FullPrepareResponse(ctx context.Context, clients []ServiceClient, conditionsByCap []ConditionsByCap) error {
+	errs := []error{}
+	for _, c := range clients {
+		if err := c.Prepare(ctx, conditionsByCap); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // InternalInit interface is going to be used to init the full config of a provider.
@@ -415,8 +504,24 @@ type BaseClient interface {
 	Init(context.Context, logr.Logger, InitConfig) (ServiceClient, InitConfig, error)
 }
 
+type FileChange struct {
+	Path    string
+	Content string
+	Saved   bool
+}
+
+type ConditionsByCap struct {
+	Cap        string   `json:"cap"`
+	Conditions [][]byte `json:"conditions"`
+}
+
 // For some period of time during POC this will be in tree, in the future we need to write something that can do this w/ external binaries
 type ServiceClient interface {
+	// Prepare will pass all conditions to the provider before evaluation
+	// so that the provider can pre-process conditions for faster responses
+	Prepare(ctx context.Context, conditionsByCap []ConditionsByCap) error
+
+	// Evaluate will evaluate a condition and return a response
 	Evaluate(ctx context.Context, cap string, conditionInfo []byte) (ProviderEvaluateResponse, error)
 
 	Stop()
@@ -427,6 +532,8 @@ type ServiceClient interface {
 	// GetDependencies will get the dependencies and return them as a linked list
 	// Top level items are direct dependencies, the rest are indirect dependencies
 	GetDependenciesDAG(ctx context.Context) (map[uri.URI][]DepDAGItem, error)
+	// Used to notify changes to files in the project
+	NotifyFileChanges(ctx context.Context, changes ...FileChange) error
 }
 
 type DependencyLocationResolver interface {
@@ -480,10 +587,15 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 		ProviderContext: ProviderContext{
 			Tags:     condCtx.Tags,
 			Template: condCtx.Template,
+			RuleID:   condCtx.RuleID,
 		},
 		Capability: map[string]interface{}{
 			p.Capability: p.ConditionInfo,
 		},
+	}
+
+	if p.DepLabelSelector != nil {
+		providerInfo.ProviderContext.DepLabelSelector = p.DepLabelSelector.Expression()
 	}
 
 	serializedInfo, err := yaml.Marshal(providerInfo)
@@ -491,7 +603,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 		//TODO(fabianvf)
 		panic(err)
 	}
-	log = log.WithValues("provider info", "cap", p.Capability, "condInfo", p.ConditionInfo)
+	log = log.WithValues("provider info", "cap", p.Capability, "condInfo", serializedInfo, "ruleID", condCtx.RuleID)
 	templatedInfo, err := templateCondition(serializedInfo, condCtx.Template)
 	if err != nil {
 		//TODO(fabianvf)
@@ -500,6 +612,7 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 	span.SetAttributes(attribute.Key("condition").String(string(templatedInfo)))
 	resp, err := p.Client.Evaluate(ctx, p.Capability, templatedInfo)
 	if err != nil {
+		log.Error(err, "unable to make evaluate call", "cap", p.Capability)
 		// If an error always just return the empty
 		return engine.ConditionResponse{}, err
 	}
@@ -611,7 +724,15 @@ func templateCondition(condition []byte, ctx map[string]engine.ChainTemplate) ([
 	s := strings.ReplaceAll(string(condition), `'{{`, "{{")
 	s = strings.ReplaceAll(s, `}}'`, "}}")
 
-	s, err := mustache.Render(s, true, ctx)
+	// Augment the context with properly structured ChainTemplate data for mustache rendering
+	// We always expose all ChainTemplate fields (even if empty) to ensure templates can
+	// reliably reference them without worrying about undefined values
+	yamlCtx := make(map[string]interface{})
+	for key, template := range ctx {
+		yamlCtx[key] = template.ToMap()
+	}
+
+	s, err := mustache.RenderRaw(s, true, yamlCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -643,10 +764,12 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 	resp := engine.ConditionResponse{}
 	deps, err := dc.Client.GetDependencies(ctx)
 	if err != nil {
+		log.Error(err, "mvn:// deps here")
 		return resp, err
 	}
 	regex, err := regexp.Compile(dc.NameRegex)
 	if err != nil {
+		log.Error(err, "unable to get regex for name search")
 		return resp, err
 	}
 	type matchedDep struct {
@@ -695,7 +818,6 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 				}
 				cancelFunc()
 			}
-			resp.Matched = true
 			resp.Incidents = append(resp.Incidents, incident)
 			// For now, lets leave this TODO to figure out what we should be setting in the context
 			resp.TemplateContext = map[string]interface{}{
@@ -736,7 +858,11 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			return resp, err
 		}
 
-		resp.Matched = constraints.Check(depVersion)
+		if !constraints.Check(depVersion) {
+			log.V(7).Info("constraints did not pass skipping incident")
+			continue
+		}
+
 		incident := engine.IncidentContext{
 			FileURI: matchedDep.uri,
 			Variables: map[string]interface{}{
@@ -783,6 +909,8 @@ func (dc DependencyCondition) Evaluate(ctx context.Context, log logr.Logger, con
 			"version": matchedDep.dep.Version,
 		}
 	}
+
+	resp.Matched = len(resp.Incidents) > 0
 
 	return resp, nil
 }

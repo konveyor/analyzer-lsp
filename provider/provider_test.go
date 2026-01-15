@@ -19,6 +19,9 @@ type fakeClient struct {
 	dependencies []*Dep
 }
 
+func (c *fakeClient) Prepare(ctx context.Context, conditionsByCap []ConditionsByCap) error {
+	return nil
+}
 func (c *fakeClient) Capabilities() []Capability { return nil }
 func (c *fakeClient) HasCapability(string) bool  { return true }
 func (c *fakeClient) Evaluate(context.Context, string, []byte) (ProviderEvaluateResponse, error) {
@@ -28,7 +31,9 @@ func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClie
 	return nil, InitConfig{}, nil
 }
 func (c *fakeClient) Stop() {}
-
+func (c *fakeClient) NotifyFileChanges(ctx context.Context, changes ...FileChange) error {
+	return nil
+}
 func (c *fakeClient) GetDependencies(ctx context.Context) (map[uri.URI][]*Dep, error) {
 	m := map[uri.URI][]*Dep{
 		uri.URI("test"): c.dependencies,
@@ -351,7 +356,7 @@ func Test_GetConfigs(t *testing.T) {
 			testdataFile: "testdata/provider_settings_nested_types.json",
 			expectedProviderSpecificConfig: map[string]interface{}{
 				"lspServerName":                  "generic",
-				"lspServerPath":                  "/root/go/bin/gopls",
+				"lspServerPath":                  "/usr/local/bin/gopls",
 				"lspServerArgs":                  []interface{}{"string"},
 				"lspServerInitializationOptions": "",
 				"workspaceFolders":               []interface{}{"file:///analyzer-lsp/examples/golang"},
@@ -368,7 +373,7 @@ func Test_GetConfigs(t *testing.T) {
 			testdataFile: "testdata/provider_settings_simple.yaml",
 			expectedProviderSpecificConfig: map[string]interface{}{
 				"lspServerName":                  "generic",
-				"lspServerPath":                  "/root/go/bin/gopls",
+				"lspServerPath":                  "/usr/local/bin/gopls",
 				"lspServerArgs":                  []interface{}{"string"},
 				"lspServerInitializationOptions": "",
 				"workspaceFolders":               []interface{}{"file:///analyzer-lsp/examples/golang"},
@@ -405,8 +410,8 @@ func Test_GetConfigs(t *testing.T) {
 			}
 			pc := c.InitConfig[0]
 			if !reflect.DeepEqual(pc.ProviderSpecificConfig, tc.expectedProviderSpecificConfig) {
-				fmt.Printf("\n%#v", pc.ProviderSpecificConfig)
-				fmt.Printf("\n%#v\n", tc.expectedProviderSpecificConfig)
+				fmt.Printf("\\n%#v", pc.ProviderSpecificConfig)
+				fmt.Printf("\\n%#v\\n", tc.expectedProviderSpecificConfig)
 				t.Fatalf("Got config is different than expected config")
 			}
 		})

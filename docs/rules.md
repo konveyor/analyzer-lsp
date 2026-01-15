@@ -48,6 +48,12 @@ category: mandatory (4)
 * potential
   * The issue should be examined during the migration process, but there is not enough detailed information to determine if the task is mandatory for the migration to succeed.
 
+### Rule description
+Each rule should have a `description` field with a short sentence, or "title", summarizing the highlighted problem.
+
+```yaml
+description: "Java class foo.Bar has been deprecated"
+```
 
 ### Rule Actions
 
@@ -125,7 +131,7 @@ For instance, the `java` provider provides `referenced` capability. To search th
 ```yaml
 when:
   java.referenced:
-    pattern: org.kubernetes.*
+    pattern: org.kubernetes*
     location: IMPORT
 ```
 
@@ -196,8 +202,74 @@ With the information above, we should be able to complete `java` condition we cr
 when:
   java.referenced:
     location: PACKAGE
-    pattern: org.jboss.*
+    pattern: org.jboss*
 ```
+
+##### Java Locations
+
+The java provider allows scoping the search down to certain source code locations. Any one of the following search locations can be used to scope down java searches:
+
+- **IMPORT**: IMPORT allows for searches on class imports. It can either be used with FQNs or an asterisk to allow for wider matches:
+```yaml
+java.referenced:
+  pattern: org.apache.lucene.search*
+  location: IMPORT
+```
+would match on each of these imports:
+```java
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+```
+:warning: If you want to match using an asterisk (`*`) for a wider range of results, it is recommended to place it directly after the package, not after the dot:
+
+:no_entry_sign: `org.apache.lucene.search.*`
+:white_check_mark: `org.apache.lucene.search*`
+
+- **PACKAGE**: the PACKAGE location matches on any usage of a package, be it in an import or used as part of a fully qualified name in the code:
+```yaml
+java.referenced:
+  pattern: org.apache.lucene.search*
+  location: PACKAGE
+```
+would match on both the import and the fully qualified usage:
+```java
+import org.apache.lucene.search.*;
+```
+```java
+public class Test {
+  private org.apache.lucene.search.Query query;
+}
+```
+:warning: As in the IMPORT condition, try to avoid using asterisk (`*`) right after the package-separation dot (`.`) for better results.
+
+- **CONSTRUCTOR_CALL** and **METHOD_CALL**: for matching constructors and methods respectively. The pattern possibilities are quite varied,
+and it is possible to match against specific return types, arguments, etc.
+
+For instance, looking for a method named "method" declared on `org.konveyor.MyClass` that returns
+a `List` of a type that extends `java.lang.String` and accepts a single parameter:
+```yaml
+java.referenced:
+  location: METHOD
+  pattern: 'org.konveyor.Myclass.method(*) java.util.List<? extends java.lang.String>'
+```
+More information about the possibilities of these patterns can be found in
+[the official javadocs contain all the information for building these patterns](https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fsearch%2FSearchPattern.html&anchor=createPattern(java.lang.String,int,int,int))
+in the `createPattern(String, int, int, int)` section.
+
+:warning: At the moment, fully qualified static method matching is prone to errors.
+
+- **TYPE**: matches against types in general, appearing anywhere.
+- **INHERITANCE**: matches against a class inheriting from a given type.
+- **ANNOTATION**: matches against annotations.
+- **IMPLEMENTS_TYPE**: matches against any type implementing the given type.
+- **ENUM_CONSTANT**: matches against enum constants.
+- **RETURN_TYPE**: matches against a type being returned by a method.
+- **VARIABLE_DECLARATION**: matches against a type being declared as a variable.
+- **FIELD** (declaration): matches against a type appearing in a field declaration. Can be coupled with an annotation match, this is, an annotation happening on the field (see [Annotation inspection](#annotation-inspection))
+- **METHOD**: matches against a given method declaration. Can be coupled with an annotation match (see [Annotation inspection](#annotation-inspection)).
+- **CLASS** (declaration): matches against a given method declaration. Can be coupled with an annotation match (see [Annotation inspection](#annotation-inspection)).
+
 
 ##### Annotation inspection
 It is possible to add a query to match against specific annotations and their elements. For instance:
@@ -230,28 +302,65 @@ class MyApplication {
 The structure of the `annotated` YAML element is the following:
 ```yaml
 annotated:
-  pattern: a Java regex to match the fully qualified name of the annotation (mandatory)
+  pattern: a Java regex to match the fully qualified name of the annotation (optional)
   elements: an array of elements to match within the annotation (optional)
   - name: the exact name of the element to match against
     value: a Java regex to match the value of the element
 ```
 
-##### Java Locations
+It is also possible to match an annotation with specific elements, without having to specify the symbol it annotates.
+The following example would also match on the `@Bean` annotation in the same code as the last example. Note that
+the only element specified with a `pattern` is the annotation itself:
+```yaml
+when:
+  java.referenced:
+    location: ANNOTATION
+    pattern: org.framework.Bean
+    annotated:
+      elements:
+        - name: url
+          value: "http://www.example.com"
+```
 
-The java provider allows scoping the search down to certain source code locations. Any one of the following search locations can be used to scope down java searches:
+##### Condition patterns
+The Language Server used by the Java provider is Eclipse's JDTLS. Internally, the JDTLS uses the Eclipse Java Development Toolkit,
+which includes utilities for searching code in projects. In the `pattern` element of a `java.referenced` condition, we can therefore
+search code using these utilities.
+[The official javadocs contain all the information for building these patterns](https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fsearch%2FSearchPattern.html&anchor=createPattern(java.lang.String,int,int,int))
+in the `createPattern(String, int, int, int)` section.
 
-* CONSTRUCTOR_CALL
-* TYPE
-* INHERITANCE
-* METHOD_CALL
-* ANNOTATION
-* IMPLEMENTS_TYPE
-* ENUM_CONSTANT
-* RETURN_TYPE
-* IMPORT
-* VARIABLE_DECLARATION
-* FIELD (declaration)
-* METHOD (declaration)
+Here are some examples of what can be used:
+
+- Look for any class under the `javax.xml` package, occurring in any location:
+```yaml
+java.referenced:
+  pattern: javax.xml*
+```
+:warning: when matching against packages, as in the previous example, the asterisk must not be after a dot:
+- :green_circle: `pattern: javax.xml*`
+- :red_circle: `pattern: javax.xml.*`
+
+- Look for method declarations that return `java.lang.String`:
+```yaml
+java.referenced:
+  location: METHOD
+  pattern: '* java.lang.String'
+```
+
+- Look for a method named "method" declared on `org.konveyor.MyClass` that returns a `List` of a type that extends `java.lang.String`:
+```yaml
+java.referenced:
+  location: METHOD
+  pattern: 'org.konveyor.Myclass.method(*) java.util.List<? extends java.lang.String>'
+```
+
+- Look for a class that implements `java.util.List`:
+```yaml
+java.referenced:
+  location: IMPLEMENTS_TYPE
+  pattern: java.util.List
+```
+
 
 
 ##### Custom Variables
@@ -325,9 +434,10 @@ when:
 
 #### Chaining Condition Variables
 
-You can also chain the variables from one condition to be used as input in another condition in a _or_ and _and_ block of conditions
+It is also possible to use the output of one condition as the input for filtering another one in an and/or condition. This is called
+*condition chaining*.
 
-What a given condition has in its output, can be seen in the openapi spec, by finding the `<provider>.<condition>.out` component. **NOTE** Every condition, has a list of files where the incidents occurred, and the output for a condition is in the extras section.
+The OpenAPI spec contains more information about what each condition can offer in its output; check the `<provider>.<condition>.out` component.
 
 Example:
 
@@ -336,7 +446,7 @@ when:
  or:
   - builtin.xml:
       xpath: "//dependencies/dependency"
-      filepaths: "{{poms.extras.filepaths}}"
+      filepaths: "{{poms.filepaths}}"
     from: poms
   - builtin.file:
       pattern: pom.xml
@@ -350,9 +460,9 @@ In the above example the output of `builtin.file` condition is saved `as` poms.
       as: poms
 ```
 
-The variables of `builtin.file` can then be used in the `builtin.xml` condition, by saying `from` and then using [mustache templates](https://mustache.github.io/mustache.5.html) in the _provider_ condition` block.
+The variables of `builtin.file` can then be used in the `builtin.xml` condition, by writing `from` and then using [mustache templates](https://mustache.github.io/mustache.5.html) in the _provider_ condition` block.
 
-This is how this particular condition, knows to use the variables set to the name `poms`. 
+This is how this particular condition knows how to use the variables set to the name `poms`. 
 
 ```yaml
     from: poms
@@ -368,6 +478,62 @@ Then you can use the variables by setting them as mustached templates in any of 
 ```yaml
     ignore: true
 ``` 
+
+#### Note about chaining in the Java provider
+In the java provider, the `filepaths` variable must be uppercased. For instance:
+```yaml
+  when:
+    and:
+      - java.referenced:
+          pattern: org.springframework.web.bind.annotation.RequestMapping
+          location: ANNOTATION
+        as: annotation
+      - java.referenced:
+          pattern: org.springframework.stereotype.Controller
+          location: ANNOTATION
+          filepaths: "{{annotation.Filepaths}}"
+```
+
+#### Filepath Filtering Behavior in Chained Conditions
+
+When using `filepaths` with chained conditions, it's important to understand how filepath filtering behaves:
+
+**Intersection Behavior:**
+When you specify `filepaths` in a condition that uses a template variable from a previous condition, the final set of files is the **intersection** of:
+1. The filepaths from the template (e.g., `{{poms.filepaths}}`)
+2. Any rule-scope includes/excludes
+3. Any condition-specific filepath patterns
+
+**Example:**
+
+```yaml
+when:
+  or:
+    - builtin.xml:
+        xpath: "//dependencies/dependency"
+        filepaths: "{{poms.filepaths}}"  # Only search files found by the poms condition
+      from: poms
+    - builtin.file:
+        pattern: pom.xml
+      as: poms
+      ignore: true
+```
+
+In this example:
+1. The `builtin.file` condition finds all files matching `pom.xml` → e.g., `[a/pom.xml, b/pom.xml, c/pom.xml]`
+2. The `builtin.xml` condition receives `filepaths: "{{poms.filepaths}}"` which expands to those files
+3. The XML search is **scoped down** to only those specific files - it will not search any other XML files
+
+**Important Notes:**
+- This is a "scope down" operation - the chained condition will search a **subset** of files, never more than what the template provides
+- If you specify additional filepath patterns along with a template variable, the result is the intersection (AND), not union (OR)
+- This behavior is consistent across all providers (builtin, java, nodejs, etc.)
+- To search all files regardless of the chain, simply don't include the `filepaths` template variable
+
+**Use Cases:**
+- ✅ "Find dependencies in pom.xml files, then search for specific imports in only those pom.xml files"
+- ✅ "Find all Java files with @Controller, then check if those same files have @RequestMapping"
+- ❌ "Find pom.xml files, then search all XML files (including non-pom)" - use separate conditions without chaining for this
 
 
 ## Ruleset
@@ -385,9 +551,9 @@ labels: (3)
 - key=val
 ```
 
-1. **name**: A unique name for the ruleset.
-2. **description**: Text description about the ruleset.
-3. **labels**: A list of string labels for the ruleset. The labels on a ruleset are automatically inherted by all rules in the ruleset. (See Labels)
+1. **name**: This is a requried field. A unique name for the ruleset.
+2. **description**: This is a requried field. Text description about the ruleset.
+3. **labels**: This is an optional field. A list of string labels for the ruleset. The labels on a ruleset are automatically inherted by all rules in the ruleset. (See Labels)
 
 ## Passing rules as input
 
