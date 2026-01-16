@@ -39,6 +39,28 @@ category: mandatory (4)
 3. **effort**: Effort is an integer value that indicates the level of effort needed to fix this issue.
 4. **category**: Category describes severity of the issue for migration. Values can be one of _mandatory_, _potential_ or _optional_. (See [Categories](#rule-categories))
 
+#### Optional Metadata Fields
+
+Rules can include additional custom metadata fields beyond the core schema. Any fields not explicitly defined above will be automatically passed through to the violation analysis report via the `extras` field. This provides a flexible mechanism for extending rule metadata without requiring code changes to analyzer-lsp.
+
+For example:
+
+```yaml
+ruleID: "example-rule"
+labels: ["label1"]
+effort: 3
+category: mandatory
+# Custom optional fields
+custom_field: "value"
+additional_metadata:
+  key1: "value1"
+  key2: "value2"
+when:
+  <condition>
+```
+
+All custom fields will be collected and included in the violation output's `extras` field as JSON. See [Violation Extras](./output.md#example-with-extras) for details on how to access these fields in the analysis output.
+
 #### Rule Categories
 
 * mandatory

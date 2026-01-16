@@ -113,6 +113,7 @@ type RuleMeta struct {
 	Labels      []string           `yaml:"labels,omitempty" json:"labels,omitempty"`
 	Effort      *int               `json:"effort,omitempty"`
 	UsesHasTags bool
+	Extras      map[string]interface{} `yaml:"extras,omitempty" json:"extras,omitempty"`
 }
 
 func (r *RuleMeta) GetLabels() []string {
