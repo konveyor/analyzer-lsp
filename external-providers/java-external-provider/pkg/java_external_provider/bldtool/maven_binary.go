@@ -51,11 +51,12 @@ func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 		return nil
 	}
 	mavenBaseTool := mavenBaseTool{
-		mvnInsecure:     opts.MvnInsecure,
-		mvnSettingsFile: opts.MvnSettingsFile,
-		mavenIndexPath:  opts.MavenIndexPath,
-		log:             log,
-		labeler:         opts.Labeler,
+		mvnInsecure:           opts.MvnInsecure,
+		mvnSettingsFile:       opts.MvnSettingsFile,
+		mvnGlobalSettingsFile: opts.MvnGlobalSettingsFile,
+		mavenIndexPath:        opts.MavenIndexPath,
+		log:                   log,
+		labeler:               opts.Labeler,
 	}
 	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath(log)
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
