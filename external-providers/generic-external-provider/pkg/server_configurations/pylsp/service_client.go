@@ -9,6 +9,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/swaggest/openapi-go/openapi3"
+	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
@@ -104,4 +105,12 @@ func (p *PythonServiceClientBuilder) GetGenericServiceClientCapabilities(log log
 		})
 	}
 	return caps
+}
+
+func (sc *PythonServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	return nil, nil
+}
+
+func (sc *PythonServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	return nil, nil
 }
