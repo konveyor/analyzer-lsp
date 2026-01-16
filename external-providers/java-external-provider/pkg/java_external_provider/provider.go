@@ -378,12 +378,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	/// Full Analysis Mode OR binary analysis should kick of the resolve sources.
 	// TODO: handle Continue Errors vs Non Continue Errors in bldtool
 	buildTool := bldtool.GetBuildTool(bldtool.BuildToolOptions{
-		Config:          config,
-		MvnSettingsFile: mavenSettingsFile,
-		MvnInsecure:     mavenInsecure,
-		MavenIndexPath:  mavenSHASearchIndex,
-		Labeler:         openSourceLabeler,
-		GradleTaskFile:  gradleTaskFile,
+		Config:                config,
+		MvnSettingsFile:       mavenSettingsFile,
+		MvnGlobalSettingsFile: globalSettingsFile,
+		MvnInsecure:           mavenInsecure,
+		MavenIndexPath:        mavenSHASearchIndex,
+		Labeler:               openSourceLabeler,
+		GradleTaskFile:        gradleTaskFile,
 	}, log)
 	if buildTool == nil {
 		return nil, additionalBuiltinConfig, errors.New("unable to get build tool")

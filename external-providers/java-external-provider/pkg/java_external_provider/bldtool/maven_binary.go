@@ -51,11 +51,12 @@ func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 		return nil
 	}
 	mavenBaseTool := mavenBaseTool{
-		mvnInsecure:     opts.MvnInsecure,
-		mvnSettingsFile: opts.MvnSettingsFile,
-		mavenIndexPath:  opts.MavenIndexPath,
-		log:             log,
-		labeler:         opts.Labeler,
+		mvnInsecure:           opts.MvnInsecure,
+		mvnSettingsFile:       opts.MvnSettingsFile,
+		mvnGlobalSettingsFile: opts.MvnGlobalSettingsFile,
+		mavenIndexPath:        opts.MavenIndexPath,
+		log:                   log,
+		labeler:               opts.Labeler,
 	}
 	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath(log)
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
@@ -103,13 +104,14 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 
 	m.mavenBldTool = &mavenBuildTool{
 		mavenBaseTool: mavenBaseTool{
-			mvnInsecure:     m.mvnInsecure,
-			mvnSettingsFile: m.mvnSettingsFile,
-			mvnLocalRepo:    m.mvnLocalRepo,
-			mavenIndexPath:  m.mavenIndexPath,
-			dependencyPath:  depPath,
-			log:             m.log.WithName("mvn-bldtool"),
-			labeler:         m.labeler,
+			mvnInsecure:           m.mvnInsecure,
+			mvnSettingsFile:       m.mvnSettingsFile,
+			mvnGlobalSettingsFile: m.mvnGlobalSettingsFile,
+			mvnLocalRepo:          m.mvnLocalRepo,
+			mavenIndexPath:        m.mavenIndexPath,
+			dependencyPath:        depPath,
+			log:                   m.log.WithName("mvn-bldtool"),
+			labeler:               m.labeler,
 		},
 		depCache: &depCache{
 			hashFile: filepath.Join(projectPath, dependency.PomXmlFile),

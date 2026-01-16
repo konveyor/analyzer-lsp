@@ -54,11 +54,12 @@ func getMavenBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 		return nil
 	}
 	mavenBaseTool := mavenBaseTool{
-		mvnInsecure:     opts.MvnInsecure,
-		mvnSettingsFile: opts.MvnSettingsFile,
-		mavenIndexPath:  opts.MavenIndexPath,
-		log:             log,
-		labeler:         opts.Labeler,
+		mvnInsecure:           opts.MvnInsecure,
+		mvnSettingsFile:       opts.MvnSettingsFile,
+		mvnGlobalSettingsFile: opts.MvnGlobalSettingsFile,
+		mavenIndexPath:        opts.MavenIndexPath,
+		log:                   log,
+		labeler:               opts.Labeler,
 	}
 	mvnLocalRepo := mavenBaseTool.getMavenLocalRepoPath(log)
 	mavenBaseTool.mvnLocalRepo = mvnLocalRepo
@@ -113,13 +114,14 @@ func (m *mavenBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pro
 
 func (m *mavenBuildTool) GetResolver(decompileTool string) (dependency.Resolver, error) {
 	opts := dependency.ResolverOptions{
-		Log:           m.log,
-		Location:      filepath.Dir(m.depCache.hashFile),
-		BuildFile:     m.mvnSettingsFile,
-		LocalRepo:     m.mvnLocalRepo,
-		Insecure:      m.mvnInsecure,
-		DecompileTool: decompileTool,
-		Labeler:       m.labeler,
+		Log:             m.log,
+		Location:        filepath.Dir(m.depCache.hashFile),
+		BuildFile:       m.mvnSettingsFile,
+		GlobalBuildFile: m.mvnGlobalSettingsFile,
+		LocalRepo:       m.mvnLocalRepo,
+		Insecure:        m.mvnInsecure,
+		DecompileTool:   decompileTool,
+		Labeler:         m.labeler,
 	}
 	return dependency.GetMavenResolver(opts), nil
 }
@@ -137,6 +139,10 @@ func (m *mavenBuildTool) getDependenciesForMaven(ctx context.Context) (map[uri.U
 
 	if m.mvnSettingsFile != "" {
 		args = append(args, "-s", m.mvnSettingsFile)
+	}
+
+	if m.mvnGlobalSettingsFile != "" {
+		args = append(args, "-gs", m.mvnGlobalSettingsFile)
 	}
 
 	if m.mvnInsecure {

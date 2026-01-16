@@ -28,13 +28,14 @@ import (
 //   - Artifact labeling (open source vs internal)
 //   - Common Maven settings and security options
 type mavenBaseTool struct {
-	mvnInsecure     bool           // Whether to allow insecure HTTPS connections
-	mvnSettingsFile string         // Path to Maven settings.xml file
-	mvnLocalRepo    string         // Path to local Maven repository (.m2/repository)
-	mavenIndexPath  string         // Path to Maven index for artifact searches
-	dependencyPath  string         // Path to dependency configuration file
-	log             logr.Logger    // Logger instance for this build tool
-	labeler         labels.Labeler // Labeler for identifying dependency types
+	mvnInsecure           bool           // Whether to allow insecure HTTPS connections
+	mvnSettingsFile       string         // Path to Maven settings.xml file
+	mvnGlobalSettingsFile string         // Path to the global Maven settings.xml file
+	mvnLocalRepo          string         // Path to local Maven repository (.m2/repository)
+	mavenIndexPath        string         // Path to Maven index for artifact searches
+	dependencyPath        string         // Path to dependency configuration file
+	log                   logr.Logger    // Logger instance for this build tool
+	labeler               labels.Labeler // Labeler for identifying dependency types
 }
 
 func (m *mavenBaseTool) GetLocalRepoPath() string {
@@ -146,6 +147,9 @@ func (m *mavenBaseTool) pomCoordinate(value *string) string {
 func (m *mavenBaseTool) getMavenLocalRepoPath(log logr.Logger) string {
 	args := []string{
 		"help:evaluate", "-Dexpression=settings.localRepository", "-q", "-DforceStdout",
+	}
+	if m.mvnGlobalSettingsFile != "" {
+		args = append(args, "-gs", m.mvnGlobalSettingsFile)
 	}
 	if m.mvnSettingsFile != "" {
 		args = append(args, "-s", m.mvnSettingsFile)
