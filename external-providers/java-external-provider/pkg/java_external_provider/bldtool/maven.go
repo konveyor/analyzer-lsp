@@ -114,13 +114,14 @@ func (m *mavenBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pro
 
 func (m *mavenBuildTool) GetResolver(decompileTool string) (dependency.Resolver, error) {
 	opts := dependency.ResolverOptions{
-		Log:           m.log,
-		Location:      filepath.Dir(m.depCache.hashFile),
-		BuildFile:     m.mvnSettingsFile,
-		LocalRepo:     m.mvnLocalRepo,
-		Insecure:      m.mvnInsecure,
-		DecompileTool: decompileTool,
-		Labeler:       m.labeler,
+		Log:             m.log,
+		Location:        filepath.Dir(m.depCache.hashFile),
+		BuildFile:       m.mvnSettingsFile,
+		GlobalBuildFile: m.mvnGlobalSettingsFile,
+		LocalRepo:       m.mvnLocalRepo,
+		Insecure:        m.mvnInsecure,
+		DecompileTool:   decompileTool,
+		Labeler:         m.labeler,
 	}
 	return dependency.GetMavenResolver(opts), nil
 }
