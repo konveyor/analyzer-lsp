@@ -97,7 +97,7 @@ type ResolverOptions struct {
 	// May be a settings file or build definition depending on the build tool.
 	BuildFile string
 
-	// GlobalSettingsFile points to build-tool specific global configuration file
+	// GlobalBuildFile points to build-tool specific global configuration file
 	// May be a settings file or build definition depending on the build tool.
 	GlobalBuildFile string
 

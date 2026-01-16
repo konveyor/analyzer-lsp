@@ -104,13 +104,14 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 
 	m.mavenBldTool = &mavenBuildTool{
 		mavenBaseTool: mavenBaseTool{
-			mvnInsecure:     m.mvnInsecure,
-			mvnSettingsFile: m.mvnSettingsFile,
-			mvnLocalRepo:    m.mvnLocalRepo,
-			mavenIndexPath:  m.mavenIndexPath,
-			dependencyPath:  depPath,
-			log:             m.log.WithName("mvn-bldtool"),
-			labeler:         m.labeler,
+			mvnInsecure:           m.mvnInsecure,
+			mvnSettingsFile:       m.mvnSettingsFile,
+			mvnGlobalSettingsFile: m.mvnGlobalSettingsFile,
+			mvnLocalRepo:          m.mvnLocalRepo,
+			mavenIndexPath:        m.mavenIndexPath,
+			dependencyPath:        depPath,
+			log:                   m.log.WithName("mvn-bldtool"),
+			labeler:               m.labeler,
 		},
 		depCache: &depCache{
 			hashFile: filepath.Join(projectPath, dependency.PomXmlFile),

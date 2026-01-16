@@ -141,6 +141,10 @@ func (m *mavenBuildTool) getDependenciesForMaven(ctx context.Context) (map[uri.U
 		args = append(args, "-s", m.mvnSettingsFile)
 	}
 
+	if m.mvnGlobalSettingsFile != "" {
+		args = append(args, "-gs", m.mvnGlobalSettingsFile)
+	}
+
 	if m.mvnInsecure {
 		args = append(args, "-Dmaven.wagon.http.ssl.insecure=true")
 	}
