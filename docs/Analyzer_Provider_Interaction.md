@@ -18,18 +18,18 @@ When you run the `analyzer-lsp` tool, it first determines the type of applicatio
 
 ### Code Submission
 
-The application’s source code or relevant parts of it are sent to the provider running in the container. This can be done by mounting volumes, copying files, or using APIs to transfer the code.
+The application’s source code or relevant parts of it are sent to the provider running in the container. This can be done by mounting volumes, copying files.
 
 ### Execution of Rulesets
 
-The provider, now with access to the code, uses the analyzer to execute a series of rulesets. These rulesets are predefined sets of conditional logic checks on how to analyze the code, identify issues, suggest improvements, and possibly transform the code.
+The provider, now with access to the code, uses the analyzer to execute a series of rulesets. These rulesets are predefined sets of conditional logic checks on how to analyze the code, identify issues, and suggest improvements.
 
 ## Detailed Workflow
 
 ### 1. Discovery and Analysis Initiation
 
-- `mta-cli` identifies the language and type of the application.
-- `mta-cli` initiates the corresponding provider in a container.
+- `kantra` identifies the language and type of the application.
+- `kantra` initiates the corresponding provider in a container.
 
 ### 2. Provider Setup
 
@@ -39,7 +39,7 @@ The provider, now with access to the code, uses the analyzer to execute a series
 ### 3. Analyzer Execution
 
 - The analyzer tool within the provider starts processing the code.
-- The analyzer reads the code, parses it into an Abstract Syntax Tree (AST), and applies the rulesets.
+- The analyzer reads the code, parses it into an Abstract Syntax Tree (AST), parses rules from the rulesets, and passes each relevant rule to the provider, which then checks the code for any violations.
 
 ### 4. Applying Rulesets
 
@@ -47,10 +47,10 @@ The provider, now with access to the code, uses the analyzer to execute a series
 
 ### 5. Generating Reports
 
-- The analyzer compiles a report based on the analysis, detailing issues found, suggestions for improvement, and any transformations made.
+- The analyzer compiles a report based on the analysis, detailing issues found, and suggestions for improvement.
 - This report is a single static HTML file; in the hub, the data is served dynamically to be introspective further.
 
 ### 6. Returning Results
 
 - The running provider mounts common directories that are used for input/output which in return contain the analysis report.
-- `mta-cli` presents the results to the user in a readable format.
+- `kantra` presents the results to the user in a readable format.
