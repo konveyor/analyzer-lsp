@@ -580,9 +580,9 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 				return
 			}
 
-			// If logLevel > 5, follow all JDTLS logs
+			// If logLevel > 6, follow all JDTLS logs
 			// Otherwise, only follow KONVEYOR_LOG tagged lines
-			followAll := p.logLevel > 5
+			followAll := p.logLevel > 6
 			if followAll {
 				log.Info("following full JDTLS log", "path", logFilePath, "logLevel", p.logLevel)
 			}
