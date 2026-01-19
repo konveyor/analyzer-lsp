@@ -225,7 +225,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					incident := provider.IncidentContext{
 						FileURI: uri.File(absPath),
 						Variables: map[string]interface{}{
-							"matchingXML": node.OutputXML(false),
+							"matchingXML": compactXML(node.OutputXML(false)),
 							"innerText":   node.InnerText(),
 							"data":        node.Data,
 						},
@@ -239,6 +239,9 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 						incident.CodeLocation = &location
 						lineNo := int(location.StartPosition.Line)
 						incident.LineNumber = &lineNo
+					} else {
+						lineNum := node.LineNumber
+						incident.LineNumber = &lineNum
 					}
 					response.Incidents = append(response.Incidents, incident)
 				}
@@ -282,7 +285,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							response.Incidents = append(response.Incidents, provider.IncidentContext{
 								FileURI: uri.File(absPath),
 								Variables: map[string]interface{}{
-									"matchingXML": node.OutputXML(false),
+									"matchingXML": compactXML(node.OutputXML(false)),
 									"innerText":   node.InnerText(),
 									"data":        node.Data,
 								},
@@ -437,6 +440,19 @@ func (b *builtinServiceClient) getLocation(ctx context.Context, path, content st
 	return location, nil
 }
 
+// compactXML strips formatting from XML output to produce single-line compact
+// format to match to previous behavior of xmlquery (pre-1.4 release)
+func compactXML(xml string) string {
+	// Use regex to remove whitespace between XML tags
+	re := regexp.MustCompile(`>\s+<`)
+	compacted := re.ReplaceAllString(xml, "><")
+
+	// Remove leading/trailing whitespace
+	compacted = strings.TrimSpace(compacted)
+
+	return compacted
+}
+
 func (b *builtinServiceClient) queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
 	var content []byte
 	if b.encoding != "" {
@@ -457,7 +473,7 @@ func (b *builtinServiceClient) queryXMLFile(filePath string, query *xpath.Expr) 
 
 	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
 	var doc *xmlquery.Node
-	doc, err = xmlquery.ParseWithOptions(strings.NewReader(string(content)), xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}})
+	doc, err = xmlquery.ParseWithOptions(strings.NewReader(string(content)), xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}, WithLineNumbers: true})
 	if err != nil {
 		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
 			// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
@@ -495,20 +511,353 @@ type fileSearchResult struct {
 }
 
 func (b *builtinServiceClient) performFileContentSearch(pattern string, locations []string) ([]fileSearchResult, error) {
+	// Trim quotes around the pattern to keep backwards compatibility
+	trimmedPattern := strings.Trim(pattern, "\"")
+
+	// Check if the pattern needs multiline support
+	// Patterns need multiline support if they:
+	// 1. Explicitly reference newlines (\n, \r)
+	// 2. Use regex flags for multiline/dotall ((?s), (?m))
+	// 3. Use whitespace patterns that include newlines (\s)
+	// 4. Use negated character classes for markup matching ([^>], [^<])
+	//    These are common in HTML/XML/JSX patterns and can span newlines
+	// Note: This is a conservative heuristic. Patterns not matching these criteria
+	// will use the faster grep-based search which processes files line-by-line.
+	needsMultiline := strings.Contains(trimmedPattern, "\\n") ||
+		strings.Contains(trimmedPattern, "\\r") ||
+		strings.Contains(trimmedPattern, "(?s)") ||
+		strings.Contains(trimmedPattern, "(?m)") ||
+		strings.Contains(trimmedPattern, "\\s") || // whitespace (includes newlines)
+		strings.Contains(trimmedPattern, "[^>") || // negated char class for markup (e.g., [^>]*)
+		strings.Contains(trimmedPattern, "[^<") // negated char class for markup (e.g., [^<]*)
+
+	b.log.V(5).Info("analyzing pattern", "pattern", pattern, "needsMultiline", needsMultiline)
+
+	// For multiline patterns, use the new Go-based implementation
+	if needsMultiline {
+		return b.performMultilineSearch(trimmedPattern, locations)
+	}
+
+	// For simple patterns, use the old grep/perl implementation for performance
+	return b.performGrepSearch(pattern, trimmedPattern, locations)
+}
+
+func (b *builtinServiceClient) performMultilineSearch(trimmedPattern string, locations []string) ([]fileSearchResult, error) {
+	// Check if pattern is a literal string (no regex metacharacters)
+	// This allows us to use fast bytes.Index() instead of regexp
+	isLiteral := true
+	for _, ch := range trimmedPattern {
+		if strings.ContainsRune(".*+?^$[]{}()|\\", ch) {
+			isLiteral = false
+			break
+		}
+	}
+
+	var stdRegex *regexp.Regexp
+	var patternRegex *regexp2.Regexp
+
+	if !isLiteral {
+		// Try to compile with standard regexp first (better performance)
+		// This is nil if the pattern uses regexp2-specific features
+		var stdErr error
+		stdRegex, stdErr = regexp.Compile(trimmedPattern)
+
+		if stdErr != nil {
+			// Pattern uses regexp2-specific features, compile with regexp2
+			var err error
+			patternRegex, err = regexp2.Compile(trimmedPattern, regexp2.Multiline)
+			if err != nil {
+				return nil, fmt.Errorf("could not compile provided regex pattern '%s': %v", trimmedPattern, err)
+			}
+		}
+	}
+
+	b.log.V(5).Info("searching for multiline pattern using parallelWalk", "pattern", trimmedPattern, "totalFiles", len(locations), "literal", isLiteral)
+
+	matches, err := b.parallelWalkWithLiteralCheck(locations, patternRegex, stdRegex, trimmedPattern, isLiteral)
+	if err != nil {
+		return nil, fmt.Errorf("failed to perform search - %w", err)
+	}
+	return matches, nil
+}
+
+func (b *builtinServiceClient) parallelWalkWithLiteralCheck(paths []string, regex *regexp2.Regexp, stdRegex *regexp.Regexp, literalPattern string, isLiteral bool) ([]fileSearchResult, error) {
+	var positions []fileSearchResult
+	var positionsMu sync.Mutex
+	var eg errgroup.Group
+
+	// Set a parallelism limit to avoid hitting limits related to opening too many files.
+	// On Windows, this can show up as a runtime failure due to a thread limit.
+	eg.SetLimit(20)
+
+	for _, filePath := range paths {
+		eg.Go(func() error {
+			pos, err := b.processFileWithLiteralCheck(filePath, regex, stdRegex, literalPattern, isLiteral)
+			if err != nil {
+				return err
+			}
+
+			if len(pos) == 0 {
+				return nil
+			}
+
+			positionsMu.Lock()
+			defer positionsMu.Unlock()
+			positions = append(positions, pos...)
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	return positions, nil
+}
+
+func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *regexp2.Regexp, stdRegex *regexp.Regexp, literalPattern string, isLiteral bool) ([]fileSearchResult, error) {
+	// Check file size before loading to prevent OOM on large files (e.g., JARs)
+	const maxFileSize = 100 * 1024 * 1024 // 100MB limit
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if fileInfo.Size() > maxFileSize {
+		b.log.V(5).Info("skipping large file", "file", path, "size", fileInfo.Size(), "limit", maxFileSize)
+		return []fileSearchResult{}, nil
+	}
+
+	var content []byte
+	if b.encoding != "" {
+		content, err = engine.OpenFileWithEncoding(path, b.encoding)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", path)
+			content, err = os.ReadFile(path)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		content, err = os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Get absolute path for results
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Pre-allocate result slice
+	var r []fileSearchResult
+
+	// Fast path for literal string search using bytes.Index()
+	if isLiteral {
+		literalBytes := []byte(literalPattern)
+		searchPos := 0
+		matches := [][]int{}
+
+		for {
+			idx := bytes.Index(content[searchPos:], literalBytes)
+			if idx == -1 {
+				break
+			}
+			actualPos := searchPos + idx
+			matches = append(matches, []int{actualPos, actualPos + len(literalBytes)})
+			searchPos = actualPos + 1
+		}
+
+		if len(matches) == 0 {
+			return []fileSearchResult{}, nil
+		}
+
+		r = make([]fileSearchResult, 0, len(matches))
+
+		// Calculate line numbers incrementally (1-based for display)
+		lineNumber := 1
+		lineStart := 0
+		lastPos := 0
+
+		for _, match := range matches {
+			matchStart := match[0]
+			matchEnd := match[1]
+
+			// Count newlines only from last position to current match
+			for i := lastPos; i < matchStart; i++ {
+				if content[i] == '\n' {
+					lineNumber++
+					lineStart = i + 1
+				}
+			}
+			lastPos = matchStart
+
+			// Character position as byte offset from start of line
+			charNumber := matchStart - lineStart
+
+			r = append(r, fileSearchResult{
+				positionParams: protocol.TextDocumentPositionParams{
+					TextDocument: protocol.TextDocumentIdentifier{
+						URI: protocol.DocumentURI(uri.File(absPath)),
+					},
+					Position: protocol.Position{
+						Line:      uint32(lineNumber),
+						Character: uint32(charNumber),
+					},
+				},
+				match: string(content[matchStart:matchEnd]),
+			})
+		}
+
+		return r, nil
+	}
+
+	// Fast pre-check: try to use Go's standard regexp for quick byte-based filtering
+	// This avoids string allocation for files without matches
+	foundMatch := false
+
+	if stdRegex != nil {
+		// Use byte-based matching for pre-check (no allocation)
+		foundMatch = stdRegex.Match(content)
+	} else {
+		// Pattern uses regexp2-specific features, fall back to regexp2 check
+		// Use chunked approach to limit memory usage
+		const chunkSize = 1024 * 1024 // 1MB chunks
+		const overlap = 8 * 1024      // 8KB overlap to catch patterns spanning chunk boundaries
+
+		for offset := 0; offset < len(content); offset += chunkSize - overlap {
+			end := offset + chunkSize
+			if end > len(content) {
+				end = len(content)
+			}
+			chunk := content[offset:end]
+
+			ok, err := regex.MatchString(string(chunk))
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				foundMatch = true
+				break
+			}
+
+			// If this was the last chunk, exit
+			if end == len(content) {
+				break
+			}
+		}
+	}
+
+	if !foundMatch {
+		return []fileSearchResult{}, nil
+	}
+
+	// Match found in pre-check, now search for all matches and their positions
+	// If we can use standard regexp, do the full search with it to avoid string conversion overhead
+	if stdRegex != nil {
+		// Use standard regexp for better performance
+		matches := stdRegex.FindAllIndex(content, -1)
+		if len(matches) == 0 {
+			return []fileSearchResult{}, nil
+		}
+
+		r = make([]fileSearchResult, 0, len(matches))
+
+		// Calculate line numbers incrementally to avoid recounting (1-based for display)
+		lineNumber := 1
+		lineStart := 0
+		lastPos := 0
+
+		for _, match := range matches {
+			matchStart := match[0]
+			matchEnd := match[1]
+
+			// Count newlines only from last position to current match
+			for i := lastPos; i < matchStart; i++ {
+				if content[i] == '\n' {
+					lineNumber++
+					lineStart = i + 1
+				}
+			}
+			lastPos = matchStart
+
+			// Character position as byte offset from start of line
+			charNumber := matchStart - lineStart
+
+			r = append(r, fileSearchResult{
+				positionParams: protocol.TextDocumentPositionParams{
+					TextDocument: protocol.TextDocumentIdentifier{
+						URI: protocol.DocumentURI(uri.File(absPath)),
+					},
+					Position: protocol.Position{
+						Line:      uint32(lineNumber),
+						Character: uint32(charNumber),
+					},
+				},
+				match: string(content[matchStart:matchEnd]),
+			})
+		}
+	} else {
+		// Need regexp2 for full match - convert to string
+		contentStr := string(content)
+
+		// Find all matches in the file content using regexp2
+		match, err := regex.FindStringMatch(contentStr)
+		if err != nil {
+			return nil, err
+		}
+
+		// Calculate line numbers incrementally to avoid recounting (1-based for display)
+		lineNumber := 1
+		lineStart := 0
+		lastPos := 0
+
+		for match != nil {
+			// Count newlines only from last position to current match
+			for i := lastPos; i < match.Index; i++ {
+				if contentStr[i] == '\n' {
+					lineNumber++
+					lineStart = i + 1
+				}
+			}
+			lastPos = match.Index
+
+			// Character position as byte offset from start of line
+			charNumber := match.Index - lineStart
+
+			r = append(r, fileSearchResult{
+				positionParams: protocol.TextDocumentPositionParams{
+					TextDocument: protocol.TextDocumentIdentifier{
+						URI: protocol.DocumentURI(uri.File(absPath)),
+					},
+					Position: protocol.Position{
+						Line:      uint32(lineNumber),
+						Character: uint32(charNumber),
+					},
+				},
+				match: match.String(),
+			})
+
+			match, err = regex.FindNextMatch(match)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return r, nil
+}
+
+// performGrepSearch uses platform-native grep/perl for simple (non-multiline) patterns
+// This provides optimal performance for the common case
+func (b *builtinServiceClient) performGrepSearch(pattern, trimmedPattern string, locations []string) ([]fileSearchResult, error) {
 	var err error
 
 	if runtime.GOOS == "windows" {
-		// Have to trim quotes around the pattern to keep backwards compatibility
-		trimmedPattern := strings.Trim(pattern, "\"")
-		patternRegex, err := regexp2.Compile(trimmedPattern, regexp2.Multiline)
-		if err != nil {
-			return nil, fmt.Errorf("could not compile provided regex pattern '%s': %v", pattern, err)
-		}
-		matches, err := b.parallelWalk(locations, patternRegex)
-		if err != nil {
-			return nil, fmt.Errorf("failed to perform search - %w", err)
-		}
-		return matches, nil
+		// Windows doesn't have grep, use the optimized Go-based search
+		// This includes literal string optimization via bytes.Index()
+		return b.performMultilineSearch(trimmedPattern, locations)
 	}
 
 	// Calculate total argument length to determine if we can use direct grep
@@ -662,7 +1011,8 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 	return fileSearchResults, nil
 }
 
-func (b *builtinServiceClient) parallelWalk(paths []string, regex *regexp2.Regexp) ([]fileSearchResult, error) {
+// parallelWalkWindows is used on Windows for non-multiline patterns
+func (b *builtinServiceClient) parallelWalkWindows(paths []string, regex *regexp2.Regexp) ([]fileSearchResult, error) {
 	var positions []fileSearchResult
 	var positionsMu sync.Mutex
 	var eg errgroup.Group
@@ -673,7 +1023,7 @@ func (b *builtinServiceClient) parallelWalk(paths []string, regex *regexp2.Regex
 
 	for _, filePath := range paths {
 		eg.Go(func() error {
-			pos, err := b.processFile(filePath, regex)
+			pos, err := b.processFileWindows(filePath, regex)
 			if err != nil {
 				return err
 			}
@@ -692,9 +1042,20 @@ func (b *builtinServiceClient) parallelWalk(paths []string, regex *regexp2.Regex
 	return positions, nil
 }
 
-func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp) ([]fileSearchResult, error) {
+// processFileWindows processes a file on Windows using line-by-line scanning
+func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Regexp) ([]fileSearchResult, error) {
+	// Check file size before loading to prevent OOM on large files (e.g., JARs)
+	const maxFileSize = 100 * 1024 * 1024 // 100MB limit
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if fileInfo.Size() > maxFileSize {
+		b.log.V(5).Info("skipping large file", "file", path, "size", fileInfo.Size(), "limit", maxFileSize)
+		return []fileSearchResult{}, nil
+	}
+
 	var content []byte
-	var err error
 	if b.encoding != "" {
 		content, err = engine.OpenFileWithEncoding(path, b.encoding)
 		if err != nil {
@@ -737,53 +1098,50 @@ func (b *builtinServiceClient) processFile(path string, regex *regexp2.Regexp) (
 			foundMatch = true
 			break
 		}
-		if readErr != nil {
-			// We didn't find a match, we read the full file, return no matches
-			return []fileSearchResult{}, nil
+		if readErr == io.EOF {
+			break
 		}
 		buffer = make([]byte, 1024*1024) // Create a buffer to hold 1MB
 	}
-	// This shouldn't happen, but lets be safe and not read files more then we have to.
+
 	if !foundMatch {
 		return []fileSearchResult{}, nil
 	}
 
-	// Now we we need to go line by line to find the line numbers.
-	reader = bytes.NewReader(content)
-	var r []fileSearchResult
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
 
+	reader = bytes.NewReader(content)
+	r := []fileSearchResult{}
 	scanner := bufio.NewScanner(reader)
-	lineNumber := 1
+	var lineNumber uint32 = 1
 	for scanner.Scan() {
 		line := scanner.Text()
 		match, err := regex.FindStringMatch(line)
 		if err != nil {
 			return nil, err
 		}
-		for match != nil {
-			absPath, err := filepath.Abs(path)
-			if err != nil {
-				return nil, err
-			}
-
+		if match != nil {
 			r = append(r, fileSearchResult{
 				positionParams: protocol.TextDocumentPositionParams{
 					TextDocument: protocol.TextDocumentIdentifier{
 						URI: protocol.DocumentURI(uri.File(absPath)),
 					},
 					Position: protocol.Position{
-						Line:      uint32(lineNumber),
+						Line:      lineNumber,
 						Character: uint32(match.Index),
 					},
 				},
 				match: match.String(),
 			})
-			match, err = regex.FindNextMatch(match)
-			if err != nil {
-				return nil, err
-			}
 		}
-		lineNumber++
+		lineNumber += 1
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 
 	return r, nil

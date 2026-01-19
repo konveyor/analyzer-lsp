@@ -698,8 +698,10 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 			templateString, err := r.createPerformString(*rule.Perform.Message.Text, variables)
 			if err != nil {
 				r.logger.Error(err, "unable to create template string")
+				incident.Message = *rule.Perform.Message.Text
+			} else {
+				incident.Message = templateString
 			}
-			incident.Message = templateString
 		}
 
 		incidentLineNumber := -1

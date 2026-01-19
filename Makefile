@@ -106,9 +106,9 @@ run-java-provider-pod:
 run-demo-java:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-java \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
-		-v $(PWD)/external-providers/java-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
-		-v $(PWD)/external-providers/java-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
-		-v $(PWD)/external-providers/java-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		-v $(PWD)/external-providers/java-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/java-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
+		-v $(PWD)/external-providers/java-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
@@ -139,33 +139,36 @@ run-generic-nodejs-provider-pod:
 run-demo-generic-golang:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-golang \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
-		--provider-settings=/analyzer-lsp/provider_settings.json
+		--provider-settings=/analyzer-lsp/provider_settings.json \
+		--dep-label-selector='!konveyor.io/dep-source=open-source'
 run-demo-generic-python:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-python \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
-		--provider-settings=/analyzer-lsp/provider_settings.json
+		--provider-settings=/analyzer-lsp/provider_settings.json \
+		--dep-label-selector='!konveyor.io/dep-source=open-source'
 run-demo-generic-nodejs:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-nodejs \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
+		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
-		--provider-settings=/analyzer-lsp/provider_settings.json
+		--provider-settings=/analyzer-lsp/provider_settings.json \
+		--dep-label-selector='!konveyor.io/dep-source=open-source'
 
 stop-generic-golang-provider-pod:
 	podman pod kill analyzer-generic-golang || true
@@ -191,13 +194,14 @@ run-yaml-provider-pod:
 run-demo-yaml:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-yaml \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
-		-v $(PWD)/external-providers/yq-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml:Z \
-		-v $(PWD)/external-providers/yq-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json:Z \
-		-v $(PWD)/external-providers/yq-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml:Z \
+		-v $(PWD)/external-providers/yq-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/yq-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
+		-v $(PWD)/external-providers/yq-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
-		--provider-settings=/analyzer-lsp/provider_settings.json
+		--provider-settings=/analyzer-lsp/provider_settings.json \
+		--dep-label-selector='!konveyor.io/dep-source=open-source'
 
 stop-yaml-provider-pod:
 	podman pod kill analyzer-yaml || true

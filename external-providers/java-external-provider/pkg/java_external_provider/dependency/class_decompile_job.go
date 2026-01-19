@@ -13,6 +13,7 @@ type classDecompileJob struct {
 	classDirPath     string
 	outputPath       string
 	decompileTool    string
+	javaPath         string
 	responseChanndel chan DecomplierResponse
 	wg               *sync.WaitGroup
 	log              logr.Logger
@@ -36,7 +37,7 @@ func (c *classDecompileJob) Run(ctx context.Context, log logr.Logger) error {
 		log.Error(err, "failed to decompile", "outputPath", c.outputPath, "perms", DirPermRWX)
 		return err
 	}
-	decompileCommand := exec.CommandContext(context.Background(), "java", "-jar", c.decompileTool, c.classDirPath, c.outputPath)
+	decompileCommand := exec.CommandContext(context.Background(), c.javaPath, "-jar", c.decompileTool, c.classDirPath, c.outputPath)
 	out, err := decompileCommand.Output()
 	if err != nil {
 		log.Error(err, "failed to decompile", "classDirPath", c.classDirPath, "output", string(out), "cmd", decompileCommand)

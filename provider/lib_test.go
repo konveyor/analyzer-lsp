@@ -84,6 +84,114 @@ func BenchmarkMultilineGrepFileSizeBig(b *testing.B) {
 	}
 }
 
+func TestGetExcludedDirsFromConfig(t *testing.T) {
+	defaultExcludes := []string{
+		"node_modules",
+		"vendor",
+		".git",
+		"dist",
+		"build",
+		"target",
+		".venv",
+		"venv",
+	}
+
+	tests := []struct {
+		name       string
+		initConfig InitConfig
+		want       []string
+	}{
+		{
+			name: "no user config - returns defaults only",
+			initConfig: InitConfig{
+				Location:               "/project",
+				ProviderSpecificConfig: map[string]interface{}{},
+			},
+			want: defaultExcludes,
+		},
+		{
+			name: "empty array - clears all defaults",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{},
+				},
+			},
+			want: []string{},
+		},
+		{
+			name: "user provides relative directory names - keeps them as-is",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{
+						"bower_components",
+						"jspm_packages",
+					},
+				},
+			},
+			want: append(defaultExcludes, "bower_components", "jspm_packages"),
+		},
+		{
+			name: "user provides absolute paths - keeps them as-is",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{
+						"/absolute/path/to/exclude",
+						"/another/absolute/path",
+					},
+				},
+			},
+			want: append(defaultExcludes, "/absolute/path/to/exclude", "/another/absolute/path"),
+		},
+		{
+			name: "mix of relative and absolute paths",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{
+						"bower_components",
+						"/absolute/path/to/specific/dir",
+						"custom_vendor",
+					},
+				},
+			},
+			want: append(defaultExcludes, "bower_components", "/absolute/path/to/specific/dir", "custom_vendor"),
+		},
+		{
+			name: "nested relative paths - keeps them as directory patterns",
+			initConfig: InitConfig{
+				Location: "/project",
+				ProviderSpecificConfig: map[string]interface{}{
+					ExcludedDirsConfigKey: []interface{}{
+						"src/generated",
+						"test/fixtures",
+					},
+				},
+			},
+			want: append(defaultExcludes, "src/generated", "test/fixtures"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetExcludedDirsFromConfig(tt.initConfig)
+			if len(got) != len(tt.want) {
+				t.Errorf("GetExcludedDirsFromConfig() returned %d items, want %d items", len(got), len(tt.want))
+				t.Errorf("got: %v", got)
+				t.Errorf("want: %v", tt.want)
+				return
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("GetExcludedDirsFromConfig()[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
 func TestNormalizePathForComparison(t *testing.T) {
 	tests := []struct {
 		name     string

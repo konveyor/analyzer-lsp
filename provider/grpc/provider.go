@@ -341,6 +341,12 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 		Initialized:        config.Initialized,
 	}
 
+	// Set logLevel if available in provider config
+	if g.config.LogLevel != nil {
+		logLevel := int32(*g.config.LogLevel)
+		c.LogLevel = &logLevel
+	}
+
 	r, err := g.Client.Init(ctx, &c)
 
 	if err != nil {
@@ -404,12 +410,16 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 
 		var cmd *exec.Cmd
 		var connectionString string
+
+		// Prepare common arguments
+		args := []string{}
+
 		if config.UseSocket {
 			fileName, err := socket.GetAddress(name)
 			if err != nil {
 				return nil, nil, err
 			}
-			cmd = exec.CommandContext(ctx, config.BinaryPath, "--socket", fileName, "--name", name)
+			args = append(args, "--socket", fileName)
 			connectionString = socket.GetConnectionString(fileName)
 		} else {
 			port, err := freeport.GetFreePort()
@@ -417,8 +427,18 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 				return nil, nil, err
 			}
 			connectionString = fmt.Sprintf("localhost:%v", port)
-			cmd = exec.CommandContext(ctx, config.BinaryPath, "--port", fmt.Sprintf("%v", port), "--name", name)
+			args = append(args, "--port", fmt.Sprintf("%v", port))
 		}
+
+		// Add common flags
+		args = append(args, "--name", name)
+
+		// Add logLevel if specified
+		if config.LogLevel != nil {
+			args = append(args, "--log-level", fmt.Sprintf("%d", *config.LogLevel))
+		}
+
+		cmd = exec.CommandContext(ctx, config.BinaryPath, args...)
 		// TODO: For each output line, log that line here, allows the server's to output to the main log file. Make sure we name this correctly
 		// cmd will exit with the ending of the ctx.
 		out, err := cmd.StdoutPipe()

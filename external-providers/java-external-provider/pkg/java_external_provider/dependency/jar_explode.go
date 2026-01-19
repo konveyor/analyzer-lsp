@@ -121,7 +121,7 @@ func (j *jarExplodeArtifact) HandleFile(path string, d fs.DirEntry, err error) e
 			j.log.Info("here failed to create dir")
 			return err
 		}
-		decompileCommand := exec.CommandContext(context.Background(), "java", "-jar", j.decompileTool, filepath.Join(j.tmpDir, dirToCreate), filepath.Join(j.outputPath, JAVA+"/", dirToCreate))
+		decompileCommand := exec.CommandContext(context.Background(), j.javaPath, "-jar", j.decompileTool, filepath.Join(j.tmpDir, dirToCreate), filepath.Join(j.outputPath, JAVA+"/", dirToCreate))
 		err = decompileCommand.Run()
 		if err != nil {
 			j.log.Info("here failed to decompile", "err", err)

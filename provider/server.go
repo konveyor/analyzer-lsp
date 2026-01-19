@@ -250,6 +250,12 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 		Initialized: config.LanguageServerPipe != "",
 	}
 
+	// Extract and set logLevel if provided
+	if config.LogLevel != nil {
+		level := int(*config.LogLevel)
+		c.LogLevel = &level
+	}
+
 	newCtx := context.Background()
 
 	if config.LanguageServerPipe != "" {
@@ -271,6 +277,11 @@ func (s *server) Init(ctx context.Context, config *libgrpc.Config) (*libgrpc.Ini
 
 	id := rand.Int63()
 	log := s.Log.WithValues("client", id)
+
+	// Adjust logger verbosity based on logLevel if provided
+	if c.LogLevel != nil {
+		log = log.V(*c.LogLevel)
+	}
 
 	client, builtinConf, err := s.Client.Init(newCtx, log, c)
 	if err != nil {

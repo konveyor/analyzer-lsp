@@ -96,7 +96,7 @@ func GetLocationTypeFromString(location string) LocationType {
 		return LocationTypeKeyword
 	case "package":
 		return LocationPackage
-	case "field":
+	case "field", "field_declaration":
 		return LocationField
 	case "method":
 		return LocationMethod
@@ -400,8 +400,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		}
 		location, depLocation, err := resolver.ResolveSources(ctx)
 		if err != nil {
-			log.Error(err, "unable to resolve")
-			return nil, additionalBuiltinConfig, err
+			// it is OK if we are not able to resolve all the sources
+			log.Error(err, "unable to resolve sources, continuing...")
 		}
 		config.Location = location
 		config.DependencyPath = depLocation
@@ -492,27 +492,30 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	var returnErr error
-	waitErrorChannel := make(chan error)
+	waitErrorChannel := make(chan error, 1)
+	jdtlsProcessExited := make(chan bool, 1)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		err := cmd.Start()
-		wg.Done()
 		if err != nil {
+			wg.Done()
 			cancelFunc()
 			returnErr = err
-			log.Error(err, "unable to  start lsp command")
+			log.Error(err, "unable to start lsp command")
 			return
 		}
-		// Here we need to wait for the command to finish or if the ctx is cancelled,
-		// To close the pipes.
+
+		go func() {
+			waitErrorChannel <- cmd.Wait()
+			jdtlsProcessExited <- true
+		}()
+
+		wg.Done()
+
 		select {
 		case err := <-waitErrorChannel:
-			// language server has not started - don't error yet
-			if err != nil && cmd.ProcessState == nil {
-				log.Info("retrying language server start")
-				log.Error(err, "language server error")
-			} else if err != nil {
+			if err != nil {
 				log.Error(err, "language server process terminated")
 			}
 			log.Info("language server stopped")
@@ -521,12 +524,8 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			log.Info("language server context cancelled, closing pipes")
 			stdin.Close()
 			stdout.Close()
+			<-jdtlsProcessExited
 		}
-	}()
-
-	// This will close the go routine above when wait has completed.
-	go func() {
-		waitErrorChannel <- cmd.Wait()
 	}()
 
 	wg.Wait()
@@ -544,19 +543,20 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	svcClient := javaServiceClient{
-		rpc:               rpc,
-		cancelFunc:        cancelFunc,
-		config:            config,
-		cmd:               cmd,
-		bundles:           bundles,
-		workspace:         workspace,
-		log:               log,
-		globalSettings:    globalSettingsFile,
-		depsLocationCache: make(map[string]int),
-		includedPaths:     provider.GetIncludedPathsFromConfig(config, false),
-		buildTool:         buildTool,
-		mvnIndexPath:      mavenOpenSourceIndex,
-		mvnSettingsFile:   mavenSettingsFile,
+		rpc:                rpc,
+		cancelFunc:         cancelFunc,
+		config:             config,
+		cmd:                cmd,
+		bundles:            bundles,
+		workspace:          workspace,
+		log:                log,
+		globalSettings:     globalSettingsFile,
+		depsLocationCache:  make(map[string]int),
+		includedPaths:      provider.GetIncludedPathsFromConfig(config, false),
+		buildTool:          buildTool,
+		mvnIndexPath:       mavenOpenSourceIndex,
+		mvnSettingsFile:    mavenSettingsFile,
+		jdtlsProcessExited: &jdtlsProcessExited,
 	}
 
 	svcClient.initialization(ctx)

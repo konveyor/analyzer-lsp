@@ -29,7 +29,12 @@ func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
-	logrusLog.SetLevel(20)
+	// Set default log level, can be overridden by --log-level flag
+	if logLevel != nil {
+		logrusLog.SetLevel(logrus.Level(*logLevel))
+	} else {
+		logrusLog.SetLevel(logrus.Level(20))
+	}
 	log := logrusr.New(logrusLog)
 	log = log.WithName("java-provider")
 
@@ -45,6 +50,7 @@ func main() {
 	if logLevel != nil && *logLevel != 5 {
 		logrusLog.SetLevel(logrus.Level(*logLevel))
 	}
+
 	if (socket == nil || *socket == "") && (port == nil || *port == 0) {
 		log.Error(fmt.Errorf("no serving location"), "port or socket must be set.")
 		panic(1)

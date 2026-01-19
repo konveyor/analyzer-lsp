@@ -6,7 +6,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/PaesslerAG/gval v1.2.2
 	github.com/antchfx/jsonquery v1.3.0
-	github.com/antchfx/xmlquery v1.3.12
+	github.com/antchfx/xmlquery v1.4.5-0.20250930041715-a4181c99a362
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/dlclark/regexp2 v1.11.4
 	github.com/go-logr/logr v1.4.2
@@ -40,7 +40,7 @@ require (
 )
 
 require (
-	github.com/antchfx/xpath v1.2.4
+	github.com/antchfx/xpath v1.3.5
 	github.com/cbroglie/mustache v1.4.0
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect

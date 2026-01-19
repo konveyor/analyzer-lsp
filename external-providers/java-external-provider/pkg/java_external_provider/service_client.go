@@ -32,16 +32,15 @@ type javaServiceClient struct {
 	cmd                *exec.Cmd
 	bundles            []string
 	workspace          string
-	isLocationBinary   bool
 	globalSettings     string
 	includedPaths      []string
 	cleanExplodedBins  []string
-	disableMavenSearch bool
 	activeRPCCalls     sync.WaitGroup
 	depsLocationCache  map[string]int
 	buildTool          bldtool.BuildTool
 	mvnIndexPath       string
 	mvnSettingsFile    string
+	jdtlsProcessExited *chan bool
 }
 
 var _ provider.ServiceClient = &javaServiceClient{}
@@ -281,7 +280,6 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	return filteredRefs, nil
 }
 
-
 func (p *javaServiceClient) GetAllReferences(ctx context.Context, symbol protocol.WorkspaceSymbol) []protocol.Location {
 	var locationURI protocol.DocumentURI
 	var locationRange protocol.Range
@@ -339,15 +337,9 @@ func (p *javaServiceClient) Stop() {
 	if err != nil {
 		p.log.Error(err, "failed to gracefully shutdown java provider")
 	}
-	err = p.cmd.Wait()
-	if err != nil {
-		if isSafeErr(err) {
-			p.log.Info("java provider stopped")
-		} else {
-			p.log.Error(err, "java provider stopped with error")
-		}
-	} else {
-		p.log.Info("java provider stopped")
+
+	if p.jdtlsProcessExited != nil {
+		<-*p.jdtlsProcessExited
 	}
 
 	if len(p.cleanExplodedBins) > 0 {
