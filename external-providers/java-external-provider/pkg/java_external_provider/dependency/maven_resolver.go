@@ -18,26 +18,28 @@ import (
 )
 
 type mavenDependencyResolver struct {
-	decompileTool  string
-	labeler        labels.Labeler
-	localRepo      string
-	log            logr.Logger
-	settingsFile   string
-	insecure       bool
-	location       string
-	mavenIndexPath string
+	decompileTool      string
+	labeler            labels.Labeler
+	localRepo          string
+	log                logr.Logger
+	globalSettingsFile string
+	settingsFile       string
+	insecure           bool
+	location           string
+	mavenIndexPath     string
 }
 
 func GetMavenResolver(options ResolverOptions) Resolver {
 	return &mavenDependencyResolver{
-		localRepo:      options.LocalRepo,
-		settingsFile:   options.BuildFile,
-		insecure:       options.Insecure,
-		location:       options.Location,
-		log:            options.Log,
-		decompileTool:  options.DecompileTool,
-		labeler:        options.Labeler,
-		mavenIndexPath: options.MavenIndexPath,
+		localRepo:          options.LocalRepo,
+		globalSettingsFile: options.GlobalBuildFile,
+		settingsFile:       options.BuildFile,
+		insecure:           options.Insecure,
+		location:           options.Location,
+		log:                options.Log,
+		decompileTool:      options.DecompileTool,
+		labeler:            options.Labeler,
+		mavenIndexPath:     options.MavenIndexPath,
 	}
 }
 
@@ -55,6 +57,9 @@ func (m *mavenDependencyResolver) ResolveSources(ctx context.Context) (string, s
 	}
 	if m.settingsFile != "" {
 		args = append(args, "-s", m.settingsFile)
+	}
+	if m.globalSettingsFile != "" {
+		args = append(args, "-gs", m.globalSettingsFile)
 	}
 	if m.insecure {
 		args = append(args, "-Dmaven.wagon.http.ssl.insecure=true")

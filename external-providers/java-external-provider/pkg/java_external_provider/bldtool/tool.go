@@ -132,13 +132,14 @@ type BuildTool interface {
 //   - Dependency labeling and Maven search behavior
 //   - Binary cleanup preferences
 type BuildToolOptions struct {
-	Config          provider.InitConfig // Base provider configuration including project location
-	MvnSettingsFile string              // Path to Maven settings.xml for custom repository configuration
-	MvnInsecure     bool                // Allow insecure HTTPS connections to Maven repositories
-	MavenIndexPath  string              // Path to Maven index for artifact metadata searches
-	Labeler         labels.Labeler      // Labeler for classifying dependencies as open source or internal
-	CleanBin        bool                // Whether to clean up temporary binary decompilation artifacts
-	GradleTaskFile  string              // Path to custom Gradle task file for dependency resolution
+	Config                provider.InitConfig // Base provider configuration including project location
+	MvnSettingsFile       string              // Path to Maven settings.xml for custom repository configuration
+	MvnGlobalSettingsFile string              // Path to the global maven settings.xml file
+	MvnInsecure           bool                // Allow insecure HTTPS connections to Maven repositories
+	MavenIndexPath        string              // Path to Maven index for artifact metadata searches
+	Labeler               labels.Labeler      // Labeler for classifying dependencies as open source or internal
+	CleanBin              bool                // Whether to clean up temporary binary decompilation artifacts
+	GradleTaskFile        string              // Path to custom Gradle task file for dependency resolution
 }
 
 func GetBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
