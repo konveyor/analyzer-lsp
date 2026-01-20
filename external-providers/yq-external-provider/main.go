@@ -16,6 +16,7 @@ var (
 	port      = flag.Int("port", 0, "Port must be set")
 	socket    = flag.String("socket", "", "Socket to be used")
 	name      = flag.String("name", "yaml", "Port must be set")
+	logLevel  = flag.Int("log-level", 5, "Level to log")
 	certFile  = flag.String("certFile", "", "Path to the cert file")
 	keyFile   = flag.String("keyFile", "", "Path to the key file")
 	secretKey = flag.String("secretKey", "", "Secret Key value")
@@ -26,8 +27,12 @@ func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
-	// need to do research on mapping in logrusr to level here TODO
-	logrusLog.SetLevel(logrus.Level(5))
+	// Set log level from flag (default is 5)
+	if logLevel != nil {
+		logrusLog.SetLevel(logrus.Level(*logLevel))
+	} else {
+		logrusLog.SetLevel(logrus.Level(5))
+	}
 
 	log := logrusr.New(logrusLog).WithName(*name)
 

@@ -145,7 +145,8 @@ run-demo-generic-golang:
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
-		--provider-settings=/analyzer-lsp/provider_settings.json
+		--provider-settings=/analyzer-lsp/provider_settings.json \
+		--dep-label-selector='!konveyor.io/dep-source=open-source'
 run-demo-generic-python:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-python \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
@@ -155,7 +156,8 @@ run-demo-generic-python:
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
-		--provider-settings=/analyzer-lsp/provider_settings.json
+		--provider-settings=/analyzer-lsp/provider_settings.json \
+		--dep-label-selector='!konveyor.io/dep-source=open-source'
 run-demo-generic-nodejs:
 	podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-nodejs \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
@@ -165,7 +167,8 @@ run-demo-generic-nodejs:
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
-		--provider-settings=/analyzer-lsp/provider_settings.json
+		--provider-settings=/analyzer-lsp/provider_settings.json \
+		--dep-label-selector='!konveyor.io/dep-source=open-source'
 
 stop-generic-golang-provider-pod:
 	podman pod kill analyzer-generic-golang || true
@@ -197,7 +200,8 @@ run-demo-yaml:
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
-		--provider-settings=/analyzer-lsp/provider_settings.json
+		--provider-settings=/analyzer-lsp/provider_settings.json \
+		--dep-label-selector='!konveyor.io/dep-source=open-source'
 
 stop-yaml-provider-pod:
 	podman pod kill analyzer-yaml || true

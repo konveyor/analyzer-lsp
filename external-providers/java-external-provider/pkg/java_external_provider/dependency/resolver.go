@@ -97,6 +97,10 @@ type ResolverOptions struct {
 	// May be a settings file or build definition depending on the build tool.
 	BuildFile string
 
+	// GlobalBuildFile points to build-tool specific global configuration file
+	// May be a settings file or build definition depending on the build tool.
+	GlobalBuildFile string
+
 	// Insecure allows insecure HTTPS connections when downloading dependencies.
 	// Should only be used in development/testing environments.
 	Insecure bool

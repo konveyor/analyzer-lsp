@@ -122,6 +122,7 @@ type javaProvider struct {
 	depsLocationCache map[string]int
 
 	logFollow sync.Once
+	logLevel  int
 }
 
 var _ provider.BaseClient = &javaProvider{}
@@ -151,7 +152,7 @@ type element struct {
 	Value string `yaml:"value" json:"value"` // can be a (java) regex pattern
 }
 
-func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int, config provider.Config) *javaProvider {
+func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int, logLevel int, config provider.Config) *javaProvider {
 
 	_, mvnBinaryError := exec.LookPath("mvn")
 
@@ -165,6 +166,7 @@ func NewJavaProvider(log logr.Logger, lspServerName string, contextLines int, co
 		contextLines:      contextLines,
 		encoding:          "",
 		logFollow:         sync.Once{},
+		logLevel:          logLevel,
 	}
 }
 
@@ -378,12 +380,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	/// Full Analysis Mode OR binary analysis should kick of the resolve sources.
 	// TODO: handle Continue Errors vs Non Continue Errors in bldtool
 	buildTool := bldtool.GetBuildTool(bldtool.BuildToolOptions{
-		Config:          config,
-		MvnSettingsFile: mavenSettingsFile,
-		MvnInsecure:     mavenInsecure,
-		MavenIndexPath:  mavenSHASearchIndex,
-		Labeler:         openSourceLabeler,
-		GradleTaskFile:  gradleTaskFile,
+		Config:                config,
+		MvnSettingsFile:       mavenSettingsFile,
+		MvnGlobalSettingsFile: globalSettingsFile,
+		MvnInsecure:           mavenInsecure,
+		MavenIndexPath:        mavenSHASearchIndex,
+		Labeler:               openSourceLabeler,
+		GradleTaskFile:        gradleTaskFile,
 	}, log)
 	if buildTool == nil {
 		return nil, additionalBuiltinConfig, errors.New("unable to get build tool")
@@ -564,7 +567,10 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// When running for long period of time.
 	p.logFollow.Do(func() {
 		go func() {
-			t, err := tail.TailFile(".metadata/.log", tail.Config{
+			// Determine the log file path relative to workspace
+			logFilePath := filepath.Join(workspace, ".metadata", ".log")
+
+			t, err := tail.TailFile(logFilePath, tail.Config{
 				ReOpen:    true,
 				MustExist: false,
 				Follow:    true,
@@ -575,8 +581,17 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 				return
 			}
 
+			// If logLevel > 6, follow all JDTLS logs
+			// Otherwise, only follow KONVEYOR_LOG tagged lines
+			followAll := p.logLevel > 6
+			if followAll {
+				log.Info("following full JDTLS log", "path", logFilePath, "logLevel", p.logLevel)
+			}
+
 			for line := range t.Lines {
-				if strings.Contains(line.Text, "KONVEYOR_LOG") {
+				if followAll {
+					log.Info("language server log", "line", line.Text)
+				} else if strings.Contains(line.Text, "KONVEYOR_LOG") {
 					log.Info("language server log", "line", line.Text)
 				}
 			}

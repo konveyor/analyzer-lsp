@@ -916,7 +916,7 @@ func (b *builtinServiceClient) performGrepSearch(pattern, trimmedPattern string,
 					fileList.WriteByte('\x00')
 				}
 				cmdStr := fmt.Sprintf(
-					`xargs -0 perl -ne 'if (/%v/) { print "$ARGV:$.:$1\n" } close ARGV if eof;'`,
+					`xargs -0 perl -ne 'if (/%v/) { print "$ARGV:$.:$&\n" } close ARGV if eof;'`,
 					escapedPattern,
 				)
 				b.log.V(7).Info("running perl", "cmd", cmdStr)

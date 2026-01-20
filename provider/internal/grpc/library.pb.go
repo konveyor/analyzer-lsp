@@ -129,6 +129,7 @@ type Config struct {
 	Proxy                  *Proxy                 `protobuf:"bytes,6,opt,name=proxy,proto3" json:"proxy,omitempty"`
 	LanguageServerPipe     string                 `protobuf:"bytes,7,opt,name=languageServerPipe,proto3" json:"languageServerPipe,omitempty"`
 	Initialized            bool                   `protobuf:"varint,8,opt,name=initialized,proto3" json:"initialized,omitempty"`
+	LogLevel               *int32                 `protobuf:"varint,9,opt,name=logLevel,proto3,oneof" json:"logLevel,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -210,6 +211,13 @@ func (x *Config) GetInitialized() bool {
 		return x.Initialized
 	}
 	return false
+}
+
+func (x *Config) GetLogLevel() int32 {
+	if x != nil && x.LogLevel != nil {
+		return *x.LogLevel
+	}
+	return 0
 }
 
 type InitResponse struct {

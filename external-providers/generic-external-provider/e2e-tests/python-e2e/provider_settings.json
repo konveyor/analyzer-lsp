@@ -1,17 +1,17 @@
 [
     {
-        "name": "nodejs",
+        "name": "python",
         "address": "localhost:14651",
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
-                "lspServerName": "nodejs",
-                "lspServerPath": "/usr/local/bin/typescript-language-server",
-                "lspServerArgs": ["--stdio"],
+                "lspServerName": "pylsp",
+                "lspServerPath": "/usr/local/bin/pylsp",
+                "lspServerArgs": [],
                 "lspServerInitializationOptions": "",
 
-                "workspaceFolders": ["file:///analyzer-lsp/examples/nodejs"],
-                "dependencyFolders": [""],
+                "workspaceFolders": ["file:///analyzer-lsp/examples/python"],
+                "dependencyFolders": ["/analyzer-lsp/examples/python/__pycache__", "/analyzer-lsp/examples/python/.venv"],
 
                 "dependencyProviderPath": ""
             }
