@@ -12,7 +12,7 @@ FROM brew.registry.redhat.io/rh-osbs/mta-mta-golang-dependency-provider-rhel9:8.
 
 FROM registry.redhat.io/ubi9:latest
 RUN dnf -y module enable nodejs:18
-RUN dnf -y install openssl gcc-c++ python-devel python3-devel nodejs tar && dnf -y clean all
+RUN dnf -y install openssl gcc-c++ python-devel python3-devel nodejs && dnf -y clean all
 
 # Python LSP server
 COPY --from=go-builder /workspace/hack/build/python-lsp-server.tgz python-lsp-server.tgz
@@ -30,6 +30,7 @@ RUN rm -r typescript.tgz typescript-language-server.tgz
 
 COPY --from=go-builder /workspace/external-providers/generic-external-provider/generic-external-provider /usr/local/bin/generic-external-provider
 COPY --from=go-builder /workspace/hack/build/tools/gopls/gopls /usr/local/bin/gopls
+COPY --from=go-builder /workspace/external-providers/generic-external-provider/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY --from=go-builder /workspace/LICENSE /licenses/
 COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 
