@@ -1,11 +1,16 @@
 package parser
 
 import (
+	"context"
 	"fmt"
+	"maps"
 	"os"
 	path "path/filepath"
 	"regexp"
+	"slices"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
@@ -45,6 +50,13 @@ func (e parserErrors) Error() string {
 		s = fmt.Sprintf("%s\n%s", s, e.Error())
 	}
 	return s
+}
+
+type ruleParseReturn struct {
+	rules           []engine.Rule
+	conditionsByCap map[string][]provider.ConditionsByCap
+	providerMap     map[string]provider.InternalProviderClient
+	err             error
 }
 
 type RuleParser struct {
@@ -124,6 +136,10 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	var ruleSet *engine.RuleSet
 	rules := []engine.Rule{}
 	parserErr := &parserErrors{}
+	ruleParserWG := sync.WaitGroup{}
+	ruleLoadChan := make(chan ruleParseReturn, 10)
+
+	loadCtx, _ := context.WithTimeout(context.Background(), 5*time.Minute)
 	for _, f := range files {
 		info, err := os.Stat(path.Join(filepath, f.Name()))
 		if err != nil {
@@ -137,9 +153,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 				continue
 			}
 			ruleSets = append(ruleSets, r...)
-			for k, v := range m {
-				clientMap[k] = v
-			}
+			maps.Copy(clientMap, m)
 			for k, v := range provConditions {
 				if _, ok := providerConditions[k]; !ok {
 					providerConditions[k] = []provider.ConditionsByCap{}
@@ -151,7 +165,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 			continue
 		}
 		if info.Mode().IsRegular() {
-			if f.Name() == RULE_SET_GOLDEN_FILE_NAME {
+			if ruleSet == nil && f.Name() == RULE_SET_GOLDEN_FILE_NAME {
 				ruleSet = r.loadRuleSet(filepath)
 				continue
 			}
@@ -161,21 +175,54 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 				r.Log.V(7).Info("excluding test file from parsing", "file", f.Name())
 				continue
 			}
-			r, m, provConditions, err := r.LoadRule(path.Join(filepath, f.Name()))
-			if err != nil {
-				parserErr.errs = append(parserErr.errs, err)
+			ruleParserWG.Add(1)
+			go func() {
+				rules, m, provConditions, err := r.LoadRule(path.Join(filepath, f.Name()))
+				select {
+				case ruleLoadChan <- ruleParseReturn{
+					rules:           rules,
+					conditionsByCap: provConditions,
+					providerMap:     m,
+					err:             err,
+				}:
+				case <-loadCtx.Done():
+					return
+				}
+			}()
+		}
+	}
+
+	go func() {
+		defer close(ruleLoadChan)
+		ruleParserWG.Wait()
+	}()
+	done := false
+	for {
+		if done {
+			break
+		}
+		select {
+		case load, ok := <-ruleLoadChan:
+			if !ok {
+				done = true
 				continue
 			}
-			for k, v := range m {
-				clientMap[k] = v
+			if load.err != nil {
+				parserErr.errs = append(parserErr.errs, load.err)
+				ruleParserWG.Done()
+				continue
 			}
-			for k, v := range provConditions {
+			maps.Copy(clientMap, load.providerMap)
+			for k, v := range load.conditionsByCap {
 				if _, ok := providerConditions[k]; !ok {
 					providerConditions[k] = []provider.ConditionsByCap{}
 				}
 				providerConditions[k] = append(providerConditions[k], v...)
 			}
-			rules = append(rules, r...)
+			rules = append(rules, load.rules...)
+			ruleParserWG.Done()
+		case <-loadCtx.Done():
+			done = true
 			continue
 		}
 	}
@@ -199,7 +246,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 	}
 	// Determine if the content has a ruleset header.
 	// if not, only for a given folder does a ruleset header have to exist.
-	ruleMap := []map[string]interface{}{}
+	ruleMap := []map[string]any{}
 
 	// Assume that there is a rule set header.
 	err = yaml.Unmarshal(content, &ruleMap)
@@ -247,14 +294,14 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 						return nil, nil, nil, fmt.Errorf("message must be a string")
 					}
 
-					linkArray, ok := ruleMap["links"].([]interface{})
+					linkArray, ok := ruleMap["links"].([]any)
 					if !ok {
 						r.Log.V(8).WithValues("ruleID", ruleID).Info("unable to find linkArray")
 					}
 
 					links := []konveyor.Link{}
 					for _, linkMap := range linkArray {
-						m, ok := linkMap.(map[interface{}]interface{})
+						m, ok := linkMap.(map[any]any)
 						if !ok {
 							r.Log.V(8).WithValues("ruleID", ruleID).Info("unable to find link url")
 						}
@@ -273,7 +320,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 					perform.Message.Links = links
 					perform.Message.Text = &message
 				case "tag":
-					tagList, ok := val.([]interface{})
+					tagList, ok := val.([]any)
 					if !ok {
 						r.Log.V(8).Info("tag must be a list of strings", "ruleID", ruleID)
 						return nil, nil, nil, fmt.Errorf("tag must be a list of strings")
@@ -304,7 +351,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 
 		r.addRuleFields(&rule, ruleMap)
 
-		whenMap, ok := ruleMap["when"].(map[interface{}]interface{})
+		whenMap, ok := ruleMap["when"].(map[any]any)
 		if !ok {
 			r.Log.V(8).Info("a rule must have a single condition", "ruleID", ruleID, "file", filepath)
 			return nil, nil, nil, fmt.Errorf("a Rule must have a single condition")
@@ -364,7 +411,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 			switch key {
 			case "or":
 				//Handle when clause
-				m, ok := value.([]interface{})
+				m, ok := value.([]any)
 				if !ok {
 					r.Log.V(8).Info("invalid type for or clause, must be an array", "ruleID", ruleID, "file", filepath)
 					return nil, nil, nil, fmt.Errorf("invalid type for or clause, must be an array")
@@ -400,7 +447,7 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 				}
 			case "and":
 				//Handle when clause
-				m, ok := value.([]interface{})
+				m, ok := value.([]any)
 				if !ok {
 					r.Log.V(8).Info("invalid type for and clause, must be an array", "ruleID", ruleID, "file", filepath)
 					return nil, nil, nil, fmt.Errorf("invalid type for and clause, must be an array")
@@ -514,8 +561,8 @@ func validateRuleID(ruleID string) (string, bool) {
 	return "", true
 }
 
-func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interface{}) {
-	labels, ok := ruleMap["labels"].([]interface{})
+func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]any) {
+	labels, ok := ruleMap["labels"].([]any)
 	if !ok {
 		r.Log.V(8).WithValues("ruleID", rule.RuleID).Info("unable to find labels")
 	}
@@ -559,15 +606,15 @@ func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interfa
 	}
 
 	if customVars, ok := ruleMap["customVariables"]; ok {
-		var customVarsList []interface{}
+		var customVarsList []any
 		var ok bool
-		if customVarsList, ok = customVars.([]interface{}); !ok {
+		if customVarsList, ok = customVars.([]any); !ok {
 			r.Log.V(5).WithValues("ruleID", rule.RuleID).Info("unable to get custom variables")
 			return
 		}
 		s := []engine.CustomVariable{}
 		for _, customVarMapInterface := range customVarsList {
-			customVarMap, ok := customVarMapInterface.(map[interface{}]interface{})
+			customVarMap, ok := customVarMapInterface.(map[any]any)
 			if !ok {
 				r.Log.V(5).WithValues("ruleID", rule.RuleID).Info("unable to get custom variables")
 				continue
@@ -584,7 +631,7 @@ func (r *RuleParser) addRuleFields(rule *engine.Rule, ruleMap map[string]interfa
 	}
 }
 
-func (r *RuleParser) addCustomVarFields(m map[interface{}]interface{}, customVar *engine.CustomVariable) error {
+func (r *RuleParser) addCustomVarFields(m map[any]any, customVar *engine.CustomVariable) error {
 	if name, ok := m["name"]; ok {
 		nameString, ok := name.(string)
 		if !ok {
@@ -624,7 +671,7 @@ func (r *RuleParser) addCustomVarFields(m map[interface{}]interface{}, customVar
 	return nil
 }
 
-func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.ConditionEntry, map[string]provider.InternalProviderClient, map[string][]provider.ConditionsByCap, error) {
+func (r *RuleParser) getConditions(conditionsInterface []any) ([]engine.ConditionEntry, map[string]provider.InternalProviderClient, map[string][]provider.ConditionsByCap, error) {
 	conditions := []engine.ConditionEntry{}
 	providers := map[string]provider.InternalProviderClient{}
 	providerConditions := map[string][]provider.ConditionsByCap{}
@@ -632,7 +679,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 	asFound := []string{}
 	for _, conditionInterface := range conditionsInterface {
 		// get map from interface
-		conditionMap, ok := conditionInterface.(map[interface{}]interface{})
+		conditionMap, ok := conditionInterface.(map[any]any)
 		if !ok {
 			return nil, nil, nil, fmt.Errorf("conditions must be an object")
 		}
@@ -680,7 +727,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			var ce engine.ConditionEntry
 			switch key {
 			case "and":
-				iConditions, ok := v.([]interface{})
+				iConditions, ok := v.([]any)
 				if !ok {
 					return nil, nil, nil, fmt.Errorf("inner condition for and is not array")
 				}
@@ -700,9 +747,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 						Conditions: conds,
 					},
 				}
-				for k, prov := range provs {
-					providers[k] = prov
-				}
+				maps.Copy(providers, provs)
 				for k, v := range provConditions {
 					if _, ok := providerConditions[k]; !ok {
 						providerConditions[k] = []provider.ConditionsByCap{}
@@ -710,7 +755,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 					providerConditions[k] = append(providerConditions[k], v...)
 				}
 			case "or":
-				iConditions, ok := v.([]interface{})
+				iConditions, ok := v.([]any)
 				if !ok {
 					return nil, nil, nil, fmt.Errorf("inner condition for and is not array")
 				}
@@ -730,9 +775,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 						Conditions: conds,
 					},
 				}
-				for k, prov := range provs {
-					providers[k] = prov
-				}
+				maps.Copy(providers, provs)
 				for k, v := range provConditions {
 					if _, ok := providerConditions[k]; !ok {
 						providerConditions[k] = []provider.ConditionsByCap{}
@@ -779,10 +822,8 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 			if ce.From != "" && ce.As != "" && ce.From == ce.As {
 				return nil, nil, nil, fmt.Errorf("condition cannot have the same value for fields 'from' and 'as'")
 			} else if ce.As != "" {
-				for _, as := range asFound {
-					if as == ce.As {
-						return nil, nil, nil, fmt.Errorf("condition cannot have multiple 'as' fields with the same name")
-					}
+				if slices.Contains(asFound, ce.As) {
+					return nil, nil, nil, fmt.Errorf("condition cannot have multiple 'as' fields with the same name")
 				}
 				asFound = append(asFound, ce.As)
 
@@ -807,7 +848,7 @@ func (r *RuleParser) getConditions(conditionsInterface []interface{}) ([]engine.
 	return conditions, providers, providerConditions, nil
 }
 
-func (r *RuleParser) getConditionForProvider(langProvider, capability string, value interface{}) (engine.Conditional, provider.InternalProviderClient, error) {
+func (r *RuleParser) getConditionForProvider(langProvider, capability string, value any) (engine.Conditional, provider.InternalProviderClient, error) {
 	// Here there can only be a single provider.
 	client, ok := r.ProviderNameToClient[langProvider]
 	if !ok {
@@ -819,7 +860,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 	}
 
 	ignorable := false
-	if m, ok := value.(map[string]interface{}); ok {
+	if m, ok := value.(map[string]any); ok {
 		if v, ok := m["ignore"]; ok {
 			if i, ok := v.(bool); ok {
 				ignorable = i
@@ -832,7 +873,7 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 			Client: client,
 		}
 
-		fullCondition, ok := value.(map[interface{}]interface{})
+		fullCondition, ok := value.(map[any]any)
 		if !ok {
 			return nil, nil, fmt.Errorf("unable to parse dependency condition for %s", langProvider)
 		}
@@ -893,11 +934,11 @@ func (r *RuleParser) getConditionForProvider(langProvider, capability string, va
 }
 
 // mergeProviderConditions stores all conditions for a given provider, used to send to providers in Prepare()
-func mergeProviderConditions(providerConditions map[string][]provider.ConditionsByCap, providerKey, capability string, value interface{}) (map[string][]provider.ConditionsByCap, error) {
+func mergeProviderConditions(providerConditions map[string][]provider.ConditionsByCap, providerKey, capability string, value any) (map[string][]provider.ConditionsByCap, error) {
 	conditionInfo := struct {
-		Capability map[string]interface{} `yaml:",inline"`
+		Capability map[string]any `yaml:",inline"`
 	}{
-		Capability: map[string]interface{}{
+		Capability: map[string]any{
 			capability: value,
 		},
 	}
