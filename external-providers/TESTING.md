@@ -2,6 +2,8 @@
 
 This directory contains end-to-end tests for each external provider. Each provider has its own `e2e-tests` directory with provider-specific test configurations.
 
+> **For comprehensive testing documentation**, see the **[Testing Guide](../docs/development/testing.md)** which covers unit tests, E2E tests, debugging, and how `make test-all` works.
+
 ## Directory Structure
 
 ```

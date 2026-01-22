@@ -2,310 +2,103 @@
 
 Welcome! This guide will help you contribute to the Konveyor Analyzer LSP project.
 
+## Developer Documentation
+
+**New to the project?** Start with our comprehensive developer documentation:
+
+- **[Development Documentation Hub](docs/development/README.md)** - Start here
+- **[Architecture Overview](docs/development/architecture.md)** - Understand the codebase
+- **[Development Setup](docs/development/setup.md)** - Set up your environment
+- **[Testing Guide](docs/development/testing.md)** - Run and write tests
+- **[Provider Development](docs/development/provider_development.md)** - Create new providers
+
 ## Table of Contents
 
-- [Development Environment Setup](#development-environment-setup)
-- [Building the Project](#building-the-project)
-- [Testing Your Changes](#testing-your-changes)
-- [Container-Based Development](#container-based-development)
+- [Quick Start](#quick-start)
+- [Development Workflow](#development-workflow)
 - [Adding New Rules](#adding-new-rules)
 - [Adding New Language Support](#adding-new-language-support)
-- [Common Issues and Solutions](#common-issues-and-solutions)
 - [Pull Request Process](#pull-request-process)
+- [Common Issues](#common-issues)
+- [Getting Help](#getting-help)
 
-## Development Environment Setup
+## Quick Start
 
-### Prerequisites
+**Prerequisites:** Go 1.23+, Podman/Docker, Make
 
-- **Go 1.23+** - For building the analyzer and Go provider
-- **Java 17+** - For Java provider (JDTLS)
-- **Node.js 18+** - For Node.js/TypeScript provider
-- **Python 3.9+** - For Python provider
-- **Podman or Docker** - For container-based testing
-- **Make** - For build automation
-
-### Clone the Repository
+For detailed setup instructions, see **[Development Setup](docs/development/setup.md)**.
 
 ```bash
+# 1. Clone repository
 git clone https://github.com/konveyor/analyzer-lsp.git
 cd analyzer-lsp
-```
 
-### Install Dependencies
-
-The project uses multiple language servers. Install them based on which providers you're working with:
-
-**TypeScript/JavaScript Provider:**
-```bash
-npm install -g typescript typescript-language-server
-```
-
-**Python Provider:**
-```bash
-python3 -m pip install 'python-lsp-server>=1.8.2'
-```
-
-**Go Provider:**
-```bash
-go install golang.org/x/tools/gopls@latest
-```
-
-**Java Provider:**
-Java provider uses Eclipse JDTLS which is bundled in the container image.
-
-## Building the Project
-
-### Local Build
-
-Build the main analyzer binary:
-
-```bash
-make analyzer
-```
-
-This creates `build/konveyor-analyzer` in the project root.
-
-Alternatively, build all components at once:
-
-```bash
+# 2. Build the project
 make build
-```
 
-This creates all binaries in the `build/` directory:
-- `build/konveyor-analyzer` - Main analyzer binary
-- `build/konveyor-analyzer-dep` - Dependency analyzer
-- `build/generic-external-provider`
-- `build/golang-dependency-provider`
-- `build/yq-external-provider`
-- `build/java-external-provider`
-- `build/dotnet-external-provider`
-
-### Building External Providers
-
-External providers (Java, Go, Python, Node.js, YAML) are built using Make:
-
-```bash
-make build-external
-```
-
-This builds:
-- `dotnet-provider`
-- `golang-dependency-provider`
-- `generic-external-provider` (handles Go, Python, Node.js)
-- `java-external-provider`
-- `yq-external-provider` (YAML)
-
-**Note for macOS users:** The `make build-external` target uses GNU sed syntax. If you encounter sed errors, you may need to manually run the sed commands with macOS syntax:
-
-```bash
-sed -i '' 's/old/new/g' file
-```
-
-### Building Container Images
-
-Build the main analyzer container:
-
-```bash
-podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
-```
-
-Build external provider containers:
-
-```bash
-# Builds all external providers
-make build-external
-```
-
-## Testing Your Changes
-
-### Quick Testing with Make Targets
-
-The easiest way to test your changes is using the automated test targets:
-
-```bash
-# Run all tests (providers + analyzer)
+# 3. Run tests
+go test ./...
 make test-all
 
-# Test all providers only
-make test-all-providers
-
-# Test specific providers
-make test-java          # Java provider
-make test-generic       # All generic providers (Go, Python, Node.js)
-make test-yaml          # YAML provider
-make test-analyzer      # Analyzer engine with all providers
-
-# Test individual generic providers
-make test-golang
-make test-python
-make test-nodejs
-```
-
-**These test targets automatically:**
-1. Build the required container images
-2. Create provider pods with test data
-3. Run the analyzer against example projects
-4. Clean up containers and volumes
-5. Validate output against expected results
-
-**Resource Requirements:**
-- **RAM**: 12GB minimum (Java provider requires significant memory)
-- **CPU**: 4 cores recommended
-- **Disk**: 20GB
-
-Check your podman machine resources:
-
-```bash
-podman machine info
-```
-
-Increase memory if needed:
-
-```bash
-podman machine stop
-podman machine set --memory 12288  # 12GB
-podman machine start
-```
-
-### Running Go Unit Tests
-
-Run the Go test suite for quick local validation:
-
-```bash
+# 4. Make changes and test
+# ... edit code ...
 go test ./...
+make test-all
 ```
 
-### Testing with Example Projects
+## Development Workflow
 
-The `examples/` directory contains test projects for each language:
+### 1. Set Up Your Environment
 
-- `examples/java/` - Java test projects
-- `examples/golang/` - Go test projects
-- `examples/nodejs/` - Node.js/TypeScript test projects
-- `examples/python/` - Python test projects
-- `examples/yaml/` - YAML/Kubernetes manifests
+See **[Development Setup](docs/development/setup.md)** for:
+- Installing LSP servers (gopls, pylsp, typescript-language-server)
+- IDE configuration (VS Code, GoLand, Vim)
+- Debugging setup
 
-### Container-Based Development (Advanced)
+### 2. Understand the Architecture
 
-Container-based testing is the **recommended approach** for comprehensive testing with all providers.
+Read **[Architecture Overview](docs/development/architecture.md)** to learn about:
+- Package organization and dependencies
+- Provider system design
+- Data flow through the analyzer
 
-#### Why Use Containers?
-
-1. **Consistent Environment** - Same environment as CI/CD
-2. **All Providers Together** - Test interactions between providers
-3. **Resource Isolation** - Prevents provider memory/CPU conflicts
-4. **Reproducible** - Matches production deployment
-
-#### Container Testing Workflow
-
-This is the workflow used for regenerating `demo-output.yaml`:
+### 3. Make Your Changes
 
 ```bash
-# 1. Build external providers with your changes
-make build-external
+# Create feature branch
+git checkout -b feature/my-feature
 
-# 2. Build analyzer-lsp container image
-podman build -t quay.io/konveyor/analyzer-lsp:latest -f Dockerfile .
+# Make changes
+# ... edit code ...
 
-# 3. Run external providers pod
-make run-external-providers-pod
+# Build
+make build
 
-# 4. Build analyzer container image
-make image-build
-
-# 5. Run demo image to generate output
-make run-demo-image
+# Test
+go test ./...
+make test-all
 ```
 
-#### Provider Pod Architecture
+### 4. Test Thoroughly
 
-The `run-external-providers-pod` target creates a pod named `analyzer` with 6 containers:
+See **[Testing Guide](docs/development/testing.md)** for:
+- Running unit tests
+- Running E2E tests
+- Understanding how `make test-all` works
+- Debugging test failures
 
-- `java-provider` - Port 14650 (Eclipse JDTLS)
-- `generic-provider` - Port 14651 (Go/Python/Node.js)
-- `dotnet-provider` - Port 14652 (.NET)
-- `yq-provider` - Port 14653 (YAML)
-- `golang-dep-provider` - Port 14654 (Go dependencies)
-- `java-dep-provider` - Port 14655 (Java dependencies)
-
-All containers share the `test-data` volume for accessing example projects.
-
-**Note:** The `test-data` volume is populated by copying from the `examples/` directories that are built into the analyzer-lsp and provider images.
-
-#### Resource Requirements
-
-**Minimum Resources for All Providers:**
-- **RAM**: 12GB (8GB causes Java provider OOM)
-- **CPU**: 4 cores
-- **Disk**: 20GB
-
-Check your podman machine resources:
-
+**Quick test commands:**
 ```bash
-podman machine info
-```
+# Unit tests
+go test ./...
 
-Increase memory if needed:
+# All E2E tests
+make test-all
 
-```bash
-podman machine stop
-podman machine set --memory 12288  # 12GB
-podman machine start
-```
-
-#### Cleaning Up Containers
-
-If you need to restart the provider pod:
-
-```bash
-# Clean up everything (pod, containers, and volume)
-make stop-external-providers-pod
-
-# Recreate pod
-make run-external-providers-pod
-```
-
-### Running Analysis Locally
-
-Create a provider settings file. See existing examples:
-- [`provider_local_settings.json`](provider_local_settings.json) - Simple local development setup
-- [`provider_container_settings.json`](provider_container_settings.json) - Container-based setup with all providers
-- [`provider_pod_local_settings.json`](provider_pod_local_settings.json) - Pod-based local setup
-
-Example provider settings file for Node.js:
-
-```json
-[
-  {
-    "name": "nodejs",
-    "binaryPath": "./build/generic-external-provider",
-    "initConfig": [{
-      "analysisMode": "full",
-      "providerSpecificConfig": {
-        "lspServerName": "nodejs",
-        "lspServerPath": "typescript-language-server",
-        "lspServerArgs": ["--stdio"],
-        "workspaceFolders": ["file:///path/to/your/project"]
-      }
-    }]
-  },
-  {
-    "name": "builtin",
-    "initConfig": [
-      {"location": "path/to/your/project/"}
-    ]
-  }
-]
-```
-
-Run analysis:
-
-```bash
-./build/konveyor-analyzer \
-  --provider-settings=provider_settings.json \
-  --rules=rule-example.yaml \
-  --output-file=output.yaml \
-  --verbose=1
+# Specific provider tests
+make test-java
+make test-generic
+make test-yaml
 ```
 
 ## Adding New Rules
@@ -446,152 +239,67 @@ Use semantic providers (nodejs, java, go, python) for symbol references, and bui
 
 ## Adding New Language Support
 
-### Steps to Add a New Provider
+For comprehensive guidance on creating providers, see **[Provider Development Guide](docs/development/provider_development.md)**.
 
-1. **Create Provider Binary** - Implement LSP wrapper for the language server
-2. **Add Dockerfile** - Create container image for the provider
-3. **Update Makefile** - Add build targets
-4. **Add Example Project** - Create test project in `examples/`
-5. **Add Test Rules** - Create rules in `rule-example.yaml`
-6. **Update Demo Output** - Regenerate `demo-output.yaml` with all providers
-7. **Documentation** - Update README and this guide
+### Quick Start: Add a Language Using Generic Provider
 
-### Example: Adding File Extension Support
+If your language has an LSP server, you can add support quickly:
 
-When adding support for new file extensions to an existing provider (e.g., adding `.tsx` to the Node.js provider):
-
-**Typical files to modify:**
-1. **Provider configuration** - Add file extension to provider's supported types
-   - Example: `external-providers/generic-external-provider/pkg/server_config/providers.go`
-2. **Test files** - Add example files using the new extension
-   - Example: `examples/nodejs/NewFileType.tsx`
-3. **Test rules** - Add rules that validate the new file type works
-   - Add to `rule-example.yaml`
-4. **Demo output** - Regenerate to include violations from new file types
-   - Run container workflow to regenerate `demo-output.yaml`
-
-**Example test rules:**
-```yaml
-# Test that builtin provider scans new file type
-- ruleID: test-new-filetype-00000
-  description: Test that new file extension is scanned
-  when:
-    builtin.filecontent:
-      pattern: "import.*LibraryName"
-      filePattern: "\\.newext$"
-
-# Test that semantic provider finds references in new file type
-- ruleID: test-new-filetype-00010
-  description: Test that provider can find references in new file type
-  when:
-    provider.referenced:
-      pattern: "LibraryName"
+```json
+{
+  "name": "rust",
+  "binaryPath": "/path/to/generic-external-provider",
+  "initConfig": [{
+    "location": "/path/to/rust/project",
+    "providerSpecificConfig": {
+      "lspServerName": "generic",
+      "lspServerPath": "rust-analyzer",
+      "workspaceFolders": ["file:///path/to/rust/project"]
+    }
+  }]
+}
 ```
 
-## Common Issues and Solutions
+### Creating a Custom Provider
 
-### Java Provider OOM (Exit 137)
+For full control or specialized analysis:
 
-**Problem:** Java provider exits with code 137 (killed by OOM)
+1. **Implement provider interfaces** - See [Provider Development Guide](docs/development/provider_development.md#implementing-provider-interfaces)
+2. **Add capabilities** - Define what your provider can analyze
+3. **Write tests** - Add E2E tests in `external-providers/your-provider/e2e-tests/`
+4. **Update build** - Add Makefile targets and Dockerfile
+5. **Document** - Update provider documentation
 
-**Symptoms:**
-- Java violations appear in errors section instead of violations section
-- Error: "connection to the language server is closed"
+## Common Issues
 
-**Solution:** Increase podman machine memory to at least 12GB:
+For detailed troubleshooting, see:
+- **[Development Setup - Troubleshooting](docs/development/setup.md#troubleshooting)**
+- **[Testing Guide - Debugging Failed Tests](docs/development/testing.md#debugging-failed-tests)**
 
+### Quick Fixes
+
+**Java Provider OOM:**
 ```bash
 podman machine stop
 podman machine set --memory 12288
 podman machine start
 ```
 
-### macOS sed Syntax Errors
-
-**Problem:** `make build-external` fails with sed errors on macOS
-
-**Error:**
-```text
-sed: 1: "external-providers/gene ...": invalid command code e
-```
-
-**Solution:** macOS sed requires different syntax. Use empty string after `-i`:
-
-```bash
-sed -i '' 's/old/new/g' file
-```
-
-### Provider Connection Refused Errors
-
-**Problem:** Error: "dial tcp [::1]:14651: connect: connection refused"
-
-**Cause:** Provider container hasn't started or crashed
-
-**Solution:**
-1. Check provider status: `podman ps -a`
-2. Check provider logs: `podman logs java-provider`
-3. Restart provider pod: `podman pod rm -f analyzer && make run-external-providers-pod`
-
-### Volume/Pod Already Exists Errors
-
-**Problem:**
-```text
-Error: volume with name test-data already exists
-Error: pod analyzer already exists
-```
-
-**Solution:** Force remove and recreate:
-
+**Pod/Volume Already Exists:**
 ```bash
 podman pod rm -f analyzer
 podman volume rm test-data
 make run-external-providers-pod
 ```
 
-### Missing node_modules in Container
+**Build Failures on macOS:**
+See [Development Setup - Troubleshooting](docs/development/setup.md#build-failures)
 
-**Problem:** TypeScript language server can't find dependencies
-
-**Solution:** Ensure the demo Dockerfile copies package.json and runs npm install:
-
-```dockerfile
-COPY examples/nodejs/package.json examples/nodejs/
-RUN cd examples/nodejs && npm install
+**Provider Not Starting:**
+```bash
+podman ps -a                    # Check status
+podman logs <provider-name>     # Check logs
 ```
-
-### Rule Pattern Not Matching
-
-**Problem:** Rule doesn't find expected violations
-
-**Debugging Steps:**
-
-1. **Verify file extension is supported:**
-   - Check provider's file extensions in `providers.go`
-   - For builtin provider, check `filePattern` regex
-
-2. **Test pattern with grep:**
-   ```bash
-   grep -r "your-pattern" examples/nodejs/
-   ```
-
-3. **Check provider logs:**
-   ```bash
-   podman logs generic-provider
-   ```
-
-4. **Verify provider is running:**
-   ```bash
-   podman ps | grep provider
-   ```
-
-5. **Try simpler pattern first:**
-   ```yaml
-   # Start simple
-   pattern: "React"
-
-   # Then make more specific
-   pattern: "import.*React"
-   ```
 
 ## Pull Request Process
 
@@ -687,7 +395,16 @@ The "ensure violation and dependency outputs are unchanged" test will fail if yo
 
 - **GitHub Issues:** [https://github.com/konveyor/analyzer-lsp/issues](https://github.com/konveyor/analyzer-lsp/issues)
 - **Konveyor Slack:** [https://kubernetes.slack.com/archives/CR85S82A2](https://kubernetes.slack.com/archives/CR85S82A2)
-- **Documentation:**
+
+**Documentation:**
+- **Developer Guides:**
+  - [Development Documentation Hub](docs/development/README.md) - Start here
+  - [Architecture Overview](docs/development/architecture.md) - Codebase structure
+  - [Development Setup](docs/development/setup.md) - Environment setup
+  - [Testing Guide](docs/development/testing.md) - Testing instructions
+  - [Provider Development](docs/development/provider_development.md) - Creating providers
+
+- **User Documentation:**
   - [README](README.md) - Quick start guide
   - [Rules Documentation](docs/rules.md) - Detailed rule syntax
   - [Providers Documentation](docs/providers.md) - Provider configuration

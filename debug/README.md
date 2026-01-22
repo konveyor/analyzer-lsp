@@ -3,6 +3,8 @@ Debugging within the container
 Given the containerized nature of the analyzer, and its dependency on external components, many times it will be convenient to debug its code
 running inside a container. This can be achieved by executing the main command with the [Go Delve debugger](https://github.com/go-delve/delve).
 
+> **For comprehensive debugging information**, see the **[Development Setup - Debugging](../docs/development/setup.md#debugging)** section which covers debugging the analyzer, providers, and LSP communication.
+
 `debug.Dockerfile` makes it possible to do this, and also to connect from an external IDE, like GoLand or VSCode.
 
 ### Debugging from Goland
