@@ -1,0 +1,26 @@
+- ruleID: test-001
+  description: Test rule for finding Java files
+  labels:
+    - category=mandatory
+    - effort=1
+    - konveyor.io/source=test
+    - konveyor.io/target=test
+  when:
+    builtin.file:
+      pattern: ".*\\.java"
+  message: Test violation found
+  effort: 1
+  category: mandatory
+- ruleID: test-002
+  description: Another test rule for XML files
+  labels:
+    - category=optional
+    - effort=3
+    - konveyor.io/source=test
+    - konveyor.io/target=test
+  when:
+    builtin.file:
+      pattern: ".*\\.xml"
+  message: XML file found
+  effort: 3
+  category: optional
