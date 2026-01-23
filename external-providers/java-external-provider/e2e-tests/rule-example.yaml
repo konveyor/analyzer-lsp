@@ -131,7 +131,7 @@
   ruleID: java-annotation-inspection-02
   when:
     java.referenced:
-      pattern: entityManagerFactory()
+      pattern: entityManagerFactory
       location: METHOD
       annotated:
         pattern: org.springframework.context.annotation.Bean
