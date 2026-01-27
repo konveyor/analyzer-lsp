@@ -1,0 +1,6 @@
+---
+- ruleID: ruleset-rule-001
+  when:
+    builtin.file:
+      pattern: "*.go"
+  message: "Rule in a ruleset directory"

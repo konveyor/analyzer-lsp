@@ -1,0 +1,54 @@
+---
+# Combines: dependency conditions, error cases, and complex scenarios
+- ruleID: dep-001
+  when:
+    java.dependency:
+      name: "junit"
+      lowerbound: "4.0.0"
+      upperbound: "5.0.0"
+  message: "Dependency rule with bounds"
+
+- ruleID: dep-002
+  when:
+    java.dependency:
+      nameregex: "com\\.example\\..*"
+  message: "Dependency rule with regex"
+
+# Error cases
+- ruleID: dep-no-name
+  when:
+    java.dependency:
+      lowerbound: "4.0.0"
+      upperbound: "5.0.0"
+  message: "Dependency without name"
+
+- ruleID: dep-no-bounds
+  when:
+    java.dependency:
+      name: "junit"
+  message: "Dependency without bounds"
+
+- ruleID: dep-with-ignore
+  when:
+    java.dependency:
+      name: "junit"
+      lowerbound: "4.0.0"
+      ignore: true
+  message: "Dependency with ignore flag"
+
+- ruleID: dep-complex-001
+  when:
+    and:
+      - java.dependency:
+          name: "junit"
+          lowerbound: "4.0.0"
+      - java.dependency:
+          nameregex: "org\\.junit\\..*"
+  message: "Complex dependency with AND"
+
+- ruleID: dep-invalid-field-001
+  when:
+    java.dependency:
+      name: "junit"
+      invalidfield: "test"
+  message: "Dependency with invalid field"

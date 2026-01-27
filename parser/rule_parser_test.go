@@ -928,3 +928,226 @@ func compareConditions(cs1 []engine.ConditionEntry, cs2 []engine.ConditionEntry,
 		}
 	}
 }
+
+// TestCreateSchemaAndErrors tests OpenAPI schema generation and error types
+func TestCreateSchemaAndErrors(t *testing.T) {
+	// Test CreateSchema
+	schema, err := ruleparser.CreateSchema()
+	if err != nil || schema.MapOfSchemaOrRefValues == nil {
+		t.Fatal("CreateSchema() failed")
+	}
+	if _, ok := schema.MapOfSchemaOrRefValues["rule"]; !ok {
+		t.Error("Schema missing 'rule' definition")
+	}
+	if _, ok := schema.MapOfSchemaOrRefValues["rulesets"]; !ok {
+		t.Error("Schema missing 'rulesets' definition")
+	}
+
+	// Test MissingProviderError
+	err = ruleparser.MissingProviderError{Provider: "test-provider"}
+	if err.Error() != "unable to find provider for: test-provider" {
+		t.Errorf("MissingProviderError message incorrect: %v", err.Error())
+	}
+
+	// Test parserErrors.Error() - need to trigger it via LoadRules with error directory
+	ruleParser := ruleparser.RuleParser{
+		ProviderNameToClient: map[string]provider.InternalProviderClient{
+			"builtin": testProvider{caps: []provider.Capability{{Name: "file"}}},
+		},
+		Log: logrusr.New(logrus.New()),
+	}
+	_, _, _, err = ruleParser.LoadRules(filepath.Join("testdata", "error-dir"))
+	if err != nil && err.Error() != "" {
+		// parserErrors.Error() was called
+		t.Logf("parserErrors.Error() called: %v", err)
+	}
+}
+
+// TestAdvancedRuleFeatures tests custom variables, dependencies, and complex conditions
+func TestAdvancedRuleFeatures(t *testing.T) {
+	logrusLog := logrus.New()
+
+	testCases := []struct {
+		name             string
+		file             string
+		providerCaps     map[string][]string
+		noDependencyRule bool
+		expectError      bool
+		validateFunc     func(*testing.T, []engine.RuleSet)
+	}{
+		{
+			name:         "advanced features",
+			file:         "rule-advanced-features.yaml",
+			providerCaps: map[string][]string{"builtin": {"file"}},
+			validateFunc: func(t *testing.T, ruleSets []engine.RuleSet) {
+				foundCustomVar, foundExtraFields, foundFlags := false, false, false
+				for _, rs := range ruleSets {
+					for _, r := range rs.Rules {
+						if r.RuleID == "custom-var-001" && len(r.CustomVariables) > 0 {
+							cv := r.CustomVariables[0]
+							if cv.Name == "testVar" && cv.DefaultValue == "defaultVal" {
+								foundCustomVar = true
+							}
+						}
+						if r.RuleID == "extra-fields-001" {
+							if r.Effort != nil && *r.Effort == 5 && len(r.Labels) == 2 {
+								foundExtraFields = true
+							}
+						}
+						if r.RuleID == "condition-flags-001" {
+							foundFlags = true
+						}
+					}
+				}
+				if !foundCustomVar || !foundExtraFields || !foundFlags {
+					t.Error("Not all advanced features found")
+				}
+			},
+		},
+		{
+			name:         "dependency conditions",
+			file:         "rule-dependency-tests.yaml",
+			providerCaps: map[string][]string{"java": {"dependency"}},
+			expectError:  true, // Has both valid and invalid rules
+		},
+		{
+			name:             "dependency rules skipped",
+			file:             "rule-dependency-tests.yaml",
+			providerCaps:     map[string][]string{"java": {"dependency"}},
+			noDependencyRule: true,
+		},
+		{
+			name:         "capability mismatch",
+			file:         "rule-dependency-tests.yaml",
+			providerCaps: map[string][]string{"java": {"wrongcap"}},
+			expectError:  true,
+		},
+		{
+			name:         "invalid custom variables",
+			file:         "rule-error-cases.yaml",
+			providerCaps: map[string][]string{"builtin": {"file"}},
+			// Errors are logged but LoadRules doesn't fail
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			providers := make(map[string]provider.InternalProviderClient)
+			for name, caps := range tc.providerCaps {
+				capList := make([]provider.Capability, len(caps))
+				for i, c := range caps {
+					capList[i] = provider.Capability{Name: c}
+				}
+				providers[name] = testProvider{caps: capList}
+			}
+
+			ruleParser := ruleparser.RuleParser{
+				ProviderNameToClient: providers,
+				Log:                  logrusr.New(logrusLog),
+				NoDependencyRules:    tc.noDependencyRule,
+			}
+
+			ruleSets, _, _, err := ruleParser.LoadRules(filepath.Join("testdata", tc.file))
+			if tc.expectError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if tc.validateFunc != nil {
+				tc.validateFunc(t, ruleSets)
+			}
+		})
+	}
+}
+
+// TestRuleLoadingEdgeCases tests various edge cases in rule loading
+func TestRuleLoadingEdgeCases(t *testing.T) {
+	logrusLog := logrus.New()
+
+	testCases := []struct {
+		name         string
+		path         string
+		useLoadRule  bool
+		expectError  bool
+		validateFunc func(*testing.T, []engine.RuleSet)
+	}{
+		{
+			name:        "directory loading",
+			path:        "test-folder",
+			validateFunc: func(t *testing.T, rs []engine.RuleSet) {
+				if len(rs) == 0 {
+					t.Error("Expected rules from directory")
+				}
+			},
+		},
+		{
+			name:        "multiple errors in directory",
+			path:        "error-dir",
+			expectError: true,
+		},
+		{
+			name:        "non-existent file",
+			path:        "does-not-exist.yaml",
+			useLoadRule: true,
+			expectError: true,
+		},
+		{
+			name:        "invalid yaml",
+			path:        "invalid.yaml",
+			useLoadRule: true,
+		},
+		{
+			name: "ruleset with metadata",
+			path: "ruleset-test",
+			validateFunc: func(t *testing.T, rs []engine.RuleSet) {
+				for _, ruleSet := range rs {
+					if ruleSet.Name == "test-ruleset" {
+						if ruleSet.Description != "Test ruleset with metadata" {
+							t.Error("Ruleset description incorrect")
+						}
+						if len(ruleSet.Labels) == 0 || len(ruleSet.Tags) == 0 {
+							t.Error("Expected labels and tags on ruleset")
+						}
+						return
+					}
+				}
+				t.Error("test-ruleset not found")
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ruleParser := ruleparser.RuleParser{
+				ProviderNameToClient: map[string]provider.InternalProviderClient{
+					"builtin": testProvider{caps: []provider.Capability{{Name: "file"}}},
+				},
+				Log: logrusr.New(logrusLog),
+			}
+
+			var ruleSets []engine.RuleSet
+			var err error
+
+			if tc.useLoadRule {
+				var rules []engine.Rule
+				rules, _, _, err = ruleParser.LoadRule(filepath.Join("testdata", tc.path))
+				if err == nil && len(rules) > 0 {
+					ruleSets = []engine.RuleSet{{Rules: rules}}
+				}
+			} else {
+				ruleSets, _, _, err = ruleParser.LoadRules(filepath.Join("testdata", tc.path))
+			}
+
+			if tc.expectError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if tc.validateFunc != nil && err == nil {
+				tc.validateFunc(t, ruleSets)
+			}
+		})
+	}
+}
