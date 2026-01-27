@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"text/template"
 
 	"github.com/go-logr/logr"
@@ -247,6 +248,16 @@ const javaProjectPom = `<?xml version="1.0" encoding="UTF-8"?>
 //
 // Returns error if directory creation, POM parsing, or file operations fail.
 func createJavaProject(_ context.Context, dir string, dependencies []JavaArtifact) error {
+	slices.SortFunc(dependencies, func(a, b JavaArtifact) int {
+		if n := strings.Compare(a.GroupId, b.GroupId); n != 0 {
+			return n
+		}
+		if n := strings.Compare(a.ArtifactId, b.ArtifactId); n != 0 {
+			return n
+		}
+		return strings.Compare(a.Version, b.Version)
+
+	})
 	tmpl := template.Must(template.New("javaProjectPom").Parse(javaProjectPom))
 
 	err := os.MkdirAll(filepath.Join(dir, "src", "main", "java"), DirPermRWX)
