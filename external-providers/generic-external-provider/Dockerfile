@@ -51,5 +51,11 @@ COPY --from=go-builder /opt/app-root/src/generic-provider/generic-external-provi
 COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 COPY external-providers/generic-external-provider/entrypoint.sh /usr/local/bin/entrypoint.sh
 
+WORKDIR /addon
+RUN chgrp -R 0 /addon && chmod -R g=u /addon 
+
+USER 1001
+ENV HOME /addon
+
 
 ENTRYPOINT ["/usr/local/bin/generic-external-provider"]

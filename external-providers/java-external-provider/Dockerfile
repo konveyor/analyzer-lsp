@@ -37,6 +37,10 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
 
 FROM base
 
+WORKDIR /addon
+RUN chgrp -R 0 /addon && chmod -R g=u /addon 
+USER 1001
+
 COPY --from=builder /opt/app-root/src/java/java-external-provider /usr/local/bin/java-external-provider
 RUN mkdir -p /root/.gradle
 COPY external-providers/java-external-provider/gradle/build.gradle /usr/local/etc/task.gradle
@@ -44,5 +48,4 @@ COPY external-providers/java-external-provider/gradle/build-v9.gradle /usr/local
 
 ENV HOME /addon
 EXPOSE 14651
-WORKDIR /addon
 ENTRYPOINT ["java-external-provider", "--port", "14651"]
