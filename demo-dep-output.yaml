@@ -353,7 +353,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/antlr/antlr/2.7.7
+    prefix: file:///addon/.m2/repository/antlr/antlr/2.7.7
   - name: ch.qos.logback.logback-classic
     version: 1.1.7
     type: compile
@@ -365,7 +365,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/ch/qos/logback/logback-classic/1.1.7
+    prefix: file:///addon/.m2/repository/ch/qos/logback/logback-classic/1.1.7
   - name: ch.qos.logback.logback-core
     version: 1.1.7
     type: compile
@@ -385,7 +385,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/ch/qos/logback/logback-core/1.1.7
+    prefix: file:///addon/.m2/repository/ch/qos/logback/logback-core/1.1.7
   - name: com.fasterxml.classmate
     version: 1.5.1
     type: compile
@@ -405,7 +405,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/classmate/1.5.1
+    prefix: file:///addon/.m2/repository/com/fasterxml/classmate/1.5.1
   - name: com.fasterxml.jackson.core.jackson-annotations
     version: 2.12.3
     type: compile
@@ -425,7 +425,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.12.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.12.3
   - name: com.fasterxml.jackson.core.jackson-core
     version: 2.12.3
     type: compile
@@ -437,7 +437,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.12.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.12.3
   - name: com.fasterxml.jackson.core.jackson-databind
     version: 2.12.3
     type: compile
@@ -449,7 +449,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.12.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.12.3
   - name: com.fasterxml.jackson.datatype.jackson-datatype-jsr310
     version: 2.12.3
     type: runtime
@@ -469,7 +469,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.12.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.12.3
   - name: com.oracle.database.jdbc.ojdbc8
     version: 21.1.0.0
     type: compile
@@ -481,7 +481,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/oracle/database/jdbc/ojdbc8/21.1.0.0
+    prefix: file:///addon/.m2/repository/com/oracle/database/jdbc/ojdbc8/21.1.0.0
   - name: com.sun.istack.istack-commons-runtime
     version: 3.0.7
     type: compile
@@ -501,7 +501,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/sun/istack/istack-commons-runtime/3.0.7
+    prefix: file:///addon/.m2/repository/com/sun/istack/istack-commons-runtime/3.0.7
   - name: com.sun.xml.fastinfoset.FastInfoset
     version: 1.2.15
     type: compile
@@ -521,7 +521,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/sun/xml/fastinfoset/FastInfoset/1.2.15
+    prefix: file:///addon/.m2/repository/com/sun/xml/fastinfoset/FastInfoset/1.2.15
   - name: io.konveyor.demo.config-utils
     version: 1.0.0
     type: compile
@@ -533,7 +533,7 @@
     labels:
     - konveyor.io/dep-source=internal
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/konveyor/demo/config-utils/1.0.0
+    prefix: file:///addon/.m2/repository/io/konveyor/demo/config-utils/1.0.0
   - name: io.micrometer.micrometer-core
     version: 1.7.0
     type: compile
@@ -553,7 +553,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/micrometer/micrometer-core/1.7.0
+    prefix: file:///addon/.m2/repository/io/micrometer/micrometer-core/1.7.0
   - name: jakarta.annotation.jakarta.annotation-api
     version: 1.3.5
     type: compile
@@ -573,7 +573,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/annotation/jakarta.annotation-api/1.3.5
+    prefix: file:///addon/.m2/repository/jakarta/annotation/jakarta.annotation-api/1.3.5
   - name: jakarta.validation.jakarta.validation-api
     version: 2.0.2
     type: compile
@@ -593,7 +593,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/validation/jakarta.validation-api/2.0.2
+    prefix: file:///addon/.m2/repository/jakarta/validation/jakarta.validation-api/2.0.2
   - name: javax.activation.javax.activation-api
     version: 1.2.0
     type: compile
@@ -613,7 +613,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/javax/activation/javax.activation-api/1.2.0
+    prefix: file:///addon/.m2/repository/javax/activation/javax.activation-api/1.2.0
   - name: javax.persistence.javax.persistence-api
     version: "2.2"
     type: compile
@@ -633,7 +633,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/javax/persistence/javax.persistence-api/2.2
+    prefix: file:///addon/.m2/repository/javax/persistence/javax.persistence-api/2.2
   - name: javax.xml.bind.jaxb-api
     version: 2.3.1
     type: compile
@@ -653,7 +653,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/javax/xml/bind/jaxb-api/2.3.1
+    prefix: file:///addon/.m2/repository/javax/xml/bind/jaxb-api/2.3.1
   - name: net.bytebuddy.byte-buddy
     version: 1.10.22
     type: compile
@@ -673,7 +673,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/net/bytebuddy/byte-buddy/1.10.22
+    prefix: file:///addon/.m2/repository/net/bytebuddy/byte-buddy/1.10.22
   - name: org.apache.logging.log4j.log4j-api
     version: 2.14.1
     type: compile
@@ -693,7 +693,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-api/2.14.1
+    prefix: file:///addon/.m2/repository/org/apache/logging/log4j/log4j-api/2.14.1
   - name: org.apache.logging.log4j.log4j-to-slf4j
     version: 2.14.1
     type: compile
@@ -713,7 +713,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.14.1
+    prefix: file:///addon/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.14.1
   - name: org.apache.tomcat.tomcat-jdbc
     version: 9.0.46
     type: runtime
@@ -725,7 +725,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/tomcat/tomcat-jdbc/9.0.46
+    prefix: file:///addon/.m2/repository/org/apache/tomcat/tomcat-jdbc/9.0.46
   - name: org.apache.tomcat.tomcat-juli
     version: 9.0.46
     type: runtime
@@ -745,7 +745,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/tomcat/tomcat-juli/9.0.46
+    prefix: file:///addon/.m2/repository/org/apache/tomcat/tomcat-juli/9.0.46
   - name: org.apache.tomcat.tomcat-servlet-api
     version: 9.0.46
     type: provided
@@ -757,7 +757,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/tomcat/tomcat-servlet-api/9.0.46
+    prefix: file:///addon/.m2/repository/org/apache/tomcat/tomcat-servlet-api/9.0.46
   - name: org.aspectj.aspectjrt
     version: 1.9.6
     type: compile
@@ -777,7 +777,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/aspectj/aspectjrt/1.9.6
+    prefix: file:///addon/.m2/repository/org/aspectj/aspectjrt/1.9.6
   - name: org.checkerframework.checker-qual
     version: 3.5.0
     type: runtime
@@ -797,7 +797,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/checkerframework/checker-qual/3.5.0
+    prefix: file:///addon/.m2/repository/org/checkerframework/checker-qual/3.5.0
   - name: org.dom4j.dom4j
     version: 2.1.3
     type: compile
@@ -817,7 +817,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/dom4j/dom4j/2.1.3
+    prefix: file:///addon/.m2/repository/org/dom4j/dom4j/2.1.3
   - name: org.glassfish.jaxb.jaxb-runtime
     version: 2.3.1
     type: compile
@@ -837,7 +837,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/glassfish/jaxb/jaxb-runtime/2.3.1
+    prefix: file:///addon/.m2/repository/org/glassfish/jaxb/jaxb-runtime/2.3.1
   - name: org.glassfish.jaxb.txw2
     version: 2.3.1
     type: compile
@@ -857,7 +857,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/glassfish/jaxb/txw2/2.3.1
+    prefix: file:///addon/.m2/repository/org/glassfish/jaxb/txw2/2.3.1
   - name: org.hdrhistogram.HdrHistogram
     version: 2.1.12
     type: compile
@@ -877,7 +877,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/hdrhistogram/HdrHistogram/2.1.12
+    prefix: file:///addon/.m2/repository/org/hdrhistogram/HdrHistogram/2.1.12
   - name: org.hibernate.common.hibernate-commons-annotations
     version: 5.1.2.Final
     type: compile
@@ -897,7 +897,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/hibernate/common/hibernate-commons-annotations/5.1.2.Final
+    prefix: file:///addon/.m2/repository/org/hibernate/common/hibernate-commons-annotations/5.1.2.Final
   - name: org.hibernate.hibernate-core
     version: 5.4.32.Final
     type: compile
@@ -917,7 +917,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/hibernate/hibernate-core/5.4.32.Final
+    prefix: file:///addon/.m2/repository/org/hibernate/hibernate-core/5.4.32.Final
   - name: org.hibernate.hibernate-entitymanager
     version: 5.4.32.Final
     type: compile
@@ -929,7 +929,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
+    prefix: file:///addon/.m2/repository/org/hibernate/hibernate-entitymanager/5.4.32.Final
   - name: org.hibernate.validator.hibernate-validator
     version: 6.2.0.Final
     type: compile
@@ -941,7 +941,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/hibernate/validator/hibernate-validator/6.2.0.Final
+    prefix: file:///addon/.m2/repository/org/hibernate/validator/hibernate-validator/6.2.0.Final
   - name: org.javassist.javassist
     version: 3.27.0-GA
     type: compile
@@ -961,7 +961,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/javassist/javassist/3.27.0-GA
+    prefix: file:///addon/.m2/repository/org/javassist/javassist/3.27.0-GA
   - name: org.jboss.jandex
     version: 2.2.3.Final
     type: compile
@@ -981,7 +981,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jboss/jandex/2.2.3.Final
+    prefix: file:///addon/.m2/repository/org/jboss/jandex/2.2.3.Final
   - name: org.jboss.logging.jboss-logging
     version: 3.4.1.Final
     type: compile
@@ -1001,7 +1001,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jboss/logging/jboss-logging/3.4.1.Final
+    prefix: file:///addon/.m2/repository/org/jboss/logging/jboss-logging/3.4.1.Final
   - name: org.jboss.spec.javax.transaction.jboss-transaction-api_1.2_spec
     version: 1.1.1.Final
     type: compile
@@ -1021,7 +1021,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.1.1.Final
+    prefix: file:///addon/.m2/repository/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.1.1.Final
   - name: org.jvnet.staxex.stax-ex
     version: "1.8"
     type: compile
@@ -1041,7 +1041,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jvnet/staxex/stax-ex/1.8
+    prefix: file:///addon/.m2/repository/org/jvnet/staxex/stax-ex/1.8
   - name: org.latencyutils.LatencyUtils
     version: 2.0.3
     type: runtime
@@ -1061,7 +1061,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/latencyutils/LatencyUtils/2.0.3
+    prefix: file:///addon/.m2/repository/org/latencyutils/LatencyUtils/2.0.3
   - name: org.postgresql.postgresql
     version: 42.2.23
     type: compile
@@ -1073,7 +1073,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/postgresql/postgresql/42.2.23
+    prefix: file:///addon/.m2/repository/org/postgresql/postgresql/42.2.23
   - name: org.slf4j.jul-to-slf4j
     version: 1.7.30
     type: compile
@@ -1093,7 +1093,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/slf4j/jul-to-slf4j/1.7.30
+    prefix: file:///addon/.m2/repository/org/slf4j/jul-to-slf4j/1.7.30
   - name: org.slf4j.slf4j-api
     version: 1.7.26
     type: compile
@@ -1113,7 +1113,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/slf4j/slf4j-api/1.7.26
+    prefix: file:///addon/.m2/repository/org/slf4j/slf4j-api/1.7.26
   - name: org.springframework.boot.spring-boot
     version: 2.5.0
     type: compile
@@ -1133,7 +1133,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot/2.5.0
+    prefix: file:///addon/.m2/repository/org/springframework/boot/spring-boot/2.5.0
   - name: org.springframework.boot.spring-boot-actuator
     version: 2.5.0
     type: compile
@@ -1153,7 +1153,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-actuator/2.5.0
+    prefix: file:///addon/.m2/repository/org/springframework/boot/spring-boot-actuator/2.5.0
   - name: org.springframework.boot.spring-boot-actuator-autoconfigure
     version: 2.5.0
     type: compile
@@ -1173,7 +1173,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-actuator-autoconfigure/2.5.0
+    prefix: file:///addon/.m2/repository/org/springframework/boot/spring-boot-actuator-autoconfigure/2.5.0
   - name: org.springframework.boot.spring-boot-autoconfigure
     version: 2.5.0
     type: compile
@@ -1193,7 +1193,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.5.0
+    prefix: file:///addon/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.5.0
   - name: org.springframework.boot.spring-boot-starter
     version: 2.5.0
     type: compile
@@ -1213,7 +1213,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter/2.5.0
+    prefix: file:///addon/.m2/repository/org/springframework/boot/spring-boot-starter/2.5.0
   - name: org.springframework.boot.spring-boot-starter-actuator
     version: 2.5.0
     type: compile
@@ -1225,7 +1225,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
+    prefix: file:///addon/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.5.0
   - name: org.springframework.boot.spring-boot-starter-logging
     version: 2.5.0
     type: compile
@@ -1245,7 +1245,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.5.0
+    prefix: file:///addon/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.5.0
   - name: org.springframework.data.spring-data-commons
     version: 2.5.1
     type: compile
@@ -1265,7 +1265,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/data/spring-data-commons/2.5.1
+    prefix: file:///addon/.m2/repository/org/springframework/data/spring-data-commons/2.5.1
   - name: org.springframework.data.spring-data-jpa
     version: 2.5.1
     type: compile
@@ -1277,7 +1277,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
+    prefix: file:///addon/.m2/repository/org/springframework/data/spring-data-jpa/2.5.1
   - name: org.springframework.spring-aop
     version: 5.3.7
     type: compile
@@ -1297,7 +1297,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-aop/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-aop/5.3.7
   - name: org.springframework.spring-beans
     version: 5.3.7
     type: compile
@@ -1317,7 +1317,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-beans/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-beans/5.3.7
   - name: org.springframework.spring-context
     version: 5.3.7
     type: compile
@@ -1337,7 +1337,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-context/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-context/5.3.7
   - name: org.springframework.spring-core
     version: 5.3.7
     type: compile
@@ -1357,7 +1357,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-core/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-core/5.3.7
   - name: org.springframework.spring-expression
     version: 5.3.7
     type: compile
@@ -1377,7 +1377,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-expression/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-expression/5.3.7
   - name: org.springframework.spring-jcl
     version: 5.3.7
     type: compile
@@ -1397,7 +1397,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-jcl/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-jcl/5.3.7
   - name: org.springframework.spring-jdbc
     version: 5.3.7
     type: compile
@@ -1409,7 +1409,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-jdbc/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-jdbc/5.3.7
   - name: org.springframework.spring-orm
     version: 5.3.7
     type: compile
@@ -1429,7 +1429,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-orm/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-orm/5.3.7
   - name: org.springframework.spring-tx
     version: 5.3.7
     type: compile
@@ -1449,7 +1449,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-tx/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-tx/5.3.7
   - name: org.springframework.spring-web
     version: 5.3.7
     type: compile
@@ -1461,7 +1461,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-web/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-web/5.3.7
   - name: org.springframework.spring-webmvc
     version: 5.3.7
     type: compile
@@ -1473,7 +1473,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/springframework/spring-webmvc/5.3.7
+    prefix: file:///addon/.m2/repository/org/springframework/spring-webmvc/5.3.7
   - name: org.yaml.snakeyaml
     version: "1.28"
     type: compile
@@ -1493,7 +1493,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.28
+    prefix: file:///addon/.m2/repository/org/yaml/snakeyaml/1.28
 - fileURI: file:///analyzer-lsp/examples/gradle-multi-project-example/build.gradle
   provider: java
   dependencies:
@@ -1651,7 +1651,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.11.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.11.3
   - name: com.fasterxml.jackson.core.jackson-core
     version: 2.11.3
     type: compile
@@ -1671,7 +1671,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.11.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.11.3
   - name: com.fasterxml.jackson.core.jackson-databind
     version: 2.11.3
     type: compile
@@ -1691,7 +1691,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.11.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.11.3
   - name: com.fasterxml.jackson.dataformat.jackson-dataformat-yaml
     version: 2.11.3
     type: compile
@@ -1711,7 +1711,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.11.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.11.3
   - name: com.fasterxml.jackson.datatype.jackson-datatype-jdk8
     version: 2.11.3
     type: compile
@@ -1731,7 +1731,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.11.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.11.3
   - name: com.fasterxml.jackson.datatype.jackson-datatype-jsr310
     version: 2.11.3
     type: compile
@@ -1751,7 +1751,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.11.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.11.3
   - name: com.fasterxml.jackson.module.jackson-module-jaxb-annotations
     version: 2.11.3
     type: compile
@@ -1771,7 +1771,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/module/jackson-module-jaxb-annotations/2.11.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/module/jackson-module-jaxb-annotations/2.11.3
   - name: com.fasterxml.jackson.module.jackson-module-parameter-names
     version: 2.11.3
     type: compile
@@ -1791,7 +1791,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.11.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.11.3
   - name: com.github.mifmif.generex
     version: 1.0.2
     type: compile
@@ -1811,7 +1811,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/github/mifmif/generex/1.0.2
+    prefix: file:///addon/.m2/repository/com/github/mifmif/generex/1.0.2
   - name: com.google.auto.auto-common
     version: "0.10"
     type: compile
@@ -1831,7 +1831,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/google/auto/auto-common/0.10
+    prefix: file:///addon/.m2/repository/com/google/auto/auto-common/0.10
   - name: com.google.auto.service.auto-service
     version: 1.0-rc7
     type: compile
@@ -1851,7 +1851,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/google/auto/service/auto-service/1.0-rc7
+    prefix: file:///addon/.m2/repository/com/google/auto/service/auto-service/1.0-rc7
   - name: com.google.auto.service.auto-service-annotations
     version: 1.0-rc7
     type: compile
@@ -1871,7 +1871,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/google/auto/service/auto-service-annotations/1.0-rc7
+    prefix: file:///addon/.m2/repository/com/google/auto/service/auto-service-annotations/1.0-rc7
   - name: com.google.code.findbugs.jsr305
     version: 3.0.2
     type: compile
@@ -1891,7 +1891,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/google/code/findbugs/jsr305/3.0.2
+    prefix: file:///addon/.m2/repository/com/google/code/findbugs/jsr305/3.0.2
   - name: com.google.errorprone.error_prone_annotations
     version: 2.2.0
     type: compile
@@ -1911,7 +1911,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/google/errorprone/error_prone_annotations/2.2.0
+    prefix: file:///addon/.m2/repository/com/google/errorprone/error_prone_annotations/2.2.0
   - name: com.google.guava.failureaccess
     version: 1.0.1
     type: compile
@@ -1931,7 +1931,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/google/guava/failureaccess/1.0.1
+    prefix: file:///addon/.m2/repository/com/google/guava/failureaccess/1.0.1
   - name: com.google.guava.guava
     version: 30.0-jre
     type: compile
@@ -1951,7 +1951,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/google/guava/guava/30.0-jre
+    prefix: file:///addon/.m2/repository/com/google/guava/guava/30.0-jre
   - name: com.google.guava.listenablefuture
     version: 9999.0-empty-to-avoid-conflict-with-guava
     type: compile
@@ -1971,7 +1971,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava
+    prefix: file:///addon/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava
   - name: com.google.j2objc.j2objc-annotations
     version: "1.3"
     type: compile
@@ -1991,7 +1991,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/google/j2objc/j2objc-annotations/1.3
+    prefix: file:///addon/.m2/repository/com/google/j2objc/j2objc-annotations/1.3
   - name: com.squareup.javapoet
     version: 1.13.0
     type: compile
@@ -2011,7 +2011,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/squareup/javapoet/1.13.0
+    prefix: file:///addon/.m2/repository/com/squareup/javapoet/1.13.0
   - name: com.squareup.okhttp3.logging-interceptor
     version: 3.14.9
     type: compile
@@ -2031,7 +2031,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/squareup/okhttp3/logging-interceptor/3.14.9
+    prefix: file:///addon/.m2/repository/com/squareup/okhttp3/logging-interceptor/3.14.9
   - name: com.squareup.okhttp3.okhttp
     version: 3.14.9
     type: compile
@@ -2051,7 +2051,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/squareup/okhttp3/okhttp/3.14.9
+    prefix: file:///addon/.m2/repository/com/squareup/okhttp3/okhttp/3.14.9
   - name: com.squareup.okio.okio
     version: 1.17.2
     type: compile
@@ -2071,7 +2071,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/squareup/okio/okio/1.17.2
+    prefix: file:///addon/.m2/repository/com/squareup/okio/okio/1.17.2
   - name: dk.brics.automaton.automaton
     version: 1.11-8
     type: compile
@@ -2091,7 +2091,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/dk/brics/automaton/automaton/1.11-8
+    prefix: file:///addon/.m2/repository/dk/brics/automaton/automaton/1.11-8
   - name: io.fabric8.kubernetes-client
     version: 4.12.0
     type: compile
@@ -2111,7 +2111,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-client/4.12.0
   - name: io.fabric8.kubernetes-model-admissionregistration
     version: 4.12.0
     type: compile
@@ -2131,7 +2131,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-admissionregistration/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-admissionregistration/4.12.0
   - name: io.fabric8.kubernetes-model-apiextensions
     version: 4.12.0
     type: compile
@@ -2151,7 +2151,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apiextensions/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-apiextensions/4.12.0
   - name: io.fabric8.kubernetes-model-apps
     version: 4.12.0
     type: compile
@@ -2171,7 +2171,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apps/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-apps/4.12.0
   - name: io.fabric8.kubernetes-model-autoscaling
     version: 4.12.0
     type: compile
@@ -2191,7 +2191,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-autoscaling/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-autoscaling/4.12.0
   - name: io.fabric8.kubernetes-model-batch
     version: 4.12.0
     type: compile
@@ -2211,7 +2211,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-batch/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-batch/4.12.0
   - name: io.fabric8.kubernetes-model-certificates
     version: 4.12.0
     type: compile
@@ -2231,7 +2231,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-certificates/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-certificates/4.12.0
   - name: io.fabric8.kubernetes-model-common
     version: 4.12.0
     type: compile
@@ -2251,7 +2251,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-common/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-common/4.12.0
   - name: io.fabric8.kubernetes-model-coordination
     version: 4.12.0
     type: compile
@@ -2271,7 +2271,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-coordination/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-coordination/4.12.0
   - name: io.fabric8.kubernetes-model-core
     version: 4.12.0
     type: compile
@@ -2291,7 +2291,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-core/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-core/4.12.0
   - name: io.fabric8.kubernetes-model-discovery
     version: 4.12.0
     type: compile
@@ -2311,7 +2311,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-discovery/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-discovery/4.12.0
   - name: io.fabric8.kubernetes-model-events
     version: 4.12.0
     type: compile
@@ -2331,7 +2331,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-events/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-events/4.12.0
   - name: io.fabric8.kubernetes-model-extensions
     version: 4.12.0
     type: compile
@@ -2351,7 +2351,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-extensions/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-extensions/4.12.0
   - name: io.fabric8.kubernetes-model-metrics
     version: 4.12.0
     type: compile
@@ -2371,7 +2371,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-metrics/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-metrics/4.12.0
   - name: io.fabric8.kubernetes-model-networking
     version: 4.12.0
     type: compile
@@ -2391,7 +2391,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-networking/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-networking/4.12.0
   - name: io.fabric8.kubernetes-model-policy
     version: 4.12.0
     type: compile
@@ -2411,7 +2411,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-policy/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-policy/4.12.0
   - name: io.fabric8.kubernetes-model-rbac
     version: 4.12.0
     type: compile
@@ -2431,7 +2431,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-rbac/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-rbac/4.12.0
   - name: io.fabric8.kubernetes-model-scheduling
     version: 4.12.0
     type: compile
@@ -2451,7 +2451,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-scheduling/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-scheduling/4.12.0
   - name: io.fabric8.kubernetes-model-settings
     version: 4.12.0
     type: compile
@@ -2471,7 +2471,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-settings/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-settings/4.12.0
   - name: io.fabric8.kubernetes-model-storageclass
     version: 4.12.0
     type: compile
@@ -2491,7 +2491,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-storageclass/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-storageclass/4.12.0
   - name: io.fabric8.openshift-client
     version: 4.12.0
     type: compile
@@ -2511,7 +2511,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/openshift-client/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/openshift-client/4.12.0
   - name: io.fabric8.openshift-model
     version: 4.12.0
     type: compile
@@ -2531,7 +2531,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/openshift-model/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/openshift-model/4.12.0
   - name: io.fabric8.openshift-model-console
     version: 4.12.0
     type: compile
@@ -2551,7 +2551,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/openshift-model-console/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/openshift-model-console/4.12.0
   - name: io.fabric8.openshift-model-monitoring
     version: 4.12.0
     type: compile
@@ -2571,7 +2571,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/openshift-model-monitoring/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/openshift-model-monitoring/4.12.0
   - name: io.fabric8.openshift-model-operator
     version: 4.12.0
     type: compile
@@ -2591,7 +2591,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/openshift-model-operator/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/openshift-model-operator/4.12.0
   - name: io.fabric8.openshift-model-operatorhub
     version: 4.12.0
     type: compile
@@ -2611,7 +2611,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/openshift-model-operatorhub/4.12.0
+    prefix: file:///addon/.m2/repository/io/fabric8/openshift-model-operatorhub/4.12.0
   - name: io.fabric8.zjsonpatch
     version: 0.3.0
     type: compile
@@ -2631,7 +2631,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/zjsonpatch/0.3.0
+    prefix: file:///addon/.m2/repository/io/fabric8/zjsonpatch/0.3.0
   - name: io.javaoperatorsdk.operator-framework
     version: 1.6.2
     type: compile
@@ -2643,7 +2643,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/javaoperatorsdk/operator-framework/1.6.2
+    prefix: file:///addon/.m2/repository/io/javaoperatorsdk/operator-framework/1.6.2
   - name: io.javaoperatorsdk.operator-framework-core
     version: 1.6.2
     type: compile
@@ -2663,7 +2663,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/javaoperatorsdk/operator-framework-core/1.6.2
+    prefix: file:///addon/.m2/repository/io/javaoperatorsdk/operator-framework-core/1.6.2
   - name: io.javaoperatorsdk.operator-framework-quarkus-extension
     version: 1.6.2
     type: compile
@@ -2675,7 +2675,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/javaoperatorsdk/operator-framework-quarkus-extension/1.6.2
+    prefix: file:///addon/.m2/repository/io/javaoperatorsdk/operator-framework-quarkus-extension/1.6.2
   - name: io.javaoperatorsdk.operator-framework-samples-common
     version: 1.6.2
     type: compile
@@ -2687,7 +2687,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/javaoperatorsdk/operator-framework-samples-common/1.6.2
+    prefix: file:///addon/.m2/repository/io/javaoperatorsdk/operator-framework-samples-common/1.6.2
   - name: io.netty.netty-buffer
     version: 4.1.49.Final
     type: compile
@@ -2707,7 +2707,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-buffer/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-buffer/4.1.49.Final
   - name: io.netty.netty-codec
     version: 4.1.49.Final
     type: compile
@@ -2727,7 +2727,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-codec/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-codec/4.1.49.Final
   - name: io.netty.netty-codec-dns
     version: 4.1.49.Final
     type: compile
@@ -2747,7 +2747,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-codec-dns/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-codec-dns/4.1.49.Final
   - name: io.netty.netty-codec-http
     version: 4.1.49.Final
     type: compile
@@ -2767,7 +2767,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-codec-http/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-codec-http/4.1.49.Final
   - name: io.netty.netty-codec-http2
     version: 4.1.49.Final
     type: compile
@@ -2787,7 +2787,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-codec-http2/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-codec-http2/4.1.49.Final
   - name: io.netty.netty-codec-socks
     version: 4.1.49.Final
     type: compile
@@ -2807,7 +2807,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-codec-socks/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-codec-socks/4.1.49.Final
   - name: io.netty.netty-common
     version: 4.1.49.Final
     type: compile
@@ -2827,7 +2827,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-common/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-common/4.1.49.Final
   - name: io.netty.netty-handler
     version: 4.1.49.Final
     type: compile
@@ -2847,7 +2847,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-handler/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-handler/4.1.49.Final
   - name: io.netty.netty-handler-proxy
     version: 4.1.49.Final
     type: compile
@@ -2867,7 +2867,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-handler-proxy/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-handler-proxy/4.1.49.Final
   - name: io.netty.netty-resolver
     version: 4.1.49.Final
     type: compile
@@ -2887,7 +2887,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-resolver/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-resolver/4.1.49.Final
   - name: io.netty.netty-resolver-dns
     version: 4.1.49.Final
     type: compile
@@ -2907,7 +2907,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-resolver-dns/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-resolver-dns/4.1.49.Final
   - name: io.netty.netty-transport
     version: 4.1.49.Final
     type: compile
@@ -2927,7 +2927,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-transport/4.1.49.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-transport/4.1.49.Final
   - name: io.quarkus.arc.arc
     version: 1.10.5.Final
     type: compile
@@ -2947,7 +2947,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/arc/arc/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/arc/arc/1.10.5.Final
   - name: io.quarkus.quarkus-arc
     version: 1.10.5.Final
     type: compile
@@ -2967,7 +2967,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-arc/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-arc/1.10.5.Final
   - name: io.quarkus.quarkus-bootstrap-runner
     version: 1.10.5.Final
     type: compile
@@ -2987,7 +2987,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-bootstrap-runner/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-bootstrap-runner/1.10.5.Final
   - name: io.quarkus.quarkus-container-image-jib
     version: 1.10.5.Final
     type: compile
@@ -3007,7 +3007,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-container-image-jib/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-container-image-jib/1.10.5.Final
   - name: io.quarkus.quarkus-core
     version: 1.10.5.Final
     type: compile
@@ -3027,7 +3027,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-core/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-core/1.10.5.Final
   - name: io.quarkus.quarkus-development-mode-spi
     version: 1.10.5.Final
     type: compile
@@ -3047,7 +3047,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-development-mode-spi/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-development-mode-spi/1.10.5.Final
   - name: io.quarkus.quarkus-ide-launcher
     version: 1.10.5.Final
     type: compile
@@ -3067,7 +3067,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-ide-launcher/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-ide-launcher/1.10.5.Final
   - name: io.quarkus.quarkus-jackson
     version: 1.10.5.Final
     type: compile
@@ -3087,7 +3087,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-jackson/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-jackson/1.10.5.Final
   - name: io.quarkus.quarkus-jsonp
     version: 1.10.5.Final
     type: compile
@@ -3107,7 +3107,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-jsonp/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-jsonp/1.10.5.Final
   - name: io.quarkus.quarkus-kubernetes
     version: 1.10.5.Final
     type: compile
@@ -3127,7 +3127,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-kubernetes/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-kubernetes/1.10.5.Final
   - name: io.quarkus.quarkus-kubernetes-client
     version: 1.10.5.Final
     type: compile
@@ -3147,7 +3147,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-kubernetes-client/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-kubernetes-client/1.10.5.Final
   - name: io.quarkus.quarkus-kubernetes-client-internal
     version: 1.10.5.Final
     type: compile
@@ -3167,7 +3167,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-kubernetes-client-internal/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-kubernetes-client-internal/1.10.5.Final
   - name: io.quarkus.quarkus-netty
     version: 1.10.5.Final
     type: compile
@@ -3187,7 +3187,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-netty/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-netty/1.10.5.Final
   - name: io.quarkus.quarkus-security-runtime-spi
     version: 1.10.5.Final
     type: compile
@@ -3207,7 +3207,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-security-runtime-spi/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-security-runtime-spi/1.10.5.Final
   - name: io.quarkus.quarkus-smallrye-health
     version: 1.10.5.Final
     type: compile
@@ -3227,7 +3227,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-smallrye-health/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-smallrye-health/1.10.5.Final
   - name: io.quarkus.quarkus-vertx-core
     version: 1.10.5.Final
     type: compile
@@ -3247,7 +3247,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-vertx-core/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-vertx-core/1.10.5.Final
   - name: io.quarkus.quarkus-vertx-http
     version: 1.10.5.Final
     type: compile
@@ -3267,7 +3267,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/quarkus-vertx-http/1.10.5.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/quarkus-vertx-http/1.10.5.Final
   - name: io.quarkus.security.quarkus-security
     version: 1.1.3.Final
     type: compile
@@ -3287,7 +3287,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/quarkus/security/quarkus-security/1.1.3.Final
+    prefix: file:///addon/.m2/repository/io/quarkus/security/quarkus-security/1.1.3.Final
   - name: io.smallrye.common.smallrye-common-annotation
     version: 1.4.1
     type: compile
@@ -3307,7 +3307,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-annotation/1.4.1
+    prefix: file:///addon/.m2/repository/io/smallrye/common/smallrye-common-annotation/1.4.1
   - name: io.smallrye.common.smallrye-common-classloader
     version: 1.4.1
     type: compile
@@ -3327,7 +3327,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-classloader/1.4.1
+    prefix: file:///addon/.m2/repository/io/smallrye/common/smallrye-common-classloader/1.4.1
   - name: io.smallrye.common.smallrye-common-constraint
     version: 1.4.1
     type: compile
@@ -3347,7 +3347,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-constraint/1.4.1
+    prefix: file:///addon/.m2/repository/io/smallrye/common/smallrye-common-constraint/1.4.1
   - name: io.smallrye.common.smallrye-common-expression
     version: 1.4.1
     type: compile
@@ -3367,7 +3367,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-expression/1.4.1
+    prefix: file:///addon/.m2/repository/io/smallrye/common/smallrye-common-expression/1.4.1
   - name: io.smallrye.common.smallrye-common-function
     version: 1.4.1
     type: compile
@@ -3387,7 +3387,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-function/1.4.1
+    prefix: file:///addon/.m2/repository/io/smallrye/common/smallrye-common-function/1.4.1
   - name: io.smallrye.common.smallrye-common-io
     version: 1.4.1
     type: compile
@@ -3407,7 +3407,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/common/smallrye-common-io/1.4.1
+    prefix: file:///addon/.m2/repository/io/smallrye/common/smallrye-common-io/1.4.1
   - name: io.smallrye.config.smallrye-config
     version: 1.9.3
     type: compile
@@ -3427,7 +3427,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/config/smallrye-config/1.9.3
+    prefix: file:///addon/.m2/repository/io/smallrye/config/smallrye-config/1.9.3
   - name: io.smallrye.config.smallrye-config-common
     version: 1.9.3
     type: compile
@@ -3447,7 +3447,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/config/smallrye-config-common/1.9.3
+    prefix: file:///addon/.m2/repository/io/smallrye/config/smallrye-config-common/1.9.3
   - name: io.smallrye.config.smallrye-config-source-yaml
     version: 1.9.3
     type: compile
@@ -3467,7 +3467,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/config/smallrye-config-source-yaml/1.9.3
+    prefix: file:///addon/.m2/repository/io/smallrye/config/smallrye-config-source-yaml/1.9.3
   - name: io.smallrye.reactive.mutiny
     version: 0.11.0
     type: compile
@@ -3487,7 +3487,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/reactive/mutiny/0.11.0
+    prefix: file:///addon/.m2/repository/io/smallrye/reactive/mutiny/0.11.0
   - name: io.smallrye.smallrye-health
     version: 2.2.5
     type: compile
@@ -3507,7 +3507,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/smallrye-health/2.2.5
+    prefix: file:///addon/.m2/repository/io/smallrye/smallrye-health/2.2.5
   - name: io.smallrye.smallrye-health-api
     version: 2.2.5
     type: compile
@@ -3527,7 +3527,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/smallrye-health-api/2.2.5
+    prefix: file:///addon/.m2/repository/io/smallrye/smallrye-health-api/2.2.5
   - name: io.smallrye.smallrye-health-provided-checks
     version: 2.2.5
     type: compile
@@ -3547,7 +3547,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/smallrye-health-provided-checks/2.2.5
+    prefix: file:///addon/.m2/repository/io/smallrye/smallrye-health-provided-checks/2.2.5
   - name: io.smallrye.smallrye-health-ui
     version: 2.2.5
     type: compile
@@ -3567,7 +3567,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/smallrye/smallrye-health-ui/2.2.5
+    prefix: file:///addon/.m2/repository/io/smallrye/smallrye-health-ui/2.2.5
   - name: io.vertx.vertx-auth-common
     version: 3.9.5
     type: compile
@@ -3587,7 +3587,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/vertx/vertx-auth-common/3.9.5
+    prefix: file:///addon/.m2/repository/io/vertx/vertx-auth-common/3.9.5
   - name: io.vertx.vertx-bridge-common
     version: 3.9.5
     type: compile
@@ -3607,7 +3607,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/vertx/vertx-bridge-common/3.9.5
+    prefix: file:///addon/.m2/repository/io/vertx/vertx-bridge-common/3.9.5
   - name: io.vertx.vertx-core
     version: 3.9.5
     type: compile
@@ -3627,7 +3627,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/vertx/vertx-core/3.9.5
+    prefix: file:///addon/.m2/repository/io/vertx/vertx-core/3.9.5
   - name: io.vertx.vertx-web
     version: 3.9.5
     type: compile
@@ -3647,7 +3647,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/vertx/vertx-web/3.9.5
+    prefix: file:///addon/.m2/repository/io/vertx/vertx-web/3.9.5
   - name: io.vertx.vertx-web-common
     version: 3.9.5
     type: compile
@@ -3667,7 +3667,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/vertx/vertx-web-common/3.9.5
+    prefix: file:///addon/.m2/repository/io/vertx/vertx-web-common/3.9.5
   - name: jakarta.activation.jakarta.activation-api
     version: 1.2.1
     type: compile
@@ -3687,7 +3687,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/activation/jakarta.activation-api/1.2.1
+    prefix: file:///addon/.m2/repository/jakarta/activation/jakarta.activation-api/1.2.1
   - name: jakarta.annotation.jakarta.annotation-api
     version: 1.3.5
     type: compile
@@ -3707,7 +3707,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/annotation/jakarta.annotation-api/1.3.5
+    prefix: file:///addon/.m2/repository/jakarta/annotation/jakarta.annotation-api/1.3.5
   - name: jakarta.el.jakarta.el-api
     version: 3.0.3
     type: compile
@@ -3727,7 +3727,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/el/jakarta.el-api/3.0.3
+    prefix: file:///addon/.m2/repository/jakarta/el/jakarta.el-api/3.0.3
   - name: jakarta.enterprise.jakarta.enterprise.cdi-api
     version: 2.0.2
     type: compile
@@ -3747,7 +3747,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/enterprise/jakarta.enterprise.cdi-api/2.0.2
+    prefix: file:///addon/.m2/repository/jakarta/enterprise/jakarta.enterprise.cdi-api/2.0.2
   - name: jakarta.inject.jakarta.inject-api
     version: "1.0"
     type: compile
@@ -3767,7 +3767,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/inject/jakarta.inject-api/1.0
+    prefix: file:///addon/.m2/repository/jakarta/inject/jakarta.inject-api/1.0
   - name: jakarta.interceptor.jakarta.interceptor-api
     version: 1.2.5
     type: compile
@@ -3787,7 +3787,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/interceptor/jakarta.interceptor-api/1.2.5
+    prefix: file:///addon/.m2/repository/jakarta/interceptor/jakarta.interceptor-api/1.2.5
   - name: jakarta.transaction.jakarta.transaction-api
     version: 1.3.3
     type: compile
@@ -3807,7 +3807,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/transaction/jakarta.transaction-api/1.3.3
+    prefix: file:///addon/.m2/repository/jakarta/transaction/jakarta.transaction-api/1.3.3
   - name: jakarta.xml.bind.jakarta.xml.bind-api
     version: 2.3.3
     type: compile
@@ -3827,7 +3827,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/2.3.3
+    prefix: file:///addon/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/2.3.3
   - name: javax.activation.javax.activation-api
     version: 1.2.0
     type: compile
@@ -3847,7 +3847,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/javax/activation/javax.activation-api/1.2.0
+    prefix: file:///addon/.m2/repository/javax/activation/javax.activation-api/1.2.0
   - name: javax.annotation.javax.annotation-api
     version: 1.3.2
     type: compile
@@ -3867,7 +3867,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/javax/annotation/javax.annotation-api/1.3.2
+    prefix: file:///addon/.m2/repository/javax/annotation/javax.annotation-api/1.3.2
   - name: javax.xml.bind.jaxb-api
     version: 2.3.1
     type: compile
@@ -3887,7 +3887,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/javax/xml/bind/jaxb-api/2.3.1
+    prefix: file:///addon/.m2/repository/javax/xml/bind/jaxb-api/2.3.1
   - name: org.apache.commons.commons-compress
     version: "1.20"
     type: compile
@@ -3907,7 +3907,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/commons/commons-compress/1.20
+    prefix: file:///addon/.m2/repository/org/apache/commons/commons-compress/1.20
   - name: org.apache.commons.commons-lang3
     version: "3.9"
     type: compile
@@ -3927,7 +3927,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/commons/commons-lang3/3.9
+    prefix: file:///addon/.m2/repository/org/apache/commons/commons-lang3/3.9
   - name: org.apache.logging.log4j.log4j-api
     version: 2.13.3
     type: compile
@@ -3939,7 +3939,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-api/2.13.3
+    prefix: file:///addon/.m2/repository/org/apache/logging/log4j/log4j-api/2.13.3
   - name: org.apache.logging.log4j.log4j-core
     version: 2.13.3
     type: runtime
@@ -3951,7 +3951,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-core/2.13.3
+    prefix: file:///addon/.m2/repository/org/apache/logging/log4j/log4j-core/2.13.3
   - name: org.apache.logging.log4j.log4j-slf4j-impl
     version: 2.13.3
     type: compile
@@ -3963,7 +3963,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/apache/logging/log4j/log4j-slf4j-impl/2.13.3
+    prefix: file:///addon/.m2/repository/org/apache/logging/log4j/log4j-slf4j-impl/2.13.3
   - name: org.checkerframework.checker-qual
     version: 2.5.2
     type: compile
@@ -3983,7 +3983,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/checkerframework/checker-qual/2.5.2
+    prefix: file:///addon/.m2/repository/org/checkerframework/checker-qual/2.5.2
   - name: org.eclipse.microprofile.config.microprofile-config-api
     version: "1.4"
     type: compile
@@ -4003,7 +4003,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/eclipse/microprofile/config/microprofile-config-api/1.4
+    prefix: file:///addon/.m2/repository/org/eclipse/microprofile/config/microprofile-config-api/1.4
   - name: org.eclipse.microprofile.context-propagation.microprofile-context-propagation-api
     version: 1.0.1
     type: compile
@@ -4023,7 +4023,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/eclipse/microprofile/context-propagation/microprofile-context-propagation-api/1.0.1
+    prefix: file:///addon/.m2/repository/org/eclipse/microprofile/context-propagation/microprofile-context-propagation-api/1.0.1
   - name: org.eclipse.microprofile.health.microprofile-health-api
     version: "2.2"
     type: compile
@@ -4043,7 +4043,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/eclipse/microprofile/health/microprofile-health-api/2.2
+    prefix: file:///addon/.m2/repository/org/eclipse/microprofile/health/microprofile-health-api/2.2
   - name: org.glassfish.jakarta.json
     version: 1.1.6
     type: compile
@@ -4063,7 +4063,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/glassfish/jakarta.json/1.1.6
+    prefix: file:///addon/.m2/repository/org/glassfish/jakarta.json/1.1.6
   - name: org.graalvm.sdk.graal-sdk
     version: 20.2.0
     type: compile
@@ -4083,7 +4083,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/graalvm/sdk/graal-sdk/20.2.0
+    prefix: file:///addon/.m2/repository/org/graalvm/sdk/graal-sdk/20.2.0
   - name: org.jboss.logging.jboss-logging
     version: 3.4.1.Final
     type: compile
@@ -4103,7 +4103,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jboss/logging/jboss-logging/3.4.1.Final
+    prefix: file:///addon/.m2/repository/org/jboss/logging/jboss-logging/3.4.1.Final
   - name: org.jboss.logging.jboss-logging-annotations
     version: 2.1.0.Final
     type: compile
@@ -4123,7 +4123,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jboss/logging/jboss-logging-annotations/2.1.0.Final
+    prefix: file:///addon/.m2/repository/org/jboss/logging/jboss-logging-annotations/2.1.0.Final
   - name: org.jboss.logmanager.jboss-logmanager-embedded
     version: 1.0.6
     type: compile
@@ -4143,7 +4143,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jboss/logmanager/jboss-logmanager-embedded/1.0.6
+    prefix: file:///addon/.m2/repository/org/jboss/logmanager/jboss-logmanager-embedded/1.0.6
   - name: org.jboss.slf4j.slf4j-jboss-logmanager
     version: 1.1.0.Final
     type: compile
@@ -4163,7 +4163,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jboss/slf4j/slf4j-jboss-logmanager/1.1.0.Final
+    prefix: file:///addon/.m2/repository/org/jboss/slf4j/slf4j-jboss-logmanager/1.1.0.Final
   - name: org.jboss.spec.javax.xml.bind.jboss-jaxb-api_2.3_spec
     version: 2.0.0.Final
     type: compile
@@ -4183,7 +4183,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jboss/spec/javax/xml/bind/jboss-jaxb-api_2.3_spec/2.0.0.Final
+    prefix: file:///addon/.m2/repository/org/jboss/spec/javax/xml/bind/jboss-jaxb-api_2.3_spec/2.0.0.Final
   - name: org.jboss.threads.jboss-threads
     version: 3.1.1.Final
     type: compile
@@ -4203,7 +4203,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/jboss/threads/jboss-threads/3.1.1.Final
+    prefix: file:///addon/.m2/repository/org/jboss/threads/jboss-threads/3.1.1.Final
   - name: org.ow2.asm.asm
     version: "9.0"
     type: compile
@@ -4223,7 +4223,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/ow2/asm/asm/9.0
+    prefix: file:///addon/.m2/repository/org/ow2/asm/asm/9.0
   - name: org.reactivestreams.reactive-streams
     version: 1.0.3
     type: compile
@@ -4243,7 +4243,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/reactivestreams/reactive-streams/1.0.3
+    prefix: file:///addon/.m2/repository/org/reactivestreams/reactive-streams/1.0.3
   - name: org.slf4j.slf4j-api
     version: 1.7.30
     type: compile
@@ -4263,7 +4263,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/slf4j/slf4j-api/1.7.30
+    prefix: file:///addon/.m2/repository/org/slf4j/slf4j-api/1.7.30
   - name: org.wildfly.common.wildfly-common
     version: 1.5.4.Final-format-001
     type: compile
@@ -4283,7 +4283,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/wildfly/common/wildfly-common/1.5.4.Final-format-001
+    prefix: file:///addon/.m2/repository/org/wildfly/common/wildfly-common/1.5.4.Final-format-001
   - name: org.yaml.snakeyaml
     version: "1.27"
     type: compile
@@ -4303,7 +4303,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.27
+    prefix: file:///addon/.m2/repository/org/yaml/snakeyaml/1.27
 - fileURI: file:///analyzer-lsp/examples/java/pom.xml
   provider: java
   dependencies:
@@ -4326,7 +4326,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.13.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.13.3
   - name: com.fasterxml.jackson.core.jackson-core
     version: 2.13.3
     type: compile
@@ -4346,7 +4346,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.13.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.13.3
   - name: com.fasterxml.jackson.core.jackson-databind
     version: 2.13.3
     type: compile
@@ -4366,7 +4366,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.13.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.13.3
   - name: com.fasterxml.jackson.dataformat.jackson-dataformat-yaml
     version: 2.13.3
     type: compile
@@ -4386,7 +4386,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.13.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.13.3
   - name: com.fasterxml.jackson.datatype.jackson-datatype-jsr310
     version: 2.13.3
     type: compile
@@ -4406,7 +4406,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.13.3
+    prefix: file:///addon/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.13.3
   - name: com.squareup.okhttp3.logging-interceptor
     version: 3.12.12
     type: runtime
@@ -4426,7 +4426,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/squareup/okhttp3/logging-interceptor/3.12.12
+    prefix: file:///addon/.m2/repository/com/squareup/okhttp3/logging-interceptor/3.12.12
   - name: com.squareup.okhttp3.okhttp
     version: 3.12.12
     type: runtime
@@ -4446,7 +4446,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/squareup/okhttp3/okhttp/3.12.12
+    prefix: file:///addon/.m2/repository/com/squareup/okhttp3/okhttp/3.12.12
   - name: com.squareup.okio.okio
     version: 1.15.0
     type: runtime
@@ -4466,7 +4466,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/squareup/okio/okio/1.15.0
+    prefix: file:///addon/.m2/repository/com/squareup/okio/okio/1.15.0
   - name: com.sun.mail.javax.mail
     version: 1.5.0
     type: provided
@@ -4486,7 +4486,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/com/sun/mail/javax.mail/1.5.0
+    prefix: file:///addon/.m2/repository/com/sun/mail/javax.mail/1.5.0
   - name: io.fabric8.kubernetes-client
     version: 6.0.0
     type: compile
@@ -4498,7 +4498,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-client/6.0.0
   - name: io.fabric8.kubernetes-client-api
     version: 6.0.0
     type: compile
@@ -4510,7 +4510,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-client-api/6.0.0
   - name: io.fabric8.kubernetes-httpclient-okhttp
     version: 6.0.0
     type: runtime
@@ -4530,7 +4530,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-httpclient-okhttp/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-httpclient-okhttp/6.0.0
   - name: io.fabric8.kubernetes-model-admissionregistration
     version: 6.0.0
     type: compile
@@ -4550,7 +4550,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-admissionregistration/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-admissionregistration/6.0.0
   - name: io.fabric8.kubernetes-model-apiextensions
     version: 6.0.0
     type: compile
@@ -4570,7 +4570,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apiextensions/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-apiextensions/6.0.0
   - name: io.fabric8.kubernetes-model-apps
     version: 6.0.0
     type: compile
@@ -4590,7 +4590,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-apps/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-apps/6.0.0
   - name: io.fabric8.kubernetes-model-autoscaling
     version: 6.0.0
     type: compile
@@ -4610,7 +4610,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-autoscaling/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-autoscaling/6.0.0
   - name: io.fabric8.kubernetes-model-batch
     version: 6.0.0
     type: compile
@@ -4630,7 +4630,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-batch/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-batch/6.0.0
   - name: io.fabric8.kubernetes-model-certificates
     version: 6.0.0
     type: compile
@@ -4650,7 +4650,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-certificates/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-certificates/6.0.0
   - name: io.fabric8.kubernetes-model-common
     version: 6.0.0
     type: compile
@@ -4670,7 +4670,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-common/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-common/6.0.0
   - name: io.fabric8.kubernetes-model-coordination
     version: 6.0.0
     type: compile
@@ -4690,7 +4690,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-coordination/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-coordination/6.0.0
   - name: io.fabric8.kubernetes-model-core
     version: 6.0.0
     type: compile
@@ -4710,7 +4710,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-core/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-core/6.0.0
   - name: io.fabric8.kubernetes-model-discovery
     version: 6.0.0
     type: compile
@@ -4730,7 +4730,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-discovery/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-discovery/6.0.0
   - name: io.fabric8.kubernetes-model-events
     version: 6.0.0
     type: compile
@@ -4750,7 +4750,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-events/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-events/6.0.0
   - name: io.fabric8.kubernetes-model-extensions
     version: 6.0.0
     type: compile
@@ -4770,7 +4770,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-extensions/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-extensions/6.0.0
   - name: io.fabric8.kubernetes-model-flowcontrol
     version: 6.0.0
     type: compile
@@ -4790,7 +4790,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-flowcontrol/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-flowcontrol/6.0.0
   - name: io.fabric8.kubernetes-model-metrics
     version: 6.0.0
     type: compile
@@ -4810,7 +4810,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-metrics/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-metrics/6.0.0
   - name: io.fabric8.kubernetes-model-networking
     version: 6.0.0
     type: compile
@@ -4830,7 +4830,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-networking/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-networking/6.0.0
   - name: io.fabric8.kubernetes-model-node
     version: 6.0.0
     type: compile
@@ -4850,7 +4850,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-node/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-node/6.0.0
   - name: io.fabric8.kubernetes-model-policy
     version: 6.0.0
     type: compile
@@ -4870,7 +4870,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-policy/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-policy/6.0.0
   - name: io.fabric8.kubernetes-model-rbac
     version: 6.0.0
     type: compile
@@ -4890,7 +4890,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-rbac/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-rbac/6.0.0
   - name: io.fabric8.kubernetes-model-scheduling
     version: 6.0.0
     type: compile
@@ -4910,7 +4910,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-scheduling/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-scheduling/6.0.0
   - name: io.fabric8.kubernetes-model-storageclass
     version: 6.0.0
     type: compile
@@ -4930,7 +4930,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/kubernetes-model-storageclass/6.0.0
+    prefix: file:///addon/.m2/repository/io/fabric8/kubernetes-model-storageclass/6.0.0
   - name: io.fabric8.zjsonpatch
     version: 0.3.0
     type: compile
@@ -4950,7 +4950,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/fabric8/zjsonpatch/0.3.0
+    prefix: file:///addon/.m2/repository/io/fabric8/zjsonpatch/0.3.0
   - name: io.netty.netty-buffer
     version: 4.1.76.Final
     type: runtime
@@ -4962,7 +4962,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-buffer/4.1.76.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-buffer/4.1.76.Final
   - name: io.netty.netty-common
     version: 4.1.76.Final
     type: runtime
@@ -4974,7 +4974,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-common/4.1.76.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-common/4.1.76.Final
   - name: io.netty.netty-resolver
     version: 4.1.76.Final
     type: runtime
@@ -4994,7 +4994,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-resolver/4.1.76.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-resolver/4.1.76.Final
   - name: io.netty.netty-transport
     version: 4.1.76.Final
     type: runtime
@@ -5006,7 +5006,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-transport/4.1.76.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-transport/4.1.76.Final
   - name: io.netty.netty-transport-classes-epoll
     version: 4.1.76.Final
     type: runtime
@@ -5018,7 +5018,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-transport-classes-epoll/4.1.76.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-transport-classes-epoll/4.1.76.Final
   - name: io.netty.netty-transport-native-epoll
     version: 4.1.76.Final
     classifier: linux-x86_64
@@ -5031,7 +5031,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-transport-native-epoll/4.1.76.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-transport-native-epoll/4.1.76.Final
   - name: io.netty.netty-transport-native-unix-common
     version: 4.1.76.Final
     type: runtime
@@ -5043,7 +5043,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/io/netty/netty-transport-native-unix-common/4.1.76.Final
+    prefix: file:///addon/.m2/repository/io/netty/netty-transport-native-unix-common/4.1.76.Final
   - name: javax.activation.activation
     version: "1.1"
     type: provided
@@ -5063,7 +5063,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/javax/activation/activation/1.1
+    prefix: file:///addon/.m2/repository/javax/activation/activation/1.1
   - name: javax.javaee-api
     version: "7.0"
     type: provided
@@ -5075,7 +5075,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/javax/javaee-api/7.0
+    prefix: file:///addon/.m2/repository/javax/javaee-api/7.0
   - name: junit.junit
     version: "4.11"
     type: test
@@ -5087,7 +5087,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/junit/junit/4.11
+    prefix: file:///addon/.m2/repository/junit/junit/4.11
   - name: org.hamcrest.hamcrest-core
     version: "1.3"
     type: test
@@ -5107,7 +5107,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/hamcrest/hamcrest-core/1.3
+    prefix: file:///addon/.m2/repository/org/hamcrest/hamcrest-core/1.3
   - name: org.slf4j.slf4j-api
     version: 1.7.36
     type: compile
@@ -5127,7 +5127,7 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/slf4j/slf4j-api/1.7.36
+    prefix: file:///addon/.m2/repository/org/slf4j/slf4j-api/1.7.36
   - name: org.yaml.snakeyaml
     version: "1.30"
     type: compile
@@ -5147,4 +5147,4 @@
     labels:
     - konveyor.io/dep-source=open-source
     - konveyor.io/language=java
-    prefix: file:///root/.m2/repository/org/yaml/snakeyaml/1.30
+    prefix: file:///addon/.m2/repository/org/yaml/snakeyaml/1.30
