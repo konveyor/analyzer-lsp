@@ -8,6 +8,8 @@ The generic-external-provider has two main goals:
 2. Create a library of base components so it's easy to add new specific language
    support.
 
+> **For a comprehensive guide on provider development**, see the **[Provider Development Guide](../../../docs/development/provider_development.md)** which covers creating providers, adding capabilities, and testing.
+
 For example, if your language has an LSP server called `foo-lsp`, you can either
 use the `generic` server configuration to get some functionality right out of
 the box by setting an `analyzer-lsp` configuration like this:

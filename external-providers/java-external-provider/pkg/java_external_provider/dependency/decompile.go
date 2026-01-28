@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -254,6 +255,16 @@ func (d *decompiler) Decompile(ctx context.Context, artifactPath string) ([]Java
 	if len(errs) != 0 {
 		return artifacts, errs[0]
 	}
+	slices.SortFunc(artifacts, func(a, b JavaArtifact) int {
+		if n := strings.Compare(a.GroupId, b.GroupId); n != 0 {
+			return n
+		}
+		if n := strings.Compare(a.ArtifactId, b.ArtifactId); n != 0 {
+			return n
+		}
+		return strings.Compare(a.Version, b.Version)
+
+	})
 	return artifacts, nil
 }
 
@@ -310,6 +321,16 @@ func (d *decompiler) DecompileIntoProject(ctx context.Context, artifactPath, pro
 		return artifacts, errs[0]
 	}
 
+	slices.SortFunc(artifacts, func(a, b JavaArtifact) int {
+		if n := strings.Compare(a.GroupId, b.GroupId); n != 0 {
+			return n
+		}
+		if n := strings.Compare(a.ArtifactId, b.ArtifactId); n != 0 {
+			return n
+		}
+		return strings.Compare(a.Version, b.Version)
+
+	})
 	return artifacts, nil
 }
 

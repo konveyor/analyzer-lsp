@@ -104,15 +104,25 @@ Using the LSP/Protocal from Golang https://github.com/golang/tools/tree/master/g
 Using JSONRPC2 from google.org/x/tools/internal. Copied and removed anything to do with serving.
 
 
+## Documentation
+
+- **[User Documentation](docs/README.md)** - How to use the analyzer
+  - [Providers](docs/providers.md) - Configure language providers
+  - [Rules](docs/rules.md) - Write analysis rules
+  - [Output](docs/output.md) - Understand output format
+  - [Labels](docs/labels.md) - Use label selectors
+
+- **[Developer Documentation](docs/development/README.md)** - How to contribute
+  - [Architecture](docs/development/architecture.md) - Understand the codebase
+  - [Development Setup](docs/development/setup.md) - Set up your environment
+  - [Testing Guide](docs/development/testing.md) - Run and write tests
+  - [Provider Development](docs/development/provider_development.md) - Create new providers
+
 ## Contributing
 
-We welcome contributions to the Analyzer LSP project! Please see our [Contributing Guide](CONTRIBUTING.md) for:
+We welcome contributions to the Analyzer LSP project! Please see our [Contributing Guide](CONTRIBUTING.md) for the contribution workflow and pull request process.
 
-- Setting up your development environment
-- Building and testing the project
-- Adding new rules and language support
-- Common issues and solutions
-- Pull request process
+For detailed development information, see the [Developer Documentation](docs/development/README.md).
 
 ## Code of Conduct
 
