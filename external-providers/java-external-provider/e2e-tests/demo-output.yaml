@@ -252,12 +252,12 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
         message: Annotation inspection 02
-        codeSnip: "\n46  dataSource.setUrl(config.getProperty(\"jdbc.url\"));\n47  dataSource.setUsername(config.getProperty(\"jdbc.user\"));\n48  dataSource.setPassword(config.getProperty(\"jdbc.password\"));\n49  \n50  return dataSource;\n51  }\n52  \n53  @Bean\n54  public PlatformTransactionManager transactionManager() {\n55  final JpaTransactionManager transactionManager = new JpaTransactionManager();\n56  transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());\n57  return transactionManager;\n58  }\n59  \n60  @Bean\n61  public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {\n62  return new PersistenceExceptionTranslationPostProcessor();\n63  }\n64  \n65  final Properties additionalProperties() {\n66  ApplicationConfiguration config = new ApplicationConfiguration();"
-        lineNumber: 56
+        codeSnip: "\n21  @Configuration\n22  @EnableJpaRepositories(basePackages = {\n23  \"io.konveyor.demo.ordermanagement.repository\"\n24  })\n25  @EnableTransactionManagement\n26  @EnableSpringDataWebSupport\n27  public class PersistenceConfig {\n28  \n29  \n30  @Bean\n31  public LocalContainerEntityManagerFactoryBean entityManagerFactory() {\n32  final LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();\n33  em.setDataSource(dataSource());\n34  em.setPackagesToScan(\"io.konveyor.demo.ordermanagement.model\");\n35  em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());\n36  em.setJpaProperties(additionalProperties());\n37  \n38  return em;\n39  }\n40  \n41  @Bean"
+        lineNumber: 31
         variables:
           file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
           kind: Method
-          name: transactionManager
+          name: entityManagerFactory
           package: io.konveyor.demo.ordermanagement.config
     java-annotation-inspection-03:
       description: |
