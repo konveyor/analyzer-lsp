@@ -670,7 +670,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 			wantFilePaths: []string{},
 		},
 		{
-			name:       "(XML) Include files from cond.Filepaths, with include & with notifyFileChanges()",
+			name:       "(XML) Include files from cond.Filepaths, with include & with notifyFileChanges() matching file",
 			capability: "xml",
 			condition: builtinCondition{
 				XML: xmlCondition{

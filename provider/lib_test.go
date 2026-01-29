@@ -359,6 +359,7 @@ func TestFileSearcherWithPatternOnly(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get absolute path: %v", err)
 		}
+		t.Logf("Test running on GOOS=%s, absPath=%s", runtime.GOOS, absPath)
 
 		fsAbs := FileSearcher{
 			BasePath:        absPath,
