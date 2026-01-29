@@ -2,6 +2,7 @@ package parser_test
 
 import (
 	"context"
+	"io"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -1073,8 +1074,8 @@ func TestRuleLoadingEdgeCases(t *testing.T) {
 		validateFunc func(*testing.T, []engine.RuleSet)
 	}{
 		{
-			name:        "directory loading",
-			path:        "test-folder",
+			name: "directory loading",
+			path: "test-folder",
 			validateFunc: func(t *testing.T, rs []engine.RuleSet) {
 				if len(rs) == 0 {
 					t.Error("Expected rules from directory")
@@ -1150,4 +1151,66 @@ func TestRuleLoadingEdgeCases(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAndConditionWithFilecontent(t *testing.T) {
+	// Test that verifies parsing of a rule with AND condition containing
+	// multiple builtin.filecontent patterns
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+
+	ruleParser := ruleparser.RuleParser{
+		ProviderNameToClient: map[string]provider.InternalProviderClient{
+			"builtin": testProvider{
+				caps: []provider.Capability{
+					{Name: "filecontent"},
+				},
+			},
+		},
+		Log: logrusr.New(logrusLog),
+	}
+
+	rules, _, _, err := ruleParser.LoadRule(filepath.Join("testdata", "rule-and-filecontent.yaml"))
+	if err != nil {
+		t.Fatalf("Failed to load rule: %v", err)
+	}
+
+	if len(rules) != 1 {
+		t.Fatalf("Expected 1 rule, got %d", len(rules))
+	}
+
+	rule := rules[0]
+
+	andCond, ok := rule.When.(engine.AndCondition)
+	if !ok {
+		t.Fatalf("Expected rule to have AndCondition, got %T", rule.When)
+	}
+
+	if len(andCond.Conditions) != 2 {
+		t.Fatalf("Expected 2 conditions in AND block, got %d", len(andCond.Conditions))
+	}
+
+	for i, cond := range andCond.Conditions {
+		if cond.ProviderSpecificConfig == nil {
+			t.Errorf("Condition %d has nil ProviderSpecificConfig", i)
+		}
+	}
+
+	if rule.RuleID != "test-and-filecontent-001" {
+		t.Errorf("Expected ruleID 'test-and-filecontent-001', got '%s'", rule.RuleID)
+	}
+
+	if rule.Description != "Test AND condition with multiple filecontent patterns" {
+		t.Errorf("Unexpected description: %s", rule.Description)
+	}
+
+	if rule.Perform.Message.Text == nil {
+		t.Fatal("Expected message text to be set")
+	}
+	if *rule.Perform.Message.Text != "This should work with AND conditions" {
+		t.Errorf("Expected message 'This should work with AND conditions', got '%s'", *rule.Perform.Message.Text)
+	}
+
+	t.Logf("Successfully parsed rule with AND condition containing %d builtin.filecontent patterns", len(andCond.Conditions))
 }

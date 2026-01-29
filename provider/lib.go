@@ -226,7 +226,17 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				}
 			} else {
 				rPattern := pattern
-				// if the pattern doesn't contain a wildcard, do an exact match only
+				// Check if this looks like a simple directory/file name that should be matched literally
+				// (contains regex metacharacters like '.' but no regex quantifiers or constructs)
+				hasRegexMetachars := regexp.QuoteMeta(pattern) != pattern
+				hasRegexConstructs := strings.ContainsAny(pattern, "[]()+ |^$*?")
+
+				if hasRegexMetachars && !hasRegexConstructs {
+					// Escape the pattern to treat it literally (e.g., ".git" -> "\.git")
+					rPattern = regexp.QuoteMeta(pattern)
+				}
+
+				// if the pattern doesn't contain any regex special chars, do an exact match only
 				if regexp.QuoteMeta(pattern) == pattern {
 					rPattern = "^" + pattern + "$"
 				}

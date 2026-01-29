@@ -2,10 +2,14 @@ package provider
 
 import (
 	"context"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	logrusr "github.com/bombsimon/logrusr/v3"
+	"github.com/sirupsen/logrus"
 )
 
 func TestMultilineGrep(t *testing.T) {
@@ -248,4 +252,149 @@ func TestNormalizePathForComparison(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFileSearcherWithPatternOnly(t *testing.T) {
+	// This test reproduces the bug where filePattern parameter finds zero files
+	// Setup logger
+	logrusLog := logrusr.New(logrus.New())
+
+	// Create a FileSearcher with the test directory
+	fs := FileSearcher{
+		BasePath:        "./testdata",
+		AdditionalPaths: []string{},
+		ProviderConfigConstraints: IncludeExcludeConstraints{
+			IncludePathsOrPatterns: []string{},
+			ExcludePathsOrPatterns: []string{"node_modules", "vendor", ".git"},
+		},
+		RuleScopeConstraints: IncludeExcludeConstraints{
+			IncludePathsOrPatterns: nil,
+			ExcludePathsOrPatterns: nil,
+		},
+		FailFast: true,
+		Log:      logrusLog,
+	}
+
+	// Test 1: Search with pattern only (reproduces the bug)
+	t.Run("Pattern only - BUG", func(t *testing.T) {
+		result, err := fs.Search(SearchCriteria{
+			Patterns:           []string{`\.([jt])sx?$`},
+			ConditionFilepaths: nil,
+		})
+		if err != nil {
+			t.Errorf("Search failed: %v", err)
+		}
+		t.Logf("Found %d files with pattern only", len(result))
+		for _, file := range result {
+			t.Logf("  - %s", file)
+		}
+		if len(result) == 0 {
+			t.Error("BUG CONFIRMED: Expected to find at least test.jsx, but got 0 files")
+		}
+	})
+
+	// Test 2: Search with filepath only (workaround that works)
+	t.Run("Filepath only - WORKS", func(t *testing.T) {
+		result, err := fs.Search(SearchCriteria{
+			Patterns:           []string{},
+			ConditionFilepaths: []string{"test.jsx"},
+		})
+		if err != nil {
+			t.Errorf("Search failed: %v", err)
+		}
+		t.Logf("Found %d files with filepath only", len(result))
+		for _, file := range result {
+			t.Logf("  - %s", file)
+		}
+		if len(result) == 0 {
+			t.Error("Expected to find test.jsx, but got 0 files")
+		}
+	})
+
+	// Test 3: Search with pattern using absolute path (like production)
+	t.Run("Pattern with absolute path", func(t *testing.T) {
+		// Get absolute path to testdata
+		absPath, err := filepath.Abs("./testdata")
+		if err != nil {
+			t.Fatalf("Failed to get absolute path: %v", err)
+		}
+
+		fsAbs := FileSearcher{
+			BasePath:        absPath,
+			AdditionalPaths: []string{},
+			ProviderConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				ExcludePathsOrPatterns: []string{"node_modules", "vendor", ".git"},
+			},
+			RuleScopeConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: nil,
+				ExcludePathsOrPatterns: nil,
+			},
+			FailFast: true,
+			Log:      logrusLog,
+		}
+
+		result, err := fsAbs.Search(SearchCriteria{
+			Patterns:           []string{`\.([jt])sx?$`},
+			ConditionFilepaths: nil,
+		})
+		if err != nil {
+			t.Errorf("Search failed: %v", err)
+		}
+		t.Logf("Found %d files with pattern and absolute path", len(result))
+		for _, file := range result {
+			t.Logf("  - %s", file)
+		}
+		if len(result) == 0 {
+			t.Error("BUG with absolute path: Expected to find at least test.jsx, but got 0 files")
+		}
+	})
+
+	t.Run("Exclude .example doesn't match /theexample/ path", func(t *testing.T) {
+		// This test reproduces the actual bug: when your repo is in /path/to/github.com/,
+		// the .git exclude pattern (if not escaped) matches "/git" in the path and filters everything.
+		// Here: exclude .example, but files in theexample/ should still be found
+		// Bug: .example as regex matches "/example" substring in path "/theexample/"
+		absPath, err := filepath.Abs("./testdata")
+		if err != nil {
+			t.Fatalf("Failed to get absolute path: %v", err)
+		}
+
+		fsAbs := FileSearcher{
+			BasePath:        absPath,
+			AdditionalPaths: []string{},
+			ProviderConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				ExcludePathsOrPatterns: []string{".example"}, // Exclude .example (doesn't exist as dir)
+			},
+			RuleScopeConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: nil,
+				ExcludePathsOrPatterns: nil,
+			},
+			FailFast: true,
+			Log:      logrusLog,
+		}
+
+		result, err := fsAbs.Search(SearchCriteria{
+			Patterns:           []string{`\.([jt])sx?$`},
+			ConditionFilepaths: nil,
+		})
+		if err != nil {
+			t.Errorf("Search failed: %v", err)
+		}
+
+		// Verify files in theexample/ were found (should NOT be excluded)
+		foundTheExample := false
+
+		for _, file := range result {
+			if strings.Contains(file, "theexample") && strings.HasSuffix(file, "component.jsx") {
+				foundTheExample = true
+				t.Logf("✓ Correctly found file in theexample: %s", file)
+			}
+		}
+
+		if !foundTheExample {
+			t.Error("BUG: .example pattern incorrectly filtered out files in theexample/ directory. Without escaping, .example matches '/example' in '/theexample/'")
+		}
+	})
 }
