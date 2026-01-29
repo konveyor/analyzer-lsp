@@ -1,0 +1,6 @@
+name: test-ruleset
+description: "Test ruleset with metadata"
+labels:
+  - "test-label"
+tags:
+  - "test-tag"

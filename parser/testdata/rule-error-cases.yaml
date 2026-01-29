@@ -1,0 +1,19 @@
+---
+# Invalid custom variables with bad types and patterns
+- ruleID: bad-custom-var-001
+  when:
+    builtin.file:
+      pattern: "*.java"
+  customVariables:
+    - name: 123
+      defaultValue: "test"
+  message: "Bad custom var with non-string name"
+
+- ruleID: bad-pattern-001
+  when:
+    builtin.file:
+      pattern: "*.java"
+  customVariables:
+    - name: "testVar"
+      pattern: "[invalid(regex"
+  message: "Bad regex pattern"

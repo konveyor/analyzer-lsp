@@ -1,0 +1,41 @@
+---
+# Combines: custom variables, extra fields, and condition flags
+- ruleID: custom-var-001
+  when:
+    builtin.file:
+      pattern: "*.java"
+  customVariables:
+    - name: testVar
+      defaultValue: "defaultVal"
+      nameOfCaptureGroup: "group1"
+      pattern: "test(.*)"
+  message: "Rule with custom variables"
+
+- ruleID: extra-fields-001
+  description: "Test rule with various fields"
+  category: mandatory
+  effort: 5
+  labels:
+    - "label1"
+    - "label2"
+  when:
+    builtin.file:
+      pattern: "*.java"
+  message: "Rule to test all field parsing"
+  links:
+    - url: "https://example.com"
+      title: "Example"
+  tag:
+    - "tag1"
+    - "tag2"
+
+- ruleID: condition-flags-001
+  when:
+    and:
+      - builtin.file:
+          pattern: "*.java"
+        ignore: true
+      - builtin.file:
+          pattern: "*.go"
+        not: true
+  message: "Rule with ignore and not flags"

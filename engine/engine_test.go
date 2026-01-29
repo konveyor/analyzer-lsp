@@ -1689,3 +1689,83 @@ func TestCreateViolation(t *testing.T) {
 		})
 	}
 }
+
+func TestAndConditionWithBuiltinFilecontent(t *testing.T) {
+	// This test simulates the scenario where a rule has an AND condition
+	// with multiple builtin.filecontent patterns, which is the structure
+	// that would result from parsing the rule in testdata/and-filecontent-test/rule.yaml
+
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+	log := logrusr.New(logrusLog)
+
+	testCases := []struct {
+		Name              string
+		Condition1Matched bool
+		Condition2Matched bool
+		ExpectedMatched   bool
+	}{
+		{
+			Name:              "Both filecontent conditions match",
+			Condition1Matched: true,
+			Condition2Matched: true,
+			ExpectedMatched:   true,
+		},
+		{
+			Name:              "Only first filecontent condition matches",
+			Condition1Matched: true,
+			Condition2Matched: false,
+			ExpectedMatched:   false,
+		},
+		{
+			Name:              "Only second filecontent condition matches",
+			Condition1Matched: false,
+			Condition2Matched: true,
+			ExpectedMatched:   false,
+		},
+		{
+			Name:              "Neither filecontent condition matches",
+			Condition1Matched: false,
+			Condition2Matched: false,
+			ExpectedMatched:   false,
+		},
+	}
+
+	testMessage := "Both patterns should match"
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			// Simulate builtin.filecontent conditionals
+			rule := Rule{
+				Perform: Perform{
+					Message: Message{
+						Text: &testMessage,
+					},
+				},
+				When: AndCondition{
+					Conditions: []ConditionEntry{
+						{
+							// Simulates: builtin.filecontent with pattern '@patternfly/react-core'
+							ProviderSpecificConfig: createTestConditional(tc.Condition1Matched, nil, false),
+						},
+						{
+							// Simulates: builtin.filecontent with pattern 'header='
+							ProviderSpecificConfig: createTestConditional(tc.Condition2Matched, nil, false),
+						},
+					},
+				},
+			}
+
+			ret, err := processRule(context.TODO(), rule, ConditionContext{
+				Template: make(map[string]ChainTemplate),
+			}, log)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if ret.Matched != tc.ExpectedMatched {
+				t.Errorf("Expected matched=%v, but got matched=%v", tc.ExpectedMatched, ret.Matched)
+			}
+		})
+	}
+}

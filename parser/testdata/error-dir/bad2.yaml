@@ -1,0 +1,5 @@
+---
+- message: "Rule without ID"
+  when:
+    builtin.file:
+      pattern: "*.java"
