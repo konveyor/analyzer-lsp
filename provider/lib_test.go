@@ -387,14 +387,17 @@ func TestFileSearcherWithPatternOnly(t *testing.T) {
 		foundTheExample := false
 
 		for _, file := range result {
-			if strings.Contains(file, "theexample") && strings.HasSuffix(file, "component.jsx") {
+			// Use filepath.Base to get the filename, and check if path contains theexample dir
+			base := filepath.Base(file)
+			dir := filepath.Dir(file)
+			if strings.Contains(dir, "theexample") && base == "component.jsx" {
 				foundTheExample = true
-				t.Logf("✓ Correctly found file in theexample: %s", file)
+				t.Logf("Correctly found file in theexample: %s", file)
 			}
 		}
 
 		if !foundTheExample {
-			t.Error("BUG: .example pattern incorrectly filtered out files in theexample/ directory. Without escaping, .example matches '/example' in '/theexample/'")
+			t.Errorf("BUG: .example pattern incorrectly filtered out files in theexample/ directory. Found %d files: %v", len(result), result)
 		}
 	})
 }
