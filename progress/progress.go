@@ -123,6 +123,10 @@ const (
 	// Events include provider name, files processed, and total files.
 	StageProviderPrepare Stage = "provider_prepare"
 
+	// StageDependencyResolution indicates dependencies resolution (list).
+	// Events include the total number of dependencies discovered.
+	StageDependencyResolution Stage = "dependency_resolution"
+
 	// StageRuleParsing indicates rule loading and parsing.
 	// Events include the total number of rules discovered.
 	StageRuleParsing Stage = "rule_parsing"
