@@ -61,6 +61,7 @@ func (h *nodejsSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.C
 				filepath.Join(primaryPath, ".vscode"),
 				filepath.Join(primaryPath, ".husky"),
 				".*node_modules.*",
+				".*.min.js",
 			},
 		},
 	}
