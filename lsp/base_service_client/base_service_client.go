@@ -162,9 +162,9 @@ type LSPServiceClientBase struct {
 	handler jsonrpc2.Handler
 
 	// Progress reporting for Prepare() phase using ThrottledReporter
-	throttledReporter       *progress.ThrottledReporter
-	totalFilesToProcess     atomic.Int32
-	filesProcessed          atomic.Int32
+	throttledReporter   *progress.ThrottledReporter
+	totalFilesToProcess atomic.Int32
+	filesProcessed      atomic.Int32
 
 	// Progress event streaming for GRPC providers
 	progressEventChan      chan progress.ProgressEvent
@@ -298,7 +298,9 @@ func NewLSPServiceClientBase(
 		sc.symbolSearchHelper = NewDefaultSymbolCacheHelper(sc.Log, c)
 	}
 	sc.symbolCacheUpdateChan = make(chan uri.URI, 10)
-	go sc.symbolCacheUpdateHandler()
+	for range 5 {
+		go sc.symbolCacheUpdateHandler()
+	}
 	sc.openedFilesMutex.Lock()
 	sc.openedFiles = make(map[uri.URI]bool)
 	sc.openedFilesMutex.Unlock()
