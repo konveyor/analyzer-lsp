@@ -909,7 +909,7 @@ func (b *builtinServiceClient) performGrepSearch(pattern, trimmedPattern string,
 				}
 				// escape other chars used in perl pattern
 				escapedPattern = strings.ReplaceAll(escapedPattern, "'", "'\\''")
-				escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
+				//escapedPattern = strings.ReplaceAll(escapedPattern, "$", "\\$")
 				var fileList bytes.Buffer
 				for _, f := range currBatch {
 					fileList.WriteString(f)

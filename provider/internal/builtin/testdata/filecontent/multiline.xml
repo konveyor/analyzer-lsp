@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<root>
+    <dependency>
+        <groupId>org.example</groupId>
+        <artifactId>test-artifact</artifactId>
+    </dependency>
+
+    <property name="config"
+              value="test-value"
+              type="string" />
+
+    <multiline>First line
+Second line
+Third line</multiline>
+</root>
