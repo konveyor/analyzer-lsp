@@ -727,6 +727,12 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 
 	if stdRegex != nil {
 		b.log.V(7).Info("using golang regex", "pattern", literalPattern)
+		if runtime.GOOS == "windows" {
+			b.log.V(7).Info("remove CLRF line endings")
+			if bytes.Contains(content, []byte("\r\n")) {
+				bytes.ReplaceAll(content, []byte("\r\n"), []byte("\n"))
+			}
+		}
 		// Use byte-based matching for pre-check (no allocation)
 		foundMatch = stdRegex.Match(content)
 	} else {
