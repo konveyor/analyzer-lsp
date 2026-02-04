@@ -556,7 +556,7 @@ func (b *builtinServiceClient) performMultilineSearch(trimmedPattern string, loc
 		}
 	}
 
-	b.log.V(7).Info("pattern", "trimmed patter", trimmedPattern, "isLiteral", isLiteral)
+	b.log.V(7).Info("pattern", "trimmed pattern", trimmedPattern, "isLiteral", isLiteral)
 
 	var stdRegex *regexp.Regexp
 	var patternRegex *regexp2.Regexp
@@ -728,9 +728,9 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 	if stdRegex != nil {
 		b.log.V(7).Info("using golang regex", "pattern", literalPattern)
 		if runtime.GOOS == "windows" {
-			b.log.V(7).Info("remove CLRF line endings")
+			b.log.V(7).Info("remove CRLF line endings")
 			if bytes.Contains(content, []byte("\r\n")) {
-				bytes.ReplaceAll(content, []byte("\r\n"), []byte("\n"))
+				content = bytes.ReplaceAll(content, []byte("\r\n"), []byte("\n"))
 			}
 		}
 		// Use byte-based matching for pre-check (no allocation)

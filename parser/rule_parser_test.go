@@ -978,7 +978,7 @@ func compareWhens(w1 engine.Conditional, w2 engine.Conditional, t *testing.T) {
 		c1, ok := w1.(engine.ConditionEntry)
 		c2, ok2 := w2.(engine.ConditionEntry)
 		if !ok || !ok2 {
-			t.Errorf("must be one of and/or/condtionEntry\nexpected: %T\nactual: %T", w1, w2)
+			t.Errorf("must be one of and/or/conditionEntry\nexpected: %T\nactual: %T", w1, w2)
 			return
 		}
 		compareConditions([]engine.ConditionEntry{c1}, []engine.ConditionEntry{c2}, t)
