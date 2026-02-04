@@ -876,7 +876,7 @@ func TestLoadRules(t *testing.T) {
 										}},
 									},
 									Capability: "filecontent",
-									ConditionInfo: map[string]any{
+									ConditionInfo: map[any]any{
 										"pattern": `\".*spring\.datasource`,
 									},
 								},
@@ -1014,7 +1014,7 @@ func compareConditions(cs1 []engine.ConditionEntry, cs2 []engine.ConditionEntry,
 				if cond.Capability != cond2.Capability {
 					t.Errorf("condition capability is not equal\nexpected: %#v\nactual: %#v", cond.Capability, cond2.Capability)
 				}
-				if reflect.DeepEqual(cond.ConditionInfo, cond2.ConditionInfo) {
+				if !reflect.DeepEqual(cond.ConditionInfo, cond2.ConditionInfo) {
 					t.Errorf("condition info is not equal\nexpected: %#v\nactual: %#v", cond.ConditionInfo, cond2.ConditionInfo)
 				}
 			}
