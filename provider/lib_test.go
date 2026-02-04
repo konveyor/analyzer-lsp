@@ -2,10 +2,14 @@ package provider
 
 import (
 	"context"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	logrusr "github.com/bombsimon/logrusr/v3"
+	"github.com/sirupsen/logrus"
 )
 
 func TestMultilineGrep(t *testing.T) {
@@ -85,14 +89,15 @@ func BenchmarkMultilineGrepFileSizeBig(b *testing.B) {
 }
 
 func TestGetExcludedDirsFromConfig(t *testing.T) {
+	// Note: .git and .venv are regex-escaped to match literal directory names
 	defaultExcludes := []string{
 		"node_modules",
 		"vendor",
-		".git",
+		"\\.git",
 		"dist",
 		"build",
 		"target",
-		".venv",
+		"\\.venv",
 		"venv",
 	}
 
@@ -248,4 +253,185 @@ func TestNormalizePathForComparison(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFileSearcherWithPatternOnly(t *testing.T) {
+	// This test reproduces the bug where filePattern parameter finds zero files
+	// Setup logger
+	logrusLog := logrusr.New(logrus.New())
+
+	// Create a FileSearcher with the test directory
+	fs := FileSearcher{
+		BasePath:        "./testdata",
+		AdditionalPaths: []string{},
+		ProviderConfigConstraints: IncludeExcludeConstraints{
+			IncludePathsOrPatterns: []string{},
+			ExcludePathsOrPatterns: []string{"node_modules", "vendor", ".git"},
+		},
+		RuleScopeConstraints: IncludeExcludeConstraints{
+			IncludePathsOrPatterns: nil,
+			ExcludePathsOrPatterns: nil,
+		},
+		FailFast: true,
+		Log:      logrusLog,
+	}
+
+	// Test 1: Search with pattern only (reproduces the bug)
+	t.Run("Pattern only - BUG", func(t *testing.T) {
+		result, err := fs.Search(SearchCriteria{
+			Patterns:           []string{`\.([jt])sx?$`},
+			ConditionFilepaths: nil,
+		})
+		if err != nil {
+			t.Errorf("Search failed: %v", err)
+		}
+		t.Logf("Found %d files with pattern only", len(result))
+		for _, file := range result {
+			t.Logf("  - %s", file)
+		}
+		if len(result) == 0 {
+			t.Error("BUG CONFIRMED: Expected to find at least test.jsx, but got 0 files")
+		}
+	})
+
+	// Test 2: Search with filepath only (workaround that works)
+	t.Run("Filepath only - WORKS", func(t *testing.T) {
+		result, err := fs.Search(SearchCriteria{
+			Patterns:           []string{},
+			ConditionFilepaths: []string{"test.jsx"},
+		})
+		if err != nil {
+			t.Errorf("Search failed: %v", err)
+		}
+		t.Logf("Found %d files with filepath only", len(result))
+		for _, file := range result {
+			t.Logf("  - %s", file)
+		}
+		if len(result) == 0 {
+			t.Error("Expected to find test.jsx, but got 0 files")
+		}
+	})
+
+	// Test 3: Search with pattern using absolute path (like production)
+	t.Run("Pattern with absolute path", func(t *testing.T) {
+		// Get absolute path to testdata
+		absPath, err := filepath.Abs("./testdata")
+		if err != nil {
+			t.Fatalf("Failed to get absolute path: %v", err)
+		}
+
+		fsAbs := FileSearcher{
+			BasePath:        absPath,
+			AdditionalPaths: []string{},
+			ProviderConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				// Note: User patterns are treated as regex, so .git must be escaped
+				ExcludePathsOrPatterns: []string{"node_modules", "vendor", "\\.git"},
+			},
+			RuleScopeConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: nil,
+				ExcludePathsOrPatterns: nil,
+			},
+			FailFast: true,
+			Log:      logrusLog,
+		}
+
+		result, err := fsAbs.Search(SearchCriteria{
+			Patterns:           []string{`\.([jt])sx?$`},
+			ConditionFilepaths: nil,
+		})
+		if err != nil {
+			t.Errorf("Search failed: %v", err)
+		}
+		t.Logf("Found %d files with pattern and absolute path", len(result))
+		for _, file := range result {
+			t.Logf("  - %s", file)
+		}
+		if len(result) == 0 {
+			t.Error("BUG with absolute path: Expected to find at least test.jsx, but got 0 files")
+		}
+	})
+
+	t.Run("User-provided patterns are treated as regex", func(t *testing.T) {
+		// User-provided exclude patterns are treated as regex patterns.
+		// This means ".example" will match paths containing any-char + "example" (e.g., "theexample").
+		// If a user wants to match a literal ".example" directory, they should escape it: "\\.example"
+		// Only default excludes (.git, .venv) are pre-escaped in GetExcludedDirsFromConfig.
+		absPath, err := filepath.Abs("./testdata")
+		if err != nil {
+			t.Fatalf("Failed to get absolute path: %v", err)
+		}
+		t.Logf("Test running on GOOS=%s, absPath=%s", runtime.GOOS, absPath)
+
+		// Test 1: Unescaped ".example" matches paths containing "theexample" (regex behavior)
+		fsUnescaped := FileSearcher{
+			BasePath:        absPath,
+			AdditionalPaths: []string{},
+			ProviderConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				ExcludePathsOrPatterns: []string{".example"}, // Regex: . matches any char
+			},
+			RuleScopeConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: nil,
+				ExcludePathsOrPatterns: nil,
+			},
+			FailFast: true,
+			Log:      logrusLog,
+		}
+
+		resultUnescaped, err := fsUnescaped.Search(SearchCriteria{
+			Patterns:           []string{`\.([jt])sx?$`},
+			ConditionFilepaths: nil,
+		})
+		if err != nil {
+			t.Errorf("Search failed: %v", err)
+		}
+
+		// With unescaped ".example", files in "theexample/" should be excluded (regex matches)
+		foundTheExampleUnescaped := false
+		for _, file := range resultUnescaped {
+			if strings.Contains(filepath.Dir(file), "theexample") && filepath.Base(file) == "component.jsx" {
+				foundTheExampleUnescaped = true
+			}
+		}
+		if foundTheExampleUnescaped {
+			t.Errorf("Expected .example to exclude theexample/ (regex behavior), but file was found")
+		}
+
+		// Test 2: Escaped "\\.example" only matches literal ".example" directory
+		fsEscaped := FileSearcher{
+			BasePath:        absPath,
+			AdditionalPaths: []string{},
+			ProviderConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				ExcludePathsOrPatterns: []string{"\\.example"}, // Escaped: matches literal .example
+			},
+			RuleScopeConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: nil,
+				ExcludePathsOrPatterns: nil,
+			},
+			FailFast: true,
+			Log:      logrusLog,
+		}
+
+		resultEscaped, err := fsEscaped.Search(SearchCriteria{
+			Patterns:           []string{`\.([jt])sx?$`},
+			ConditionFilepaths: nil,
+		})
+		if err != nil {
+			t.Errorf("Search failed: %v", err)
+		}
+
+		// With escaped "\\.example", files in "theexample/" should NOT be excluded
+		foundTheExampleEscaped := false
+		for _, file := range resultEscaped {
+			if strings.Contains(filepath.Dir(file), "theexample") && filepath.Base(file) == "component.jsx" {
+				foundTheExampleEscaped = true
+				t.Logf("Correctly found file in theexample with escaped pattern: %s", file)
+			}
+		}
+		if !foundTheExampleEscaped {
+			t.Errorf("Expected \\.example to NOT exclude theexample/, but file was not found. Got %d files: %v", len(resultEscaped), resultEscaped)
+		}
+	})
 }

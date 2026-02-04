@@ -456,14 +456,15 @@ func GetExcludedDirsFromConfig(i InitConfig) []string {
 		}
 
 		// Non-empty array: start with defaults, then add user-configured excludes
+		// Note: patterns like \.git are regex-escaped to match literal directory names
 		validatedPaths := []string{
 			"node_modules", // JavaScript/TypeScript dependencies
 			"vendor",       // PHP/Go dependencies
-			".git",         // Git repository data
+			"\\.git",       // Git repository data (escaped for regex)
 			"dist",         // Common build output directory
 			"build",        // Common build output directory
 			"target",       // Java/Rust build output
-			".venv",        // Python virtual environment
+			"\\.venv",      // Python virtual environment (escaped for regex)
 			"venv",         // Python virtual environment
 		}
 
@@ -478,14 +479,15 @@ func GetExcludedDirsFromConfig(i InitConfig) []string {
 	}
 
 	// No config provided: use defaults only
+	// Note: patterns like \.git are regex-escaped to match literal directory names
 	return []string{
 		"node_modules", // JavaScript/TypeScript dependencies
 		"vendor",       // PHP/Go dependencies
-		".git",         // Git repository data
+		"\\.git",       // Git repository data (escaped for regex)
 		"dist",         // Common build output directory
 		"build",        // Common build output directory
 		"target",       // Java/Rust build output
-		".venv",        // Python virtual environment
+		"\\.venv",      // Python virtual environment (escaped for regex)
 		"venv",         // Python virtual environment
 	}
 }

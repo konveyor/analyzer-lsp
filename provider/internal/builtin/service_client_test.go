@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"sync"
 	"testing"
@@ -670,7 +671,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 			wantFilePaths: []string{},
 		},
 		{
-			name:       "(XML) Include files from cond.Filepaths, with include & with notifyFileChanges()",
+			name:       "(XML) Include files from cond.Filepaths, with include & with notifyFileChanges() matching file",
 			capability: "xml",
 			condition: builtinCondition{
 				XML: xmlCondition{
@@ -799,10 +800,15 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				return
 			}
 			for _, change := range tt.notifiedFileChanges {
+				t.Logf("NotifyFileChanges: Path=%q", change.Path)
 				p.NotifyFileChanges(context.TODO(), change)
 			}
 			// working copy manager needs to reconcile the changes
 			time.Sleep(time.Second * 1)
+			// Debug: log working copy state
+			for _, wc := range p.workingCopyMgr.getWorkingCopies() {
+				t.Logf("WorkingCopy: filePath=%q, wcPath=%q", wc.filePath, wc.wcPath)
+			}
 			got, err := p.Evaluate(context.TODO(), tt.capability, conditionInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("builtinServiceClient.Evaluate() error = %v, wantErr %v", err, tt.wantErr)
@@ -815,8 +821,12 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 			wantFilepaths := getAbsolutePaths(p.config.Location, tt.wantFilePaths)
 			sort.Strings(gotFilepaths)
 			sort.Strings(wantFilepaths)
+			// Always log paths for debugging Windows CI issues
+			t.Logf("GOOS=%s, baseLocation=%s", runtime.GOOS, baseLocation)
+			t.Logf("gotFilepaths (len=%d): %#v", len(gotFilepaths), gotFilepaths)
+			t.Logf("wantFilepaths (len=%d): %#v", len(wantFilepaths), wantFilepaths)
 			if !reflect.DeepEqual(gotFilepaths, wantFilepaths) {
-				t.Errorf("builtinServiceClient.Evaluate() = %v, want %v", gotFilepaths, wantFilepaths)
+				t.Errorf("builtinServiceClient.Evaluate() paths mismatch:\n  got:  %#v\n  want: %#v", gotFilepaths, wantFilepaths)
 			}
 		})
 	}

@@ -1,0 +1,6 @@
+---
+- ruleID: bad1
+  when:
+    nonexistent.provider:
+      pattern: "*.java"
+  message: "Rule with non-existent provider"

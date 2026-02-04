@@ -1,0 +1,14 @@
+---
+- ruleID: test-and-filecontent-001
+  description: Test AND condition with multiple filecontent patterns
+  effort: 3
+  category: potential
+  when:
+    and:
+      - builtin.filecontent:
+          pattern: '@patternfly/react-core'
+          filePattern: \.(j|t)sx?$
+      - builtin.filecontent:
+          pattern: header=
+          filePattern: \.(j|t)sx?$
+  message: "Both patterns should match"
