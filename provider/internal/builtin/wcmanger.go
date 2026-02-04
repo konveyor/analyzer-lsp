@@ -95,44 +95,41 @@ func (t *workingCopyManager) startWorker() {
 			if !ok {
 				return
 			}
-			// Keep original path for filePath (used for exclusion matching)
-			originalPath := change.Path
-			// Strip volume label on windows for wcPath creation only
-			pathForWc := change.Path
+			// we need to get rid of volume label on windows
 			if runtime.GOOS == "windows" {
 				volLabel := regexp.MustCompile(`^[a-zA-Z]:`)
-				pathForWc = volLabel.ReplaceAllString(change.Path, "")
+				change.Path = volLabel.ReplaceAllString(change.Path, "")
 			}
-			_, wcExists := t.workingCopies[originalPath]
-			wcPath := filepath.Join(t.tempDir, pathForWc)
+			_, wcExists := t.workingCopies[change.Path]
+			wcPath := filepath.Join(t.tempDir, change.Path)
 			// if the change is notifying a file save event
 			// we discard the working copy for it
 			if change.Saved && wcExists {
 				t.wcMutex.Lock()
-				delete(t.workingCopies, originalPath)
+				delete(t.workingCopies, change.Path)
 				t.wcMutex.Unlock()
-				if _, err := os.Stat(originalPath); err == nil || !os.IsNotExist(err) {
+				if _, err := os.Stat(change.Path); err == nil || !os.IsNotExist(err) {
 					err := os.Remove(wcPath)
 					if err != nil {
 						t.log.Error(err, "failed to remove working copy")
 					}
-					t.log.V(7).Info("working copy deleted", "change", originalPath, "wcPath", wcPath)
+					t.log.V(7).Info("working copy deleted", "change", change.Path, "wcPath", wcPath)
 				}
 			} else if !change.Saved {
 				err := os.MkdirAll(filepath.Dir(wcPath), 0755)
 				if err != nil {
-					t.log.Error(err, "failed to create dir for working copy", "path", originalPath)
+					t.log.Error(err, "failed to create dir for working copy", "path", change.Path)
 					continue
 				}
 				err = os.WriteFile(wcPath, []byte(change.Content), 0755)
 				if err != nil {
-					t.log.Error(err, "failed to create working copy", "path", originalPath)
+					t.log.Error(err, "failed to create working copy", "path", change.Path)
 					continue
 				}
-				t.log.V(7).Info("working copy created", "change", originalPath, "wcPath", wcPath)
+				t.log.V(7).Info("working copy created", "change", change.Path, "wcPath", wcPath)
 				t.wcMutex.Lock()
-				t.workingCopies[originalPath] = workingCopy{
-					filePath: originalPath,
+				t.workingCopies[change.Path] = workingCopy{
+					filePath: change.Path,
 					wcPath:   wcPath,
 				}
 				t.wcMutex.Unlock()
