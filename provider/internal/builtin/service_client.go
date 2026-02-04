@@ -512,7 +512,10 @@ type fileSearchResult struct {
 
 func (b *builtinServiceClient) performFileContentSearch(pattern string, locations []string) ([]fileSearchResult, error) {
 	// Trim quotes around the pattern to keep backwards compatibility
-	trimmedPattern := strings.Trim(pattern, "\"")
+	trimmedPattern := strings.TrimPrefix(pattern, "\"")
+	if !strings.HasSuffix(trimmedPattern, `\"`) {
+		trimmedPattern = strings.TrimSuffix(trimmedPattern, `"`)
+	}
 
 	// Check if the pattern needs multiline support
 	// Patterns need multiline support if they:
@@ -553,12 +556,17 @@ func (b *builtinServiceClient) performMultilineSearch(trimmedPattern string, loc
 		}
 	}
 
+	b.log.V(7).Info("pattern", "trimmed patter", trimmedPattern, "isLiteral", isLiteral)
+
 	var stdRegex *regexp.Regexp
 	var patternRegex *regexp2.Regexp
 
 	if !isLiteral {
 		// Try to compile with standard regexp first (better performance)
 		// This is nil if the pattern uses regexp2-specific features
+
+		// To match behavior of the xargs searching, we will set multimode line to true
+		trimmedPattern = `(?m)` + trimmedPattern
 		var stdErr error
 		stdRegex, stdErr = regexp.Compile(trimmedPattern)
 
@@ -718,9 +726,11 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 	foundMatch := false
 
 	if stdRegex != nil {
+		b.log.V(7).Info("using golang regex", "pattern", literalPattern)
 		// Use byte-based matching for pre-check (no allocation)
 		foundMatch = stdRegex.Match(content)
 	} else {
+		b.log.V(7).Info("using regexp2 regex", "pattern", literalPattern)
 		// Pattern uses regexp2-specific features, fall back to regexp2 check
 		// Use chunked approach to limit memory usage
 		const chunkSize = 1024 * 1024 // 1MB chunks
