@@ -226,17 +226,7 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				}
 			} else {
 				rPattern := pattern
-				// Check if this looks like a simple directory/file name that should be matched literally
-				// (contains regex metacharacters like '.' but no regex quantifiers or constructs)
-				hasRegexMetachars := regexp.QuoteMeta(pattern) != pattern
-				hasRegexConstructs := strings.ContainsAny(pattern, "[]()+ |^$*?")
-
-				if hasRegexMetachars && !hasRegexConstructs {
-					// Escape the pattern to treat it literally (e.g., ".git" -> "\.git")
-					rPattern = regexp.QuoteMeta(pattern)
-				}
-
-				// if the pattern doesn't contain any regex special chars, do an exact match only
+				// if the pattern doesn't contain a wildcard, do an exact match only
 				if regexp.QuoteMeta(pattern) == pattern {
 					rPattern = "^" + pattern + "$"
 				}
@@ -466,14 +456,15 @@ func GetExcludedDirsFromConfig(i InitConfig) []string {
 		}
 
 		// Non-empty array: start with defaults, then add user-configured excludes
+		// Note: patterns like \.git are regex-escaped to match literal directory names
 		validatedPaths := []string{
 			"node_modules", // JavaScript/TypeScript dependencies
 			"vendor",       // PHP/Go dependencies
-			".git",         // Git repository data
+			"\\.git",       // Git repository data (escaped for regex)
 			"dist",         // Common build output directory
 			"build",        // Common build output directory
 			"target",       // Java/Rust build output
-			".venv",        // Python virtual environment
+			"\\.venv",      // Python virtual environment (escaped for regex)
 			"venv",         // Python virtual environment
 		}
 
@@ -488,14 +479,15 @@ func GetExcludedDirsFromConfig(i InitConfig) []string {
 	}
 
 	// No config provided: use defaults only
+	// Note: patterns like \.git are regex-escaped to match literal directory names
 	return []string{
 		"node_modules", // JavaScript/TypeScript dependencies
 		"vendor",       // PHP/Go dependencies
-		".git",         // Git repository data
+		"\\.git",       // Git repository data (escaped for regex)
 		"dist",         // Common build output directory
 		"build",        // Common build output directory
 		"target",       // Java/Rust build output
-		".venv",        // Python virtual environment
+		"\\.venv",      // Python virtual environment (escaped for regex)
 		"venv",         // Python virtual environment
 	}
 }
