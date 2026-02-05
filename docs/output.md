@@ -59,6 +59,29 @@ For every rule that is matched, the analyzer engine creates a _Violation_ in the
 
 * **effort**: Integer indicating story points for each incident as determined by the rule author. (See [Rule Metadata](./rules.md#rule-metadata))
 
+* **extras**: A JSON field containing any optional/custom metadata from the rule that is not part of the core schema. This field enables rules to include additional context without requiring changes to analyzer-lsp. The value is a JSON object that can be unmarshaled to access custom fields. (See [Optional Metadata Fields](./rules.md#optional-metadata-fields))
+
+#### Example with Extras
+
+```yaml
+violations:
+  example-rule-001:
+    description: "Example violation"
+    category: mandatory
+    effort: 3
+    labels:
+    - "example"
+    extras:
+      custom_field: "value"
+      additional_metadata:
+        key1: "value1"
+        key2: "value2"
+    incidents:
+    - uri: "file:///path/to/file.java"
+      lineNumber: 42
+      message: "Example issue found"
+```
+
 ### User Interface for Analysis Output
 
 There is a standalone user interface available to visualize the YAML output in a static UI that runs in the browser. Check it out [here](https://github.com/konveyor/static-report). The [README](https://github.com/konveyor/static-report#readme) explains how it works with the YAML output.
