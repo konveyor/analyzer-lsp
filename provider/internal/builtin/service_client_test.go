@@ -14,6 +14,7 @@ import (
 	"github.com/go-logr/logr/testr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
@@ -1011,6 +1012,271 @@ func Test_builtinServiceClient_Evaluate_ExcludeDirs(t *testing.T) {
 	}
 }
 
+func Test_builtinServiceClient_performFileContentSearch(t *testing.T) {
+	baseLocation := filepath.Join(".", "testdata", "filecontent")
+	baseLocation, err := filepath.Abs(baseLocation)
+	if err != nil {
+		t.Fatalf("unable to get absolute path for testdata: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		pattern     string
+		files       []string
+		wantMatches int
+		wantFiles   []string // expected files that should have matches
+		wantTexts   []string // expected matched text snippets
+		wantErr     bool
+		description string
+	}{
+		{
+			name:        "literal string match - should use fast bytes.Index",
+			pattern:     "fox",
+			files:       []string{filepath.Join(baseLocation, "simple.txt")},
+			wantMatches: 2,
+			wantFiles:   []string{"simple.txt"},
+			wantTexts:   []string{"fox", "fox"},
+			description: "Literal string without regex metacharacters uses optimized byte search",
+		},
+		{
+			name:        "simple regex pattern - single line",
+			pattern:     "Line [0-9]+:",
+			files:       []string{filepath.Join(baseLocation, "simple.txt")},
+			wantMatches: 7,
+			wantFiles:   []string{"simple.txt"},
+			description: "Simple regex matches multiple lines",
+		},
+		{
+			name:        "regex with word boundary",
+			pattern:     `\bquick\b`,
+			files:       []string{filepath.Join(baseLocation, "simple.txt")},
+			wantMatches: 2,
+			wantFiles:   []string{"simple.txt"},
+			wantTexts:   []string{"quick", "quick"},
+			description: "Word boundary anchors work correctly",
+		},
+		{
+			name:        "pattern with alternation",
+			pattern:     "(fox|dog)",
+			files:       []string{filepath.Join(baseLocation, "simple.txt")},
+			wantMatches: 3,
+			wantFiles:   []string{"simple.txt"},
+			description: "Alternation pattern matches all occurrences",
+		},
+		{
+			name:        "case sensitive match",
+			pattern:     "Line",
+			files:       []string{filepath.Join(baseLocation, "simple.txt")},
+			wantMatches: 7,
+			wantFiles:   []string{"simple.txt"},
+			description: "Case-sensitive matching by default",
+		},
+		{
+			name:        "no matches found",
+			pattern:     "nonexistent",
+			files:       []string{filepath.Join(baseLocation, "simple.txt")},
+			wantMatches: 0,
+			wantFiles:   []string{},
+			description: "Returns empty result when no matches",
+		},
+		{
+			name:        "pattern with quotes",
+			pattern:     `\"fox\"`,
+			files:       []string{filepath.Join(baseLocation, "simple.txt")},
+			wantMatches: 1,
+			wantFiles:   []string{"simple.txt"},
+			description: "Quotes around pattern are trimmed for backwards compatibility",
+		},
+		{
+			name:        "multiline pattern with newline - XML dependency",
+			pattern:     `<dependency>\s+<groupId>`,
+			files:       []string{filepath.Join(baseLocation, "multiline.xml")},
+			wantMatches: 1,
+			wantFiles:   []string{"multiline.xml"},
+			description: "Pattern with \\s matches across newlines",
+		},
+		{
+			name:        "multiline pattern with negated char class",
+			pattern:     `<property[^>]*>`,
+			files:       []string{filepath.Join(baseLocation, "multiline.xml")},
+			wantMatches: 1,
+			wantFiles:   []string{"multiline.xml"},
+			description: "Negated character class [^>] triggers multiline search",
+		},
+		{
+			name:        "pattern matching special characters - dots",
+			pattern:     `dots\.\.\.`,
+			files:       []string{filepath.Join(baseLocation, "special_chars.txt")},
+			wantMatches: 1,
+			wantFiles:   []string{"special_chars.txt"},
+			description: "Escaped dots match literal dots",
+		},
+		{
+			name:        "pattern matching brackets",
+			pattern:     `\[abc\]`,
+			files:       []string{filepath.Join(baseLocation, "special_chars.txt")},
+			wantMatches: 1,
+			wantFiles:   []string{"special_chars.txt"},
+			description: "Escaped brackets match literal brackets",
+		},
+		{
+			name:        "pattern matching braces",
+			pattern:     `\{key: value\}`,
+			files:       []string{filepath.Join(baseLocation, "special_chars.txt")},
+			wantMatches: 1,
+			wantFiles:   []string{"special_chars.txt"},
+			description: "Escaped braces match literal braces",
+		},
+		{
+			name:        "pattern matching pipe character",
+			pattern:     `\|\|\|`,
+			files:       []string{filepath.Join(baseLocation, "special_chars.txt")},
+			wantMatches: 1,
+			wantFiles:   []string{"special_chars.txt"},
+			description: "Escaped pipes match literal pipes",
+		},
+		{
+			name:        "pattern matching backslashes",
+			pattern:     `\\path\\to\\file`,
+			files:       []string{filepath.Join(baseLocation, "special_chars.txt")},
+			wantMatches: 1,
+			wantFiles:   []string{"special_chars.txt"},
+			description: "Double backslashes match literal backslashes",
+		},
+		{
+			name:        "pattern matching slashes",
+			pattern:     `/path/to/file`,
+			files:       []string{filepath.Join(baseLocation, "special_chars.txt")},
+			wantMatches: 1,
+			wantFiles:   []string{"special_chars.txt"},
+			description: "slashes match path like things",
+		},
+		{
+			name:        "pattern with \\s+ matches whitespace",
+			pattern:     `with\s+tabs`,
+			files:       []string{filepath.Join(baseLocation, "whitespace.txt")},
+			wantMatches: 1,
+			wantFiles:   []string{"whitespace.txt"},
+			description: "Whitespace pattern \\s triggers multiline search",
+		},
+		{
+			name:    "multiple files - search all",
+			pattern: "test",
+			files: []string{
+				filepath.Join(baseLocation, "simple.txt"),
+				filepath.Join(baseLocation, "special_chars.txt"),
+				filepath.Join(baseLocation, "whitespace.txt"),
+			},
+			wantMatches: 0, // "test" doesn't appear in simple.txt
+			description: "Search across multiple files",
+		},
+		{
+			name:        "empty file list",
+			pattern:     "anything",
+			files:       []string{},
+			wantMatches: 0,
+			wantFiles:   []string{},
+			description: "Empty file list returns no matches",
+		},
+		{
+			name:        "multiline XML attribute pattern",
+			pattern:     `name="config"[^>]*value="test-value"`,
+			files:       []string{filepath.Join(baseLocation, "multiline.xml")},
+			wantMatches: 1,
+			wantFiles:   []string{"multiline.xml"},
+			description: "Pattern spanning multiple lines in XML attributes",
+		},
+		{
+			name:        "literal match of common word",
+			pattern:     "Test",
+			files:       []string{filepath.Join(baseLocation, "special_chars.txt")},
+			wantMatches: 11,
+			wantFiles:   []string{"special_chars.txt"},
+			description: "Literal string appears multiple times",
+		},
+		{
+			name:        "pattern at start of line",
+			pattern:     `^Line`,
+			files:       []string{filepath.Join(baseLocation, "simple.txt")},
+			wantMatches: 7,
+			wantFiles:   []string{"simple.txt"},
+			description: "Anchor ^ matches start of line",
+		},
+		{
+			name:        "pattern at end of line",
+			pattern:     `dog$`,
+			files:       []string{filepath.Join(baseLocation, "simple.txt")},
+			wantMatches: 1,
+			wantFiles:   []string{"simple.txt"},
+			description: "Anchor $ matches end of line",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sc := &builtinServiceClient{
+				config: provider.InitConfig{
+					Location: baseLocation,
+				},
+				log: testr.NewWithOptions(t, testr.Options{
+					Verbosity: 20,
+				}),
+				locationCache:  map[string]float64{},
+				cacheMutex:     sync.RWMutex{},
+				workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
+			}
+
+			results, err := sc.performFileContentSearch(tt.pattern, tt.files)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("performFileContentSearch() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if len(results) != tt.wantMatches {
+				t.Errorf("%s: got %d matches, want %d matches", tt.description, len(results), tt.wantMatches)
+				for i, result := range results {
+					fileName := filepath.Base(uri.URI(result.positionParams.TextDocument.URI).Filename())
+					t.Logf("  Match %d: line %d, file %s, text: %q",
+						i+1, result.positionParams.Position.Line, fileName, result.match)
+				}
+				return
+			}
+
+			// Verify expected files contain matches
+			if len(tt.wantFiles) > 0 {
+				gotFiles := make(map[string]bool)
+				for _, result := range results {
+					fileName := filepath.Base(uri.URI(result.positionParams.TextDocument.URI).Filename())
+					gotFiles[fileName] = true
+				}
+				for _, wantFile := range tt.wantFiles {
+					if !gotFiles[wantFile] {
+						t.Errorf("%s: expected file %s to have matches, but it didn't", tt.description, wantFile)
+					}
+				}
+			}
+
+			// Verify matched texts if specified
+			if len(tt.wantTexts) > 0 {
+				gotTexts := []string{}
+				for _, result := range results {
+					gotTexts = append(gotTexts, result.match)
+				}
+				if !reflect.DeepEqual(gotTexts, tt.wantTexts) {
+					t.Errorf("%s: got matched texts %v, want %v", tt.description, gotTexts, tt.wantTexts)
+				}
+			}
+
+			// Verify all results have valid line numbers
+			for i, result := range results {
+				if result.positionParams.Position.Line == 0 {
+					t.Errorf("%s: result %d has invalid line number 0", tt.description, i)
+				}
+			}
+		})
+	}
+}
+
 func Test_builtinServiceClient_performFileContentSearch_Multiline(t *testing.T) {
 	baseLocation := filepath.Join(".", "testdata")
 	baseLocation, err := filepath.Abs(baseLocation)
@@ -1019,36 +1285,36 @@ func Test_builtinServiceClient_performFileContentSearch_Multiline(t *testing.T) 
 	}
 
 	tests := []struct {
-		name          string
-		pattern       string
-		filePattern   string
-		wantMatches   int
-		wantLineNums  []int // expected line numbers for matches
-		description   string
+		name         string
+		pattern      string
+		filePattern  string
+		wantMatches  int
+		wantLineNums []int // expected line numbers for matches
+		description  string
 	}{
 		{
-			name:        "multiline pattern matches across newlines",
-			pattern:     `<Masthead[^>]*>[^<]*<MastheadToggle`,
-			filePattern: `\.(j|t)sx?$`,
-			wantMatches: 2,
+			name:         "multiline pattern matches across newlines",
+			pattern:      `<Masthead[^>]*>[^<]*<MastheadToggle`,
+			filePattern:  `\.(j|t)sx?$`,
+			wantMatches:  2,
 			wantLineNums: []int{8, 14}, // lines 8 and 14 (1-based)
-			description: "Should match both multiline (line 8) and single-line (line 14) JSX",
+			description:  "Should match both multiline (line 8) and single-line (line 14) JSX",
 		},
 		{
-			name:        "multiline pattern with alternative matches MastheadBrand",
-			pattern:     `<Masthead[^>]*>[^<]*<MastheadBrand`,
-			filePattern: `\.(j|t)sx?$`,
-			wantMatches: 1,
+			name:         "multiline pattern with alternative matches MastheadBrand",
+			pattern:      `<Masthead[^>]*>[^<]*<MastheadBrand`,
+			filePattern:  `\.(j|t)sx?$`,
+			wantMatches:  1,
 			wantLineNums: []int{17}, // line 17 only (1-based) - line 8 has MastheadToggle in between
-			description: "Should match multiline patterns with lots of whitespace",
+			description:  "Should match multiline patterns with lots of whitespace",
 		},
 		{
-			name:        "combined pattern with OR",
-			pattern:     `<Masthead[^>]*>[^<]*<MastheadToggle|<Masthead[^>]*>[^<]*<MastheadBrand`,
-			filePattern: `\.(j|t)sx?$`,
-			wantMatches: 3,
+			name:         "combined pattern with OR",
+			pattern:      `<Masthead[^>]*>[^<]*<MastheadToggle|<Masthead[^>]*>[^<]*<MastheadBrand`,
+			filePattern:  `\.(j|t)sx?$`,
+			wantMatches:  3,
 			wantLineNums: []int{8, 14, 17}, // 8=multiline MastheadToggle, 14=single-line MastheadToggle, 17=multiline MastheadBrand (all 1-based)
-			description: "Should match all multiline and single-line occurrences",
+			description:  "Should match all multiline and single-line occurrences",
 		},
 	}
 

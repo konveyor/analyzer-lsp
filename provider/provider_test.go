@@ -16,7 +16,10 @@ import (
 var _ Client = &fakeClient{}
 
 type fakeClient struct {
-	dependencies []*Dep
+	dependencies   []*Dep
+	evaluateResp   ProviderEvaluateResponse
+	evaluateErr    error
+	evaluateCalled bool
 }
 
 func (c *fakeClient) Prepare(ctx context.Context, conditionsByCap []ConditionsByCap) error {
@@ -25,7 +28,8 @@ func (c *fakeClient) Prepare(ctx context.Context, conditionsByCap []ConditionsBy
 func (c *fakeClient) Capabilities() []Capability { return nil }
 func (c *fakeClient) HasCapability(string) bool  { return true }
 func (c *fakeClient) Evaluate(context.Context, string, []byte) (ProviderEvaluateResponse, error) {
-	return ProviderEvaluateResponse{}, nil
+	c.evaluateCalled = true
+	return c.evaluateResp, c.evaluateErr
 }
 func (c *fakeClient) Init(context.Context, logr.Logger, InitConfig) (ServiceClient, InitConfig, error) {
 	return nil, InitConfig{}, nil
@@ -344,6 +348,184 @@ func Test_deduplication(t *testing.T) {
 
 }
 
+func Test_templateCondition(t *testing.T) {
+	tests := []struct {
+		name      string
+		condition []byte
+		ctx       map[string]engine.ChainTemplate
+		want      []byte
+		wantErr   bool
+	}{
+		{
+			name:      "simple condition with no variables",
+			condition: []byte("xml:\n  xpath: //dependencies/dependency"),
+			ctx:       map[string]engine.ChainTemplate{},
+			want:      []byte("xml:\n  xpath: //dependencies/dependency"),
+			wantErr:   false,
+		},
+		{
+			name:      "condition with quoted variables should have quotes removed",
+			condition: []byte("xml:\n  filepaths: '{{poms.filepaths}}'\n  xpath: //dependencies/dependency"),
+			ctx: map[string]engine.ChainTemplate{
+				"poms": {
+					Filepaths: []string{"pom.xml", "subdir/pom.xml"},
+				},
+			},
+			want:    []byte("xml:\n  filepaths: [pom.xml subdir/pom.xml]\n  xpath: //dependencies/dependency"),
+			wantErr: false,
+		},
+		{
+			name:      "condition with single variable replacement",
+			condition: []byte("xml:\n  filepaths: {{poms.filepaths}}\n  xpath: //dependencies/dependency"),
+			ctx: map[string]engine.ChainTemplate{
+				"poms": {
+					Filepaths: []string{"pom.xml"},
+				},
+			},
+			want:    []byte("xml:\n  filepaths: [pom.xml]\n  xpath: //dependencies/dependency"),
+			wantErr: false,
+		},
+		{
+			name:      "condition with multiple variables",
+			condition: []byte("xml:\n  filepaths: {{poms.filepaths}}\n  excludedPaths: {{poms.excludedPaths}}\n  xpath: //dependencies/dependency"),
+			ctx: map[string]engine.ChainTemplate{
+				"poms": {
+					Filepaths:     []string{"pom.xml", "build.xml"},
+					ExcludedPaths: []string{"target/", "build/"},
+				},
+			},
+			want:    []byte("xml:\n  filepaths: [pom.xml build.xml]\n  excludedPaths: [target/ build/]\n  xpath: //dependencies/dependency"),
+			wantErr: false,
+		},
+		{
+			name:      "condition with extras map",
+			condition: []byte("custom:\n  config: {{settings.extras}}"),
+			ctx: map[string]engine.ChainTemplate{
+				"settings": {
+					Extras: map[string]interface{}{
+						"key1": "value1",
+						"key2": 42,
+					},
+				},
+			},
+			want:    []byte("custom:\n  config: map[key1:value1 key2:42]"),
+			wantErr: false,
+		},
+		{
+			name:      "empty condition",
+			condition: []byte(""),
+			ctx:       map[string]engine.ChainTemplate{},
+			want:      []byte(""),
+			wantErr:   false,
+		},
+		{
+			name:      "empty context",
+			condition: []byte("xml:\n  xpath: //dependencies/dependency"),
+			ctx:       nil,
+			want:      []byte("xml:\n  xpath: //dependencies/dependency"),
+			wantErr:   false,
+		},
+		{
+			name:      "condition with undefined variable",
+			condition: []byte("xml:\n  filepaths: {{undefined.filepaths}}"),
+			ctx:       map[string]engine.ChainTemplate{},
+			want:      []byte("xml:\n  filepaths: "),
+			wantErr:   false,
+		},
+		{
+			name:      "condition with nested template references",
+			condition: []byte("search:\n  files: {{sources.filepaths}}\n  exclude: {{sources.excludedPaths}}"),
+			ctx: map[string]engine.ChainTemplate{
+				"sources": {
+					Filepaths:     []string{"src/main.go", "src/utils.go"},
+					ExcludedPaths: []string{"vendor/", "test/"},
+				},
+			},
+			want:    []byte("search:\n  files: [src/main.go src/utils.go]\n  exclude: [vendor/ test/]"),
+			wantErr: false,
+		},
+		{
+			name:      "condition with empty ChainTemplate fields",
+			condition: []byte("xml:\n  filepaths: {{empty.filepaths}}\n  extras: {{empty.extras}}"),
+			ctx: map[string]engine.ChainTemplate{
+				"empty": {},
+			},
+			want:    []byte("xml:\n  filepaths: []\n  extras: map[]"),
+			wantErr: false,
+		},
+		{
+			name:      "condition with multiple ChainTemplates",
+			condition: []byte("config:\n  javaPaths: {{java.filepaths}}\n  goPaths: {{golang.filepaths}}"),
+			ctx: map[string]engine.ChainTemplate{
+				"java": {
+					Filepaths: []string{"src/Main.java"},
+				},
+				"golang": {
+					Filepaths: []string{"main.go"},
+				},
+			},
+			want:    []byte("config:\n  javaPaths: [src/Main.java]\n  goPaths: [main.go]"),
+			wantErr: false,
+		},
+		{
+			name:      "condition with both quoted and unquoted variables",
+			condition: []byte("xml:\n  quoted: '{{poms.filepaths}}'\n  unquoted: {{poms.filepaths}}"),
+			ctx: map[string]engine.ChainTemplate{
+				"poms": {
+					Filepaths: []string{"pom.xml"},
+				},
+			},
+			want:    []byte("xml:\n  quoted: [pom.xml]\n  unquoted: [pom.xml]"),
+			wantErr: false,
+		},
+		{
+			name:      "condition with special characters in paths",
+			condition: []byte("xml:\n  filepaths: {{special.filepaths}}"),
+			ctx: map[string]engine.ChainTemplate{
+				"special": {
+					Filepaths: []string{"path/with spaces/file.xml", "path-with-dashes/file.xml"},
+				},
+			},
+			want:    []byte("xml:\n  filepaths: [path/with spaces/file.xml path-with-dashes/file.xml]"),
+			wantErr: false,
+		},
+		{
+			name:      "condition accessing specific extras value",
+			condition: []byte("setting: {{config.extras.timeout}}"),
+			ctx: map[string]engine.ChainTemplate{
+				"config": {
+					Extras: map[string]interface{}{
+						"timeout": 30,
+						"retries": 3,
+					},
+				},
+			},
+			want:    []byte("setting: 30"),
+			wantErr: false,
+		},
+		{
+			name:      "regex pattern with escapes",
+			condition: []byte(`pattern: \".*\testing"`),
+			ctx:       map[string]engine.ChainTemplate{},
+			want:      []byte(`pattern: \".*\testing"`),
+			wantErr:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := templateCondition(tt.condition, tt.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("templateCondition() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("templateCondition() = %q, want %q", string(got), string(tt.want))
+			}
+		})
+	}
+}
+
 func Test_GetConfigs(t *testing.T) {
 	tests := []struct {
 		title                          string
@@ -413,6 +595,244 @@ func Test_GetConfigs(t *testing.T) {
 				fmt.Printf("\\n%#v", pc.ProviderSpecificConfig)
 				fmt.Printf("\\n%#v\\n", tc.expectedProviderSpecificConfig)
 				t.Fatalf("Got config is different than expected config")
+			}
+		})
+	}
+}
+
+func Test_ProviderCondition_Evaluate(t *testing.T) {
+	lineNum := 10
+	message := "test message"
+
+	tests := []struct {
+		name            string
+		providerResp    ProviderEvaluateResponse
+		providerErr     error
+		capability      string
+		conditionInfo   interface{}
+		condCtx         engine.ConditionContext
+		expectedMatched bool
+		expectedIncLen  int
+		shouldErr       bool
+	}{
+		{
+			name:       "evaluation with incidents should return matched response",
+			capability: "java",
+			conditionInfo: map[string]interface{}{
+				"referenced": map[string]interface{}{
+					"pattern": "javax.*",
+				},
+			},
+			providerResp: ProviderEvaluateResponse{
+				Matched: true,
+				Incidents: []IncidentContext{
+					{
+						FileURI:    uri.URI("file:///test.java"),
+						LineNumber: &lineNum,
+						Variables: map[string]interface{}{
+							"package": "javax.servlet",
+						},
+					},
+				},
+				TemplateContext: map[string]interface{}{
+					"package": "javax.servlet",
+				},
+			},
+			condCtx: engine.ConditionContext{
+				Tags: map[string]interface{}{
+					"test": "tag",
+				},
+				Template: map[string]engine.ChainTemplate{},
+				RuleID:   "test-rule-001",
+			},
+			expectedMatched: true,
+			expectedIncLen:  1,
+			shouldErr:       false,
+		},
+		{
+			name:       "evaluation with no incidents should return no match",
+			capability: "java",
+			conditionInfo: map[string]interface{}{
+				"referenced": map[string]interface{}{
+					"pattern": "javax.*",
+				},
+			},
+			providerResp: ProviderEvaluateResponse{
+				Matched:   false,
+				Incidents: []IncidentContext{},
+			},
+			condCtx: engine.ConditionContext{
+				RuleID: "test-rule-002",
+			},
+			expectedMatched: false,
+			expectedIncLen:  0,
+			shouldErr:       false,
+		},
+		{
+			name:       "evaluation with multiple incidents should return all",
+			capability: "builtin",
+			conditionInfo: map[string]interface{}{
+				"filecontent": map[string]interface{}{
+					"pattern": "TODO",
+				},
+			},
+			providerResp: ProviderEvaluateResponse{
+				Matched: true,
+				Incidents: []IncidentContext{
+					{
+						FileURI:    uri.URI("file:///test1.java"),
+						LineNumber: &lineNum,
+					},
+					{
+						FileURI:    uri.URI("file:///test2.java"),
+						LineNumber: &lineNum,
+					},
+					{
+						FileURI:    uri.URI("file:///test3.java"),
+						LineNumber: &lineNum,
+					},
+				},
+			},
+			condCtx: engine.ConditionContext{
+				RuleID: "test-rule-003",
+			},
+			expectedMatched: true,
+			expectedIncLen:  3,
+			shouldErr:       false,
+		},
+		{
+			name:       "evaluation with template context should preserve it",
+			capability: "java",
+			conditionInfo: map[string]interface{}{
+				"referenced": "test",
+			},
+			providerResp: ProviderEvaluateResponse{
+				Matched: true,
+				Incidents: []IncidentContext{
+					{
+						FileURI: uri.URI("file:///test.java"),
+					},
+				},
+				TemplateContext: map[string]interface{}{
+					"key1": "value1",
+					"key2": 42,
+				},
+			},
+			condCtx: engine.ConditionContext{
+				RuleID: "test-rule-004",
+			},
+			expectedMatched: true,
+			expectedIncLen:  1,
+			shouldErr:       false,
+		},
+		{
+			name:       "client error should return error",
+			capability: "java",
+			conditionInfo: map[string]interface{}{
+				"referenced": "test",
+			},
+			providerErr: fmt.Errorf("provider error"),
+			condCtx: engine.ConditionContext{
+				RuleID: "test-rule-005",
+			},
+			expectedMatched: false,
+			expectedIncLen:  0,
+			shouldErr:       true,
+		},
+		{
+			name:       "evaluation with code location should preserve it",
+			capability: "java",
+			conditionInfo: map[string]interface{}{
+				"referenced": "test",
+			},
+			providerResp: ProviderEvaluateResponse{
+				Matched: true,
+				Incidents: []IncidentContext{
+					{
+						FileURI:    uri.URI("file:///test.java"),
+						LineNumber: &lineNum,
+						CodeLocation: &Location{
+							StartPosition: Position{Line: 10, Character: 5},
+							EndPosition:   Position{Line: 10, Character: 20},
+						},
+					},
+				},
+			},
+			condCtx: engine.ConditionContext{
+				RuleID: "test-rule-006",
+			},
+			expectedMatched: true,
+			expectedIncLen:  1,
+			shouldErr:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &fakeClient{
+				evaluateResp: tt.providerResp,
+				evaluateErr:  tt.providerErr,
+			}
+
+			providerCondition := ProviderCondition{
+				Client:        client,
+				Capability:    tt.capability,
+				ConditionInfo: tt.conditionInfo,
+				Rule: engine.Rule{
+					RuleMeta: engine.RuleMeta{
+						RuleID: tt.condCtx.RuleID,
+					},
+					Perform: engine.Perform{
+						Message: engine.Message{
+							Text: &message,
+						},
+					},
+				},
+			}
+
+			resp, err := providerCondition.Evaluate(context.TODO(), logr.Logger{}, tt.condCtx)
+
+			if tt.shouldErr {
+				if err == nil {
+					t.Errorf("expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if !client.evaluateCalled {
+				t.Errorf("client.Evaluate was not called")
+			}
+
+			if resp.Matched != tt.expectedMatched {
+				t.Errorf("expected Matched to be %v, got %v", tt.expectedMatched, resp.Matched)
+			}
+
+			if len(resp.Incidents) != tt.expectedIncLen {
+				t.Errorf("expected %d incidents, got %d", tt.expectedIncLen, len(resp.Incidents))
+			}
+
+			// Verify template context is preserved when present
+			if len(tt.providerResp.TemplateContext) > 0 {
+				if !reflect.DeepEqual(resp.TemplateContext, tt.providerResp.TemplateContext) {
+					t.Errorf("expected TemplateContext %v, got %v", tt.providerResp.TemplateContext, resp.TemplateContext)
+				}
+			}
+
+			// Verify code location is preserved when present
+			if len(resp.Incidents) > 0 && tt.providerResp.Incidents[0].CodeLocation != nil {
+				if resp.Incidents[0].CodeLocation == nil {
+					t.Errorf("expected code location to be preserved")
+				} else {
+					expectedLine := int(tt.providerResp.Incidents[0].CodeLocation.StartPosition.Line)
+					if resp.Incidents[0].CodeLocation.StartPosition.Line != expectedLine {
+						t.Errorf("expected start line %d, got %d", expectedLine, resp.Incidents[0].CodeLocation.StartPosition.Line)
+					}
+				}
 			}
 		})
 	}

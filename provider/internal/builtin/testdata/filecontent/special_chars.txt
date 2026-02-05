@@ -1,0 +1,11 @@
+Test with dots...
+Test with stars ***
+Test with brackets [abc]
+Test with braces {key: value}
+Test with parens (grouped)
+Test with pipes ||| delimited
+Test with slashes //comment
+Test with backslashes \path\to\file
+Test with forwardslashes /path/to/file
+Test with quotes "double" and 'single'
+Test with ampersand & symbol

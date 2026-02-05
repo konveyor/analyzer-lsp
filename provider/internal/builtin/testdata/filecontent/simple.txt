@@ -1,0 +1,7 @@
+Line 1: The quick brown fox
+Line 2: jumps over the lazy dog
+Line 3: The "fox" is quick
+Line 4: import java.util.List;
+Line 5: public class Example {
+Line 6:   private String name;
+Line 7: }

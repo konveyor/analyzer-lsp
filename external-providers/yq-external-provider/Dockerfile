@@ -41,6 +41,10 @@ RUN wget "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_B
     mv ${YQ_BINARY} /usr/local/bin/yq
 
 COPY --from=go-builder /opt/app-root/src/yq/yq-external-provider /usr/local/bin/yq-external-provider
+WORKDIR /addon
+RUN chgrp -R 0 /addon && chmod -R g=u /addon 
+USER 1001
+ENV HOME /addon
 
 ENTRYPOINT [ "/usr/local/bin/yq-external-provider" ]
 
