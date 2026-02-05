@@ -2,6 +2,7 @@ package parser_test
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -266,7 +267,9 @@ func TestLoadRules(t *testing.T) {
 								Category:    &konveyor.Potential,
 							},
 							Perform: engine.Perform{Message: engine.Message{Text: &allGoAndJsonFiles, Links: []konveyor.Link{}}},
-							When:    engine.ConditionEntry{},
+							When: engine.AndCondition{
+								Conditions: []engine.ConditionEntry{{}, {}},
+							},
 						},
 					},
 				},
@@ -304,7 +307,9 @@ func TestLoadRules(t *testing.T) {
 								Category:    &konveyor.Potential,
 							},
 							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []konveyor.Link{}}},
-							When:    engine.ConditionEntry{},
+							When: engine.OrCondition{
+								Conditions: []engine.ConditionEntry{{}, {}},
+							},
 						},
 					},
 				},
@@ -318,7 +323,7 @@ func TestLoadRules(t *testing.T) {
 			},
 		},
 		{
-			Name:         "test-or-rule",
+			Name:         "test-or-rule-chain",
 			testFileName: "rule-chain.yaml",
 			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
@@ -342,7 +347,19 @@ func TestLoadRules(t *testing.T) {
 								Category:    &konveyor.Potential,
 							},
 							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []konveyor.Link{}}},
-							When:    engine.ConditionEntry{},
+							When: engine.OrCondition{
+								Conditions: []engine.ConditionEntry{
+									{
+										As: "go-files-2",
+									},
+									{
+										From:      "test-files",
+										As:        "go-files",
+										Ignorable: true,
+										Not:       true,
+									},
+								},
+							},
 						},
 					},
 				},
@@ -421,7 +438,9 @@ func TestLoadRules(t *testing.T) {
 								Category:    &konveyor.Potential,
 							},
 							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []konveyor.Link{}}},
-							When:    engine.ConditionEntry{},
+							When: engine.ConditionEntry{
+								Not: true,
+							},
 						},
 					},
 				},
@@ -477,7 +496,9 @@ func TestLoadRules(t *testing.T) {
 								Description: "",
 							},
 							Perform: engine.Perform{Message: engine.Message{Text: &allGoOrJsonFiles, Links: []konveyor.Link{}}},
-							When:    engine.ConditionEntry{},
+							When: engine.OrCondition{
+								Conditions: []engine.ConditionEntry{{}, {}, {}},
+							},
 						},
 					},
 				},
@@ -815,6 +836,56 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:         "Pattern with escape characters",
+			testFileName: "pattern_escape_chars.yaml",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "filecontent",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "filecontent",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "pattern-escape-rule",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []konveyor.Link{},
+								},
+							},
+							When: engine.ConditionEntry{
+								ProviderSpecificConfig: provider.ProviderCondition{
+									Client: testProvider{
+										caps: []provider.Capability{{
+											Name: "filecontent",
+										}},
+									},
+									Capability: "filecontent",
+									ConditionInfo: map[any]any{
+										"pattern": `\".*spring\.datasource`,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -903,6 +974,14 @@ func compareWhens(w1 engine.Conditional, w2 engine.Conditional, t *testing.T) {
 			t.Errorf("rulesets did not have matching when field")
 		}
 		compareConditions(or1.Conditions, or2.Conditions, t)
+	} else {
+		c1, ok := w1.(engine.ConditionEntry)
+		c2, ok2 := w2.(engine.ConditionEntry)
+		if !ok || !ok2 {
+			t.Errorf("must be one of and/or/conditionEntry\nexpected: %T\nactual: %T", w1, w2)
+			return
+		}
+		compareConditions([]engine.ConditionEntry{c1}, []engine.ConditionEntry{c2}, t)
 	}
 
 }
@@ -911,7 +990,7 @@ func compareConditions(cs1 []engine.ConditionEntry, cs2 []engine.ConditionEntry,
 	if len(cs1) != len(cs2) {
 		t.Errorf("rulesets did not have the same number of conditions")
 	}
-	for i := 0; i < len(cs1); i++ {
+	for i := range len(cs1) {
 		c1 := cs1[i]
 		c2 := cs2[i]
 		if c1.As != c2.As {
@@ -925,6 +1004,20 @@ func compareConditions(cs1 []engine.ConditionEntry, cs2 []engine.ConditionEntry,
 		}
 		if c1.Not != c2.Not {
 			t.Errorf("rulesets did not have the same Not field")
+		}
+		// This will allow us to skip this comparision for the old tests, but the new tests should enable this
+		if cond, ok := c1.ProviderSpecificConfig.(provider.ProviderCondition); c1.ProviderSpecificConfig != nil && ok {
+			if cond2, ok := c2.ProviderSpecificConfig.(provider.ProviderCondition); c2.ProviderSpecificConfig != nil && ok {
+				if fmt.Sprintf("%T", cond.Client) != fmt.Sprintf("%T", cond2.Client) {
+					t.Errorf("condition client is not equal\nexpected: %#v\nactual: %#v", cond.Client, cond2.Client)
+				}
+				if cond.Capability != cond2.Capability {
+					t.Errorf("condition capability is not equal\nexpected: %#v\nactual: %#v", cond.Capability, cond2.Capability)
+				}
+				if !reflect.DeepEqual(cond.ConditionInfo, cond2.ConditionInfo) {
+					t.Errorf("condition info is not equal\nexpected: %#v\nactual: %#v", cond.ConditionInfo, cond2.ConditionInfo)
+				}
+			}
 		}
 	}
 }

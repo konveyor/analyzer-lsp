@@ -1,0 +1,8 @@
+	Indented with tab
+  Indented with spaces
+Line	with	tabs	inside
+Line  with  multiple  spaces
+
+Empty line above
+Line\twith\tescape\tsequences
+Trailing spaces follow
