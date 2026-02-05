@@ -1,0 +1,35 @@
+- name: test-ruleset
+  description: Test ruleset results
+  tags: []
+  violations:
+    test-001:
+      description: Test violation found
+      category: mandatory
+      labels:
+        - category=mandatory
+        - effort=1
+      incidents:
+        - uri: file:///test/Sample.java
+          message: Found TODO comment
+          codeSnip: "// TODO: implement this"
+          lineNumber: 10
+          variables:
+            file: Sample.java
+      effort: 1
+    test-002:
+      description: XML file found
+      category: optional
+      labels:
+        - category=optional
+        - effort=3
+      incidents:
+        - uri: file:///test/config.xml
+          message: XML configuration file
+          codeSnip: "<?xml version=\"1.0\"?>"
+          lineNumber: 1
+          variables:
+            file: config.xml
+      effort: 3
+  errors: {}
+  unmatched: []
+  skipped: []

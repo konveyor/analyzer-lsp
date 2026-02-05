@@ -421,6 +421,9 @@ func AnalysisCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&progressOutput, "progress-output", "", "where to write progress events (stderr, stdout, or file path)")
 	rootCmd.Flags().StringVar(&progressFormat, "progress-format", "bar", "format for progress output: bar, text, or json")
 
+	// Add MCP subcommand
+	rootCmd.AddCommand(MCPCmd())
+
 	return rootCmd
 }
 

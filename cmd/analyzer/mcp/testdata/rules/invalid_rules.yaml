@@ -1,0 +1,4 @@
+- description: Missing ruleID
+  when:
+    builtin.file:
+      pattern: ".*"
