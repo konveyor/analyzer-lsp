@@ -62,6 +62,7 @@ type ruleParseReturn struct {
 type RuleParser struct {
 	ProviderNameToClient map[string]provider.InternalProviderClient
 	Log                  logr.Logger
+	Selector             *labels.LabelSelector[*engine.RuleMeta]
 	NoDependencyRules    bool
 	DepLabelSelector     *labels.LabelSelector[*provider.Dep]
 }
@@ -153,7 +154,9 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 				continue
 			}
 			ruleSets = append(ruleSets, r...)
-			maps.Copy(clientMap, m)
+			if m != nil {
+				maps.Copy(clientMap, m)
+			}
 			for k, v := range provConditions {
 				if _, ok := providerConditions[k]; !ok {
 					providerConditions[k] = []provider.ConditionsByCap{}
@@ -218,7 +221,9 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 				ruleParserWG.Done()
 				continue
 			}
-			maps.Copy(clientMap, load.providerMap)
+			if load.providerMap != nil {
+				maps.Copy(clientMap, load.providerMap)
+			}
 			for k, v := range load.conditionsByCap {
 				if _, ok := providerConditions[k]; !ok {
 					providerConditions[k] = []provider.ConditionsByCap{}
@@ -234,6 +239,19 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	}
 
 	if ruleSet != nil {
+		if r.Selector != nil {
+			meta := &engine.RuleMeta{
+				Labels: ruleSet.Labels,
+			}
+			for _, rule := range rules {
+				meta.Labels = append(meta.Labels, rule.Labels...)
+			}
+			if ok, err := r.Selector.Matches(meta); !ok && err == nil {
+				r.Log.V(6).Info("ruleset does not have any rules that match selector, filtering out", "ruleSet", ruleSet.Name)
+				return nil, nil, nil, nil
+			}
+		}
+
 		ruleSet.Rules = rules
 		ruleSets = append(ruleSets, *ruleSet)
 	}
