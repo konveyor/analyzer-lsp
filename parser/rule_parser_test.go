@@ -7,13 +7,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
+	"github.com/go-logr/logr/testr"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	ruleparser "github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/sirupsen/logrus"
 	"go.lsp.dev/uri"
 )
 
@@ -70,6 +70,7 @@ func TestLoadRules(t *testing.T) {
 		ExpectedProvider   map[string]provider.InternalProviderClient
 		ShouldErr          bool
 		ErrorMessage       string
+		Selector           string
 	}{
 		{
 			Name:         "test rule invalidID newline",
@@ -837,6 +838,98 @@ func TestLoadRules(t *testing.T) {
 			},
 		},
 		{
+			Name:         "rule-should-be-filtered",
+			testFileName: "multiple-rules.yaml",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []konveyor.Link{},
+								},
+							},
+							When: engine.ConditionEntry{},
+						},
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-002",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []konveyor.Link{},
+								},
+							},
+							When: engine.ConditionEntry{},
+						},
+					},
+				},
+			},
+			Selector: "test=filter",
+		},
+		{
+			Name:         "ruleset-should-be-filtered-out",
+			testFileName: "folder-of-rulesets",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []provider.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"file-ruleset-a": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []konveyor.Link{}}},
+							When:    engine.ConditionEntry{},
+						},
+					},
+				},
+			},
+			Selector: "test=filter",
+		},
+		{
 			Name:         "Pattern with escape characters",
 			testFileName: "pattern_escape_chars.yaml",
 			providerNameClient: map[string]provider.InternalProviderClient{
@@ -922,14 +1015,25 @@ func TestLoadRules(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		logrusLog := logrus.New()
 		t.Run(tc.Name, func(t *testing.T) {
+			log := testr.NewWithOptions(t, testr.Options{
+				Verbosity: 10,
+			})
 			ruleParser := ruleparser.RuleParser{
 				ProviderNameToClient: tc.providerNameClient,
-				Log:                  logrusr.New(logrusLog),
+				Log:                  log,
+			}
+			if tc.Selector != "" {
+				var err error
+				ruleParser.Selector, err = labels.NewLabelSelector[*engine.RuleMeta](tc.Selector, nil)
+				if err != nil {
+					t.Error("unable to get selector")
+					return
+				}
 			}
 
 			ruleSets, clients, _, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
+			t.Logf("rulesets:%#v\nclients:%#v", ruleSets, clients)
 			if err != nil {
 				if tc.ShouldErr && tc.ErrorMessage == err.Error() {
 					return
