@@ -7,12 +7,15 @@ RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && CGO_ENABLED=
 
 FROM brew.registry.redhat.io/rh-osbs/mta-mta-jdtls-server-base-rhel9:8.0.0
 
+WORKDIR /addon
+RUN chgrp -R 0 /addon && chmod -R g=u /addon
+USER 1001
+
 COPY --from=builder /workspace/external-providers/java-external-provider/java-external-provider /usr/local/bin/java-external-provider
 COPY --from=builder /workspace/LICENSE /licenses/
 
 ENV HOME /addon
 EXPOSE 14651
-WORKDIR /addon
 ENTRYPOINT ["java-external-provider", "--port", "14651"]
 
 LABEL \

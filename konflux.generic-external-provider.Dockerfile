@@ -34,6 +34,12 @@ COPY --from=go-builder /workspace/external-providers/generic-external-provider/e
 COPY --from=go-builder /workspace/LICENSE /licenses/
 COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 
+WORKDIR /addon
+RUN chgrp -R 0 /addon && chmod -R g=u /addon
+
+USER 1001
+ENV HOME /addon
+
 ENTRYPOINT ["/usr/local/bin/generic-external-provider"]
 
 LABEL \
