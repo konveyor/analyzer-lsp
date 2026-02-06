@@ -577,22 +577,20 @@ func (r *ruleEngine) getRelativePathForViolation(fileURI uri.URI) (uri.URI, erro
 		file := fileURI.Filename()
 		// get the correct source
 		for _, locationPrefix := range r.locationPrefixes {
-			r.logger.Info("filepath-loc-prefix", "file", file, "prefix", locationPrefix)
 			if strings.Contains(file, locationPrefix) {
 				sourceLocation = locationPrefix
 				break
 			}
 		}
-		r.logger.Info("sourceLocation", "sourceLocation", sourceLocation)
 		absPath, err := filepath.Abs(sourceLocation)
 		if err != nil {
 			return fileURI, nil
 		}
-		r.logger.Info("sourceLocation", "sourceLocation", sourceLocation, "absPath", absPath)
 		// given a relative path for source
 		if absPath != sourceLocation {
 			relPath := filepath.Join(sourceLocation, strings.TrimPrefix(file, absPath))
 			newURI := fmt.Sprintf("file:///%s", filepath.Join(strings.TrimPrefix(relPath, "/")))
+			r.logger.V(7).Info("making filepath relative to source location", "original", fileURI, "new", newURI)
 			return uri.URI(newURI), nil
 		}
 	}
