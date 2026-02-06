@@ -1,0 +1,7 @@
+---
+- message: all go files
+  ruleID: file-001
+  category: potential
+  effort: 3
+  when:
+    builtin.file: "*.go"
