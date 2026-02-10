@@ -1,0 +1,4 @@
+{
+  "key": "value",
+  "description": "This JSON file should be skipped by the rule parser"
+}
