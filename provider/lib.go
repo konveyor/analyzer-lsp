@@ -230,6 +230,7 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				if regexp.QuoteMeta(pattern) == pattern {
 					rPattern = "^" + pattern + "$"
 				}
+				f.Log.V(9).Info("using regex to search", "pattern", pattern)
 				// try matching as go regex pattern
 				relPath, err := filepath.Rel(f.BasePath, file)
 				if err != nil {

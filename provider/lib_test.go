@@ -428,7 +428,31 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{"main.go"},
 			},
 			wantFilePatterns: []string{
+<<<<<<< HEAD
 				"src/main.go",
+=======
+				"main.go",
+			},
+			wantErr: false,
+		},
+		{
+			name:     "exclude pattern with regex",
+			basePath: testBasePath,
+			providerConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				ExcludePathsOrPatterns: []string{`.*\.txt$`},
+			},
+			searchCriteria: SearchCriteria{
+				Patterns:           []string{},
+				ConditionFilepaths: []string{},
+			},
+			wantFilePatterns: []string{
+				"main.go",
+				"helper.go",
+				"util.go",
+				"common.go",
+				"README.md",
+				"config.yaml",
 			},
 			wantErr: false,
 		},
