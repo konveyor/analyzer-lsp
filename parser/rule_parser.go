@@ -169,6 +169,12 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 				ruleSet = r.loadRuleSet(filepath)
 				continue
 			}
+			// skip non-yaml files
+			if !strings.HasSuffix(f.Name(), ".yaml") &&
+				!strings.HasSuffix(f.Name(), ".yml") {
+				r.Log.V(7).Info("excluding non-yaml file from parsing", "file", f.Name())
+				continue
+			}
 			// skip rule tests
 			if strings.HasSuffix(f.Name(), ".test.yaml") ||
 				strings.HasSuffix(f.Name(), ".test.yml") {
