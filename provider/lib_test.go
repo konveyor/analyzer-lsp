@@ -429,6 +429,7 @@ func TestFileSearcher_Search(t *testing.T) {
 			},
 			wantFilePatterns: []string{
 <<<<<<< HEAD
+<<<<<<< HEAD
 				"src/main.go",
 =======
 				"main.go",
@@ -453,6 +454,7 @@ func TestFileSearcher_Search(t *testing.T) {
 				"common.go",
 				"README.md",
 				"config.yaml",
+				"src/main.go",
 			},
 			wantErr: false,
 		},
