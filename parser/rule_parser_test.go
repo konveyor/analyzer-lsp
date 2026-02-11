@@ -887,7 +887,7 @@ func TestLoadRules(t *testing.T) {
 			},
 		},
 		{
-			Name:         "skip non-yaml files in directory",
+			Name:         "skip valid rule in non-yaml file",
 			testFileName: "folder-with-non-yaml",
 			providerNameClient: map[string]provider.InternalProviderClient{
 				"builtin": testProvider{
