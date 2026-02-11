@@ -230,19 +230,31 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				if regexp.QuoteMeta(pattern) == pattern {
 					rPattern = "^" + pattern + "$"
 				}
-				f.Log.V(9).Info("using regex to search", "pattern", pattern)
 				// try matching as go regex pattern
+				relPath, err := filepath.Rel(f.BasePath, file)
+				if err != nil {
+					// This should never happen, if paths are found outside the base path, then something did not occur
+					// correctly.
+					f.Log.Error(fmt.Errorf("unable to get relative path for file from base path"),
+						"this should not happen, please file a bug", "basePath", f.BasePath, "filePath", file)
+					continue
+				}
+				relPath = filepath.Join(string(os.PathSeparator), relPath)
+				f.Log.V(9).Info("using regex to search", "pattern", pattern, "relPath", relPath)
 				regex, regexErr := regexp.Compile(rPattern)
-				if regexErr == nil && (regex.MatchString(file) || regex.MatchString(filepath.Base(file))) {
+				if regexErr == nil && (regex.MatchString(relPath) || regex.MatchString(filepath.Base(file))) {
+					f.Log.V(9).Info("regex match", "pattern", pattern, "relPath", relPath)
 					patternMatched = true
 				} else if strings.Contains(pattern, "*") || strings.Contains(pattern, "?") {
 					// fallback to filepath.Match for simple patterns
-					m, err := filepath.Match(pattern, file)
+					m, err := filepath.Match(pattern, relPath)
 					if err == nil {
+						f.Log.V(9).Info("filepath match", "pattern", pattern, "relPath", relPath)
 						patternMatched = patternMatched || m
 					}
-					m, err = filepath.Match(pattern, filepath.Base(file))
+					m, err = filepath.Match(pattern, filepath.Base(relPath))
 					if err == nil {
+						f.Log.V(9).Info("file name match", "pattern", pattern, "relPath", relPath)
 						patternMatched = patternMatched || m
 					}
 				}

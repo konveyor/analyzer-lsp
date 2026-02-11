@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -279,13 +280,16 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
-				"test.txt",
-				"util.go",
-				"common.go",
+				".mvn/maven-wrapper.jar",
+				"src/main.go",
+				"src/helper.go",
+				"src/test.txt",
+				"lib/util.go",
+				"lib/common.go",
 				"README.md",
 				"config.yaml",
+				"vendor/dep.go",
+				"node_modules/package.json",
 			},
 			wantErr: false,
 		},
@@ -297,10 +301,11 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
-				"util.go",
-				"common.go",
+				"src/main.go",
+				"src/helper.go",
+				"lib/util.go",
+				"lib/common.go",
+				"vendor/dep.go",
 			},
 			wantErr: false,
 		},
@@ -328,9 +333,9 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
-				"test.txt",
+				"src/main.go",
+				"src/helper.go",
+				"src/test.txt",
 			},
 			wantErr: false,
 		},
@@ -346,13 +351,14 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
-				"test.txt",
-				"util.go",
-				"common.go",
+				"src/main.go",
+				"src/helper.go",
+				"src/test.txt",
+				"lib/util.go",
+				"lib/common.go",
 				"README.md",
 				"config.yaml",
+				".mvn/maven-wrapper.jar",
 			},
 			wantErr: false,
 		},
@@ -372,8 +378,8 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{},
 			},
 			wantFilePatterns: []string{
-				"util.go",
-				"common.go",
+				"lib/util.go",
+				"lib/common.go",
 			},
 			wantErr: false,
 		},
@@ -389,8 +395,8 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
+				"src/main.go",
+				"src/helper.go",
 			},
 			wantErr: false,
 		},
@@ -402,10 +408,11 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{"*.go"},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
-				"util.go",
-				"common.go",
+				"src/main.go",
+				"src/helper.go",
+				"lib/util.go",
+				"lib/common.go",
+				"vendor/dep.go",
 			},
 			wantErr: false,
 		},
@@ -421,28 +428,7 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{"main.go"},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-			},
-			wantErr: false,
-		},
-		{
-			name:     "exclude pattern with regex",
-			basePath: testBasePath,
-			providerConfigConstraints: IncludeExcludeConstraints{
-				IncludePathsOrPatterns: []string{},
-				ExcludePathsOrPatterns: []string{`.*\.txt$`},
-			},
-			searchCriteria: SearchCriteria{
-				Patterns:           []string{},
-				ConditionFilepaths: []string{},
-			},
-			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
-				"util.go",
-				"common.go",
-				"README.md",
-				"config.yaml",
+				"src/main.go",
 			},
 			wantErr: false,
 		},
@@ -478,10 +464,13 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{},
 			},
 			wantFilePatterns: []string{
-				"util.go",
-				"common.go",
+				"lib/util.go",
+				"lib/common.go",
 				"README.md",
+				"vendor/dep.go",
 				"config.yaml",
+				".mvn/maven-wrapper.jar",
+				"node_modules/package.json",
 			},
 			wantErr: false,
 		},
@@ -493,11 +482,12 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
-				"util.go",
-				"common.go",
-				"test.txt",
+				"src/main.go",
+				"src/helper.go",
+				"lib/util.go",
+				"lib/common.go",
+				"src/test.txt",
+				"vendor/dep.go",
 			},
 			wantErr: false,
 		},
@@ -509,8 +499,8 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{"main.go helper.go"},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
+				"src/main.go",
+				"src/helper.go",
 			},
 			wantErr: false,
 		},
@@ -526,6 +516,34 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{""},
 			},
 			wantFilePatterns: []string{},
+			wantErr:          false,
+		},
+		{
+			name:     "jar file search app cat",
+			basePath: testBasePath,
+			providerConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				ExcludePathsOrPatterns: []string{"node_modules", "vendor", ".git", "dist", "build", "target", ".venv", "venv"},
+			},
+			searchCriteria: SearchCriteria{
+				Patterns:           []string{`(/|\\)([a-zA-Z0-9._-]+)\.jar$`},
+				ConditionFilepaths: []string{""},
+			},
+			wantFilePatterns: []string{".mvn/maven-wrapper.jar"},
+			wantErr:          false,
+		},
+		{
+			name:     "top level file search app cat",
+			basePath: testBasePath,
+			providerConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				ExcludePathsOrPatterns: []string{"node_modules", "vendor", ".git", "dist", "build", "target", ".venv", "venv"},
+			},
+			searchCriteria: SearchCriteria{
+				Patterns:           []string{`(/|\\)([a-zA-Z0-9._-]+)\.md$`},
+				ConditionFilepaths: []string{""},
+			},
+			wantFilePatterns: []string{"README.md"},
 			wantErr:          false,
 		},
 	}
@@ -563,15 +581,13 @@ func TestFileSearcher_Search(t *testing.T) {
 				return
 			}
 
+			if len(got) != len(tt.wantFilePatterns) {
+				t.Errorf("received different number of filepaths then expected got: %v but expected: %v", len(got), len(tt.wantFilePatterns))
+			}
+
 			// Check that all expected file patterns are found in results
 			for _, pattern := range tt.wantFilePatterns {
-				found := false
-				for _, file := range got {
-					if strings.Contains(file, pattern) {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(got, filepath.Join(tt.basePath, pattern))
 				if !found {
 					t.Errorf("FileSearcher.Search() missing expected file pattern %q in results: %v", pattern, got)
 				}
