@@ -77,9 +77,8 @@ func (t *workingCopyManager) reformatIncidents(incidents ...provider.IncidentCon
 		inc := &incidents[i]
 		if strings.HasPrefix(string(inc.FileURI), "file://") &&
 			strings.HasPrefix(inc.FileURI.Filename(), t.tempDir) {
-			inc.FileURI = uri.File(
-				filepath.Clean(strings.Replace(
-					inc.FileURI.Filename(), t.tempDir, "", -1)))
+			parts := filepath.SplitList(strings.ReplaceAll(inc.FileURI.Filename(), t.tempDir, ""))
+			inc.FileURI = uri.File(filepath.Clean(filepath.Join(parts[1:]...)))
 		}
 		formatted = append(formatted, *inc)
 	}
