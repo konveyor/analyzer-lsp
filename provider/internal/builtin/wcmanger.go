@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -97,8 +96,9 @@ func (t *workingCopyManager) startWorker() {
 			}
 			// we need to get rid of volume label on windows
 			if runtime.GOOS == "windows" {
-				volLabel := regexp.MustCompile(`^[a-zA-Z]:`)
-				change.Path = volLabel.ReplaceAllString(change.Path, "")
+				drive := filepath.VolumeName(change.Path)
+				driveUpdated, _ := strings.CutSuffix(drive, ":")
+				change.Path = strings.ReplaceAll(change.Path, drive, driveUpdated)
 			}
 			_, wcExists := t.workingCopies[change.Path]
 			wcPath := filepath.Join(t.tempDir, change.Path)
