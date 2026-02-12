@@ -681,11 +681,6 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 					},
 				},
 			},
-			chainTemplate: engine.ChainTemplate{
-				Filepaths: []string{
-					filepath.Join("dir_b", "b.xml"),
-				},
-			},
 			notifiedFileChanges: []provider.FileChange{
 				{
 					Path:    filepath.Join(baseLocation, "dir_b", "b.xml"),
