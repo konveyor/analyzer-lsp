@@ -16,6 +16,7 @@ import (
 type workingCopy struct {
 	filePath string
 	wcPath   string
+	drive    string
 }
 
 type workingCopyManager struct {
@@ -95,8 +96,9 @@ func (t *workingCopyManager) startWorker() {
 				return
 			}
 			// we need to get rid of volume label on windows
+			var drive string
 			if runtime.GOOS == "windows" {
-				drive := filepath.VolumeName(change.Path)
+				drive = filepath.VolumeName(change.Path)
 				driveUpdated, _ := strings.CutSuffix(drive, ":")
 				change.Path = strings.ReplaceAll(change.Path, drive, driveUpdated)
 			}
@@ -131,6 +133,7 @@ func (t *workingCopyManager) startWorker() {
 				t.workingCopies[change.Path] = workingCopy{
 					filePath: change.Path,
 					wcPath:   wcPath,
+					drive:    drive,
 				}
 				t.wcMutex.Unlock()
 			}

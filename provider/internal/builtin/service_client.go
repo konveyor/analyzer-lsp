@@ -500,7 +500,12 @@ func (b *builtinServiceClient) getWorkingCopies() ([]string, []string) {
 	excludedPaths := []string{}
 	for _, wc := range b.workingCopyMgr.getWorkingCopies() {
 		additionalIncludedPaths = append(additionalIncludedPaths, wc.wcPath)
-		excludedPaths = append(excludedPaths, wc.filePath)
+		if runtime.GOOS == "windows" && wc.drive != "" {
+			path, _ := strings.CutPrefix(wc.filePath, fmt.Sprintf("%s:", string(wc.drive[0])))
+			excludedPaths = append(excludedPaths, path)
+		} else {
+			excludedPaths = append(excludedPaths, wc.filePath)
+		}
 	}
 	return additionalIncludedPaths, excludedPaths
 }
