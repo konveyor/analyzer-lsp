@@ -778,7 +778,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				excludedDirs:   tt.excludedPathsFromConfig,
 				locationCache:  map[string]float64{},
 				cacheMutex:     sync.RWMutex{},
-				workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
+				workingCopyMgr: NewTempFileWorkingCopyManger(testr.NewWithOptions(t, testr.Options{Verbosity: 10})),
 			}
 			p.workingCopyMgr.init()
 			defer p.workingCopyMgr.stop()
