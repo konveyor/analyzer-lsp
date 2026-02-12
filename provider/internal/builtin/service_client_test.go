@@ -683,7 +683,7 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 			},
 			chainTemplate: engine.ChainTemplate{
 				Filepaths: []string{
-					filepath.Join("dir_b", "dir_a", "ba.xml"),
+					filepath.Join("dir_b", "b.xml"),
 				},
 			},
 			notifiedFileChanges: []provider.FileChange{
@@ -776,7 +776,9 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				config: provider.InitConfig{
 					Location: baseLocation,
 				},
-				log:            testr.New(t),
+				log: testr.NewWithOptions(t, testr.Options{
+					Verbosity: 10,
+				}),
 				includedPaths:  tt.includedPathsFromConfig,
 				excludedDirs:   tt.excludedPathsFromConfig,
 				locationCache:  map[string]float64{},
