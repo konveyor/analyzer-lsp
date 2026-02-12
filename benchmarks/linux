@@ -1,52 +1,101 @@
 ?   	github.com/konveyor/analyzer-lsp/cmd/analyzer	[no test files]
 ?   	github.com/konveyor/analyzer-lsp/cmd/dep	[no test files]
 PASS
-ok  	github.com/konveyor/analyzer-lsp/engine	0.006s
+ok  	github.com/konveyor/analyzer-lsp/engine	0.005s
 PASS
-ok  	github.com/konveyor/analyzer-lsp/engine/internal	0.004s
+ok  	github.com/konveyor/analyzer-lsp/engine/internal	0.003s
 PASS
-ok  	github.com/konveyor/analyzer-lsp/engine/labels	0.004s
-?   	github.com/konveyor/analyzer-lsp/jsonrpc2	[no test files]
+ok  	github.com/konveyor/analyzer-lsp/engine/labels	0.003s
 PASS
-ok  	github.com/konveyor/analyzer-lsp/jsonrpc2_v2	0.004s
+ok  	github.com/konveyor/analyzer-lsp/jsonrpc2_v2	0.003s
 ?   	github.com/konveyor/analyzer-lsp/lsp/base_service_client	[no test files]
 ?   	github.com/konveyor/analyzer-lsp/lsp/protocol	[no test files]
 PASS
-ok  	github.com/konveyor/analyzer-lsp/lsp/protocol/generate	0.004s
+ok  	github.com/konveyor/analyzer-lsp/lsp/protocol/generate	0.002s
 ?   	github.com/konveyor/analyzer-lsp/output/v1/konveyor	[no test files]
 PASS
-ok  	github.com/konveyor/analyzer-lsp/parser	0.010s
+ok  	github.com/konveyor/analyzer-lsp/parser	0.007s
+goos: linux
+goarch:
+pkg: github.com/konveyor/analyzer-lsp/progress
+cpu:
+BenchmarkJSONReporter-2                      	 1117419	      1049 ns/op	     589 B/op	       4 allocs/op
+BenchmarkJSONReporter-2                      	 1139136	      1044 ns/op	     583 B/op	       4 allocs/op
+BenchmarkJSONReporter-2                      	 1000000	      1049 ns/op	     624 B/op	       4 allocs/op
+BenchmarkJSONReporter-2                      	 1000000	      1068 ns/op	     624 B/op	       4 allocs/op
+BenchmarkJSONReporter-2                      	 1000000	      1057 ns/op	     624 B/op	       4 allocs/op
+BenchmarkJSONReporter-2                      	 1000000	      1057 ns/op	     624 B/op	       4 allocs/op
+BenchmarkTextReporter-2                      	 1000000	      1060 ns/op	     513 B/op	      10 allocs/op
+BenchmarkTextReporter-2                      	 1000000	      1056 ns/op	     513 B/op	      10 allocs/op
+BenchmarkTextReporter-2                      	 1000000	      1076 ns/op	     513 B/op	      10 allocs/op
+BenchmarkTextReporter-2                      	 1000000	      1063 ns/op	     513 B/op	      10 allocs/op
+BenchmarkTextReporter-2                      	 1000000	      1068 ns/op	     513 B/op	      10 allocs/op
+BenchmarkTextReporter-2                      	 1000000	      1061 ns/op	     513 B/op	      10 allocs/op
+BenchmarkChannelReporter-2                   	 7643323	       157.7 ns/op	      93 B/op	       2 allocs/op
+BenchmarkChannelReporter-2                   	 7515498	       156.7 ns/op	      93 B/op	       2 allocs/op
+BenchmarkChannelReporter-2                   	 7680918	       156.6 ns/op	      92 B/op	       2 allocs/op
+BenchmarkChannelReporter-2                   	 7692338	       155.2 ns/op	      93 B/op	       2 allocs/op
+BenchmarkChannelReporter-2                   	 7835348	       157.7 ns/op	      93 B/op	       2 allocs/op
+BenchmarkChannelReporter-2                   	 7590843	       155.1 ns/op	      93 B/op	       2 allocs/op
+BenchmarkProgressBarReporter-2               	  811249	      1330 ns/op	    1093 B/op	      14 allocs/op
+BenchmarkProgressBarReporter-2               	  831718	      1327 ns/op	    1077 B/op	      14 allocs/op
+BenchmarkProgressBarReporter-2               	  879238	      1322 ns/op	    1042 B/op	      14 allocs/op
+BenchmarkProgressBarReporter-2               	  809528	      1332 ns/op	    1095 B/op	      14 allocs/op
+BenchmarkProgressBarReporter-2               	  847202	      1319 ns/op	    1065 B/op	      14 allocs/op
+BenchmarkProgressBarReporter-2               	  825724	      1363 ns/op	    1082 B/op	      14 allocs/op
+BenchmarkThrottledReporter-2                 	 9417100	       127.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter-2                 	 9149856	       127.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter-2                 	 9431503	       127.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter-2                 	 9447584	       128.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter-2                 	 9446379	       127.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter-2                 	 9437499	       127.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_WithStreaming-2   	 9431228	       127.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_WithStreaming-2   	 9445930	       127.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_WithStreaming-2   	 9448725	       127.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_WithStreaming-2   	 9441454	       127.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_WithStreaming-2   	 9453699	       127.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_WithStreaming-2   	 9449802	       127.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_Concurrent-2      	 8834886	       137.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_Concurrent-2      	 8527340	       137.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_Concurrent-2      	 8889134	       137.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_Concurrent-2      	 8685423	       138.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_Concurrent-2      	 8685622	       137.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottledReporter_Concurrent-2      	 8789187	       137.0 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/konveyor/analyzer-lsp/progress	53.792s
 goos: linux
 goarch:
 pkg: github.com/konveyor/analyzer-lsp/provider
 cpu:
-BenchmarkMultilineGrepFileSizeSmall-2   	    6328	    292626 ns/op	   55494 B/op	     322 allocs/op
-BenchmarkMultilineGrepFileSizeSmall-2   	    4444	    302084 ns/op	   55497 B/op	     322 allocs/op
-BenchmarkMultilineGrepFileSizeSmall-2   	    3475	    307897 ns/op	   55524 B/op	     322 allocs/op
-BenchmarkMultilineGrepFileSizeSmall-2   	    3601	    318628 ns/op	   55473 B/op	     322 allocs/op
-BenchmarkMultilineGrepFileSizeSmall-2   	    3620	    313576 ns/op	   55462 B/op	     322 allocs/op
-BenchmarkMultilineGrepFileSizeSmall-2   	    3800	    310621 ns/op	   55510 B/op	     322 allocs/op
-BenchmarkMultilineGrepFileSizeBig-2     	     624	   1839256 ns/op	  200661 B/op	    2224 allocs/op
-BenchmarkMultilineGrepFileSizeBig-2     	     645	   1859141 ns/op	  200459 B/op	    2224 allocs/op
-BenchmarkMultilineGrepFileSizeBig-2     	     697	   1692302 ns/op	  200507 B/op	    2224 allocs/op
-BenchmarkMultilineGrepFileSizeBig-2     	     741	   1801720 ns/op	  200561 B/op	    2224 allocs/op
-BenchmarkMultilineGrepFileSizeBig-2     	     662	   1981745 ns/op	  200551 B/op	    2224 allocs/op
-BenchmarkMultilineGrepFileSizeBig-2     	     584	   1803043 ns/op	  200726 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	   14238	     84320 ns/op	   55517 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	   14026	     83829 ns/op	   55513 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	   14263	     84494 ns/op	   55539 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	   14347	     88270 ns/op	   55535 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	   14264	     83353 ns/op	   55521 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeSmall-2   	   14282	     84345 ns/op	   55503 B/op	     322 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	    1989	    598176 ns/op	  200677 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	    1960	    599976 ns/op	  200521 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	    1972	    598190 ns/op	  200536 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	    1992	    600280 ns/op	  200564 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	    1939	    600132 ns/op	  200625 B/op	    2224 allocs/op
+BenchmarkMultilineGrepFileSizeBig-2     	    1932	    599314 ns/op	  200513 B/op	    2224 allocs/op
 PASS
-ok  	github.com/konveyor/analyzer-lsp/provider	16.303s
-?   	github.com/konveyor/analyzer-lsp/provider/grpc	[no test files]
+ok  	github.com/konveyor/analyzer-lsp/provider	19.817s
+PASS
+ok  	github.com/konveyor/analyzer-lsp/provider/grpc	0.005s
+?   	github.com/konveyor/analyzer-lsp/provider/grpc/socket	[no test files]
 goos: linux
 goarch:
 pkg: github.com/konveyor/analyzer-lsp/provider/internal/builtin
 cpu:
-BenchmarkFileSearch-2   	     496	   2333561 ns/op	   68638 B/op	     303 allocs/op
-BenchmarkFileSearch-2   	     483	   2419998 ns/op	   68674 B/op	     303 allocs/op
-BenchmarkFileSearch-2   	     481	   2450644 ns/op	   68685 B/op	     303 allocs/op
-BenchmarkFileSearch-2   	     475	   2433909 ns/op	   68642 B/op	     303 allocs/op
-BenchmarkFileSearch-2   	     475	   2459398 ns/op	   68658 B/op	     303 allocs/op
-BenchmarkFileSearch-2   	     481	   2402762 ns/op	   68640 B/op	     303 allocs/op
+BenchmarkFileSearch-2   	     784	   1516727 ns/op	   73733 B/op	     332 allocs/op
+BenchmarkFileSearch-2   	     789	   1518330 ns/op	   73774 B/op	     332 allocs/op
+BenchmarkFileSearch-2   	     777	   1526010 ns/op	   73755 B/op	     332 allocs/op
+BenchmarkFileSearch-2   	     762	   1518882 ns/op	   73753 B/op	     332 allocs/op
+BenchmarkFileSearch-2   	     771	   1539047 ns/op	   73702 B/op	     332 allocs/op
+BenchmarkFileSearch-2   	     784	   1525008 ns/op	   73743 B/op	     332 allocs/op
 PASS
-ok  	github.com/konveyor/analyzer-lsp/provider/internal/builtin	8.532s
+ok  	github.com/konveyor/analyzer-lsp/provider/internal/builtin	8.065s
 ?   	github.com/konveyor/analyzer-lsp/provider/internal/grpc	[no test files]
 ?   	github.com/konveyor/analyzer-lsp/provider/lib	[no test files]
 ?   	github.com/konveyor/analyzer-lsp/tracing	[no test files]
