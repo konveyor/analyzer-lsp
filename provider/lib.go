@@ -182,6 +182,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 		finalSearchResult = append(finalSearchResult, files...)
 	}
 
+	finalSearchResult = dedupSlice(finalSearchResult...)
 	// apply baseline include patterns and any search patterns
 	finalSearchResult = f.filterFilesByPathsOrPatterns(statFunc, includedPatterns, finalSearchResult, false)
 	// apply patterns from search criteria
