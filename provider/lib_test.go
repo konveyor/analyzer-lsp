@@ -428,11 +428,7 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{"main.go"},
 			},
 			wantFilePatterns: []string{
-<<<<<<< HEAD
-<<<<<<< HEAD
 				"src/main.go",
-=======
-				"main.go",
 			},
 			wantErr: false,
 		},
@@ -448,10 +444,12 @@ func TestFileSearcher_Search(t *testing.T) {
 				ConditionFilepaths: []string{},
 			},
 			wantFilePatterns: []string{
-				"main.go",
-				"helper.go",
-				"util.go",
-				"common.go",
+				".mvn/maven-wrapper.jar",
+				"node_modules/package.json",
+				"src/helper.go",
+				"lib/util.go",
+				"lib/common.go",
+				"vendor/dep.go",
 				"README.md",
 				"config.yaml",
 				"src/main.go",
