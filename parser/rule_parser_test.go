@@ -7,13 +7,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
+	"github.com/go-logr/logr/testr"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	ruleparser "github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"github.com/sirupsen/logrus"
 	"go.lsp.dev/uri"
 )
 
@@ -70,6 +70,7 @@ func TestLoadRules(t *testing.T) {
 		ExpectedProvider   map[string]provider.InternalProviderClient
 		ShouldErr          bool
 		ErrorMessage       string
+		Selector           string
 	}{
 		{
 			Name:         "test rule invalidID newline",
@@ -616,8 +617,86 @@ func TestLoadRules(t *testing.T) {
 						Name: "fake",
 					}},
 				},
+				"fake": testProvider{
+					caps: []provider.Capability{{
+						Name: "ref",
+					}},
+				},
 			},
 			ExpectedRuleSet: map[string]engine.RuleSet{
+				"file-ruleset-a": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []konveyor.Link{}}},
+							When:    engine.ConditionEntry{},
+						},
+					},
+				},
+				"file-ruleset-b": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{RuleID: "ref-001",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []konveyor.Link{}}},
+							When:    engine.ConditionEntry{},
+						},
+					},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+				"fake": testProvider{
+					caps: []provider.Capability{{
+						Name: "ref",
+					}},
+				},
+			},
+		},
+		{
+			Name:         "folder of rules ruleset",
+			testFileName: "folder-of-rules-ruleset",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []provider.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"folder-of-rules-rulesets": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:   "file-001",
+								Effort:   &effort,
+								Category: &konveyor.Potential,
+							},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []konveyor.Link{},
+								},
+							},
+							When: engine.ConditionEntry{},
+						},
+					},
+				},
 				"file-ruleset-a": {
 					Rules: []engine.Rule{
 						{
@@ -651,6 +730,45 @@ func TestLoadRules(t *testing.T) {
 					}},
 				},
 			},
+		},
+		{
+			Name:         "folder of rules ruleset filter",
+			testFileName: "folder-of-rules-ruleset",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []provider.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"file-ruleset-a": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []konveyor.Link{}}},
+							When:    engine.ConditionEntry{},
+						},
+					},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			Selector: "test=filter",
 		},
 		{
 			Name:         "handle not-valid category",
@@ -837,6 +955,89 @@ func TestLoadRules(t *testing.T) {
 			},
 		},
 		{
+			Name:         "rule-should-be-filtered",
+			testFileName: "multiple-rules.yaml",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"konveyor-analysis": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{
+								Message: engine.Message{
+									Text:  &allGoFiles,
+									Links: []konveyor.Link{},
+								},
+							},
+							When: engine.ConditionEntry{},
+						},
+					},
+				},
+			},
+			Selector: "test=filter",
+		},
+		{
+			Name:         "ruleset-should-be-filtered-out",
+			testFileName: "folder-of-rulesets",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+				"fake": testProvider{
+					caps: []provider.Capability{{
+						Name: "ref",
+					}},
+				},
+				"notadded": testProvider{
+					caps: []provider.Capability{{
+						Name: "fake",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"file-ruleset-a": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []konveyor.Link{}}},
+							When:    engine.ConditionEntry{},
+						},
+					},
+				},
+			},
+			Selector: "test=filter",
+		},
+		{
 			Name:         "Pattern with escape characters",
 			testFileName: "pattern_escape_chars.yaml",
 			providerNameClient: map[string]provider.InternalProviderClient{
@@ -922,14 +1123,25 @@ func TestLoadRules(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		logrusLog := logrus.New()
 		t.Run(tc.Name, func(t *testing.T) {
+			log := testr.NewWithOptions(t, testr.Options{
+				Verbosity: 10,
+			})
 			ruleParser := ruleparser.RuleParser{
 				ProviderNameToClient: tc.providerNameClient,
-				Log:                  logrusr.New(logrusLog),
+				Log:                  log,
+			}
+			if tc.Selector != "" {
+				var err error
+				ruleParser.Selector, err = labels.NewLabelSelector[*engine.RuleMeta](tc.Selector, nil)
+				if err != nil {
+					t.Fatalf("unable to get selector: %v", err)
+					return
+				}
 			}
 
 			ruleSets, clients, _, err := ruleParser.LoadRules(filepath.Join("testdata", tc.testFileName))
+			t.Logf("rulesets:%#v\nclients:%#v", ruleSets, clients)
 			if err != nil {
 				if tc.ShouldErr && tc.ErrorMessage == err.Error() {
 					return
@@ -955,6 +1167,7 @@ func TestLoadRules(t *testing.T) {
 				expectedProvider, ok := tc.ExpectedProvider[k]
 				if !ok {
 					t.Errorf("could not find provider: %v", k)
+					continue
 				}
 				expectedCaps := expectedProvider.Capabilities()
 				if !reflect.DeepEqual(gotCaps, expectedCaps) {
@@ -982,7 +1195,7 @@ func TestLoadRules(t *testing.T) {
 						compareWhens(expectedRule.When, rule.When, t)
 					}
 					if !foundRule {
-						t.Errorf("not have matching rule go: %#v, expected rules: %#v", rule, expectedSet.Rules)
+						t.Errorf("not have matching rule go: %#v\nin ruleset: %v\nexpected rules: %#v", rule, ruleSet.Name, expectedSet.Rules)
 					}
 				}
 				// We will test the conditions getter by itself.
