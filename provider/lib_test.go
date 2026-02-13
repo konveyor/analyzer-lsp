@@ -433,6 +433,30 @@ func TestFileSearcher_Search(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:     "exclude pattern with regex",
+			basePath: testBasePath,
+			providerConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{},
+				ExcludePathsOrPatterns: []string{`.*\.txt$`},
+			},
+			searchCriteria: SearchCriteria{
+				Patterns:           []string{},
+				ConditionFilepaths: []string{},
+			},
+			wantFilePatterns: []string{
+				".mvn/maven-wrapper.jar",
+				"node_modules/package.json",
+				"src/helper.go",
+				"lib/util.go",
+				"lib/common.go",
+				"vendor/dep.go",
+				"README.md",
+				"config.yaml",
+				"src/main.go",
+			},
+			wantErr: false,
+		},
+		{
 			name:     "include pattern with wildcard",
 			basePath: testBasePath,
 			providerConfigConstraints: IncludeExcludeConstraints{
