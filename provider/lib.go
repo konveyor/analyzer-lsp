@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -181,6 +182,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 		finalSearchResult = append(finalSearchResult, files...)
 	}
 
+	finalSearchResult = dedupSlice(finalSearchResult...)
 	// apply baseline include patterns and any search patterns
 	finalSearchResult = f.filterFilesByPathsOrPatterns(statFunc, includedPatterns, finalSearchResult, false)
 	// apply patterns from search criteria
@@ -227,19 +229,32 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 			} else {
 				rPattern := pattern
 				// if the pattern doesn't contain a wildcard, do an exact match only
-				if regexp.QuoteMeta(pattern) == pattern {
+				if !strings.ContainsAny(pattern, "*?[]$^") {
 					rPattern = "^" + pattern + "$"
 				}
 				// try matching as go regex pattern
-				relPath, err := filepath.Rel(f.BasePath, file)
-				if err != nil {
-					// This should never happen, if paths are found outside the base path, then something did not occur
-					// correctly.
+				var relPath string
+				if strings.HasPrefix(file, f.BasePath) {
+					// This is not in a working copy manager or some other additional path
+					// We want to just search for matches within the base path.
+					var err error
+					relPath, err = filepath.Rel(f.BasePath, file)
+					if err != nil {
+						f.Log.Error(fmt.Errorf("unable to get relative path for file from base path"),
+							"this should not happen, please file a bug", "basePath", f.BasePath, "filePath", file)
+						continue
+					}
+					relPath = filepath.Join(string(os.PathSeparator), relPath)
+				} else if slices.Contains(f.AdditionalPaths, file) {
+					// When this comes from an addional path, we won't know
+					// where to search from, so fall back to the full file path.
+					relPath = file
+				} else {
 					f.Log.Error(fmt.Errorf("unable to get relative path for file from base path"),
 						"this should not happen, please file a bug", "basePath", f.BasePath, "filePath", file)
 					continue
 				}
-				relPath = filepath.Join(string(os.PathSeparator), relPath)
+
 				f.Log.V(9).Info("using regex to search", "pattern", pattern, "relPath", relPath)
 				regex, regexErr := regexp.Compile(rPattern)
 				if regexErr == nil && (regex.MatchString(relPath) || regex.MatchString(filepath.Base(file))) {
