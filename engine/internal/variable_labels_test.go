@@ -52,14 +52,14 @@ func Test_incidentSelector(t *testing.T) {
 		if tt.incidentSelector != "" {
 			incidentSelector, err = labels.NewLabelSelector[VariableLabelSelector](tt.incidentSelector, MatchVariables)
 			if err != nil {
-				t.Errorf(err.Error())
+				t.Errorf("error: %v", err.Error())
 			}
 		}
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := incidentSelector.Matches(VariableLabelSelector(tt.variables))
 			if err != nil {
 				// t.Errorf("Got %v, want %s", b, tt.want)
-				t.Errorf(err.Error())
+				t.Errorf("error: %v", err.Error())
 			}
 			if got != tt.want {
 				t.Errorf("Got %v, want %v", got, tt.want)

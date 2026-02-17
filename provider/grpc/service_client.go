@@ -34,7 +34,7 @@ func (g *grpcServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 	}
 
 	if !r.Successful {
-		return provider.ProviderEvaluateResponse{}, fmt.Errorf(r.Error)
+		return provider.ProviderEvaluateResponse{}, fmt.Errorf("%v", r.Error)
 	}
 
 	// The response is optional, if the provider says that it was successful but no response then nothing matched.
@@ -103,7 +103,7 @@ func (g *grpcServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]
 		return nil, err
 	}
 	if !d.Successful {
-		return nil, fmt.Errorf(d.Error)
+		return nil, fmt.Errorf("%v", d.Error)
 	}
 
 	provs := map[uri.URI][]*provider.Dep{}
@@ -162,13 +162,13 @@ func (g *grpcServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI
 		return nil, err
 	}
 	if !d.Successful {
-		return nil, fmt.Errorf(d.Error)
+		return nil, fmt.Errorf("%v", d.Error)
 	}
 	m := map[uri.URI][]provider.DepDAGItem{}
 	for _, x := range d.FileDagDep {
 		u, err := uri.Parse(x.FileURI)
 		if err != nil {
-			return nil, fmt.Errorf(d.Error)
+			return nil, fmt.Errorf("%v", d.Error)
 		}
 		deps := recreateDAGAddedItems(x.List)
 		m[u] = deps
@@ -194,7 +194,7 @@ func (g *grpcServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 		return err
 	}
 	if fileChangeResponse.Error != "" {
-		return fmt.Errorf(fileChangeResponse.Error)
+		return fmt.Errorf("%v", fileChangeResponse.Error)
 	}
 	return nil
 }
@@ -227,7 +227,7 @@ func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provi
 			return err
 		}
 		if prepareResponse.Error != "" {
-			return fmt.Errorf(prepareResponse.Error)
+			return fmt.Errorf("%v", prepareResponse.Error)
 		}
 		return nil
 	})
