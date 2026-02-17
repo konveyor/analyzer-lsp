@@ -76,9 +76,14 @@ func DependencyCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			progress, err := progress.New()
+			prog, err := progress.New()
+			if err != nil {
+				errLog.Error(err, "unable to create progress reporter")
+				os.Exit(1)
+			}
+
 			for _, config := range configs {
-				prov, err := lib.GetProviderClient(config, log, progress)
+				prov, err := lib.GetProviderClient(config, log, prog)
 				if err != nil {
 					errLog.Error(err, "unable to create provider client")
 					os.Exit(1)

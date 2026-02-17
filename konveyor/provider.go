@@ -4,8 +4,9 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
-// PROVIDERS
-// TODO: ADD DOCS
+// Provider wraps an internal provider client and exposes its capabilities.
+// It provides a simplified interface to interact with providers, including
+// checking capabilities and supported features.
 type Provider struct {
 	Name     string
 	provider provider.InternalProviderClient

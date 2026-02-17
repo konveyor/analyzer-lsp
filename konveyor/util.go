@@ -10,7 +10,11 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
-func setupProviderConfigs(providerConfigs []provider.Config) ([]provider.Config, []string) {
+func setupProviderConfigs(
+	providerConfigs []provider.Config,
+	ignoreAdditionalBuiltinConfigs bool,
+	pathMappings []provider.PathMapping,
+) ([]provider.Config, []string) {
 	finalConfigs := []provider.Config{}
 	defaultBuiltinConfigs := map[string]provider.InitConfig{}
 
@@ -18,9 +22,20 @@ func setupProviderConfigs(providerConfigs []provider.Config) ([]provider.Config,
 		// TODO: make this a constant in the provider package.
 		if config.Name != "builtin" {
 			finalConfigs = append(finalConfigs, config)
+			// When ignoring additional builtin configs, don't auto-generate
+			// builtin InitConfigs from non-builtin provider locations.
+			if ignoreAdditionalBuiltinConfigs {
+				continue
+			}
 		}
 		for _, initConfig := range config.InitConfig {
-			location, err := filepath.Abs(initConfig.Location)
+			location := initConfig.Location
+			// Apply path mappings to translate provider paths (e.g., container
+			// paths) to engine-local paths before resolving.
+			if config.Name != "builtin" {
+				location = provider.TranslatePath(location, pathMappings)
+			}
+			location, err := filepath.Abs(location)
 			_, err = os.Stat(location)
 			if _, statErr := os.Stat(location); errors.Is(statErr, &os.PathError{}) {
 				continue
@@ -44,7 +59,11 @@ func setupProviderConfigs(providerConfigs []provider.Config) ([]provider.Config,
 			}
 			defaultBuiltinConfigs[location] = builtinInitConfig
 		}
+	}
 
+	// Append builtin config once after processing all providers
+	// Only add builtin if we have any builtin locations
+	if len(defaultBuiltinConfigs) > 0 {
 		finalConfigs = append(finalConfigs, provider.Config{
 			Name:       "builtin",
 			InitConfig: slices.Collect(maps.Values(defaultBuiltinConfigs)),

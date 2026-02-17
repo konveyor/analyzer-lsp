@@ -67,7 +67,7 @@ func AnalysisCmd() *cobra.Command {
 			logrusLog := logrus.New()
 			logrusLog.SetOutput(os.Stdout)
 			logrusLog.SetFormatter(&logrus.TextFormatter{})
-			// Adding 5 here to move logs to info level
+			// Adding 4 here to move logs to info level
 			// setting verbose 1 -> V(2) logs show up
 			// setting verbose 2 -> V(3) logs show up
 			// setting verbose 3 -> .V(4) I believe show up
@@ -87,6 +87,11 @@ func AnalysisCmd() *cobra.Command {
 				progress.WithReporters(progressReporter),
 				progress.WithContext(ctx),
 			)
+
+			if err != nil {
+				errLog.Error(err, "unable to create progress reporters")
+				os.Exit(1)
+			}
 
 			// Build options from config and add CLI-specific options
 			options := analyzerConfig.ToOptions()
@@ -123,11 +128,13 @@ func AnalysisCmd() *cobra.Command {
 			_, err = analyzer.ParseRules()
 			if err != nil {
 				errLog.Error(err, "unable to parse rules")
+				os.Exit(1)
 			}
 
 			err = analyzer.ProviderStart()
 			if err != nil {
 				errLog.Error(err, "unable to start providers")
+				os.Exit(1)
 			}
 
 			wg := sync.WaitGroup{}
@@ -135,7 +142,9 @@ func AnalysisCmd() *cobra.Command {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					analyzer.GetDependencies(depOutputFile, treeOutput)
+					if err := analyzer.GetDependencies(depOutputFile, treeOutput); err != nil {
+						errLog.Error(err, "unable to get dependencies", "file", depOutputFile)
+					}
 				}()
 			}
 
@@ -148,7 +157,11 @@ func AnalysisCmd() *cobra.Command {
 			})
 
 			// Write results out to CLI
-			b, _ := yaml.Marshal(rulesets)
+			b, err := yaml.Marshal(rulesets)
+			if err != nil {
+				errLog.Error(err, "unable to marshal rulesets to YAML")
+				os.Exit(1)
+			}
 			if errorOnViolations && len(rulesets) != 0 {
 				fmt.Printf("%s", string(b))
 				os.Exit(EXIT_ON_ERROR_CODE)

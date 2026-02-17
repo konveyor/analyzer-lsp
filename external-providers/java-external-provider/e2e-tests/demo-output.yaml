@@ -828,3 +828,5 @@
           kind: Field
           name: operator
           package: io.javaoperatorsdk.operator.sample
+  unmatched:
+  - konveyor-java-pattern-test-5

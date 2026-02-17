@@ -156,10 +156,10 @@ func TestAnalyzer_GetProviders_WithFilters(t *testing.T) {
 		expectedNames []string
 	}{
 		{
-			name:          "no filters",
+			name:          "no filters returns all providers",
 			filters:       []Filter{},
-			expectedCount: 0,
-			expectedNames: []string{},
+			expectedCount: 3,
+			expectedNames: []string{"java", "go", "python"},
 		},
 		{
 			name: "filter by dependency capability",

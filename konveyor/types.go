@@ -40,6 +40,21 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 			validationErrors = append(validationErrors, err)
 		}
 	}
+
+	// Mutual exclusivity validation
+	if len(opts.providerConfigs) > 0 && opts.providerConfigFilePath != "" {
+		validationErrors = append(validationErrors,
+			fmt.Errorf("cannot specify both provider configs and provider config file path"))
+	}
+	if len(opts.providerConfigs) == 0 && opts.providerConfigFilePath == "" {
+		validationErrors = append(validationErrors,
+			fmt.Errorf("must specify either provider configs or provider config file path"))
+	}
+	if len(opts.pathMappings) > 0 && opts.ignoreAdditionalBuiltinConfigs {
+		validationErrors = append(validationErrors,
+			fmt.Errorf("cannot specify path mappings when additional builtin configs are ignored; path mappings have no effect"))
+	}
+
 	if len(validationErrors) > 0 {
 		return nil, fmt.Errorf("unable to get Analyzer: %w", errors.Join(validationErrors...))
 	}
@@ -59,18 +74,28 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 
 	collector := collector.New()
 	opts.progress.Subscribe(collector)
-	if len(validationErrors) > 0 {
-		return nil, fmt.Errorf("unable to get new analyzer: %w", errors.Join(validationErrors...))
-	}
 
-	log.V(5).Info("Getting Config")
-	providerConfig, err := provider.GetConfig(opts.providerConfigFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get provider config: %w", err)
+	// Load provider configs from file or use programmatic configs
+	var providerConfig []provider.Config
+	if len(opts.providerConfigs) > 0 {
+		log.V(5).Info("Using programmatic provider configs")
+		providerConfig = opts.providerConfigs
+		// Apply the same proxy defaulting and validation that GetConfig does
+		if err := provider.ValidateAndDefaultConfigs(providerConfig); err != nil {
+			return nil, fmt.Errorf("unable to validate provider configs: %w", err)
+		}
+	} else {
+		log.V(5).Info("Getting Config from file")
+		var err error
+		providerConfig, err = provider.GetConfig(opts.providerConfigFilePath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get provider config: %w", err)
+		}
 	}
 	log.V(5).Info("got Config")
 
-	finalConfigs, locations := setupProviderConfigs(providerConfig)
+	finalConfigs, locations := setupProviderConfigs(
+		providerConfig, opts.ignoreAdditionalBuiltinConfigs, opts.pathMappings)
 	log.V(3).Info("loaded provider configs", "locations", locations)
 
 	providerErrors := []error{}
@@ -105,8 +130,15 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 		cancelFunc()
 		return nil, fmt.Errorf("unable to get provider clients: %w", errors.Join(providerErrors...))
 	}
+
+	// Set default worker count if not specified
+	workerCount := opts.workerCount
+	if workerCount == 0 {
+		workerCount = 10
+	}
+
 	eng := engine.CreateRuleEngine(ctx,
-		10,
+		workerCount,
 		log,
 		engine.WithIncidentLimit(opts.incidentLimit),
 		engine.WithCodeSnipLimit(opts.codeSnipLimit),
@@ -122,13 +154,16 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 			dependencyRulesDisabled: opts.dependencyRulesDisabled,
 			depLabelSelector:        opts.depLabelSelector,
 		},
-		engine:             eng,
-		cancelFunc:         cancelFunc,
-		ctx:                ctx,
-		allConfigProviders: providers,
-		log:                log,
-		progress:           opts.progress,
-		collector:          collector,
+		engine:                         eng,
+		cancelFunc:                     cancelFunc,
+		ctx:                            ctx,
+		allConfigProviders:             providers,
+		log:                            log,
+		progress:                       opts.progress,
+		collector:                      collector,
+		labelSelector:                  opts.labelSelector,
+		pathMappings:                   opts.pathMappings,
+		ignoreAdditionalBuiltinConfigs: opts.ignoreAdditionalBuiltinConfigs,
 	}, nil
 }
 
@@ -141,6 +176,7 @@ type Config interface {
 type Rules interface {
 	RuleLabels() []string
 	RulesetFilepaths() map[string]string
+	RuleSets() []engine.RuleSet
 }
 
 // ENGINE OPTIONS

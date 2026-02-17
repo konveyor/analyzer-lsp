@@ -415,7 +415,6 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 			}
 			return nil
 		}
-		//return sc.Ctx.Err()
 	}
 
 	// Wait for all symbol cache updates to complete before returning

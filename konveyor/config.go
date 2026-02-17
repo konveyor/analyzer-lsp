@@ -60,6 +60,10 @@ type AnalyzerConfig struct {
 
 	// DisableDependencyRules disables dependency analysis rules.
 	DisableDependencyRules bool
+
+	// WorkerCount sets the number of workers for parallel rule execution.
+	// Default is 10 if not specified or set to 0.
+	WorkerCount int
 }
 
 // AddFlags adds all configuration flags to the given cobra command.
@@ -77,10 +81,11 @@ func (c *AnalyzerConfig) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&c.DepLabelSelector, "dep-label-selector", "", "Filter dependency rules by label selector")
 	cmd.Flags().StringVar(&c.IncidentSelector, "incident-selector", "", "Filter incidents by selector expression")
 	cmd.Flags().IntVar(&c.IncidentLimit, "limit-incidents", 1500, "Maximum incidents per rule (0 = unlimited)")
-	cmd.Flags().IntVar(&c.CodeSnipLimit, "limit-code-snips", 20, "number of code snipets per rule violation to be gotten")
+	cmd.Flags().IntVar(&c.CodeSnipLimit, "limit-code-snips", 20, "Maximum number of code snippets per rule violation")
 	cmd.Flags().IntVar(&c.ContextLines, "context-lines", 10, "Number of context lines around code snippets")
 	cmd.Flags().StringVar(&c.AnalysisMode, "analysis-mode", "", "Analysis mode: 'full' or 'source-only'")
 	cmd.Flags().BoolVar(&c.DisableDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
+	cmd.Flags().IntVar(&c.WorkerCount, "workers", 10, "Number of workers for parallel rule execution")
 }
 
 // ToOptions converts the AnalyzerConfig to a slice of AnalyzerOptions.
@@ -114,6 +119,10 @@ func (c *AnalyzerConfig) ToOptions() []AnalyzerOption {
 
 	if c.DisableDependencyRules {
 		options = append(options, WithDependencyRulesDisabled())
+	}
+
+	if c.WorkerCount > 0 {
+		options = append(options, WithWorkerCount(c.WorkerCount))
 	}
 
 	return options

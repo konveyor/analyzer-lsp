@@ -38,7 +38,8 @@ func (m *mockCollector) Report(event Event) {
 	select {
 	case m.ch <- event:
 	default:
-		// Channel full, drop event
+		// Channel full, intentionally drop event for testing purposes
+		// This simulates backpressure scenarios in tests
 	}
 }
 

@@ -14,7 +14,7 @@ The `konveyor` package provides a high-level, programmatic API for running analy
 
 ## Overview
 
-The konveyor package simplifies the analyzer workflow into three main phases:
+The konveyor package simplifies the analyzer workflow into four main phases:
 
 1. **Initialization** - Create an analyzer with configuration
 2. **Rule Parsing** - Parse rules and identify needed providers
@@ -607,9 +607,9 @@ analyzer, err := konveyor.NewAnalyzer(
 
 The analyzer integrates with the progress reporting system. Progress events are emitted during:
 
-- Provider startup (konveyor/types.go:91-96)
-- Rule parsing (konveyor/analyzer.go:72-96)
-- Provider initialization (konveyor/analyzer.go:123-175)
+- Provider startup (see `AnalyzerConfig.Start()`)
+- Rule parsing (see `Analyzer.ParseRules()`)
+- Provider initialization (see `Analyzer.ProviderStart()`)
 - Rule execution (handled by engine)
 
 See [progress-reporting.md](progress-reporting.md) for details.
@@ -623,7 +623,7 @@ Provider settings are loaded from a JSON file specified via `WithProviderConfigF
 3. Starts providers that implement `Startable`
 4. Manages builtin provider configuration specially
 
-The builtin provider is always initialized last and receives configurations from all other providers.
+The builtin provider is always initialized last and receives configuration from all other providers.
 
 See [providers.md](providers.md) for provider configuration details.
 

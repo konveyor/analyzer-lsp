@@ -74,6 +74,12 @@ func (rwc *CmdDialer) Write(p []byte) (int, error) {
 
 func (rwc *CmdDialer) Close() error {
 	rwc.cancelFunc()
+
+	// Wait for the process to terminate and release resources
+	// This prevents zombie processes
+	if rwc.Cmd != nil && rwc.Cmd.Process != nil {
+		return rwc.Cmd.Wait()
+	}
 	return nil
 }
 

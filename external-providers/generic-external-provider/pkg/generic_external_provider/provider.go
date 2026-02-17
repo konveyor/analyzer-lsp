@@ -48,6 +48,7 @@ func NewGenericProvider(lspServerName string, log logr.Logger, progress *progres
 		ctx:                  context.TODO(),
 		lspServerName:        lspServerName,
 		serviceClientBuilder: ctor,
+		progress:             progress,
 	}
 
 	// Load up the capabilities for this lsp server into the provider
@@ -80,7 +81,7 @@ func (p *genericProvider) Init(ctx context.Context, log logr.Logger, c provider.
 		var err error
 		p.progress, err = progress.New()
 		if err != nil {
-			return nil, provider.InitConfig{}, nil
+			return nil, provider.InitConfig{}, fmt.Errorf("failed to create progress: %w", err)
 		}
 	}
 

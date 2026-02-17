@@ -260,7 +260,7 @@ Each line is a complete JSON object that can be parsed independently.
 ### Event Structure
 
 ```go
-type ProgressEvent struct {
+type Event struct {
     Timestamp time.Time              `json:"timestamp"`
     Stage     Stage                  `json:"stage"`
     Message   string                 `json:"message,omitempty"`

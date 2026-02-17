@@ -93,6 +93,7 @@ func NewServer(client BaseClient, port int, certPath string, keyPath string, sec
 	channelReport := reporter.NewChannelReporter(context.Background(), reporter.WithLogger(logger.WithName("channel-reporter")))
 	p, err := progress.New(progress.WithReporters(channelReport))
 	if err != nil {
+		logger.Error(err, "failed to create progress reporter")
 		return nil
 	}
 

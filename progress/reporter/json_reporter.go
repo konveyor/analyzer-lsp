@@ -58,6 +58,9 @@ type JSONReporter struct {
 //	defer f.Close()
 //	reporter := reporter.NewJSONReporter(f)
 func NewJSONReporter(w io.Writer) *JSONReporter {
+	if w == nil {
+		panic("NewJSONReporter: writer cannot be nil")
+	}
 	return &JSONReporter{
 		writer: w,
 	}
@@ -88,5 +91,6 @@ func (j *JSONReporter) Report(event progress.Event) {
 	if err != nil {
 		return // Silently skip errors to avoid disrupting analysis
 	}
-	fmt.Fprintln(j.writer, string(data))
+	// Intentionally ignore write errors to avoid disrupting analysis
+	_, _ = fmt.Fprintln(j.writer, string(data))
 }

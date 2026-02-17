@@ -239,7 +239,7 @@ func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provi
 		return err
 	}
 	if prepareResponse.Error != "" {
-		return fmt.Errorf(prepareResponse.Error)
+		return fmt.Errorf("%v", prepareResponse.Error)
 	}
 	g.log.Info("finished prepare")
 	return nil

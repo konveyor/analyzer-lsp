@@ -1338,7 +1338,7 @@ func TestRunTaggingRules(t *testing.T) {
 				"test-ruleset": ruleEngine.createRuleSet(RuleSet{Name: "test-ruleset"}),
 			}
 
-			resultContext := ruleEngine.runTaggingRules(ctx, tt.infoRules, mapRuleSets, conditionContext, nil)
+			resultContext := ruleEngine.runTaggingRules(ctx, tt.infoRules, mapRuleSets, conditionContext, nil, &runConfig{})
 
 			tt.checkFunc(t, resultContext, mapRuleSets["test-ruleset"])
 		})

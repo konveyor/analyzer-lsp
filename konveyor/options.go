@@ -13,6 +13,7 @@
 //   - WithCodeSnipLimit: Validates non-negative values (>= 0)
 //   - WithContextLinesLimit: Validates non-negative values (>= 0)
 //   - WithAnalysisMode: Validates against known modes ("full" or "source-only")
+//   - WithWorkerCount: Validates positive values (> 0)
 //   - WithContext: Validates non-nil context
 //   - WithLabelSelector: Validates selector syntax during initialization
 //
@@ -35,6 +36,7 @@ import (
 type analyzerOptions struct {
 	rulesFilepaths          []string
 	providerConfigFilePath  string
+	providerConfigs         []provider.Config
 	labelSelector           string
 	depLabelSelector        string
 	incidentSelector        string
@@ -43,10 +45,14 @@ type analyzerOptions struct {
 	contextLineLimit        int
 	analysisMode            provider.AnalysisMode
 	dependencyRulesDisabled bool
+	workerCount             int
 	reporters               []progress.Reporter
 	progress                *progress.Progress
 	log                     logr.Logger
 	ctx                     context.Context
+
+	pathMappings                   []provider.PathMapping
+	ignoreAdditionalBuiltinConfigs bool
 }
 
 type selectorError []error
@@ -119,6 +125,65 @@ func WithProviderConfigFilePath(providerConfigFilePath string) AnalyzerOption {
 		}
 		opt.providerConfigFilePath = providerConfigFilePath
 		return
+	}
+}
+
+// WithProviderConfigs sets provider configurations directly, as an alternative
+// to loading from a file via WithProviderConfigFilePath.
+//
+// Validation:
+//   - Mutually exclusive with WithProviderConfigFilePath
+//   - The configs slice must not be empty
+//
+// Returns an error if validation fails.
+func WithProviderConfigs(configs []provider.Config) AnalyzerOption {
+	return func(opt *analyzerOptions) error {
+		if len(configs) == 0 {
+			return fmt.Errorf("provider configs cannot be empty")
+		}
+		opt.providerConfigs = configs
+		return nil
+	}
+}
+
+// WithPathMappings sets path prefix mappings used to translate paths returned
+// by providers. This is useful when providers run in containers with different
+// filesystem layouts than the engine.
+//
+// Validation:
+//   - Mutually exclusive with WithIgnoreAdditionalBuiltinConfigs(true)
+//   - Each mapping must have non-empty From and To fields
+//
+// Returns an error if validation fails.
+func WithPathMappings(mappings []provider.PathMapping) AnalyzerOption {
+	return func(opt *analyzerOptions) error {
+		for i, m := range mappings {
+			if m.From == "" {
+				return fmt.Errorf("path mapping at index %d has empty From field", i)
+			}
+			if m.To == "" {
+				return fmt.Errorf("path mapping at index %d has empty To field", i)
+			}
+		}
+		opt.pathMappings = mappings
+		return nil
+	}
+}
+
+// WithIgnoreAdditionalBuiltinConfigs controls whether additional builtin configs
+// from providers are merged into the builtin provider. When true:
+//   - Provider locations are NOT auto-added as builtin InitConfigs
+//   - AdditionalBuiltinConfigs returned by ProviderInit are NOT passed to the builtin provider
+//
+// Validation:
+//   - Mutually exclusive with WithPathMappings (path mappings have no effect when
+//     additional builtin configs are ignored)
+//
+// Default is false (existing merge behavior is preserved).
+func WithIgnoreAdditionalBuiltinConfigs(ignore bool) AnalyzerOption {
+	return func(opt *analyzerOptions) error {
+		opt.ignoreAdditionalBuiltinConfigs = ignore
+		return nil
 	}
 }
 
@@ -226,6 +291,28 @@ func WithDependencyRulesDisabled() AnalyzerOption {
 	}
 }
 
+// WithWorkerCount sets the number of workers for parallel rule execution.
+//
+// Validation:
+//   - Must be positive (> 0)
+//
+// The worker count controls how many rules can be executed concurrently.
+// Higher values can improve performance on systems with many CPU cores,
+// while lower values reduce resource usage.
+//
+// If not provided, the default value of 10 workers will be used.
+//
+// Returns an error if the worker count is not positive.
+func WithWorkerCount(count int) AnalyzerOption {
+	return func(opt *analyzerOptions) (err error) {
+		if count <= 0 {
+			return fmt.Errorf("worker count must be positive, got %d", count)
+		}
+		opt.workerCount = count
+		return
+	}
+}
+
 // WithLogger sets a custom logger for the analyzer.
 // If not provided, a discard logger will be used.
 func WithLogger(log logr.Logger) AnalyzerOption {
@@ -256,6 +343,9 @@ func WithContext(ctx context.Context) AnalyzerOption {
 // If not provided, a new progress tracker will be created automatically.
 func WithProgress(progress *progress.Progress) AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
+		if progress == nil {
+			return fmt.Errorf("progress cannot be nil")
+		}
 		opt.progress = progress
 		return
 	}
@@ -265,6 +355,11 @@ func WithProgress(progress *progress.Progress) AnalyzerOption {
 // Multiple reporters can be provided to receive progress updates.
 func WithReporters(reporters ...progress.Reporter) AnalyzerOption {
 	return func(options *analyzerOptions) error {
+		for i, r := range reporters {
+			if r == nil {
+				return fmt.Errorf("reporter at index %d cannot be nil", i)
+			}
+		}
 		options.reporters = reporters
 		return nil
 	}

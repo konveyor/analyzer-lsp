@@ -87,6 +87,7 @@ type RunOption func(*runConfig)
 // runConfig holds configuration for a specific run
 type runConfig struct {
 	progressReporter progress.Reporter
+	totalRules       int
 }
 
 // WithProgressReporter sets the progress reporter for this run
@@ -272,16 +273,17 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 
 	taggingRules, otherRules, mapRuleSets := r.filterRules(ruleSets, selectors...)
 
-	ruleContext := r.runTaggingRules(ctx, taggingRules, mapRuleSets, conditionContext, scopes)
+	cfg.totalRules = len(otherRules) + len(taggingRules)
 
 	// Report total number of rules to process
-	totalRules := len(otherRules)
 	reportProgress(cfg.progressReporter, progress.Event{
 		Stage:   progress.StageRuleExecution,
 		Current: 0,
-		Total:   totalRules,
-		Message: fmt.Sprintf("Starting rule execution: %d rules to process", totalRules),
+		Total:   cfg.totalRules,
+		Message: fmt.Sprintf("Starting rule execution: %d rules to process", cfg.totalRules),
 	})
+
+	ruleContext := r.runTaggingRules(ctx, taggingRules, mapRuleSets, conditionContext, scopes, cfg)
 
 	// Need a better name for this thing
 	ret := make(chan response)
@@ -337,7 +339,7 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 					reportProgress(cfg.progressReporter, progress.Event{
 						Stage:   progress.StageRuleExecution,
 						Current: completed,
-						Total:   totalRules,
+						Total:   cfg.totalRules,
 						Message: response.Rule.RuleID,
 					})
 
@@ -374,8 +376,8 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 		// Report completion
 		reportProgress(cfg.progressReporter, progress.Event{
 			Stage:   progress.StageComplete,
-			Current: totalRules,
-			Total:   totalRules,
+			Current: cfg.totalRules,
+			Total:   cfg.totalRules,
 			Message: "Rule execution complete",
 		})
 	case <-ctx.Done():
@@ -442,18 +444,24 @@ func (r *ruleEngine) filterRules(ruleSets []RuleSet, selectors ...RuleSelector) 
 
 // runTaggingRules filters and runs info rules synchronously
 // returns list of non-info rules, a context to pass to them
-func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*konveyor.RuleSet, context ConditionContext, scope Scope) ConditionContext {
+func (r *ruleEngine) runTaggingRules(ctx context.Context, infoRules []ruleMessage, mapRuleSets map[string]*konveyor.RuleSet, context ConditionContext, scope Scope, cfg *runConfig) ConditionContext {
 	//  move all rules that have HasTags to the end of the list as they depend on other tagging rules
 	sort.Slice(infoRules, func(i int, j int) bool {
 		return !infoRules[i].rule.UsesHasTags && infoRules[j].rule.UsesHasTags
 	})
 	// track unique tags per ruleset
 	rulesetTagsCache := map[string]map[string]bool{}
-	for _, ruleMessage := range infoRules {
+	for i, ruleMessage := range infoRules {
 		rule := ruleMessage.rule
 		ruleCtx := context.Copy()
 		ruleCtx.RuleID = rule.RuleID
 		response, err := processRule(ctx, rule, ruleCtx, r.logger)
+		reportProgress(cfg.progressReporter, progress.Event{
+			Stage:   progress.StageRuleExecution,
+			Current: i,
+			Total:   cfg.totalRules,
+			Message: rule.RuleID,
+		})
 		if err != nil {
 			r.logger.Error(err, "failed to evaluate rule", "ruleID", rule.RuleID)
 			if rs, ok := mapRuleSets[ruleMessage.ruleSetName]; ok {

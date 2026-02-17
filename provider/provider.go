@@ -114,6 +114,15 @@ func (p Proxy) ToEnvVars() map[string]string {
 	return proxy
 }
 
+// PathMapping defines a mapping from one path prefix to another.
+// This is used by callers to translate paths returned by providers
+// (e.g., container paths) to paths meaningful in the engine's context
+// (e.g., host paths).
+type PathMapping struct {
+	From string `yaml:"from" json:"from"`
+	To   string `yaml:"to" json:"to"`
+}
+
 type AnalysisMode string
 
 const (
@@ -180,6 +189,18 @@ func GetConfig(filepath string) ([]Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err := ValidateAndDefaultConfigs(configs); err != nil {
+		return nil, err
+	}
+
+	return configs, nil
+}
+
+// ValidateAndDefaultConfigs applies default values and validation to a slice
+// of provider configs. This is used both when loading configs from a file
+// (via GetConfig) and when configs are passed programmatically.
+func ValidateAndDefaultConfigs(configs []Config) error {
 	for idx := range configs {
 		c := &configs[idx]
 		// default to system-wide proxy
@@ -195,20 +216,18 @@ func GetConfig(filepath string) ([]Config, error) {
 			}
 			newConfig, err := validateAndUpdateProviderSpecificConfig(ic.ProviderSpecificConfig)
 			if err != nil {
-				return configs, err
+				return err
 			}
 			ic.ProviderSpecificConfig = newConfig
-
 		}
 	}
 
 	// Validate provider names for duplicate providers.
 	if err := validateProviderName(configs); err != nil {
-		return nil, err
+		return err
 	}
 
-	return configs, nil
-
+	return nil
 }
 
 func validateAndUpdateProviderSpecificConfig(oldPSC map[string]interface{}) (map[string]interface{}, error) {
