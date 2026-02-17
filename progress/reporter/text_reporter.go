@@ -53,6 +53,9 @@ type TextReporter struct {
 //	defer f.Close()
 //	reporter := reporter.NewTextReporter(f)
 func NewTextReporter(w io.Writer) *TextReporter {
+	if w == nil {
+		panic("NewTextReporter: writer cannot be nil")
+	}
 	return &TextReporter{
 		writer: w,
 	}
@@ -124,6 +127,7 @@ func (t *TextReporter) Report(event progress.Event) {
 	}
 
 	if output != "" {
-		t.writer.Write([]byte(output))
+		// Intentionally ignore write errors to avoid disrupting analysis
+		_, _ = t.writer.Write([]byte(output))
 	}
 }

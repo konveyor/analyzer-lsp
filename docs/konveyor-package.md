@@ -623,7 +623,7 @@ Provider settings are loaded from a JSON file specified via `WithProviderConfigF
 3. Starts providers that implement `Startable`
 4. Manages builtin provider configuration specially
 
-The builtin provider is always initialized last and receives configurations from all other providers.
+The builtin provider is always initialized last and receives configuration from all other providers.
 
 See [providers.md](providers.md) for provider configuration details.
 

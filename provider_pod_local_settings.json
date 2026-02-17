@@ -160,7 +160,7 @@
         "name": "builtin",
         "initConfig": [
             {
-                "location": "/analyzer-lsp/examples/builtin/",
+                "location": "/analyzer-lsp/examples/builtin",
                 "providerSpecificConfig": {
                     "includedPaths": ["inclusion_tests/dir-0"]
                 }

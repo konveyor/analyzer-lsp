@@ -13,6 +13,7 @@
 //   - WithCodeSnipLimit: Validates non-negative values (>= 0)
 //   - WithContextLinesLimit: Validates non-negative values (>= 0)
 //   - WithAnalysisMode: Validates against known modes ("full" or "source-only")
+//   - WithWorkerCount: Validates positive values (> 0)
 //   - WithContext: Validates non-nil context
 //   - WithLabelSelector: Validates selector syntax during initialization
 //
@@ -43,6 +44,7 @@ type analyzerOptions struct {
 	contextLineLimit        int
 	analysisMode            provider.AnalysisMode
 	dependencyRulesDisabled bool
+	workerCount             int
 	reporters               []progress.Reporter
 	progress                *progress.Progress
 	log                     logr.Logger
@@ -222,6 +224,28 @@ func WithAnalysisMode(mode string) AnalyzerOption {
 func WithDependencyRulesDisabled() AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
 		opt.dependencyRulesDisabled = true
+		return
+	}
+}
+
+// WithWorkerCount sets the number of workers for parallel rule execution.
+//
+// Validation:
+//   - Must be positive (> 0)
+//
+// The worker count controls how many rules can be executed concurrently.
+// Higher values can improve performance on systems with many CPU cores,
+// while lower values reduce resource usage.
+//
+// If not provided, the default value of 10 workers will be used.
+//
+// Returns an error if the worker count is not positive.
+func WithWorkerCount(count int) AnalyzerOption {
+	return func(opt *analyzerOptions) (err error) {
+		if count <= 0 {
+			return fmt.Errorf("worker count must be positive, got %d", count)
+		}
+		opt.workerCount = count
 		return
 	}
 }

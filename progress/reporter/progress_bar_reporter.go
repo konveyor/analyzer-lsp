@@ -151,6 +151,9 @@ func (p *ProgressBarReporter) Report(event progress.Event) {
 //  4. Add newline when reaching 100%
 //
 // Format: Processing rules  42% |██████████░░░░░░░░░░░░░░░| 99/235  current-rule-name
+//
+// TODO: Extract common progress bar update logic to helper method (see follow-up issue)
+// This function and updateProviderPrepareBar share identical update/clear logic.
 func (p *ProgressBarReporter) updateProgressBar(event progress.Event) {
 	// Build the progress bar string
 	barString := p.buildProgressBar(event)

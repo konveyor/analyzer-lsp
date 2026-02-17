@@ -105,8 +105,15 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 		cancelFunc()
 		return nil, fmt.Errorf("unable to get provider clients: %w", errors.Join(providerErrors...))
 	}
+
+	// Set default worker count if not specified
+	workerCount := opts.workerCount
+	if workerCount == 0 {
+		workerCount = 10
+	}
+
 	eng := engine.CreateRuleEngine(ctx,
-		10,
+		workerCount,
 		log,
 		engine.WithIncidentLimit(opts.incidentLimit),
 		engine.WithCodeSnipLimit(opts.codeSnipLimit),
