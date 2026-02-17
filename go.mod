@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp
 
-go 1.23.9
+go 1.25
 
 require (
 	github.com/Microsoft/go-winio v0.6.2

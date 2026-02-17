@@ -2,7 +2,7 @@ ARG JAVA_BUNDLE_TAG=latest
 FROM quay.io/konveyor/jdtls-server-base:${JAVA_BUNDLE_TAG} as base
 
 # Build the manager binary
-FROM registry.access.redhat.com/ubi9/go-toolset:1.23 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as builder
 
 USER 0
 

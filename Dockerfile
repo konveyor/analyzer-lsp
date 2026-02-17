@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.23 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as builder
 
 USER 0
 WORKDIR /analyzer-lsp
