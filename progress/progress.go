@@ -51,7 +51,7 @@ type Progress struct {
 	reporterChannels   []chan Event
 	collectors         []Collector
 	collectorChan      chan Event
-	collecterCancelMap map[int]context.CancelFunc
+	collectorCancelMap map[int]context.CancelFunc
 	subscribeMutex     sync.Mutex
 }
 
@@ -134,7 +134,7 @@ func WithCollectors(collectors ...Collector) ProgressOption {
 func New(opts ...ProgressOption) (*Progress, error) {
 	pg := &Progress{
 		collectorChan:      make(chan Event, 100),
-		collecterCancelMap: map[int]context.CancelFunc{},
+		collectorCancelMap: map[int]context.CancelFunc{},
 		subscribeMutex:     sync.Mutex{},
 	}
 	for _, opt := range opts {
@@ -145,7 +145,7 @@ func New(opts ...ProgressOption) (*Progress, error) {
 	}
 
 	if len(pg.reporters) == 0 {
-		// No reporets, will create a no-op reporter
+		// No reporters, will create a no-op reporter
 		pg.reporters = append(pg.reporters, &NoopReporter{})
 	}
 
@@ -182,7 +182,7 @@ func New(opts ...ProgressOption) (*Progress, error) {
 // Events already in flight may still be processed.
 func (p *Progress) Unsubscribe(collector Collector) {
 	p.subscribeMutex.Lock()
-	subscribeCancel := p.collecterCancelMap[collector.ID()]
+	subscribeCancel := p.collectorCancelMap[collector.ID()]
 	p.subscribeMutex.Unlock()
 	subscribeCancel()
 }
@@ -195,7 +195,7 @@ func (p *Progress) Unsubscribe(collector Collector) {
 func (p *Progress) Subscribe(collector Collector) {
 	subscribeContext, subscribeCancel := context.WithCancel(p.ctx)
 	p.subscribeMutex.Lock()
-	p.collecterCancelMap[collector.ID()] = subscribeCancel
+	p.collectorCancelMap[collector.ID()] = subscribeCancel
 	p.subscribeMutex.Unlock()
 
 	go func() {

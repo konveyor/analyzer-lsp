@@ -129,7 +129,7 @@ func (a *analyzer) ProviderStart() error {
 
 	a.collector.Report(progress.Event{
 		Stage:   progress.StageProviderInit,
-		Message: "Staring provider init",
+		Message: "Starting provider init",
 		Total:   len(a.providers),
 	})
 	abConfigChan := make(chan []provider.InitConfig)

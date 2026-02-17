@@ -67,7 +67,7 @@ func AnalysisCmd() *cobra.Command {
 			logrusLog := logrus.New()
 			logrusLog.SetOutput(os.Stdout)
 			logrusLog.SetFormatter(&logrus.TextFormatter{})
-			// Adding 5 here to move logs to info level
+			// Adding 4 here to move logs to info level
 			// setting verbose 1 -> V(2) logs show up
 			// setting verbose 2 -> V(3) logs show up
 			// setting verbose 3 -> .V(4) I believe show up
