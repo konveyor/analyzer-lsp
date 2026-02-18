@@ -328,6 +328,7 @@ jobs:
       - name: Build addon and push images
         working-directory: tackle2-addon-analyzer
         run: |
+          sed -i "s,FROM quay.io/konveyor/analyzer-lsp\:latest,FROM localhost/konveyor-analyzer-lsp:${{ needs.detect-changes.outputs.image_tag }}," Dockerfile
           IMG=ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h make image-podman
           podman push ttl.sh/konveyor-tackle2-addon-analyzer-${GITHUB_SHA}:2h
       
