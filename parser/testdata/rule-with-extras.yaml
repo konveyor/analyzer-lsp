@@ -1,0 +1,19 @@
+---
+- message: Replace javax imports with jakarta
+  ruleID: javax-to-jakarta-00001
+  links:
+  - title: "Jakarta EE Migration"
+    url: "https://jakarta.ee"
+  labels:
+  - "jakarta"
+  - "migration"
+  category: mandatory
+  effort: 1
+  migration_complexity: trivial
+  domain: "jakarta-migration"
+  metadata:
+    severity: "high"
+    confidence: "high"
+    migrationPath: "automated"
+  when:
+    builtin.file: "*.java"
