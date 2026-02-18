@@ -815,6 +815,39 @@ func TestLoadRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:         "skip valid rule in non-yaml file",
+			testFileName: "folder-with-non-yaml",
+			providerNameClient: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedProvider: map[string]provider.InternalProviderClient{
+				"builtin": testProvider{
+					caps: []provider.Capability{{
+						Name: "file",
+					}},
+				},
+			},
+			ExpectedRuleSet: map[string]engine.RuleSet{
+				"non-yaml-test-ruleset": {
+					Rules: []engine.Rule{
+						{
+							RuleMeta: engine.RuleMeta{
+								RuleID:      "file-001",
+								Description: "",
+								Category:    &konveyor.Potential,
+							},
+							Perform: engine.Perform{Message: engine.Message{Text: &allGoFiles, Links: []konveyor.Link{}}},
+							When:    engine.ConditionEntry{},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
