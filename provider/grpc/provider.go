@@ -353,7 +353,7 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, provider.InitConfig{}, err
 	}
 	if !r.Successful {
-		return nil, provider.InitConfig{}, fmt.Errorf(r.Error)
+		return nil, provider.InitConfig{}, fmt.Errorf("unable to init: %v", r.Error)
 	}
 	additionalBuiltinConfig := provider.InitConfig{}
 	if r.BuiltinConfig != nil {
@@ -476,7 +476,7 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 				conn, err = socket.ConnectGRPC(config.Address)
 			} else {
 				// Use regular HTTP connection
-				conn, err = grpc.NewClient(fmt.Sprintf(config.Address),
+				conn, err = grpc.NewClient(fmt.Sprintf("%s", config.Address),
 					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 					grpc.WithTransportCredentials(insecure.NewCredentials()),
 				)
@@ -492,7 +492,7 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 			return nil, nil, err
 		}
 		if config.JWTToken == "" {
-			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
+			conn, err := grpc.NewClient(fmt.Sprintf("%s", config.Address),
 				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 				grpc.WithTransportCredentials(creds))
 			if err != nil {
@@ -505,7 +505,7 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 			i := &jwtTokeInterceptor{
 				Token: config.JWTToken,
 			}
-			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
+			conn, err := grpc.NewClient(fmt.Sprintf("%s", config.Address),
 				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 				grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
 			if err != nil {
