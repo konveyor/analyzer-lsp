@@ -148,7 +148,11 @@ func AnalysisCmd() *cobra.Command {
 			})
 
 			// Write results out to CLI
-			b, _ := yaml.Marshal(rulesets)
+			b, err := yaml.Marshal(rulesets)
+			if err != nil {
+				errLog.Error(err, "unable to marshal rulesets to YAML")
+				os.Exit(1)
+			}
 			if errorOnViolations && len(rulesets) != 0 {
 				fmt.Printf("%s", string(b))
 				os.Exit(EXIT_ON_ERROR_CODE)

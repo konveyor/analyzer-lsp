@@ -280,6 +280,9 @@ func WithContext(ctx context.Context) AnalyzerOption {
 // If not provided, a new progress tracker will be created automatically.
 func WithProgress(progress *progress.Progress) AnalyzerOption {
 	return func(opt *analyzerOptions) (err error) {
+		if progress == nil {
+			return fmt.Errorf("progress cannot be nil")
+		}
 		opt.progress = progress
 		return
 	}
@@ -289,6 +292,11 @@ func WithProgress(progress *progress.Progress) AnalyzerOption {
 // Multiple reporters can be provided to receive progress updates.
 func WithReporters(reporters ...progress.Reporter) AnalyzerOption {
 	return func(options *analyzerOptions) error {
+		for i, r := range reporters {
+			if r == nil {
+				return fmt.Errorf("reporter at index %d cannot be nil", i)
+			}
+		}
 		options.reporters = reporters
 		return nil
 	}

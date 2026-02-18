@@ -88,6 +88,7 @@ func NewThrottledCollectorWithInterval(stageName progress.Stage, interval time.D
 		throttleInterval: interval,
 		id:               rand.Int(),
 		streamChan:       make(chan progress.Event, 100),
+		reportMutex:      sync.Mutex{},
 	}
 }
 

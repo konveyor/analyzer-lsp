@@ -137,7 +137,6 @@ func NewChannelReporter(ctx context.Context, opts ...ChannelReporterOption) *Cha
 //
 // This method is safe for concurrent use.
 func (c *ChannelReporter) Report(event progress.Event) {
-	fmt.Printf("here - reporting channel reporting")
 	// Normalize event (set timestamp, calculate percent)
 	normalize(&event)
 
