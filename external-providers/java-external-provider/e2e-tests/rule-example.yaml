@@ -412,3 +412,42 @@
   description: "METHOD match with annotated pattern"
   category: mandatory
   effort: 1
+- ruleID: konveyor-java-pattern-test-20
+  when:
+    java.referenced:
+      pattern: '* org.springframework.web.servlet.view.tiles3.TilesConfigurer'
+      location: METHOD
+      annotated:
+        pattern: org.springframework.context.annotation.Bean
+        elements:
+          - name: 'name'
+            value: 'nameFor.*'
+  message: "METHOD match with annotated pattern with text element"
+  description: "METHOD match with annotated pattern"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-21
+  when:
+    java.referenced:
+      pattern: '* org.springframework.web.servlet.view.tiles3.TilesConfigurer'
+      location: METHOD
+      annotated:
+        pattern: org.springframework.context.annotation.Bean
+        elements:
+          - name: 'name'
+            value: 'nameFor.*'
+          - name: 'autowireCandidate'
+            value: 'false'
+  message: "METHOD match with annotated pattern with boolean element"
+  description: "METHOD match with annotated pattern with boolean element"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-22
+  when:
+    java.referenced:
+      pattern: com.example.model.TypedEntity<*>
+      location: TYPE
+  message: "METHOD match with annotated pattern with boolean element"
+  description: "METHOD match with annotated pattern with boolean element"
+  category: mandatory
+  effort: 1
