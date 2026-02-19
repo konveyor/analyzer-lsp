@@ -2,6 +2,7 @@ package parser
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -37,21 +38,6 @@ func (e MissingProviderError) Error() string {
 	return fmt.Sprintf("unable to find provider for: %v", e.Provider)
 }
 
-type parserErrors struct {
-	errs []error
-}
-
-func (e parserErrors) Error() string {
-	s := ""
-	for i, e := range e.errs {
-		if i == 0 {
-			s = e.Error()
-		}
-		s = fmt.Sprintf("%s\n%s", s, e.Error())
-	}
-	return s
-}
-
 type ruleParseReturn struct {
 	rules           []engine.Rule
 	conditionsByCap map[string][]provider.ConditionsByCap
@@ -62,6 +48,7 @@ type ruleParseReturn struct {
 type RuleParser struct {
 	ProviderNameToClient map[string]provider.InternalProviderClient
 	Log                  logr.Logger
+	Selector             *labels.LabelSelector[*engine.RuleMeta]
 	NoDependencyRules    bool
 	DepLabelSelector     *labels.LabelSelector[*provider.Dep]
 }
@@ -71,15 +58,15 @@ func (r *RuleParser) loadRuleSet(dir string) *engine.RuleSet {
 	info, err := os.Stat(goldenFile)
 	if err != nil {
 		r.Log.V(8).Error(err, "unable to load rule set")
-		return nil
+		return defaultRuleSet
 	}
 	if !info.Mode().IsRegular() {
-		return nil
+		return defaultRuleSet
 	}
 	content, err := os.ReadFile(goldenFile)
 	if err != nil {
 		r.Log.V(8).Error(err, "unable to load rule set")
-		return nil
+		return defaultRuleSet
 	}
 
 	set := engine.RuleSet{}
@@ -110,16 +97,14 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 
 	// If a single file, then it must have the ruleset metadata.
 	if info.Mode().IsRegular() {
-		rules, m, provConditions, err := r.LoadRule(filepath)
+		ruleSet := r.loadRuleSet(path.Dir(filepath))
+		if ruleSet == nil {
+			return nil, nil, nil, fmt.Errorf("unable to load ruleset file")
+		}
+		rules, m, provConditions, err := r.loadRule(filepath, ruleSet)
 		if err != nil {
 			r.Log.V(8).Error(err, "unable to load rule set")
 			return nil, nil, nil, err
-		}
-
-		ruleSet := r.loadRuleSet(path.Dir(filepath))
-		// if nil, use the default rule set
-		if ruleSet == nil {
-			ruleSet = defaultRuleSet
 		}
 		ruleSet.Rules = rules
 
@@ -135,25 +120,27 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	}
 	var ruleSet *engine.RuleSet
 	rules := []engine.Rule{}
-	parserErr := &parserErrors{}
+	var parseErr error
 	ruleParserWG := sync.WaitGroup{}
 	ruleLoadChan := make(chan ruleParseReturn, 10)
 
-	loadCtx, _ := context.WithTimeout(context.Background(), 5*time.Minute)
+	loadCtx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Minute)
 	for _, f := range files {
 		info, err := os.Stat(path.Join(filepath, f.Name()))
 		if err != nil {
-			parserErr.errs = append(parserErr.errs, err)
+			parseErr = errors.Join(parseErr, err)
 			continue
 		}
 		if info.IsDir() {
 			r, m, provConditions, err := r.LoadRules(path.Join(filepath, f.Name()))
 			if err != nil {
-				parserErr.errs = append(parserErr.errs, err)
+				parseErr = errors.Join(parseErr, err)
 				continue
 			}
 			ruleSets = append(ruleSets, r...)
-			maps.Copy(clientMap, m)
+			if m != nil {
+				maps.Copy(clientMap, m)
+			}
 			for k, v := range provConditions {
 				if _, ok := providerConditions[k]; !ok {
 					providerConditions[k] = []provider.ConditionsByCap{}
@@ -165,8 +152,15 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 			continue
 		}
 		if info.Mode().IsRegular() {
-			if ruleSet == nil && f.Name() == RULE_SET_GOLDEN_FILE_NAME {
+			// If we find a file, in a directory we need to load the ruleset
+			if ruleSet == nil {
 				ruleSet = r.loadRuleSet(filepath)
+				if ruleSet == nil {
+					cancelFunc()
+					return nil, nil, nil, fmt.Errorf("unable to load ruleset file")
+				}
+			}
+			if f.Name() == RULE_SET_GOLDEN_FILE_NAME {
 				continue
 			}
 			// skip non-yaml files
@@ -183,7 +177,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 			}
 			ruleParserWG.Add(1)
 			go func() {
-				rules, m, provConditions, err := r.LoadRule(path.Join(filepath, f.Name()))
+				rules, m, provConditions, err := r.loadRule(path.Join(filepath, f.Name()), ruleSet)
 				select {
 				case ruleLoadChan <- ruleParseReturn{
 					rules:           rules,
@@ -214,11 +208,18 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 				continue
 			}
 			if load.err != nil {
-				parserErr.errs = append(parserErr.errs, load.err)
+				parseErr = errors.Join(parseErr, load.err)
 				ruleParserWG.Done()
 				continue
 			}
-			maps.Copy(clientMap, load.providerMap)
+			if len(load.rules) == 0 {
+				ruleParserWG.Done()
+				continue
+			}
+			if load.providerMap != nil {
+				r.Log.Info("providers", "current", clientMap, "toAdd", load.providerMap)
+				maps.Copy(clientMap, load.providerMap)
+			}
 			for k, v := range load.conditionsByCap {
 				if _, ok := providerConditions[k]; !ok {
 					providerConditions[k] = []provider.ConditionsByCap{}
@@ -234,17 +235,28 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 	}
 
 	if ruleSet != nil {
+		if r.Selector != nil {
+			meta := &engine.RuleMeta{
+				Labels: ruleSet.Labels,
+			}
+			for _, rule := range rules {
+				meta.Labels = append(meta.Labels, rule.Labels...)
+			}
+			if ok, err := r.Selector.Matches(meta); !ok && err == nil {
+				r.Log.V(6).Info("ruleset does not have any rules that match selector, filtering out", "ruleSet", ruleSet.Name)
+				cancelFunc()
+				return ruleSets, clientMap, providerConditions, parseErr
+			}
+		}
+
 		ruleSet.Rules = rules
 		ruleSets = append(ruleSets, *ruleSet)
 	}
-	// Return nil if there are no captured errors
-	if len(parserErr.errs) == 0 {
-		return ruleSets, clientMap, providerConditions, nil
-	}
-	return ruleSets, clientMap, providerConditions, parserErr
+	cancelFunc()
+	return ruleSets, clientMap, providerConditions, parseErr
 }
 
-func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provider.InternalProviderClient, map[string][]provider.ConditionsByCap, error) {
+func (r *RuleParser) loadRule(filepath string, ruleSet *engine.RuleSet) ([]engine.Rule, map[string]provider.InternalProviderClient, map[string][]provider.ConditionsByCap, error) {
 	content, err := os.ReadFile(filepath)
 	if err != nil {
 		r.Log.V(8).Error(err, "filepath", filepath)
@@ -356,6 +368,14 @@ func (r *RuleParser) LoadRule(filepath string) ([]engine.Rule, map[string]provid
 		}
 
 		r.addRuleFields(&rule, ruleMap)
+		if r.Selector != nil {
+			meta := &engine.RuleMeta{
+				Labels: append(ruleSet.Labels, rule.Labels...),
+			}
+			if ok, err := r.Selector.Matches(meta); !ok && err == nil {
+				continue
+			}
+		}
 
 		whenMap, ok := ruleMap["when"].(map[any]any)
 		if !ok {
