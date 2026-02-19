@@ -491,6 +491,48 @@
           name: tilesConfigurer
           package: com.example.config
       effort: 1
+    konveyor-java-pattern-test-20:
+      description: METHOD match with annotated pattern
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: METHOD match with annotated pattern with text element
+        codeSnip: "\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {\n18  TilesConfigurer tilesConfigurer = new TilesConfigurer();\n19  tilesConfigurer.setDefinitions(\"/WEB-INF/tiles/tiles-definitions.xml\");\n20  tilesConfigurer.setCheckRefresh(true);\n21  return tilesConfigurer;\n22  }\n23  \n24  @Bean\n25  public ViewResolver tilesViewResolver() {\n26  TilesViewResolver viewResolver = new TilesViewResolver();\n27  viewResolver.setOrder(1);"
+        lineNumber: 17
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Method
+          name: tilesConfigurer
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-21:
+      description: METHOD match with annotated pattern with boolean element
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: METHOD match with annotated pattern with boolean element
+        codeSnip: "\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {\n18  TilesConfigurer tilesConfigurer = new TilesConfigurer();\n19  tilesConfigurer.setDefinitions(\"/WEB-INF/tiles/tiles-definitions.xml\");\n20  tilesConfigurer.setCheckRefresh(true);\n21  return tilesConfigurer;\n22  }\n23  \n24  @Bean\n25  public ViewResolver tilesViewResolver() {\n26  TilesViewResolver viewResolver = new TilesViewResolver();\n27  viewResolver.setOrder(1);"
+        lineNumber: 17
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Method
+          name: tilesConfigurer
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-22:
+      description: METHOD match with annotated pattern with boolean element
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/model/TypedEntity.java
+        message: METHOD match with annotated pattern with boolean element
+        codeSnip: "\n 1  package com.example.model;\n 2  \n 3  public class TypedEntity<T extends A> {\n 4  T value;\n 5  \n 6  public TypedEntity(T value) {\n 7  this.value = value;\n 8  }\n 9  \n10  public T getValue() {\n11  return value;\n12  }\n13  "
+        lineNumber: 3
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/model/TypedEntity.java
+          kind: Class
+          name: TypedEntity
+          package: com.example.model
+      effort: 1
     konveyor-java-pattern-test-151:
       description: FIELD match with asterisk for name and fq type
       category: mandatory

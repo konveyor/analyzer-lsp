@@ -316,6 +316,15 @@
   description: "Exact METHOD match with fully qualified class name and type parameters"
   category: mandatory
   effort: 1
+- ruleID: konveyor-java-pattern-test-111
+  when:
+    java.referenced:
+      pattern: com.example.*.HomeService.doThings
+      location: METHOD
+  message: "METHOD match with asterisk in package name"
+  description: "METHOD match with asterisk in package name"
+  category: mandatory
+  effort: 1
 
 
   # === METHOD_CALL matching ===
