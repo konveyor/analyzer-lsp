@@ -192,6 +192,20 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 			},
 		},
 		{
+			name:       "(XML) Include using the config (legacy inclusion), no exclude",
+			capability: "xml",
+			includedPathsFromConfig: []string{
+				"dir_b",
+			},
+			condition: builtinCondition{
+				XML: xmlCondition{
+					XPath: "//*/b:simple[text()=matches(self::node(), '*property*')]",
+				},
+			},
+			chainTemplate: engine.ChainTemplate{},
+			wantFilePaths: []string{},
+		},
+		{
 			name:       "(JSON) Include using the config (legacy inclusion), no exclude",
 			capability: "json",
 			includedPathsFromConfig: []string{
