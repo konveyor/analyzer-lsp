@@ -533,6 +533,20 @@
           name: TypedEntity
           package: com.example.model
       effort: 1
+    konveyor-java-pattern-test-111:
+      description: METHOD match with asterisk in package name
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: METHOD match with asterisk in package name
+        codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
+        lineNumber: 20
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doThings
+          package: com.example.service
+      effort: 1
     konveyor-java-pattern-test-151:
       description: FIELD match with asterisk for name and fq type
       category: mandatory
