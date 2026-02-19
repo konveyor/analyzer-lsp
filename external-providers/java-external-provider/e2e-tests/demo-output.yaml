@@ -86,6 +86,481 @@
           name: io.fabric8.kubernetes-client
           version: 6.0.0
       effort: 1
+    konveyor-java-pattern-test-1:
+      description: PACKAGE match with stars
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: PACKAGE match with stars
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  "
+        lineNumber: 5
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet.view.tiles3
+          package: com.example.config
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: PACKAGE match with stars
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")"
+        lineNumber: 6
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet.view.tiles3
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-2:
+      description: Exact PACKAGE match
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+        message: Exact PACKAGE match
+        codeSnip: "\n 1  package io.konveyor.demo.ordermanagement;\n 2  \n 3  import javax.servlet.ServletContext;\n 4  import javax.servlet.ServletException;\n 5  import javax.servlet.ServletRegistration;\n 6  \n 7  import org.springframework.web.WebApplicationInitializer;\n 8  import org.springframework.web.context.ContextLoaderListener;\n 9  import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;\n10  import org.springframework.web.servlet.DispatcherServlet;\n11  \n12  \n13  public class OrderManagementAppInitializer implements WebApplicationInitializer  {\n14  \n15  @Override\n16  public void onStartup(ServletContext container) throws ServletException {\n17  AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();\n18  context.setConfigLocation(\"io.konveyor.demo.ordermanagement.config\");\n19  \n20  context.scan(\"io.konveyor.demo.ordermanagement\");"
+        lineNumber: 10
+        variables:
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+          kind: Module
+          name: org.springframework.web.servlet
+          package: io.konveyor.demo.ordermanagement
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: Exact PACKAGE match
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {"
+        lineNumber: 7
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-3:
+      description: Exact PACKAGE match with wildcard at the end
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+        message: Exact PACKAGE match with wildcard at the end
+        codeSnip: "\n 1  package io.konveyor.demo.ordermanagement;\n 2  \n 3  import javax.servlet.ServletContext;\n 4  import javax.servlet.ServletException;\n 5  import javax.servlet.ServletRegistration;\n 6  \n 7  import org.springframework.web.WebApplicationInitializer;\n 8  import org.springframework.web.context.ContextLoaderListener;\n 9  import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;\n10  import org.springframework.web.servlet.DispatcherServlet;\n11  \n12  \n13  public class OrderManagementAppInitializer implements WebApplicationInitializer  {\n14  \n15  @Override\n16  public void onStartup(ServletContext container) throws ServletException {\n17  AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();\n18  context.setConfigLocation(\"io.konveyor.demo.ordermanagement.config\");\n19  \n20  context.scan(\"io.konveyor.demo.ordermanagement\");"
+        lineNumber: 10
+        variables:
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+          kind: Module
+          name: org.springframework.web.servlet
+          package: io.konveyor.demo.ordermanagement
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: Exact PACKAGE match with wildcard at the end
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  "
+        lineNumber: 5
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet.view.tiles3
+          package: com.example.config
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: Exact PACKAGE match with wildcard at the end
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")"
+        lineNumber: 6
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet.view.tiles3
+          package: com.example.config
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: Exact PACKAGE match with wildcard at the end
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {"
+        lineNumber: 7
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-4:
+      description: Exact IMPORT match
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: Exact IMPORT match
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {"
+        lineNumber: 7
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet.ViewResolver
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-6:
+      description: IMPORT match with asterisk at the end (without dot)
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+        message: IMPORT match with asterisk at the end (without dot)
+        codeSnip: "\n 1  package io.konveyor.demo.ordermanagement;\n 2  \n 3  import javax.servlet.ServletContext;\n 4  import javax.servlet.ServletException;\n 5  import javax.servlet.ServletRegistration;\n 6  \n 7  import org.springframework.web.WebApplicationInitializer;\n 8  import org.springframework.web.context.ContextLoaderListener;\n 9  import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;\n10  import org.springframework.web.servlet.DispatcherServlet;\n11  \n12  \n13  public class OrderManagementAppInitializer implements WebApplicationInitializer  {\n14  \n15  @Override\n16  public void onStartup(ServletContext container) throws ServletException {\n17  AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();\n18  context.setConfigLocation(\"io.konveyor.demo.ordermanagement.config\");\n19  \n20  context.scan(\"io.konveyor.demo.ordermanagement\");"
+        lineNumber: 10
+        variables:
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/OrderManagementAppInitializer.java
+          kind: Module
+          name: org.springframework.web.servlet.DispatcherServlet
+          package: io.konveyor.demo.ordermanagement
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: IMPORT match with asterisk at the end (without dot)
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  "
+        lineNumber: 5
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet.view.tiles3.TilesConfigurer
+          package: com.example.config
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: IMPORT match with asterisk at the end (without dot)
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")"
+        lineNumber: 6
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet.view.tiles3.TilesViewResolver
+          package: com.example.config
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: IMPORT match with asterisk at the end (without dot)
+        codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {"
+        lineNumber: 7
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Module
+          name: org.springframework.web.servlet.ViewResolver
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-7:
+      description: METHOD match with asterisk at the end
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+        message: METHOD match with asterisk at the end
+        codeSnip: "\n13  @Controller\n14  @RequestMapping(\"/\")\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);\n26  }\n27  \n28  @GetMapping\n29  public String home(Model model) {\n30  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n31  return \"home\";  // This resolves to a Tiles definition\n32  }\n33  "
+        lineNumber: 23
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+          kind: Method
+          name: doStuffWithHomeService
+          package: com.example.controller
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: METHOD match with asterisk at the end
+        codeSnip: "\n 5  import org.springframework.core.AttributeAccessor;\n 6  \n 7  public class HomeService implements AttributeAccessor {\n 8  \n 9  private TypedEntity<B> typedEntity;\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {"
+        lineNumber: 15
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doStuff
+          package: com.example.service
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: METHOD match with asterisk at the end
+        codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
+        lineNumber: 20
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doThings
+          package: com.example.service
+      effort: 1
+    konveyor-java-pattern-test-8:
+      description: METHOD match with asterisk at the end and class name
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: METHOD match with asterisk at the end and class name
+        codeSnip: "\n 5  import org.springframework.core.AttributeAccessor;\n 6  \n 7  public class HomeService implements AttributeAccessor {\n 8  \n 9  private TypedEntity<B> typedEntity;\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {"
+        lineNumber: 15
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doStuff
+          package: com.example.service
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: METHOD match with asterisk at the end and class name
+        codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
+        lineNumber: 20
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doThings
+          package: com.example.service
+      effort: 1
+    konveyor-java-pattern-test-9:
+      description: METHOD match with asterisk at the end and fully qualified class name
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: METHOD match with asterisk at the end and fully qualified class name
+        codeSnip: "\n 5  import org.springframework.core.AttributeAccessor;\n 6  \n 7  public class HomeService implements AttributeAccessor {\n 8  \n 9  private TypedEntity<B> typedEntity;\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {"
+        lineNumber: 15
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doStuff
+          package: com.example.service
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: METHOD match with asterisk at the end and fully qualified class name
+        codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
+        lineNumber: 20
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doThings
+          package: com.example.service
+      effort: 1
+    konveyor-java-pattern-test-10:
+      description: Exact METHOD match with fully qualified class name
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: Exact METHOD match with fully qualified class name
+        codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
+        lineNumber: 20
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doThings
+          package: com.example.service
+      effort: 1
+    konveyor-java-pattern-test-11:
+      description: Exact METHOD match with fully qualified class name and type parameters
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: Exact METHOD match with fully qualified class name and type parameters
+        codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
+        lineNumber: 20
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doThings
+          package: com.example.service
+      effort: 1
+    konveyor-java-pattern-test-12:
+      description: Exact METHOD_CALL match with fully qualified class name
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+        message: Exact METHOD_CALL match with fully qualified class name
+        codeSnip: "\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);\n26  }\n27  \n28  @GetMapping\n29  public String home(Model model) {\n30  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n31  return \"home\";  // This resolves to a Tiles definition\n32  }\n33  \n34  @GetMapping(\"/about\")\n35  public String about(Model model) {"
+        lineNumber: 25
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+          kind: Method
+          name: doStuffWithHomeService
+          package: com.example.controller
+      effort: 1
+    konveyor-java-pattern-test-13:
+      description: METHOD_CALL match with asterisk and fully qualified class name
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+        message: METHOD_CALL match with asterisk and fully qualified class name
+        codeSnip: "\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);\n26  }\n27  \n28  @GetMapping\n29  public String home(Model model) {\n30  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n31  return \"home\";  // This resolves to a Tiles definition\n32  }\n33  \n34  @GetMapping(\"/about\")\n35  public String about(Model model) {"
+        lineNumber: 25
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+          kind: Method
+          name: doStuffWithHomeService
+          package: com.example.controller
+      effort: 1
+    konveyor-java-pattern-test-14:
+      description: METHOD_CALL match with asterisk for whole method name and fully qualified class name
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+        message: METHOD_CALL match with asterisk for whole method name and fully qualified class name
+        codeSnip: "\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);\n26  }\n27  \n28  @GetMapping\n29  public String home(Model model) {\n30  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n31  return \"home\";  // This resolves to a Tiles definition\n32  }\n33  \n34  @GetMapping(\"/about\")\n35  public String about(Model model) {"
+        lineNumber: 25
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+          kind: Method
+          name: doStuffWithHomeService
+          package: com.example.controller
+      effort: 1
+    konveyor-java-pattern-test-15:
+      description: FIELD match with asterisk for name and fq type
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: FIELD match with asterisk for name and fq type
+        codeSnip: "\n 1  package com.example.service;\n 2  \n 3  import com.example.model.B;\n 4  import com.example.model.TypedEntity;\n 5  import org.springframework.core.AttributeAccessor;\n 6  \n 7  public class HomeService implements AttributeAccessor {\n 8  \n 9  private TypedEntity<B> typedEntity;\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  "
+        lineNumber: 9
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Field
+          name: typedEntity
+          package: com.example.service
+      effort: 1
+    konveyor-java-pattern-test-16:
+      description: Exact ANNOTATION match
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+        message: Exact ANNOTATION match
+        codeSnip: "\n 3  import com.example.model.B;\n 4  import com.example.service.HomeService;\n 5  import org.springframework.stereotype.Controller;\n 6  import org.springframework.ui.Model;\n 7  import org.springframework.web.bind.annotation.GetMapping;\n 8  import org.springframework.web.bind.annotation.RequestMapping;\n 9  \n10  /**\n11  * Home controller that returns Tiles view names.\n12  */\n13  @Controller\n14  @RequestMapping(\"/\")\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {"
+        lineNumber: 13
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+          kind: Property
+          name: Controller
+          package: com.example.controller
+      effort: 1
+    konveyor-java-pattern-test-17:
+      description: CLASS asterisk match with annotated pattern
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+        message: CLASS asterisk match with annotated pattern
+        codeSnip: "\n 5  import org.springframework.stereotype.Controller;\n 6  import org.springframework.ui.Model;\n 7  import org.springframework.web.bind.annotation.GetMapping;\n 8  import org.springframework.web.bind.annotation.RequestMapping;\n 9  \n10  /**\n11  * Home controller that returns Tiles view names.\n12  */\n13  @Controller\n14  @RequestMapping(\"/\")\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);"
+        lineNumber: 15
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+          kind: Class
+          name: HomeController
+          package: com.example.controller
+      effort: 1
+    konveyor-java-pattern-test-18:
+      description: METHOD asterisk match with annotated pattern
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+        message: METHOD asterisk match with annotated pattern
+        codeSnip: "\n21  @Configuration\n22  @EnableJpaRepositories(basePackages = {\n23  \"io.konveyor.demo.ordermanagement.repository\"\n24  })\n25  @EnableTransactionManagement\n26  @EnableSpringDataWebSupport\n27  public class PersistenceConfig {\n28  \n29  \n30  @Bean\n31  public LocalContainerEntityManagerFactoryBean entityManagerFactory() {\n32  final LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();\n33  em.setDataSource(dataSource());\n34  em.setPackagesToScan(\"io.konveyor.demo.ordermanagement.model\");\n35  em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());\n36  em.setJpaProperties(additionalProperties());\n37  \n38  return em;\n39  }\n40  \n41  @Bean"
+        lineNumber: 31
+        variables:
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+          kind: Method
+          name: entityManagerFactory
+          package: io.konveyor.demo.ordermanagement.config
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+        message: METHOD asterisk match with annotated pattern
+        codeSnip: "\n32  final LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();\n33  em.setDataSource(dataSource());\n34  em.setPackagesToScan(\"io.konveyor.demo.ordermanagement.model\");\n35  em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());\n36  em.setJpaProperties(additionalProperties());\n37  \n38  return em;\n39  }\n40  \n41  @Bean\n42  public DataSource dataSource() {\n43  ApplicationConfiguration config = new ApplicationConfiguration();\n44  final DriverManagerDataSource dataSource = new DriverManagerDataSource();\n45  dataSource.setDriverClassName(config.getProperty(\"jdbc.driverClassName\"));\n46  dataSource.setUrl(config.getProperty(\"jdbc.url\"));\n47  dataSource.setUsername(config.getProperty(\"jdbc.user\"));\n48  dataSource.setPassword(config.getProperty(\"jdbc.password\"));\n49  \n50  return dataSource;\n51  }\n52  "
+        lineNumber: 42
+        variables:
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+          kind: Method
+          name: dataSource
+          package: io.konveyor.demo.ordermanagement.config
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+        message: METHOD asterisk match with annotated pattern
+        codeSnip: "\n44  final DriverManagerDataSource dataSource = new DriverManagerDataSource();\n45  dataSource.setDriverClassName(config.getProperty(\"jdbc.driverClassName\"));\n46  dataSource.setUrl(config.getProperty(\"jdbc.url\"));\n47  dataSource.setUsername(config.getProperty(\"jdbc.user\"));\n48  dataSource.setPassword(config.getProperty(\"jdbc.password\"));\n49  \n50  return dataSource;\n51  }\n52  \n53  @Bean\n54  public PlatformTransactionManager transactionManager() {\n55  final JpaTransactionManager transactionManager = new JpaTransactionManager();\n56  transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());\n57  return transactionManager;\n58  }\n59  \n60  @Bean\n61  public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {\n62  return new PersistenceExceptionTranslationPostProcessor();\n63  }\n64  "
+        lineNumber: 54
+        variables:
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+          kind: Method
+          name: transactionManager
+          package: io.konveyor.demo.ordermanagement.config
+      - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+        message: METHOD asterisk match with annotated pattern
+        codeSnip: "\n51  }\n52  \n53  @Bean\n54  public PlatformTransactionManager transactionManager() {\n55  final JpaTransactionManager transactionManager = new JpaTransactionManager();\n56  transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());\n57  return transactionManager;\n58  }\n59  \n60  @Bean\n61  public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {\n62  return new PersistenceExceptionTranslationPostProcessor();\n63  }\n64  \n65  final Properties additionalProperties() {\n66  ApplicationConfiguration config = new ApplicationConfiguration();\n67  final Properties hibernateProperties = new Properties();\n68  hibernateProperties.setProperty(\"hibernate.hbm2ddl.auto\", config.getProperty(\"hibernate.hbm2ddl.auto\"));\n69  hibernateProperties.setProperty(\"hibernate.dialect\", config.getProperty(\"hibernate.dialect\"));\n70  hibernateProperties.setProperty(\"hibernate.cache.use_second_level_cache\", \"false\");\n71  "
+        lineNumber: 61
+        variables:
+          file: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
+          kind: Method
+          name: exceptionTranslation
+          package: io.konveyor.demo.ordermanagement.config
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: METHOD asterisk match with annotated pattern
+        codeSnip: "\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {\n18  TilesConfigurer tilesConfigurer = new TilesConfigurer();\n19  tilesConfigurer.setDefinitions(\"/WEB-INF/tiles/tiles-definitions.xml\");\n20  tilesConfigurer.setCheckRefresh(true);\n21  return tilesConfigurer;\n22  }\n23  \n24  @Bean\n25  public ViewResolver tilesViewResolver() {\n26  TilesViewResolver viewResolver = new TilesViewResolver();\n27  viewResolver.setOrder(1);"
+        lineNumber: 17
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Method
+          name: tilesConfigurer
+          package: com.example.config
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: METHOD asterisk match with annotated pattern
+        codeSnip: "\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {\n18  TilesConfigurer tilesConfigurer = new TilesConfigurer();\n19  tilesConfigurer.setDefinitions(\"/WEB-INF/tiles/tiles-definitions.xml\");\n20  tilesConfigurer.setCheckRefresh(true);\n21  return tilesConfigurer;\n22  }\n23  \n24  @Bean\n25  public ViewResolver tilesViewResolver() {\n26  TilesViewResolver viewResolver = new TilesViewResolver();\n27  viewResolver.setOrder(1);\n28  return viewResolver;\n29  }\n30  }"
+        lineNumber: 25
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Method
+          name: tilesViewResolver
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-19:
+      description: METHOD match with annotated pattern
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: METHOD match with annotated pattern
+        codeSnip: "\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {\n18  TilesConfigurer tilesConfigurer = new TilesConfigurer();\n19  tilesConfigurer.setDefinitions(\"/WEB-INF/tiles/tiles-definitions.xml\");\n20  tilesConfigurer.setCheckRefresh(true);\n21  return tilesConfigurer;\n22  }\n23  \n24  @Bean\n25  public ViewResolver tilesViewResolver() {\n26  TilesViewResolver viewResolver = new TilesViewResolver();\n27  viewResolver.setOrder(1);"
+        lineNumber: 17
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Method
+          name: tilesConfigurer
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-20:
+      description: METHOD match with annotated pattern
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: METHOD match with annotated pattern with text element
+        codeSnip: "\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {\n18  TilesConfigurer tilesConfigurer = new TilesConfigurer();\n19  tilesConfigurer.setDefinitions(\"/WEB-INF/tiles/tiles-definitions.xml\");\n20  tilesConfigurer.setCheckRefresh(true);\n21  return tilesConfigurer;\n22  }\n23  \n24  @Bean\n25  public ViewResolver tilesViewResolver() {\n26  TilesViewResolver viewResolver = new TilesViewResolver();\n27  viewResolver.setOrder(1);"
+        lineNumber: 17
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Method
+          name: tilesConfigurer
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-21:
+      description: METHOD match with annotated pattern with boolean element
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+        message: METHOD match with annotated pattern with boolean element
+        codeSnip: "\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {\n18  TilesConfigurer tilesConfigurer = new TilesConfigurer();\n19  tilesConfigurer.setDefinitions(\"/WEB-INF/tiles/tiles-definitions.xml\");\n20  tilesConfigurer.setCheckRefresh(true);\n21  return tilesConfigurer;\n22  }\n23  \n24  @Bean\n25  public ViewResolver tilesViewResolver() {\n26  TilesViewResolver viewResolver = new TilesViewResolver();\n27  viewResolver.setOrder(1);"
+        lineNumber: 17
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
+          kind: Method
+          name: tilesConfigurer
+          package: com.example.config
+      effort: 1
+    konveyor-java-pattern-test-22:
+      description: METHOD match with annotated pattern with boolean element
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/model/TypedEntity.java
+        message: METHOD match with annotated pattern with boolean element
+        codeSnip: "\n 1  package com.example.model;\n 2  \n 3  public class TypedEntity<T extends A> {\n 4  T value;\n 5  \n 6  public TypedEntity(T value) {\n 7  this.value = value;\n 8  }\n 9  \n10  public T getValue() {\n11  return value;\n12  }\n13  "
+        lineNumber: 3
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/model/TypedEntity.java
+          kind: Class
+          name: TypedEntity
+          package: com.example.model
+      effort: 1
+    konveyor-java-pattern-test-111:
+      description: METHOD match with asterisk in package name
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: METHOD match with asterisk in package name
+        codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
+        lineNumber: 20
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Method
+          name: doThings
+          package: com.example.service
+      effort: 1
+    konveyor-java-pattern-test-151:
+      description: FIELD match with asterisk for name and fq type
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+        message: FIELD match with asterisk for name and fq type
+        codeSnip: "\n 1  package com.example.service;\n 2  \n 3  import com.example.model.B;\n 4  import com.example.model.TypedEntity;\n 5  import org.springframework.core.AttributeAccessor;\n 6  \n 7  public class HomeService implements AttributeAccessor {\n 8  \n 9  private TypedEntity<B> typedEntity;\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  "
+        lineNumber: 9
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
+          kind: Field
+          name: typedEntity
+          package: com.example.service
+      effort: 1
     lang-ref-003:
       description: ""
       category: potential
@@ -339,3 +814,5 @@
           kind: Field
           name: operator
           package: io.javaoperatorsdk.operator.sample
+  unmatched:
+  - konveyor-java-pattern-test-5

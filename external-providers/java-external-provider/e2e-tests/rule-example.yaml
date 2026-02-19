@@ -206,3 +206,257 @@
   description: "@Singleton found at class level"
   message: |
     A `@Singleton` annotation has been found annotating some class.
+
+
+# === PACKAGE matching ===
+# Asterisks * can be used to substitute zero or more characters within a package name segment.
+# If the is no asterisk, an exact match is performed.
+- ruleID: konveyor-java-pattern-test-1
+  when:
+    java.referenced:
+      pattern: org.spri*g*.web.servlet.view.tiles3
+      location: PACKAGE
+  message: "PACKAGE match with stars"
+  description: "PACKAGE match with stars"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-2
+  when:
+    java.referenced:
+      pattern: org.springframework.web.servlet
+      location: PACKAGE
+  message: "Exact PACKAGE match"
+  description: "Exact PACKAGE match"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-3
+  when:
+    java.referenced:
+      pattern: org.springframework.web.servlet*
+      location: PACKAGE
+  message: "Exact PACKAGE match with wildcard at the end"
+  description: "Exact PACKAGE match with wildcard at the end"
+  category: mandatory
+  effort: 1
+
+
+# === IMPORT matching ====
+- ruleID: konveyor-java-pattern-test-4
+  when:
+    java.referenced:
+      pattern: org.springframework.web.servlet.ViewResolver
+      location: IMPORT
+  message: "Exact IMPORT match"
+  description: "Exact IMPORT match"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-5
+  when:
+    java.referenced:
+      pattern: org.springframework.web.servlet.*
+      location: IMPORT
+  message: "IMPORT match with asterisk at the end (after dot)"
+  description: "IMPORT match with asterisk at the end (after dot)"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-6
+  when:
+    java.referenced:
+      pattern: org.springframework.web.servlet*
+      location: IMPORT
+  message: "IMPORT match with asterisk at the end (without dot)"
+  description: "IMPORT match with asterisk at the end (without dot)"
+  category: mandatory
+  effort: 1
+
+
+# === METHOD matching ===
+- ruleID: konveyor-java-pattern-test-7
+  when:
+    java.referenced:
+      pattern: do*
+      location: METHOD
+  message: "METHOD match with asterisk at the end"
+  description: "METHOD match with asterisk at the end"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-8
+  when:
+    java.referenced:
+      pattern: HomeService.do*
+      location: METHOD
+  message: "METHOD match with asterisk at the end and class name"
+  description: "METHOD match with asterisk at the end and class name"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-9
+  when:
+    java.referenced:
+      pattern: com.example.service.HomeService.do*
+      location: METHOD
+  message: "METHOD match with asterisk at the end and fully qualified class name"
+  description: "METHOD match with asterisk at the end and fully qualified class name"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-10
+  when:
+    java.referenced:
+      pattern: com.example.service.HomeService.doThings
+      location: METHOD
+  message: "Exact METHOD match with fully qualified class name"
+  description: "Exact METHOD match with fully qualified class name"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-11
+  when:
+    java.referenced:
+      pattern: com.example.service.HomeService.<T>doThings(T)
+      location: METHOD
+  message: "Exact METHOD match with fully qualified class name and type parameters"
+  description: "Exact METHOD match with fully qualified class name and type parameters"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-111
+  when:
+    java.referenced:
+      pattern: com.example.*.HomeService.doThings
+      location: METHOD
+  message: "METHOD match with asterisk in package name"
+  description: "METHOD match with asterisk in package name"
+  category: mandatory
+  effort: 1
+
+
+  # === METHOD_CALL matching ===
+- ruleID: konveyor-java-pattern-test-12
+  when:
+    java.referenced:
+      pattern: com.example.service.HomeService.doThings
+      location: METHOD_CALL
+  message: "Exact METHOD_CALL match with fully qualified class name"
+  description: "Exact METHOD_CALL match with fully qualified class name"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-13
+  when:
+    java.referenced:
+      pattern: com.example.service.HomeService.do*
+      location: METHOD_CALL
+  message: "METHOD_CALL match with asterisk and fully qualified class name"
+  description: "METHOD_CALL match with asterisk and fully qualified class name"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-14
+  when:
+    java.referenced:
+      pattern: com.example.service.HomeService.*
+      location: METHOD_CALL
+  message: "METHOD_CALL match with asterisk for whole method name and fully qualified class name"
+  description: "METHOD_CALL match with asterisk for whole method name and fully qualified class name"
+  category: mandatory
+  effort: 1
+
+
+  # === FIELD matching ===
+- ruleID: konveyor-java-pattern-test-15
+  when:
+    java.referenced:
+      pattern: '* com.example.model.TypedEntity'
+      location: FIELD
+  message: "FIELD match with asterisk for name and fq type"
+  description: "FIELD match with asterisk for name and fq type"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-151
+  when:
+    java.referenced:
+      pattern: '* com.example.model.Typed*'
+      location: FIELD
+  message: "FIELD match with asterisk for name and fq type"
+  description: "FIELD match with asterisk for name and fq type"
+  category: mandatory
+  effort: 1
+
+
+  # === ANNOTATION matching ===
+- ruleID: konveyor-java-pattern-test-16
+  when:
+    java.referenced:
+      pattern: org.springframework.stereotype.Controller
+      location: ANNOTATION
+  message: "Exact ANNOTATION match"
+  description: "Exact ANNOTATION match"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-17
+  when:
+    java.referenced:
+      pattern: '*'
+      location: CLASS
+      annotated:
+        pattern: org.springframework.stereotype.Controller
+  message: "CLASS asterisk match with annotated pattern"
+  description: "CLASS asterisk match with annotated pattern"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-18
+  when:
+    java.referenced:
+      pattern: '*'
+      location: METHOD
+      annotated:
+        pattern: org.springframework.context.annotation.Bean
+  message: "METHOD asterisk match with annotated pattern"
+  description: "METHOD asterisk match with annotated pattern"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-19
+  when:
+    java.referenced:
+      pattern: '* org.springframework.web.servlet.view.tiles3.TilesConfigurer'
+      location: METHOD
+      annotated:
+        pattern: org.springframework.context.annotation.Bean
+  message: "METHOD match with annotated pattern"
+  description: "METHOD match with annotated pattern"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-20
+  when:
+    java.referenced:
+      pattern: '* org.springframework.web.servlet.view.tiles3.TilesConfigurer'
+      location: METHOD
+      annotated:
+        pattern: org.springframework.context.annotation.Bean
+        elements:
+          - name: 'name'
+            value: 'nameFor.*'
+  message: "METHOD match with annotated pattern with text element"
+  description: "METHOD match with annotated pattern"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-21
+  when:
+    java.referenced:
+      pattern: '* org.springframework.web.servlet.view.tiles3.TilesConfigurer'
+      location: METHOD
+      annotated:
+        pattern: org.springframework.context.annotation.Bean
+        elements:
+          - name: 'name'
+            value: 'nameFor.*'
+          - name: 'autowireCandidate'
+            value: 'false'
+  message: "METHOD match with annotated pattern with boolean element"
+  description: "METHOD match with annotated pattern with boolean element"
+  category: mandatory
+  effort: 1
+- ruleID: konveyor-java-pattern-test-22
+  when:
+    java.referenced:
+      pattern: com.example.model.TypedEntity<*>
+      location: TYPE
+  message: "METHOD match with annotated pattern with boolean element"
+  description: "METHOD match with annotated pattern with boolean element"
+  category: mandatory
+  effort: 1
