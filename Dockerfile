@@ -33,15 +33,6 @@ USER 1001
 
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod make analyzer deps
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as yq-builder
-RUN microdnf install -y wget tar xz gzip && \
-    microdnf clean all
-ARG TARGETARCH
-ARG YQ_VERSION="v4.40.5"
-ARG YQ_BINARY="yq_linux_${TARGETARCH}"
-RUN wget "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz" -O - | tar xz && \
-    mv ${YQ_BINARY} /usr/bin/yq
-
 FROM jaegertracing/all-in-one:latest AS jaeger-builder
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
