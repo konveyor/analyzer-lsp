@@ -41,7 +41,7 @@ jobs:
 
   build-images:
     name: Build e2e Images
-    uses: shawn-hurley/ci/.github/workflows/e2e-image-build.yaml@main
+    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@main
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.ref }}
@@ -362,7 +362,7 @@ jobs:
     steps:
       - name: Run Koncur Testing
         id: koncur-test
-        uses: shawn-hurley/ci/koncur-kantra@main
+        uses: konveyor/ci/koncur-kantra@main
         with:
           os: ${{ matrix.os.os }}
           image_pattern: |
@@ -375,7 +375,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Test Hub with Koncur
-        uses: shawn-hurley/ci/koncur-tackle-hub@main
+        uses: konveyor/ci/koncur-tackle-hub@main
         with:
           image_pattern: |
             *{tackle-keyloak-init,tackle2-*,provider}--${{ github.run_id }}
