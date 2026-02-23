@@ -451,6 +451,20 @@
   description: "METHOD match with annotated pattern with boolean element"
   category: mandatory
   effort: 1
+- ruleID: konveyor-java-pattern-test-211
+  when:
+    java.referenced:
+      pattern: org.springframework.web.bind.annotation.GetMapping
+      location: ANNOTATION
+      annotated:
+        elements:
+          - name: value
+            value: '.*\/$'
+  message: "ANNOTATION match with elements search and on-demand import of the annotation"
+  description: "ANNOTATION match with elements search and on-demand import of the annotation"
+  category: mandatory
+  effort: 1
+
 - ruleID: konveyor-java-pattern-test-22
   when:
     java.referenced:
