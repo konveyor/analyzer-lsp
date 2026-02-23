@@ -2,7 +2,6 @@ package reporter
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 

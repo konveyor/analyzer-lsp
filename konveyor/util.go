@@ -44,7 +44,11 @@ func setupProviderConfigs(providerConfigs []provider.Config) ([]provider.Config,
 			}
 			defaultBuiltinConfigs[location] = builtinInitConfig
 		}
+	}
 
+	// Append builtin config once after processing all providers
+	// Only add builtin if we have any builtin locations
+	if len(defaultBuiltinConfigs) > 0 {
 		finalConfigs = append(finalConfigs, provider.Config{
 			Name:       "builtin",
 			InitConfig: slices.Collect(maps.Values(defaultBuiltinConfigs)),

@@ -88,6 +88,11 @@ func AnalysisCmd() *cobra.Command {
 				progress.WithContext(ctx),
 			)
 
+			if err != nil {
+				errLog.Error(err, "unable to create progress reporters")
+				os.Exit(1)
+			}
+
 			// Build options from config and add CLI-specific options
 			options := analyzerConfig.ToOptions()
 			options = append(options,
@@ -123,11 +128,13 @@ func AnalysisCmd() *cobra.Command {
 			_, err = analyzer.ParseRules()
 			if err != nil {
 				errLog.Error(err, "unable to parse rules")
+				os.Exit(1)
 			}
 
 			err = analyzer.ProviderStart()
 			if err != nil {
 				errLog.Error(err, "unable to start providers")
+				os.Exit(1)
 			}
 
 			wg := sync.WaitGroup{}
@@ -135,7 +142,9 @@ func AnalysisCmd() *cobra.Command {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					analyzer.GetDependencies(depOutputFile, treeOutput)
+					if err := analyzer.GetDependencies(depOutputFile, treeOutput); err != nil {
+						errLog.Error(err, "unable to get dependencies", "file", depOutputFile)
+					}
 				}()
 			}
 

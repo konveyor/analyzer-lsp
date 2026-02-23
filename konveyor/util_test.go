@@ -11,16 +11,16 @@ import (
 
 func TestSetupProviderConfigs(t *testing.T) {
 	tests := []struct {
-		name                     string
-		providerConfigs          []provider.Config
-		setupTempDirs            func(t *testing.T) []string
-		expectedConfigCount      int
-		expectedLocationCount    int
-		expectBuiltinConfig      bool
-		expectedNonBuiltinCount  int
+		name                    string
+		providerConfigs         []provider.Config
+		setupTempDirs           func(t *testing.T) []string
+		expectedConfigCount     int
+		expectedLocationCount   int
+		expectBuiltinConfig     bool
+		expectedNonBuiltinCount int
 	}{
 		{
-			name: "empty provider configs",
+			name:            "empty provider configs",
 			providerConfigs: []provider.Config{},
 			setupTempDirs: func(t *testing.T) []string {
 				return []string{}
@@ -81,9 +81,8 @@ func TestSetupProviderConfigs(t *testing.T) {
 				assert.NoError(t, err)
 				return []string{subDir, subDir} // same location for both
 			},
-			// Note: Due to the current implementation of setupProviderConfigs,
-			// builtin is added inside the loop, so we get: java, builtin, go, builtin
-			expectedConfigCount:     4, // java + builtin + go + builtin
+			// builtin is added once after the loop
+			expectedConfigCount:     3, // java + go + builtin
 			expectedLocationCount:   1, // deduplicated location
 			expectBuiltinConfig:     true,
 			expectedNonBuiltinCount: 2,
@@ -103,9 +102,9 @@ func TestSetupProviderConfigs(t *testing.T) {
 			setupTempDirs: func(t *testing.T) []string {
 				return []string{}
 			},
-			expectedConfigCount:     2, // java + builtin (even though location doesn't exist)
+			expectedConfigCount:     1, // java only (no builtin since no valid locations)
 			expectedLocationCount:   0, // no valid locations
-			expectBuiltinConfig:     true,
+			expectBuiltinConfig:     false,
 			expectedNonBuiltinCount: 1,
 		},
 		{

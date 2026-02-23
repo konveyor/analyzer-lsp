@@ -315,10 +315,19 @@ func (a *analyzer) GetProviders(filters ...Filter) []Provider {
 	}
 
 	r := map[string]Provider{}
-	for _, p := range a.providers {
-		for _, filter := range filters {
-			if filter(p) {
-				r[p.Name] = p
+
+	// No filters means return all providers
+	if len(filters) == 0 {
+		for _, p := range a.providers {
+			r[p.Name] = p
+		}
+	} else {
+		// Apply filters
+		for _, p := range a.providers {
+			for _, filter := range filters {
+				if filter(p) {
+					r[p.Name] = p
+				}
 			}
 		}
 	}

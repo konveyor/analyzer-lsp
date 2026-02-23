@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -107,21 +106,14 @@ func NewThrottledCollectorWithInterval(stageName progress.Stage, interval time.D
 //
 // This method is safe for concurrent use.
 func (t *ThrottledCollector) Report(event progress.Event) {
-	defer func() {
-		if r := recover(); r != nil {
-			// Channel was closed during send, ignore the panic
-			// This can happen during shutdown
-			fmt.Printf("recover panic: %v", r)
-			t.reportMutex.Unlock()
-		}
-	}()
-
 	// If stage is not set, use the default
 	if event.Stage == "" {
 		event.Stage = t.stageName
 	}
 
 	t.reportMutex.Lock()
+	defer t.reportMutex.Unlock()
+
 	now := time.Now()
 	timeSinceLastReport := now.Sub(t.lastReportTime)
 	current := event.Current
@@ -137,15 +129,22 @@ func (t *ThrottledCollector) Report(event progress.Event) {
 	if shouldReport {
 		t.lastReportTime = now
 		t.lastReported = current
-		t.reportMutex.Unlock()
-		select {
-		case t.streamChan <- event:
-			// Event sent successfully
-		default:
-			// Channel full or closed, drop the event
-		}
-	} else {
-		t.reportMutex.Unlock()
+
+		// Send event with panic recovery for closed channel
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// Channel was closed during send, ignore the panic
+					// This can happen during shutdown
+				}
+			}()
+			select {
+			case t.streamChan <- event:
+				// Event sent successfully
+			default:
+				// Channel full or closed, drop the event
+			}
+		}()
 	}
 }
 
