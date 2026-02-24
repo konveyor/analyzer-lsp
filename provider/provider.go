@@ -304,11 +304,11 @@ func validateUpdateInternalProviderConfig(old map[interface{}]interface{}) (map[
 			return nil, fmt.Errorf("provider specific config must only have keys that strings")
 		}
 		if o, ok := v.(map[interface{}]interface{}); ok {
-			new, err := validateUpdateInternalProviderConfig(o)
+			nested, err := validateUpdateInternalProviderConfig(o)
 			if err != nil {
 				return nil, err
 			}
-			new[s] = new
+			new[s] = nested
 			continue
 		}
 		if oldList, ok := v.([]interface{}); ok {
@@ -980,9 +980,9 @@ func deduplicateDependencies(dependencies map[uri.URI][]*Dep) map[uri.URI][]*Dep
 				// list and mark that we've seen it
 				deduped[uri] = append(deduped[uri], dep)
 				if dep.Indirect {
-					depSeen[id+"indirect"] = intPtr(len(deduped) - 1)
+					depSeen[id+"indirect"] = intPtr(len(deduped[uri]) - 1)
 				} else {
-					depSeen[id+"direct"] = intPtr(len(deduped) - 1)
+					depSeen[id+"direct"] = intPtr(len(deduped[uri]) - 1)
 				}
 			}
 		}
