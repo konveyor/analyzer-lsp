@@ -47,6 +47,8 @@ func (j *jarArtifact) Run(ctx context.Context, log logr.Logger) error {
 			Sha1:        "",
 		}
 		dep = newDep
+		// recover with dummy coordinates so decomp can continue
+		err = nil
 	}
 	artifacts = []JavaArtifact{dep}
 	if !dep.FoundOnline {
