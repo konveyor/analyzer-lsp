@@ -234,8 +234,8 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
         message: METHOD match with asterisk at the end
-        codeSnip: "\n13  @Controller\n14  @RequestMapping(\"/\")\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);\n26  }\n27  \n28  @GetMapping\n29  public String home(Model model) {\n30  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n31  return \"home\";  // This resolves to a Tiles definition\n32  }\n33  "
-        lineNumber: 23
+        codeSnip: "\n12  @Controller\n13  @RequestMapping(\"/\")\n14  public class HomeController {\n15  \n16  private HomeService homeService;\n17  \n18  public HomeController(HomeService homeService) {\n19  this.homeService = homeService;\n20  }\n21  \n22  public void doStuffWithHomeService() {\n23  B input = new B();\n24  homeService.doThings(input);\n25  }\n26  \n27  @GetMapping(\"http://localhost:8080/whatever/\")\n28  public String home(Model model) {\n29  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n30  return \"home\";  // This resolves to a Tiles definition\n31  }\n32  "
+        lineNumber: 22
         variables:
           file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
           kind: Method
@@ -340,8 +340,8 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
         message: Exact METHOD_CALL match with fully qualified class name
-        codeSnip: "\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);\n26  }\n27  \n28  @GetMapping\n29  public String home(Model model) {\n30  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n31  return \"home\";  // This resolves to a Tiles definition\n32  }\n33  \n34  @GetMapping(\"/about\")\n35  public String about(Model model) {"
-        lineNumber: 25
+        codeSnip: "\n14  public class HomeController {\n15  \n16  private HomeService homeService;\n17  \n18  public HomeController(HomeService homeService) {\n19  this.homeService = homeService;\n20  }\n21  \n22  public void doStuffWithHomeService() {\n23  B input = new B();\n24  homeService.doThings(input);\n25  }\n26  \n27  @GetMapping(\"http://localhost:8080/whatever/\")\n28  public String home(Model model) {\n29  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n30  return \"home\";  // This resolves to a Tiles definition\n31  }\n32  \n33  @GetMapping(\"/about\")\n34  public String about(Model model) {"
+        lineNumber: 24
         variables:
           file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
           kind: Method
@@ -354,8 +354,8 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
         message: METHOD_CALL match with asterisk and fully qualified class name
-        codeSnip: "\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);\n26  }\n27  \n28  @GetMapping\n29  public String home(Model model) {\n30  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n31  return \"home\";  // This resolves to a Tiles definition\n32  }\n33  \n34  @GetMapping(\"/about\")\n35  public String about(Model model) {"
-        lineNumber: 25
+        codeSnip: "\n14  public class HomeController {\n15  \n16  private HomeService homeService;\n17  \n18  public HomeController(HomeService homeService) {\n19  this.homeService = homeService;\n20  }\n21  \n22  public void doStuffWithHomeService() {\n23  B input = new B();\n24  homeService.doThings(input);\n25  }\n26  \n27  @GetMapping(\"http://localhost:8080/whatever/\")\n28  public String home(Model model) {\n29  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n30  return \"home\";  // This resolves to a Tiles definition\n31  }\n32  \n33  @GetMapping(\"/about\")\n34  public String about(Model model) {"
+        lineNumber: 24
         variables:
           file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
           kind: Method
@@ -368,8 +368,8 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
         message: METHOD_CALL match with asterisk for whole method name and fully qualified class name
-        codeSnip: "\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);\n26  }\n27  \n28  @GetMapping\n29  public String home(Model model) {\n30  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n31  return \"home\";  // This resolves to a Tiles definition\n32  }\n33  \n34  @GetMapping(\"/about\")\n35  public String about(Model model) {"
-        lineNumber: 25
+        codeSnip: "\n14  public class HomeController {\n15  \n16  private HomeService homeService;\n17  \n18  public HomeController(HomeService homeService) {\n19  this.homeService = homeService;\n20  }\n21  \n22  public void doStuffWithHomeService() {\n23  B input = new B();\n24  homeService.doThings(input);\n25  }\n26  \n27  @GetMapping(\"http://localhost:8080/whatever/\")\n28  public String home(Model model) {\n29  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n30  return \"home\";  // This resolves to a Tiles definition\n31  }\n32  \n33  @GetMapping(\"/about\")\n34  public String about(Model model) {"
+        lineNumber: 24
         variables:
           file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
           kind: Method
@@ -396,8 +396,8 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
         message: Exact ANNOTATION match
-        codeSnip: "\n 3  import com.example.model.B;\n 4  import com.example.service.HomeService;\n 5  import org.springframework.stereotype.Controller;\n 6  import org.springframework.ui.Model;\n 7  import org.springframework.web.bind.annotation.GetMapping;\n 8  import org.springframework.web.bind.annotation.RequestMapping;\n 9  \n10  /**\n11  * Home controller that returns Tiles view names.\n12  */\n13  @Controller\n14  @RequestMapping(\"/\")\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {"
-        lineNumber: 13
+        codeSnip: "\n 2  \n 3  import com.example.model.B;\n 4  import com.example.service.HomeService;\n 5  import org.springframework.stereotype.Controller;\n 6  import org.springframework.ui.Model;\n 7  import org.springframework.web.bind.annotation.*;\n 8  \n 9  /**\n10  * Home controller that returns Tiles view names.\n11  */\n12  @Controller\n13  @RequestMapping(\"/\")\n14  public class HomeController {\n15  \n16  private HomeService homeService;\n17  \n18  public HomeController(HomeService homeService) {\n19  this.homeService = homeService;\n20  }\n21  \n22  public void doStuffWithHomeService() {"
+        lineNumber: 12
         variables:
           file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
           kind: Property
@@ -410,8 +410,8 @@
       incidents:
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
         message: CLASS asterisk match with annotated pattern
-        codeSnip: "\n 5  import org.springframework.stereotype.Controller;\n 6  import org.springframework.ui.Model;\n 7  import org.springframework.web.bind.annotation.GetMapping;\n 8  import org.springframework.web.bind.annotation.RequestMapping;\n 9  \n10  /**\n11  * Home controller that returns Tiles view names.\n12  */\n13  @Controller\n14  @RequestMapping(\"/\")\n15  public class HomeController {\n16  \n17  private HomeService homeService;\n18  \n19  public HomeController(HomeService homeService) {\n20  this.homeService = homeService;\n21  }\n22  \n23  public void doStuffWithHomeService() {\n24  B input = new B();\n25  homeService.doThings(input);"
-        lineNumber: 15
+        codeSnip: "\n 4  import com.example.service.HomeService;\n 5  import org.springframework.stereotype.Controller;\n 6  import org.springframework.ui.Model;\n 7  import org.springframework.web.bind.annotation.*;\n 8  \n 9  /**\n10  * Home controller that returns Tiles view names.\n11  */\n12  @Controller\n13  @RequestMapping(\"/\")\n14  public class HomeController {\n15  \n16  private HomeService homeService;\n17  \n18  public HomeController(HomeService homeService) {\n19  this.homeService = homeService;\n20  }\n21  \n22  public void doStuffWithHomeService() {\n23  B input = new B();\n24  homeService.doThings(input);"
+        lineNumber: 14
         variables:
           file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
           kind: Class
@@ -560,6 +560,20 @@
           kind: Field
           name: typedEntity
           package: com.example.service
+      effort: 1
+    konveyor-java-pattern-test-211:
+      description: ANNOTATION match with elements search and on-demand import of the annotation
+      category: mandatory
+      incidents:
+      - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+        message: ANNOTATION match with elements search and on-demand import of the annotation
+        codeSnip: "\n17  \n18  public HomeController(HomeService homeService) {\n19  this.homeService = homeService;\n20  }\n21  \n22  public void doStuffWithHomeService() {\n23  B input = new B();\n24  homeService.doThings(input);\n25  }\n26  \n27  @GetMapping(\"http://localhost:8080/whatever/\")\n28  public String home(Model model) {\n29  model.addAttribute(\"message\", \"Welcome to our Spring 5 Tiles Application!\");\n30  return \"home\";  // This resolves to a Tiles definition\n31  }\n32  \n33  @GetMapping(\"/about\")\n34  public String about(Model model) {\n35  model.addAttribute(\"pageTitle\", \"About Us\");\n36  return \"about\";  // This resolves to a Tiles definition\n37  }"
+        lineNumber: 27
+        variables:
+          file: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/controller/HomeController.java
+          kind: Property
+          name: GetMapping
+          package: com.example.controller
       effort: 1
     lang-ref-003:
       description: ""

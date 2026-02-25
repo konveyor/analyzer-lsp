@@ -4,8 +4,7 @@ import com.example.model.B;
 import com.example.service.HomeService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Home controller that returns Tiles view names.
@@ -25,7 +24,7 @@ public class HomeController {
         homeService.doThings(input);
     }
 
-    @GetMapping
+    @GetMapping("http://localhost:8080/whatever/")
     public String home(Model model) {
         model.addAttribute("message", "Welcome to our Spring 5 Tiles Application!");
         return "home";  // This resolves to a Tiles definition
