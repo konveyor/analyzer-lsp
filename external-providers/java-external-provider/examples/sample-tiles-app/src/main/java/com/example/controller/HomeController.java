@@ -24,7 +24,7 @@ public class HomeController {
         homeService.doThings(input);
     }
 
-    @GetMapping
+    @GetMapping("http://localhost:8080/whatever/")
     public String home(Model model) {
         model.addAttribute("message", "Welcome to our Spring 5 Tiles Application!");
         return "home";  // This resolves to a Tiles definition
