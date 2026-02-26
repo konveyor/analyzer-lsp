@@ -42,6 +42,7 @@ type analyzer struct {
 	log                logr.Logger
 	progress           *progress.Progress
 	collector          progress.Collector
+	labelSelector      string
 }
 
 var _ Analyzer = &analyzer{}
@@ -74,14 +75,14 @@ func (a *analyzer) ParseRules(rulePaths ...string) (Rules, error) {
 	neededProviders := map[string]provider.InternalProviderClient{}
 	providerConditions := map[string][]provider.ConditionsByCap{}
 	parserErrors := []error{}
+	currentRules := 0
 	collector.Report(progress.Event{
 		Timestamp: time.Now(),
 		Stage:     progress.StageRuleParsing,
 		Message:   "starting to parse rules",
-		Current:   0,
-		Total:     len(a.rulePaths),
+		Current:   currentRules,
 	})
-	for i, f := range a.rulePaths {
+	for _, f := range a.rulePaths {
 		rs, np, pc, err := parser.LoadRules(f)
 		if err != nil {
 			parserErrors = append(parserErrors, err)
@@ -93,11 +94,14 @@ func (a *analyzer) ParseRules(rulePaths ...string) (Rules, error) {
 			c := providerConditions[k]
 			providerConditions[k] = append(c, v...)
 		}
+		for _, rs := range ruleSets {
+			currentRules += len(rs.Rules)
+		}
 		collector.Report(progress.Event{
 			Timestamp: time.Time{},
 			Stage:     progress.StageRuleParsing,
 			Message:   fmt.Sprintf("finished parsing rules for: %s", f),
-			Current:   i + 1,
+			Current:   currentRules,
 		})
 
 	}
@@ -245,12 +249,26 @@ func (a *analyzer) Run(options ...EngineOption) []v1.RuleSet {
 	for _, opt := range options {
 		opt(&engineOptions)
 	}
+
+	a.log.Info("Running analysis with options", "options", engineOptions)
 	// TODO: Handle ProgressReporter
 	if engineOptions.progressReporter == nil {
 		collector := collector.New()
 		a.progress.Subscribe(collector)
 		engineOptions.progressReporter = collector
 	}
+	if len(engineOptions.selectors) == 0 && a.labelSelector != "" {
+		a.log.Info("defaulting label Selector", "selector", a.labelSelector)
+		// Create a label selector and add to selectors.
+		selector, err := labels.NewLabelSelector[*engine.RuleMeta](a.labelSelector, nil)
+		if err != nil {
+			a.log.Error(err, "unable to run rules, invalid label selector")
+			return nil
+		}
+		engineOptions.selectors = append(engineOptions.selectors, selector)
+	}
+
+	a.log.Info("after defaulting", "options", engineOptions, "labelSelector", a.labelSelector)
 	// TODO: Handle Scopes
 	ruleset := a.engine.RunRulesWithOptions(a.ctx, a.ruleset, []engine.RunOption{
 		engine.WithProgressReporter(engineOptions.progressReporter),
@@ -259,7 +277,7 @@ func (a *analyzer) Run(options ...EngineOption) []v1.RuleSet {
 	sort.SliceStable(ruleset, func(i, j int) bool {
 		return ruleset[i].Name < ruleset[j].Name
 	})
-	a.log.Info("finished running analysis")
+	a.log.Info("finished running analysis", "rulesets", ruleset)
 	return ruleset
 
 }
@@ -287,6 +305,15 @@ func (a *analyzer) RulesetFilepaths() map[string]string {
 	filePaths := map[string]string{}
 	// TODO: Need to save more info on analyzer when looping through files.
 	return filePaths
+}
+
+func (a *analyzer) RuleSets() []engine.RuleSet {
+	// TODO: Implement Clone interface for engine.RuleSet
+	if a.ruleset != nil {
+		return slices.Clone(a.ruleset)
+	}
+	return []engine.RuleSet{}
+
 }
 
 // note this is going to use name, as a proxy for language

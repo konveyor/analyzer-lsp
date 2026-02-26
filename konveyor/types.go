@@ -136,6 +136,7 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 		log:                log,
 		progress:           opts.progress,
 		collector:          collector,
+		labelSelector:      opts.labelSelector,
 	}, nil
 }
 
@@ -148,6 +149,7 @@ type Config interface {
 type Rules interface {
 	RuleLabels() []string
 	RulesetFilepaths() map[string]string
+	RuleSets() []engine.RuleSet
 }
 
 // ENGINE OPTIONS
