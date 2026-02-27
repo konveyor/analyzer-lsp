@@ -133,7 +133,7 @@ func WithCollectors(collectors ...Collector) ProgressOption {
 //	)
 func New(opts ...ProgressOption) (*Progress, error) {
 	pg := &Progress{
-		collectorChan:      make(chan Event, 100),
+		collectorChan:      make(chan Event),
 		collectorCancelMap: map[int]context.CancelFunc{},
 		subscribeMutex:     sync.Mutex{},
 	}
@@ -150,7 +150,7 @@ func New(opts ...ProgressOption) (*Progress, error) {
 	}
 
 	for _, reporter := range pg.reporters {
-		reporterChannel := make(chan Event, 100)
+		reporterChannel := make(chan Event, 1)
 		pg.reporterChannels = append(pg.reporterChannels, reporterChannel)
 		go pg.reporterWorker(reporter, reporterChannel)
 	}

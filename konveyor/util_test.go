@@ -148,7 +148,7 @@ func TestSetupProviderConfigs(t *testing.T) {
 				}
 			}
 
-			configs, locations := setupProviderConfigs(tt.providerConfigs)
+			configs, locations := setupProviderConfigs(tt.providerConfigs, false, nil)
 
 			assert.Equal(t, tt.expectedConfigCount, len(configs), "unexpected number of configs")
 			assert.Equal(t, tt.expectedLocationCount, len(locations), "unexpected number of locations")
@@ -190,7 +190,7 @@ func TestSetupProviderConfigs_LocationDeduplication(t *testing.T) {
 		},
 	}
 
-	configs, locations := setupProviderConfigs(providerConfigs)
+	configs, locations := setupProviderConfigs(providerConfigs, false, nil)
 
 	// Should have java + builtin
 	assert.Equal(t, 2, len(configs))

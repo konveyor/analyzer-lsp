@@ -43,6 +43,9 @@ type analyzer struct {
 	progress           *progress.Progress
 	collector          progress.Collector
 	labelSelector      string
+
+	pathMappings                   []provider.PathMapping
+	ignoreAdditionalBuiltinConfigs bool
 }
 
 var _ Analyzer = &analyzer{}
@@ -194,7 +197,19 @@ func (a *analyzer) ProviderStart() error {
 
 	// Init builtins
 	if builtinProvider != nil {
-		if _, err := builtinProvider.provider.ProviderInit(a.ctx, additionalBuiltinConfigs); err != nil {
+		var builtinAdditionalConfigs []provider.InitConfig
+		if !a.ignoreAdditionalBuiltinConfigs {
+			// Apply path mappings to translate provider-returned paths
+			// (e.g., container paths) to engine-local paths.
+			for i := range additionalBuiltinConfigs {
+				additionalBuiltinConfigs[i].Location = provider.TranslatePath(
+					additionalBuiltinConfigs[i].Location, a.pathMappings)
+				additionalBuiltinConfigs[i].DependencyPath = provider.TranslatePath(
+					additionalBuiltinConfigs[i].DependencyPath, a.pathMappings)
+			}
+			builtinAdditionalConfigs = additionalBuiltinConfigs
+		}
+		if _, err := builtinProvider.provider.ProviderInit(a.ctx, builtinAdditionalConfigs); err != nil {
 			providerInitErrors = append(providerInitErrors, err)
 		}
 		a.collector.Report(progress.Event{
