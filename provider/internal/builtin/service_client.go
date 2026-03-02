@@ -60,8 +60,11 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 	ctx, span := tracing.StartNewSpan(ctx, "builtin.Prepare")
 	defer span.End()
 
-	// Parse all conditions to collect the union of include/exclude scopes
-	var allIncluded, allExcluded []string
+	// Parse all conditions to collect the union of include scopes only.
+	// Per-rule excludes must be applied at Evaluate-time via filterCachedFiles,
+	// not here — unioning excludes across rules would permanently drop files
+	// from the index that other rules need.
+	var allIncluded []string
 	for _, cbc := range conditionsByCap {
 		for _, condBytes := range cbc.Conditions {
 			var cond builtinCondition
@@ -69,13 +72,12 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 				b.log.V(5).Error(err, "failed to unmarshal condition in Prepare, skipping")
 				continue
 			}
-			inc, exc := cond.ProviderContext.GetScopedFilepaths()
+			inc, _ := cond.ProviderContext.GetScopedFilepaths()
 			allIncluded = append(allIncluded, inc...)
-			allExcluded = append(allExcluded, exc...)
 		}
 	}
 
-	// Build a single FileSearcher with the union of all scopes
+	// Build a single FileSearcher with the union of all include scopes
 	searcher := provider.FileSearcher{
 		BasePath: b.config.Location,
 		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
@@ -84,7 +86,6 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 		},
 		RuleScopeConstraints: provider.IncludeExcludeConstraints{
 			IncludePathsOrPatterns: allIncluded,
-			ExcludePathsOrPatterns: allExcluded,
 		},
 		FailFast: true,
 		Log:      b.log,

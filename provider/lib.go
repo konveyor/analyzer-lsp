@@ -52,6 +52,17 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 	return f.search(s, newCachedWalkDir())
 }
 
+// isWithinBase returns true if targetPath is at or under basePath.
+// Uses filepath.Rel for correct boundary checks (avoids false positives
+// where e.g. "/repo/app2" would match prefix "/repo/app").
+func isWithinBase(basePath, targetPath string) bool {
+	rel, err := filepath.Rel(filepath.Clean(basePath), filepath.Clean(targetPath))
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)))
+}
+
 // SearchFromIndex applies the same filtering logic as Search but against
 // a pre-built file index instead of walking the filesystem. AdditionalPaths
 // are still walked on the real filesystem since they may contain files
@@ -63,7 +74,7 @@ func (f *FileSearcher) SearchFromIndex(index []string, s SearchCriteria) ([]stri
 		// Use the index for paths under the base path (where the index was built).
 		// Fall back to real filesystem walk for paths outside the base path
 		// (e.g., working copy temp directories set via AdditionalPaths).
-		if strings.HasPrefix(path, f.BasePath) {
+		if isWithinBase(f.BasePath, path) {
 			return indexWalk(path, excludedDirs, excludedPatterns)
 		}
 		return fsWalk(path, excludedDirs, excludedPatterns)
@@ -241,7 +252,7 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				absPath = filepath.Join(f.BasePath, pattern)
 			}
 			if stat, statErr := statFunc(absPath); statErr == nil {
-				if stat.IsDir() && strings.HasPrefix(file, absPath) {
+				if stat.IsDir() && isWithinBase(absPath, file) {
 					patternMatched = true
 				} else if !stat.IsDir() {
 					if absPath == file {
@@ -259,7 +270,7 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				}
 				// try matching as go regex pattern
 				var relPath string
-				if strings.HasPrefix(file, f.BasePath) {
+				if isWithinBase(f.BasePath, file) {
 					// This is not in a working copy manager or some other additional path
 					// We want to just search for matches within the base path.
 					var err error
@@ -407,7 +418,7 @@ func newIndexWalkFunc(index []string) cachedWalkDir {
 	return func(basePath string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
 		var files []string
 		for _, file := range index {
-			if !strings.HasPrefix(file, basePath) {
+			if !isWithinBase(basePath, file) {
 				continue
 			}
 			excluded := false
