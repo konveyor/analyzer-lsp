@@ -1505,8 +1505,14 @@ func Test_builtinServiceClient_Prepare_UnionOfScopes(t *testing.T) {
 		},
 	}
 
-	condABytes, _ := yaml.Marshal(&condA)
-	condBBytes, _ := yaml.Marshal(&condB)
+	condABytes, err := yaml.Marshal(&condA)
+	if err != nil {
+		t.Fatalf("failed to marshal condA: %v", err)
+	}
+	condBBytes, err := yaml.Marshal(&condB)
+	if err != nil {
+		t.Fatalf("failed to marshal condB: %v", err)
+	}
 
 	conditionsByCap := []provider.ConditionsByCap{
 		{Cap: "file", Conditions: [][]byte{condABytes}},
@@ -1805,7 +1811,10 @@ func Test_builtinServiceClient_Prepare_EmptyBaseDir(t *testing.T) {
 	cond := builtinCondition{
 		File: fileCondition{Pattern: "*.txt"},
 	}
-	condBytes, _ := yaml.Marshal(&cond)
+	condBytes, err := yaml.Marshal(&cond)
+	if err != nil {
+		t.Fatalf("failed to marshal condition: %v", err)
+	}
 
 	result, err := sc.Evaluate(context.TODO(), "file", condBytes)
 	if err != nil {

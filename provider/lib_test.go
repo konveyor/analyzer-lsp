@@ -264,7 +264,7 @@ func TestFileSearcher_SearchFromIndex(t *testing.T) {
 
 	// Build a full file index by walking the test directory (simulating Prepare)
 	var fullIndex []string
-	filepath.WalkDir(testBasePath, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(testBasePath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -273,6 +273,9 @@ func TestFileSearcher_SearchFromIndex(t *testing.T) {
 		}
 		return nil
 	})
+	if err != nil {
+		t.Fatalf("failed to build full index: %v", err)
+	}
 
 	tests := []struct {
 		name                      string
@@ -446,7 +449,7 @@ func TestSearchFromIndex_AdditionalPathsWalkedFromFilesystem(t *testing.T) {
 
 	// Build index from base path only (does not include temp dir)
 	var index []string
-	filepath.WalkDir(testBasePath, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(testBasePath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -455,6 +458,9 @@ func TestSearchFromIndex_AdditionalPathsWalkedFromFilesystem(t *testing.T) {
 		}
 		return nil
 	})
+	if err != nil {
+		t.Fatalf("failed to build index: %v", err)
+	}
 
 	log := testr.NewWithOptions(t, testr.Options{Verbosity: 10})
 	searcher := &FileSearcher{
