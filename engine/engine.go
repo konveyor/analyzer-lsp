@@ -590,6 +590,7 @@ func (r *ruleEngine) getRelativePathForViolation(fileURI uri.URI) (uri.URI, erro
 		if absPath != sourceLocation {
 			relPath := filepath.Join(sourceLocation, strings.TrimPrefix(file, absPath))
 			newURI := fmt.Sprintf("file:///%s", filepath.Join(strings.TrimPrefix(relPath, "/")))
+			r.logger.V(7).Info("making filepath relative to source location", "original", fileURI, "new", newURI)
 			return uri.URI(newURI), nil
 		}
 	}

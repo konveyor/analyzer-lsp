@@ -90,13 +90,15 @@ func AnalysisCmd() *cobra.Command {
 			defer cancelFunc()
 
 			selectors := []engine.RuleSelector{}
+			var ruleLabelSelector *labels.LabelSelector[*engine.RuleMeta]
 			if labelSelector != "" {
-				selector, err := labels.NewLabelSelector[*engine.RuleMeta](labelSelector, nil)
+				var err error
+				ruleLabelSelector, err = labels.NewLabelSelector[*engine.RuleMeta](labelSelector, nil)
 				if err != nil {
 					errLog.Error(err, "failed to create label selector from expression", "selector", labelSelector)
 					os.Exit(1)
 				}
-				selectors = append(selectors, selector)
+				selectors = append(selectors, ruleLabelSelector)
 			}
 
 			var dependencyLabelSelector *labels.LabelSelector[*konveyor.Dep]
@@ -293,6 +295,7 @@ func AnalysisCmd() *cobra.Command {
 				Log:                  log.WithName("parser"),
 				NoDependencyRules:    noDependencyRules,
 				DepLabelSelector:     dependencyLabelSelector,
+				Selector:             ruleLabelSelector,
 			}
 			ruleSets := []engine.RuleSet{}
 			needProviders := map[string]provider.InternalProviderClient{}
