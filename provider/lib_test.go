@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"io/fs"
+	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -251,6 +253,252 @@ func TestNormalizePathForComparison(t *testing.T) {
 				t.Errorf("NormalizePathForComparison(%q) = %q, want %q", tt.input, result, expected)
 			}
 		})
+	}
+}
+
+func TestFileSearcher_SearchFromIndex(t *testing.T) {
+	testBasePath, err := filepath.Abs("./testdata/file-search")
+	if err != nil {
+		t.Fatalf("failed to get absolute path: %v", err)
+	}
+
+	// Build a full file index by walking the test directory (simulating Prepare)
+	var fullIndex []string
+	filepath.WalkDir(testBasePath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			fullIndex = append(fullIndex, path)
+		}
+		return nil
+	})
+
+	tests := []struct {
+		name                      string
+		basePath                  string
+		providerConfigConstraints IncludeExcludeConstraints
+		ruleScopeConstraints      IncludeExcludeConstraints
+		searchCriteria            SearchCriteria
+	}{
+		{
+			name:     "no constraints — all files",
+			basePath: testBasePath,
+			searchCriteria: SearchCriteria{
+				Patterns:           []string{},
+				ConditionFilepaths: []string{},
+			},
+		},
+		{
+			name:     "pattern for .go files",
+			basePath: testBasePath,
+			searchCriteria: SearchCriteria{
+				Patterns:           []string{`.*\.go$`},
+				ConditionFilepaths: []string{},
+			},
+		},
+		{
+			name:     "wildcard pattern *.yaml",
+			basePath: testBasePath,
+			searchCriteria: SearchCriteria{
+				Patterns:           []string{"*.yaml"},
+				ConditionFilepaths: []string{},
+			},
+		},
+		{
+			name:     "provider config include path",
+			basePath: testBasePath,
+			providerConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{filepath.Join(testBasePath, "src")},
+			},
+			searchCriteria: SearchCriteria{},
+		},
+		{
+			name:     "provider config exclude dirs",
+			basePath: testBasePath,
+			providerConfigConstraints: IncludeExcludeConstraints{
+				ExcludePathsOrPatterns: []string{"vendor", "node_modules"},
+			},
+			searchCriteria: SearchCriteria{},
+		},
+		{
+			name:     "rule scope overrides provider include",
+			basePath: testBasePath,
+			providerConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{filepath.Join(testBasePath, "src")},
+			},
+			ruleScopeConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{filepath.Join(testBasePath, "lib")},
+			},
+			searchCriteria: SearchCriteria{},
+		},
+		{
+			name:     "search criteria patterns with include constraint",
+			basePath: testBasePath,
+			providerConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{filepath.Join(testBasePath, "src")},
+			},
+			searchCriteria: SearchCriteria{
+				Patterns: []string{`.*\.go$`},
+			},
+		},
+		{
+			name:     "condition filepaths (chained)",
+			basePath: testBasePath,
+			searchCriteria: SearchCriteria{
+				ConditionFilepaths: []string{"*.go"},
+			},
+		},
+		{
+			name:     "include pattern with wildcard",
+			basePath: testBasePath,
+			providerConfigConstraints: IncludeExcludeConstraints{
+				IncludePathsOrPatterns: []string{"*.md"},
+			},
+			searchCriteria: SearchCriteria{},
+		},
+		{
+			name:     "multiple patterns in search criteria",
+			basePath: testBasePath,
+			searchCriteria: SearchCriteria{
+				Patterns: []string{`.*\.go$`, `.*\.txt$`},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			log := testr.NewWithOptions(t, testr.Options{Verbosity: 10})
+			searcher := &FileSearcher{
+				BasePath:                  tt.basePath,
+				ProviderConfigConstraints: tt.providerConfigConstraints,
+				RuleScopeConstraints:      tt.ruleScopeConstraints,
+				FailFast:                  true,
+				Log:                       log,
+			}
+
+			// Get results from Search (filesystem walk)
+			searchResult, searchErr := searcher.Search(tt.searchCriteria)
+
+			// Get results from SearchFromIndex (pre-built index)
+			indexResult, indexErr := searcher.SearchFromIndex(fullIndex, tt.searchCriteria)
+
+			// Both should have same error behavior
+			if (searchErr != nil) != (indexErr != nil) {
+				t.Fatalf("error mismatch: Search err=%v, SearchFromIndex err=%v", searchErr, indexErr)
+			}
+
+			// Sort both for comparison
+			slices.Sort(searchResult)
+			slices.Sort(indexResult)
+
+			if len(searchResult) != len(indexResult) {
+				t.Errorf("result count mismatch: Search=%d, SearchFromIndex=%d", len(searchResult), len(indexResult))
+				t.Errorf("Search result: %v", searchResult)
+				t.Errorf("SearchFromIndex result: %v", indexResult)
+				return
+			}
+
+			for i := range searchResult {
+				if searchResult[i] != indexResult[i] {
+					t.Errorf("result mismatch at index %d: Search=%q, SearchFromIndex=%q", i, searchResult[i], indexResult[i])
+				}
+			}
+		})
+	}
+}
+
+func TestSearchFromIndex_EmptyIndex(t *testing.T) {
+	testBasePath, err := filepath.Abs("./testdata/file-search")
+	if err != nil {
+		t.Fatalf("failed to get absolute path: %v", err)
+	}
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 10})
+	searcher := &FileSearcher{
+		BasePath: testBasePath,
+		FailFast: true,
+		Log:      log,
+	}
+
+	result, err := searcher.SearchFromIndex([]string{}, SearchCriteria{
+		Patterns: []string{`.*\.go$`},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) != 0 {
+		t.Errorf("expected empty result from empty index, got %v", result)
+	}
+}
+
+func TestSearchFromIndex_AdditionalPathsWalkedFromFilesystem(t *testing.T) {
+	testBasePath, err := filepath.Abs("./testdata/file-search")
+	if err != nil {
+		t.Fatalf("failed to get absolute path: %v", err)
+	}
+
+	// Create a temp directory simulating a working copy (outside base path)
+	tempDir := t.TempDir()
+	tempFile := filepath.Join(tempDir, "working-copy.go")
+	if err := os.WriteFile(tempFile, []byte("package wc"), 0644); err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+
+	// Build index from base path only (does not include temp dir)
+	var index []string
+	filepath.WalkDir(testBasePath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			index = append(index, path)
+		}
+		return nil
+	})
+
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 10})
+	searcher := &FileSearcher{
+		BasePath:        testBasePath,
+		AdditionalPaths: []string{tempDir},
+		FailFast:        true,
+		Log:             log,
+	}
+
+	// SearchFromIndex should include files from AdditionalPaths
+	// even though they're not in the index
+	result, err := searcher.SearchFromIndex(index, SearchCriteria{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	foundTempFile := false
+	for _, f := range result {
+		if f == tempFile {
+			foundTempFile = true
+			break
+		}
+	}
+
+	if !foundTempFile {
+		t.Errorf("SearchFromIndex should include files from AdditionalPaths (working copies) "+
+			"via filesystem walk, but %q was not found in results: %v", tempFile, result)
+	}
+
+	// Verify Search() also includes the temp file (baseline comparison)
+	searchResult, err := searcher.Search(SearchCriteria{})
+	if err != nil {
+		t.Fatalf("Search() unexpected error: %v", err)
+	}
+
+	foundInSearch := false
+	for _, f := range searchResult {
+		if f == tempFile {
+			foundInSearch = true
+			break
+		}
+	}
+	if !foundInSearch {
+		t.Errorf("Search() should include files from AdditionalPaths, but %q was not found", tempFile)
 	}
 }
 

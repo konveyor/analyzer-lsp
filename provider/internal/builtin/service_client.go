@@ -43,6 +43,11 @@ type builtinServiceClient struct {
 	encoding      string
 
 	workingCopyMgr *workingCopyManager
+
+	// fileIndex is the cached list of all file paths under the base path
+	fileIndex []string
+	// prepared indicates Prepare() completed successfully and fileIndex is valid
+	prepared bool
 }
 
 type fileTemplateContext struct {
@@ -52,7 +57,75 @@ type fileTemplateContext struct {
 var _ provider.ServiceClient = &builtinServiceClient{}
 
 func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
+	ctx, span := tracing.StartNewSpan(ctx, "builtin.Prepare")
+	defer span.End()
+
+	// Parse all conditions to collect the union of include/exclude scopes
+	var allIncluded, allExcluded []string
+	for _, cbc := range conditionsByCap {
+		for _, condBytes := range cbc.Conditions {
+			var cond builtinCondition
+			if err := yaml.Unmarshal(condBytes, &cond); err != nil {
+				b.log.V(5).Error(err, "failed to unmarshal condition in Prepare, skipping")
+				continue
+			}
+			inc, exc := cond.ProviderContext.GetScopedFilepaths()
+			allIncluded = append(allIncluded, inc...)
+			allExcluded = append(allExcluded, exc...)
+		}
+	}
+
+	// Build a single FileSearcher with the union of all scopes
+	searcher := provider.FileSearcher{
+		BasePath: b.config.Location,
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: b.includedPaths,
+			ExcludePathsOrPatterns: b.excludedDirs,
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: allIncluded,
+			ExcludePathsOrPatterns: allExcluded,
+		},
+		FailFast: true,
+		Log:      b.log,
+	}
+
+	// Single filesystem walk
+	files, err := searcher.Search(provider.SearchCriteria{})
+	if err != nil {
+		b.log.Error(err, "failed to build file index in Prepare, falling back to per-Evaluate walks")
+		return nil
+	}
+
+	b.fileIndex = files
+	b.prepared = true
+	b.log.V(5).Info("file index built during Prepare", "fileCount", len(files))
 	return nil
+}
+
+// filterCachedFiles applies per-rule scope constraints and search criteria
+// against the cached file index, returning matching files.
+func (b *builtinServiceClient) filterCachedFiles(cond builtinCondition, criteria provider.SearchCriteria) ([]string, error) {
+	wcIncludedPaths, wcExcludedPaths := b.getWorkingCopies()
+	includedPaths, excludedPaths := cond.ProviderContext.GetScopedFilepaths()
+	excludedPaths = append(excludedPaths, wcExcludedPaths...)
+
+	searcher := provider.FileSearcher{
+		BasePath:        b.config.Location,
+		AdditionalPaths: wcIncludedPaths,
+		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: b.includedPaths,
+			ExcludePathsOrPatterns: b.excludedDirs,
+		},
+		RuleScopeConstraints: provider.IncludeExcludeConstraints{
+			IncludePathsOrPatterns: includedPaths,
+			ExcludePathsOrPatterns: excludedPaths,
+		},
+		FailFast: true,
+		Log:      b.log,
+	}
+
+	return searcher.SearchFromIndex(b.fileIndex, criteria)
 }
 
 func (b *builtinServiceClient) openFileWithEncoding(filePath string) (io.Reader, error) {
@@ -103,26 +176,31 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	log.V(5).Info("builtin condition context", "condition", cond, "provider context", cond.ProviderContext)
 	response := provider.ProviderEvaluateResponse{Matched: false}
 
-	// in addition to base location, we have to look at working copies too
-	wcIncludedPaths, wcExcludedPaths := p.getWorkingCopies()
-	// get paths from providerContext
-	includedPaths, excludedPaths := cond.ProviderContext.GetScopedFilepaths()
-	excludedPaths = append(excludedPaths, wcExcludedPaths...)
-
-	fileSearcher := provider.FileSearcher{
-		BasePath:        p.config.Location,
-		AdditionalPaths: wcIncludedPaths,
-		// get global include / exclude paths from provider config
-		ProviderConfigConstraints: provider.IncludeExcludeConstraints{
-			IncludePathsOrPatterns: p.includedPaths,
-			ExcludePathsOrPatterns: p.excludedDirs,
-		},
-		RuleScopeConstraints: provider.IncludeExcludeConstraints{
-			IncludePathsOrPatterns: includedPaths,
-			ExcludePathsOrPatterns: excludedPaths,
-		},
-		FailFast: true,
-		Log:      p.log,
+	// searchFiles resolves file lists either from the cached index (if Prepare()
+	// was called) or by creating a fresh FileSearcher and walking the filesystem.
+	searchFiles := func(criteria provider.SearchCriteria) ([]string, error) {
+		if p.prepared {
+			return p.filterCachedFiles(cond, criteria)
+		}
+		// Fallback: create FileSearcher per call (original behavior)
+		wcIncludedPaths, wcExcludedPaths := p.getWorkingCopies()
+		includedPaths, excludedPaths := cond.ProviderContext.GetScopedFilepaths()
+		excludedPaths = append(excludedPaths, wcExcludedPaths...)
+		fileSearcher := provider.FileSearcher{
+			BasePath:        p.config.Location,
+			AdditionalPaths: wcIncludedPaths,
+			ProviderConfigConstraints: provider.IncludeExcludeConstraints{
+				IncludePathsOrPatterns: p.includedPaths,
+				ExcludePathsOrPatterns: p.excludedDirs,
+			},
+			RuleScopeConstraints: provider.IncludeExcludeConstraints{
+				IncludePathsOrPatterns: includedPaths,
+				ExcludePathsOrPatterns: excludedPaths,
+			},
+			FailFast: true,
+			Log:      p.log,
+		}
+		return fileSearcher.Search(criteria)
 	}
 
 	switch cap {
@@ -131,7 +209,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if c.Pattern == "" {
 			return response, fmt.Errorf("could not parse provided file pattern as string: %v", conditionInfo)
 		}
-		matchingFiles, err := fileSearcher.Search(provider.SearchCriteria{
+		matchingFiles, err := searchFiles(provider.SearchCriteria{
 			Patterns: []string{c.Pattern},
 		})
 		if err != nil {
@@ -164,7 +242,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if c.FilePattern != "" {
 			patterns = append(patterns, c.FilePattern)
 		}
-		filePaths, err := fileSearcher.Search(provider.SearchCriteria{
+		filePaths, err := searchFiles(provider.SearchCriteria{
 			Patterns:           patterns,
 			ConditionFilepaths: c.Filepaths,
 		})
@@ -202,7 +280,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
 		}
-		xmlFiles, err := fileSearcher.Search(provider.SearchCriteria{
+		xmlFiles, err := searchFiles(provider.SearchCriteria{
 			Patterns:           []string{"*.xml", "*.xhtml"},
 			ConditionFilepaths: cond.XML.Filepaths,
 		})
@@ -258,7 +336,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse public-id xml query '%s': %v", cond.XML.XPath, err)
 		}
-		xmlFiles, err := fileSearcher.Search(provider.SearchCriteria{
+		xmlFiles, err := searchFiles(provider.SearchCriteria{
 			Patterns:           []string{"*.xml", "*.xhtml"},
 			ConditionFilepaths: cond.XMLPublicID.Filepaths,
 		})
@@ -303,7 +381,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == "" {
 			return response, fmt.Errorf("could not parse provided xpath query as string: %v", conditionInfo)
 		}
-		jsonFiles, err := fileSearcher.Search(provider.SearchCriteria{
+		jsonFiles, err := searchFiles(provider.SearchCriteria{
 			Patterns:           []string{"*.json"},
 			ConditionFilepaths: cond.JSON.Filepaths,
 		})

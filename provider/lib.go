@@ -49,8 +49,33 @@ type IncludeExcludeConstraints struct {
 // 2. Rule scope constraints
 // 3. Provider config level constraints
 func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
+	return f.search(s, newCachedWalkDir())
+}
+
+// SearchFromIndex applies the same filtering logic as Search but against
+// a pre-built file index instead of walking the filesystem. AdditionalPaths
+// are still walked on the real filesystem since they may contain files
+// outside the index (e.g., working copy temp directories).
+func (f *FileSearcher) SearchFromIndex(index []string, s SearchCriteria) ([]string, error) {
+	indexWalk := newIndexWalkFunc(index)
+	fsWalk := newCachedWalkDir()
+	compositeWalk := func(path string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
+		// Use the index for paths under the base path (where the index was built).
+		// Fall back to real filesystem walk for paths outside the base path
+		// (e.g., working copy temp directories set via AdditionalPaths).
+		if strings.HasPrefix(path, f.BasePath) {
+			return indexWalk(path, excludedDirs, excludedPatterns)
+		}
+		return fsWalk(path, excludedDirs, excludedPatterns)
+	}
+	return f.search(s, compositeWalk)
+}
+
+// search is the internal implementation shared by Search and SearchFromIndex.
+// The walkDirFunc parameter controls how files are discovered — either via
+// filesystem walk (Search) or by filtering a pre-built index (SearchFromIndex).
+func (f *FileSearcher) search(s SearchCriteria, walkDirFunc cachedWalkDir) ([]string, error) {
 	statFunc := newCachedOsStat()
-	walkDirFunc := newCachedWalkDir()
 	walkErrors := []error{}
 
 	f.Log.V(5).Info("searching for files", "criteria", s, "additionalPaths", f.AdditionalPaths,
@@ -372,6 +397,52 @@ func newCachedWalkDir() cachedWalkDir {
 			return files, err
 		}
 		return val.files, val.err
+	}
+}
+
+// newIndexWalkFunc returns a cachedWalkDir that filters a pre-built file index
+// instead of walking the filesystem. For a given base path, it returns all files
+// from the index that are under that path and not in excluded dirs/patterns.
+func newIndexWalkFunc(index []string) cachedWalkDir {
+	return func(basePath string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
+		var files []string
+		for _, file := range index {
+			if !strings.HasPrefix(file, basePath) {
+				continue
+			}
+			excluded := false
+			for _, excludedDir := range excludedDirs {
+				relPath, err := filepath.Rel(basePath, file)
+				if err == nil {
+					dir := filepath.Dir(relPath)
+					if dir == excludedDir || strings.HasPrefix(dir, excludedDir+string(os.PathSeparator)) ||
+						strings.HasPrefix(relPath, excludedDir+string(os.PathSeparator)) || relPath == excludedDir {
+						excluded = true
+						break
+					}
+				}
+			}
+			if excluded {
+				continue
+			}
+			for _, excludedPattern := range excludedPatterns {
+				if !strings.Contains(excludedPattern, "*") {
+					continue
+				}
+				regex, err := regexp.Compile(excludedPattern)
+				if err != nil {
+					continue
+				}
+				if regex.MatchString(file) || regex.MatchString(filepath.Base(file)) {
+					excluded = true
+					break
+				}
+			}
+			if !excluded {
+				files = append(files, file)
+			}
+		}
+		return files, nil
 	}
 }
 
