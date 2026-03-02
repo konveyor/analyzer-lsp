@@ -288,6 +288,7 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 	// Need a better name for this thing
 	ret := make(chan response)
 
+	ranRules := len(taggingRules)
 	var matchedRules int32
 	var unmatchedRules int32
 	var failedRules int32
@@ -335,7 +336,7 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 					r.logger.V(5).Info("rule response received", "total", len(otherRules), "failed", failedRules, "matched", matchedRules, "unmatched", unmatchedRules)
 
 					// Report progress after each rule completes
-					completed := int(matchedRules + unmatchedRules + failedRules)
+					completed := int(matchedRules+unmatchedRules+failedRules) + ranRules
 					reportProgress(cfg.progressReporter, progress.Event{
 						Stage:   progress.StageRuleExecution,
 						Current: completed,
