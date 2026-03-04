@@ -219,6 +219,7 @@ func (p *Progress) reporterWorker(reporter Reporter, events chan Event) {
 	for {
 		select {
 		case event := <-events:
+			event.Normalize()
 			reporter.Report(event)
 		case <-p.ctx.Done():
 			return
