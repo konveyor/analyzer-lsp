@@ -350,11 +350,13 @@ func (b *builtinServiceClient) incidentsFromCache(key incidentCacheKey, scopedFi
 
 // matchesFilePattern checks if a file matches a pattern
 func matchesFilePattern(compiledRegex *regexp.Regexp, pattern, relPath, baseName string) bool {
-	if compiledRegex != nil && (compiledRegex.MatchString(relPath) || compiledRegex.MatchString(baseName)) {
+	// Normalize path separators for cross-platform regex matching
+	normalizedRelPath := filepath.ToSlash(relPath)
+	if compiledRegex != nil && (compiledRegex.MatchString(normalizedRelPath) || compiledRegex.MatchString(baseName)) {
 		return true
 	}
 	if strings.Contains(pattern, "*") || strings.Contains(pattern, "?") {
-		if m, err := filepath.Match(pattern, relPath); err == nil && m {
+		if m, err := filepath.Match(pattern, normalizedRelPath); err == nil && m {
 			return true
 		}
 		if m, err := filepath.Match(pattern, baseName); err == nil && m {
