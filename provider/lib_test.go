@@ -386,9 +386,9 @@ func TestFileSearcher_SearchFromIndex(t *testing.T) {
 			// Get results from SearchFromIndex (pre-built index)
 			indexResult, indexErr := searcher.SearchFromIndex(fullIndex, tt.searchCriteria)
 
-			// Both should have same error behavior
-			if (searchErr != nil) != (indexErr != nil) {
-				t.Fatalf("error mismatch: Search err=%v, SearchFromIndex err=%v", searchErr, indexErr)
+			// Both paths are expected to succeed in these test cases.
+			if searchErr != nil || indexErr != nil {
+				t.Fatalf("unexpected error: Search err=%v, SearchFromIndex err=%v", searchErr, indexErr)
 			}
 
 			// Sort both for comparison
