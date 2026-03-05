@@ -68,18 +68,23 @@ func isWithinBase(basePath, targetPath string) bool {
 // are still walked on the real filesystem since they may contain files
 // outside the index (e.g., working copy temp directories).
 func (f *FileSearcher) SearchFromIndex(index []string, s SearchCriteria) ([]string, error) {
-	indexWalk := newIndexWalkFunc(index)
 	fsWalk := newCachedWalkDir()
-	compositeWalk := func(path string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
-		// Use the index for paths under the base path (where the index was built).
-		// Fall back to real filesystem walk for paths outside the base path
-		// (e.g., working copy temp directories set via AdditionalPaths).
-		if isWithinBase(f.BasePath, path) {
-			return indexWalk(path, excludedDirs, excludedPatterns)
+	walk := func(path string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
+		if !isWithinBase(f.BasePath, path) {
+			// Additional paths (working copies) — walk real filesystem
+			return fsWalk(path, excludedDirs, excludedPatterns)
 		}
-		return fsWalk(path, excludedDirs, excludedPatterns)
+		// Filter index in memory. Exclusions are applied later by search()
+		// via filterFilesByPathsOrPatterns, so we only need path containment here.
+		var files []string
+		for _, file := range index {
+			if isWithinBase(path, file) {
+				files = append(files, file)
+			}
+		}
+		return files, nil
 	}
-	return f.search(s, compositeWalk)
+	return f.search(s, walk)
 }
 
 // search is the internal implementation shared by Search and SearchFromIndex.
@@ -280,10 +285,10 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 							"this should not happen, please file a bug", "basePath", f.BasePath, "filePath", file)
 						continue
 					}
-					// Normalize to forward slashes for pattern matching.
-				// Regex patterns use '/' as directory separator since
-				// '\' is the regex escape character on all platforms.
-				relPath = "/" + filepath.ToSlash(relPath)
+						// Normalize to forward slashes for pattern matching.
+					// Regex patterns use '/' as directory separator since
+					// '\' is the regex escape character on all platforms.
+					relPath = "/" + filepath.ToSlash(relPath)
 				} else if slices.Contains(f.AdditionalPaths, file) {
 					// When this comes from an addional path, we won't know
 					// where to search from, so fall back to the full file path.
@@ -411,52 +416,6 @@ func newCachedWalkDir() cachedWalkDir {
 			return files, err
 		}
 		return val.files, val.err
-	}
-}
-
-// newIndexWalkFunc returns a cachedWalkDir that filters a pre-built file index
-// instead of walking the filesystem. For a given base path, it returns all files
-// from the index that are under that path and not in excluded dirs/patterns.
-func newIndexWalkFunc(index []string) cachedWalkDir {
-	return func(basePath string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
-		var files []string
-		for _, file := range index {
-			if !isWithinBase(basePath, file) {
-				continue
-			}
-			excluded := false
-			for _, excludedDir := range excludedDirs {
-				relPath, err := filepath.Rel(basePath, file)
-				if err == nil {
-					dir := filepath.Dir(relPath)
-					if dir == excludedDir || strings.HasPrefix(dir, excludedDir+string(os.PathSeparator)) ||
-						strings.HasPrefix(relPath, excludedDir+string(os.PathSeparator)) || relPath == excludedDir {
-						excluded = true
-						break
-					}
-				}
-			}
-			if excluded {
-				continue
-			}
-			for _, excludedPattern := range excludedPatterns {
-				if !strings.Contains(excludedPattern, "*") {
-					continue
-				}
-				regex, err := regexp.Compile(excludedPattern)
-				if err != nil {
-					continue
-				}
-				if regex.MatchString(file) || regex.MatchString(filepath.Base(file)) {
-					excluded = true
-					break
-				}
-			}
-			if !excluded {
-				files = append(files, file)
-			}
-		}
-		return files, nil
 	}
 }
 

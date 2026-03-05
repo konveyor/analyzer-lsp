@@ -1529,14 +1529,19 @@ func Test_builtinServiceClient_Prepare_UnionOfScopes(t *testing.T) {
 		t.Error("expected prepared to be true")
 	}
 
-	// The union of scopes should include files from both dir_a and dir_b
+	// The union of scopes should include files from both dir_a and dir_b.
+	// Use HasPrefix on relative paths to avoid false matches (e.g., dir_b/dir_a/).
 	hasDirA := false
 	hasDirB := false
 	for _, f := range sc.fileIndex {
-		if strings.Contains(f, "dir_a") {
+		rel, err := filepath.Rel(baseLocation, f)
+		if err != nil {
+			continue
+		}
+		if strings.HasPrefix(rel, "dir_a"+string(filepath.Separator)) || rel == "dir_a" {
 			hasDirA = true
 		}
-		if strings.Contains(f, "dir_b") {
+		if strings.HasPrefix(rel, "dir_b"+string(filepath.Separator)) || rel == "dir_b" {
 			hasDirB = true
 		}
 	}

@@ -84,9 +84,349 @@ type parsedCondition struct {
 
 var _ provider.ServiceClient = &builtinServiceClient{}
 
+// ---------------------------------------------------------------------------
+// Shared helpers — used by both Prepare and Evaluate paths
+// ---------------------------------------------------------------------------
+
+// readFileContent reads a file's content, applying encoding conversion if configured.
+// CRLF line endings are normalized to LF so that downstream pattern matching and
+// match-text output are consistent regardless of the file's native line endings.
+func (b *builtinServiceClient) readFileContent(filePath string) ([]byte, error) {
+	var content []byte
+	var err error
+	if b.encoding != "" {
+		content, err = engine.OpenFileWithEncoding(filePath, b.encoding)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", filePath)
+			content, err = os.ReadFile(filePath)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		content, err = os.ReadFile(filePath)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if bytes.Contains(content, []byte("\r\n")) {
+		content = bytes.ReplaceAll(content, []byte("\r\n"), []byte("\n"))
+	}
+	return content, nil
+}
+
+// parseXMLContent parses XML content into a DOM. Handles the XML 1.1 compatibility hack.
+func (b *builtinServiceClient) parseXMLContent(filePath string, content []byte) (*xmlquery.Node, error) {
+	doc, err := xmlquery.ParseWithOptions(
+		strings.NewReader(string(content)),
+		xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}, WithLineNumbers: true},
+	)
+	if err != nil {
+		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
+			docString := strings.Replace(string(content), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
+			doc, err = xmlquery.Parse(strings.NewReader(docString))
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
+			}
+		} else {
+			return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
+		}
+	}
+	return doc, nil
+}
+
+// queryXMLDoc runs an XPath query against a pre-parsed XML DOM
+func queryXMLDoc(doc *xmlquery.Node, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("recovered panic from xpath query search with err - %v", r)
+		}
+	}()
+	nodes = xmlquery.QuerySelectorAll(doc, query)
+	return nodes, nil
+}
+
+// queryXMLFile reads, parses, and queries an XML file in one step.
+func (b *builtinServiceClient) queryXMLFile(filePath string, query *xpath.Expr) ([]*xmlquery.Node, error) {
+	content, err := b.readFileContent(filePath)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := b.parseXMLContent(filePath, content)
+	if err != nil {
+		return nil, err
+	}
+	return queryXMLDoc(doc, query)
+}
+
+// matchesFilePattern checks if a file matches a pattern
+func matchesFilePattern(compiledRegex *regexp.Regexp, pattern, relPath, baseName string) bool {
+	// Normalize path separators for cross-platform regex matching
+	normalizedRelPath := filepath.ToSlash(relPath)
+	if compiledRegex != nil && (compiledRegex.MatchString(normalizedRelPath) || compiledRegex.MatchString(baseName)) {
+		return true
+	}
+	if strings.Contains(pattern, "*") || strings.Contains(pattern, "?") {
+		if m, err := filepath.Match(pattern, normalizedRelPath); err == nil && m {
+			return true
+		}
+		if m, err := filepath.Match(pattern, baseName); err == nil && m {
+			return true
+		}
+	}
+	return false
+}
+
+// isLiteralPattern returns true if the pattern contains no regex metacharacters.
+func isLiteralPattern(pattern string) bool {
+	for _, ch := range pattern {
+		if strings.ContainsRune(".*+?^$[]{}()|\\", ch) {
+			return false
+		}
+	}
+	return true
+}
+
+// matchSpan represents a byte-range match within file content.
+type matchSpan struct {
+	start int
+	end   int
+	text  string
+}
+
+// buildFileSearchResults converts matchSpans into fileSearchResults by calculating
+// line numbers incrementally through the content.
+func buildFileSearchResults(filePath string, content []byte, spans []matchSpan) []fileSearchResult {
+	if len(spans) == 0 {
+		return nil
+	}
+	results := make([]fileSearchResult, 0, len(spans))
+	lineNumber := 1
+	lineStart := 0
+	lastPos := 0
+	for _, span := range spans {
+		for i := lastPos; i < span.start; i++ {
+			if content[i] == '\n' {
+				lineNumber++
+				lineStart = i + 1
+			}
+		}
+		lastPos = span.start
+		charNumber := span.start - lineStart
+		results = append(results, fileSearchResult{
+			positionParams: protocol.TextDocumentPositionParams{
+				TextDocument: protocol.TextDocumentIdentifier{
+					URI: protocol.DocumentURI(uri.File(filePath)),
+				},
+				Position: protocol.Position{
+					Line:      uint32(lineNumber),
+					Character: uint32(charNumber),
+				},
+			},
+			match: span.text,
+		})
+	}
+	return results
+}
+
+// findLiteralMatches finds all occurrences of a literal string in content.
+func findLiteralMatches(content []byte, pattern string) []matchSpan {
+	literalBytes := []byte(pattern)
+	var spans []matchSpan
+	searchPos := 0
+	for {
+		idx := bytes.Index(content[searchPos:], literalBytes)
+		if idx == -1 {
+			break
+		}
+		actualPos := searchPos + idx
+		spans = append(spans, matchSpan{
+			start: actualPos,
+			end:   actualPos + len(literalBytes),
+			text:  pattern,
+		})
+		searchPos = actualPos + 1
+	}
+	return spans
+}
+
+// findStdRegexMatches finds all matches of a compiled standard regexp in content.
+func findStdRegexMatches(content []byte, regex *regexp.Regexp) []matchSpan {
+	matches := regex.FindAllIndex(content, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+	spans := make([]matchSpan, 0, len(matches))
+	for _, m := range matches {
+		spans = append(spans, matchSpan{
+			start: m[0],
+			end:   m[1],
+			text:  string(content[m[0]:m[1]]),
+		})
+	}
+	return spans
+}
+
+// findRegexp2Matches finds all matches of a regexp2 pattern in content.
+func findRegexp2Matches(content string, regex *regexp2.Regexp) ([]matchSpan, error) {
+	match, err := regex.FindStringMatch(content)
+	if err != nil {
+		return nil, err
+	}
+	var spans []matchSpan
+	for match != nil {
+		spans = append(spans, matchSpan{
+			start: match.Index,
+			end:   match.Index + match.Length,
+			text:  match.String(),
+		})
+		match, err = regex.FindNextMatch(match)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return spans, nil
+}
+
+// filecontentMatchesToIncidents converts fileSearchResults into IncidentContexts.
+func filecontentMatchesToIncidents(matches []fileSearchResult) []provider.IncidentContext {
+	incidents := make([]provider.IncidentContext, 0, len(matches))
+	for _, match := range matches {
+		lineNumber := int(match.positionParams.Position.Line)
+		incidents = append(incidents, provider.IncidentContext{
+			FileURI:    uri.URI(match.positionParams.TextDocument.URI),
+			LineNumber: &lineNumber,
+			Variables: map[string]interface{}{
+				"matchingText": match.match,
+			},
+			CodeLocation: &provider.Location{
+				StartPosition: provider.Position{Line: float64(lineNumber)},
+				EndPosition:   provider.Position{Line: float64(lineNumber)},
+			},
+		})
+	}
+	return incidents
+}
+
+// xmlNodeToIncident converts an XML node match into an IncidentContext.
+func (b *builtinServiceClient) xmlNodeToIncident(ctx context.Context, filePath string, node *xmlquery.Node) provider.IncidentContext {
+	incident := provider.IncidentContext{
+		FileURI: uri.File(filePath),
+		Variables: map[string]interface{}{
+			"matchingXML": compactXML(node.OutputXML(false)),
+			"innerText":   node.InnerText(),
+			"data":        node.Data,
+		},
+	}
+	content := strings.TrimSpace(node.InnerText())
+	if content == "" {
+		content = node.Data
+	}
+	location, err := b.getLocation(ctx, filePath, content)
+	if err == nil {
+		incident.CodeLocation = &location
+		lineNo := int(location.StartPosition.Line)
+		incident.LineNumber = &lineNo
+	} else {
+		lineNum := node.LineNumber
+		incident.LineNumber = &lineNum
+	}
+	return incident
+}
+
+// xmlPublicIDNodeToIncident converts an xmlPublicID match into an IncidentContext.
+func xmlPublicIDNodeToIncident(filePath string, node *xmlquery.Node) provider.IncidentContext {
+	return provider.IncidentContext{
+		FileURI: uri.File(filePath),
+		Variables: map[string]interface{}{
+			"matchingXML": compactXML(node.OutputXML(false)),
+			"innerText":   node.InnerText(),
+			"data":        node.Data,
+		},
+	}
+}
+
+// jsonNodeToIncident converts a JSON node match into an IncidentContext.
+func (b *builtinServiceClient) jsonNodeToIncident(ctx context.Context, filePath string, node *jsonquery.Node) provider.IncidentContext {
+	incident := provider.IncidentContext{
+		FileURI: uri.File(filePath),
+		Variables: map[string]interface{}{
+			"matchingJSON": node.InnerText(),
+			"data":         node.Data,
+		},
+	}
+	location, err := b.getLocation(ctx, filePath, node.InnerText())
+	if err == nil {
+		incident.CodeLocation = &location
+		lineNo := int(location.StartPosition.Line)
+		incident.LineNumber = &lineNo
+	}
+	return incident
+}
+
+// tryIncidentCache attempts to look up cached incidents for a capability.
+// Returns the incidents, whether a cache hit occurred, and any error.
+func (b *builtinServiceClient) tryIncidentCache(cap string, cond builtinCondition, patterns []string) ([]provider.IncidentContext, bool, error) {
+	if !b.prepared || len(b.allParsedConditions) == 0 || isChainedCondition(cap, cond) {
+		return nil, false, nil
+	}
+	key := makeIncidentCacheKey(cap, cond)
+	scopedFiles, err := b.filterCachedFiles(cond, provider.SearchCriteria{
+		Patterns: patterns,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	incidents, ok := b.incidentsFromCache(key, scopedFiles)
+	return incidents, ok, nil
+}
+
+// searchContentForPattern searches pre-read content for a pattern.
+// This is the shared core for both cached (Prepare) and uncached (Evaluate) paths.
+func (b *builtinServiceClient) searchContentForPattern(filePath string, content []byte, trimmedPattern string) []fileSearchResult {
+	if isLiteralPattern(trimmedPattern) {
+		spans := findLiteralMatches(content, trimmedPattern)
+		return buildFileSearchResults(filePath, content, spans)
+	}
+
+	// Regex path — try standard regexp first
+	fullPattern := `(?m)` + trimmedPattern
+	stdRegex, err := regexp.Compile(fullPattern)
+	if err != nil {
+		// Fall back to regexp2
+		patternRegex, err := regexp2.Compile(fullPattern, regexp2.Multiline)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to compile pattern", "pattern", trimmedPattern)
+			return nil
+		}
+		spans, err := findRegexp2Matches(string(content), patternRegex)
+		if err != nil {
+			return nil
+		}
+		// regexp2 spans are byte offsets into the string; content bytes match
+		return buildFileSearchResults(filePath, content, spans)
+	}
+
+	if !stdRegex.Match(content) {
+		return nil
+	}
+
+	spans := findStdRegexMatches(content, stdRegex)
+	return buildFileSearchResults(filePath, content, spans)
+}
+
+// Prepare — single filesystem walk, incident cache population
 func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
 	ctx, span := tracing.StartNewSpan(ctx, "builtin.Prepare")
 	defer span.End()
+
+	// Reset state so a failed re-Prepare does not leave stale caches active.
+	b.prepared = false
+	b.fileIndex = nil
+	b.allParsedConditions = nil
+	b.incidentCacheMutex.Lock()
+	b.incidentCache = nil
+	b.incidentCacheMutex.Unlock()
 
 	// Parse all conditions to:
 	// 1. Collect the union of include scopes for the filesystem walk
@@ -250,6 +590,10 @@ func (b *builtinServiceClient) filterCachedFiles(cond builtinCondition, criteria
 }
 
 // makeIncidentCacheKey builds a canonical cache key for a condition.
+// Keys are derived from the parsed condition fields (Pattern, XPath, etc.),
+// not from raw conditionInfo bytes. This ensures Prepare() and Evaluate()
+// produce identical keys as long as YAML unmarshalling is deterministic,
+// which it is for these simple scalar/map fields.
 func makeIncidentCacheKey(cap string, cond builtinCondition) incidentCacheKey {
 	switch cap {
 	case "filecontent":
@@ -348,72 +692,8 @@ func (b *builtinServiceClient) incidentsFromCache(key incidentCacheKey, scopedFi
 	return result, true
 }
 
-// matchesFilePattern checks if a file matches a pattern
-func matchesFilePattern(compiledRegex *regexp.Regexp, pattern, relPath, baseName string) bool {
-	// Normalize path separators for cross-platform regex matching
-	normalizedRelPath := filepath.ToSlash(relPath)
-	if compiledRegex != nil && (compiledRegex.MatchString(normalizedRelPath) || compiledRegex.MatchString(baseName)) {
-		return true
-	}
-	if strings.Contains(pattern, "*") || strings.Contains(pattern, "?") {
-		if m, err := filepath.Match(pattern, normalizedRelPath); err == nil && m {
-			return true
-		}
-		if m, err := filepath.Match(pattern, baseName); err == nil && m {
-			return true
-		}
-	}
-	return false
-}
-
-// readFileContent reads a file's content, applying encoding conversion if configured
-func (b *builtinServiceClient) readFileContent(filePath string) ([]byte, error) {
-	if b.encoding != "" {
-		content, err := engine.OpenFileWithEncoding(filePath, b.encoding)
-		if err != nil {
-			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", filePath)
-			return os.ReadFile(filePath)
-		}
-		return content, nil
-	}
-	return os.ReadFile(filePath)
-}
-
-// parseXMLContent parses XML content into a DOM. Extracted from queryXMLFile to
-// allow parsing once and running multiple queries against the same DOM.
-func (b *builtinServiceClient) parseXMLContent(filePath string, content []byte) (*xmlquery.Node, error) {
-	doc, err := xmlquery.ParseWithOptions(
-		strings.NewReader(string(content)),
-		xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}, WithLineNumbers: true},
-	)
-	if err != nil {
-		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
-			docString := strings.Replace(string(content), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
-			doc, err = xmlquery.Parse(strings.NewReader(docString))
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
-			}
-		} else {
-			return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
-		}
-	}
-	return doc, nil
-}
-
-// queryXMLDoc runs an XPath query against a pre-parsed XML DOM
-func queryXMLDoc(doc *xmlquery.Node, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("recovered panic from xpath query search with err - %v", r)
-		}
-	}()
-	nodes = xmlquery.QuerySelectorAll(doc, query)
-	return nodes, nil
-}
-
 // processFileForAllCaps reads a file once and runs all applicable pre-compiled
 // condition searches against it, merging results into the incident cache.
-// This is the core of the "open each file once" optimization.
 func (b *builtinServiceClient) processFileForAllCaps(ctx context.Context, filePath string) {
 	// Skip files that are too large
 	const maxFileSize = 100 * 1024 * 1024 // 100MB
@@ -530,187 +810,13 @@ func (b *builtinServiceClient) processFilecontentForFile(filePath string, conten
 			trimmedPattern = strings.TrimSuffix(trimmedPattern, `"`)
 		}
 
-		// Use the existing multiline search logic on pre-read content
 		matches := b.searchContentForPattern(filePath, content, trimmedPattern)
 		if len(matches) == 0 {
 			continue
 		}
 
-		incidents := make([]provider.IncidentContext, 0, len(matches))
-		for _, match := range matches {
-			lineNumber := int(match.positionParams.Position.Line)
-			incidents = append(incidents, provider.IncidentContext{
-				FileURI:    uri.URI(match.positionParams.TextDocument.URI),
-				LineNumber: &lineNumber,
-				Variables: map[string]interface{}{
-					"matchingText": match.match,
-				},
-				CodeLocation: &provider.Location{
-					StartPosition: provider.Position{Line: float64(lineNumber)},
-					EndPosition:   provider.Position{Line: float64(lineNumber)},
-				},
-			})
-		}
-		b.mergeIntoCache(pc.cacheKey, filePath, incidents)
+		b.mergeIntoCache(pc.cacheKey, filePath, filecontentMatchesToIncidents(matches))
 	}
-}
-
-// searchContentForPattern searches pre-read content for a pattern.
-func (b *builtinServiceClient) searchContentForPattern(filePath string, content []byte, trimmedPattern string) []fileSearchResult {
-	// Check if pattern is literal
-	isLiteral := true
-	for _, ch := range trimmedPattern {
-		if strings.ContainsRune(".*+?^$[]{}()|\\", ch) {
-			isLiteral = false
-			break
-		}
-	}
-
-	if isLiteral {
-		return b.searchContentLiteral(filePath, content, trimmedPattern)
-	}
-
-	// Regex path — try standard regexp first
-	fullPattern := `(?m)` + trimmedPattern
-	stdRegex, err := regexp.Compile(fullPattern)
-	if err != nil {
-		// Fall back to regexp2
-		patternRegex, err := regexp2.Compile(fullPattern, regexp2.Multiline)
-		if err != nil {
-			b.log.V(5).Error(err, "failed to compile pattern during Prepare", "pattern", trimmedPattern)
-			return nil
-		}
-		return b.searchContentRegexp2(filePath, content, patternRegex)
-	}
-
-	if !stdRegex.Match(content) {
-		return nil
-	}
-
-	matches := stdRegex.FindAllIndex(content, -1)
-	if len(matches) == 0 {
-		return nil
-	}
-
-	results := make([]fileSearchResult, 0, len(matches))
-	lineNumber := 1
-	lineStart := 0
-	lastPos := 0
-
-	for _, match := range matches {
-		matchStart := match[0]
-		matchEnd := match[1]
-		for i := lastPos; i < matchStart; i++ {
-			if content[i] == '\n' {
-				lineNumber++
-				lineStart = i + 1
-			}
-		}
-		lastPos = matchStart
-		charNumber := matchStart - lineStart
-		results = append(results, fileSearchResult{
-			positionParams: protocol.TextDocumentPositionParams{
-				TextDocument: protocol.TextDocumentIdentifier{
-					URI: protocol.DocumentURI(uri.File(filePath)),
-				},
-				Position: protocol.Position{
-					Line:      uint32(lineNumber),
-					Character: uint32(charNumber),
-				},
-			},
-			match: string(content[matchStart:matchEnd]),
-		})
-	}
-	return results
-}
-
-func (b *builtinServiceClient) searchContentLiteral(filePath string, content []byte, pattern string) []fileSearchResult {
-	literalBytes := []byte(pattern)
-	var matches [][]int
-	searchPos := 0
-	for {
-		idx := bytes.Index(content[searchPos:], literalBytes)
-		if idx == -1 {
-			break
-		}
-		actualPos := searchPos + idx
-		matches = append(matches, []int{actualPos, actualPos + len(literalBytes)})
-		searchPos = actualPos + 1
-	}
-	if len(matches) == 0 {
-		return nil
-	}
-
-	results := make([]fileSearchResult, 0, len(matches))
-	lineNumber := 1
-	lineStart := 0
-	lastPos := 0
-	for _, match := range matches {
-		matchStart := match[0]
-		matchEnd := match[1]
-		for i := lastPos; i < matchStart; i++ {
-			if content[i] == '\n' {
-				lineNumber++
-				lineStart = i + 1
-			}
-		}
-		lastPos = matchStart
-		charNumber := matchStart - lineStart
-		results = append(results, fileSearchResult{
-			positionParams: protocol.TextDocumentPositionParams{
-				TextDocument: protocol.TextDocumentIdentifier{
-					URI: protocol.DocumentURI(uri.File(filePath)),
-				},
-				Position: protocol.Position{
-					Line:      uint32(lineNumber),
-					Character: uint32(charNumber),
-				},
-			},
-			match: string(content[matchStart:matchEnd]),
-		})
-	}
-	return results
-}
-
-func (b *builtinServiceClient) searchContentRegexp2(filePath string, content []byte, regex *regexp2.Regexp) []fileSearchResult {
-	contentStr := string(content)
-	match, err := regex.FindStringMatch(contentStr)
-	if err != nil {
-		return nil
-	}
-
-	var results []fileSearchResult
-	lineNumber := 1
-	lineStart := 0
-	lastPos := 0
-
-	for match != nil {
-		for i := lastPos; i < match.Index; i++ {
-			if contentStr[i] == '\n' {
-				lineNumber++
-				lineStart = i + 1
-			}
-		}
-		lastPos = match.Index
-		charNumber := match.Index - lineStart
-		results = append(results, fileSearchResult{
-			positionParams: protocol.TextDocumentPositionParams{
-				TextDocument: protocol.TextDocumentIdentifier{
-					URI: protocol.DocumentURI(uri.File(filePath)),
-				},
-				Position: protocol.Position{
-					Line:      uint32(lineNumber),
-					Character: uint32(charNumber),
-				},
-			},
-			match: match.String(),
-		})
-		match, err = regex.FindNextMatch(match)
-		if err != nil {
-			break
-		}
-	}
-	return results
 }
 
 // processXMLForFile runs all xml and xmlPublicID conditions against a pre-parsed XML DOM.
@@ -736,28 +842,7 @@ func (b *builtinServiceClient) processXMLForFile(ctx context.Context, filePath s
 			}
 			incidents := make([]provider.IncidentContext, 0, len(nodes))
 			for _, node := range nodes {
-				incident := provider.IncidentContext{
-					FileURI: uri.File(filePath),
-					Variables: map[string]interface{}{
-						"matchingXML": compactXML(node.OutputXML(false)),
-						"innerText":   node.InnerText(),
-						"data":        node.Data,
-					},
-				}
-				content := strings.TrimSpace(node.InnerText())
-				if content == "" {
-					content = node.Data
-				}
-				location, err := b.getLocation(ctx, filePath, content)
-				if err == nil {
-					incident.CodeLocation = &location
-					lineNo := int(location.StartPosition.Line)
-					incident.LineNumber = &lineNo
-				} else {
-					lineNum := node.LineNumber
-					incident.LineNumber = &lineNum
-				}
-				incidents = append(incidents, incident)
+				incidents = append(incidents, b.xmlNodeToIncident(ctx, filePath, node))
 			}
 			b.mergeIntoCache(pc.cacheKey, filePath, incidents)
 		} else {
@@ -767,14 +852,7 @@ func (b *builtinServiceClient) processXMLForFile(ctx context.Context, filePath s
 				for _, attr := range node.Attr {
 					if attr.Name.Local == "public-id" {
 						if pc.compiledRegex != nil && pc.compiledRegex.MatchString(attr.Value) {
-							incidents = append(incidents, provider.IncidentContext{
-								FileURI: uri.File(filePath),
-								Variables: map[string]interface{}{
-									"matchingXML": compactXML(node.OutputXML(false)),
-									"innerText":   node.InnerText(),
-									"data":        node.Data,
-								},
-							})
+							incidents = append(incidents, xmlPublicIDNodeToIncident(filePath, node))
 						}
 						break
 					}
@@ -804,50 +882,14 @@ func (b *builtinServiceClient) processJSONForFile(ctx context.Context, filePath 
 
 		incidents := make([]provider.IncidentContext, 0, len(list))
 		for _, node := range list {
-			incident := provider.IncidentContext{
-				FileURI: uri.File(filePath),
-				Variables: map[string]interface{}{
-					"matchingJSON": node.InnerText(),
-					"data":         node.Data,
-				},
-			}
-			location, err := b.getLocation(ctx, filePath, node.InnerText())
-			if err == nil {
-				incident.CodeLocation = &location
-				lineNo := int(location.StartPosition.Line)
-				incident.LineNumber = &lineNo
-			}
-			incidents = append(incidents, incident)
+			incidents = append(incidents, b.jsonNodeToIncident(ctx, filePath, node))
 		}
 		b.mergeIntoCache(pc.cacheKey, filePath, incidents)
 	}
 }
 
-func (b *builtinServiceClient) openFileWithEncoding(filePath string) (io.Reader, error) {
-	var content []byte
-	var err error
-	if b.encoding != "" {
-		content, err = engine.OpenFileWithEncoding(filePath, b.encoding)
-		if err != nil {
-			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", filePath)
-			content, readErr := os.ReadFile(filePath)
-			if readErr != nil {
-				return nil, readErr
-			}
-			return bytes.NewReader(content), nil
-		}
-	} else {
-		content, err = os.ReadFile(filePath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return bytes.NewReader(content), nil
-}
-
-func (p *builtinServiceClient) Stop() {
-	p.workingCopyMgr.stop()
+func (b *builtinServiceClient) Stop() {
+	b.workingCopyMgr.stop()
 }
 
 func (p *builtinServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
@@ -871,13 +913,8 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	log.V(5).Info("builtin condition context", "condition", cond, "provider context", cond.ProviderContext)
 	response := provider.ProviderEvaluateResponse{Matched: false}
 
-	// searchFiles resolves file lists either from the cached index (if Prepare()
-	// was called) or by creating a fresh FileSearcher and walking the filesystem.
-	searchFiles := func(criteria provider.SearchCriteria) ([]string, error) {
-		if p.prepared {
-			return p.filterCachedFiles(cond, criteria)
-		}
-		// Fallback: create FileSearcher per call (original behavior)
+	// searchFilesFromFS creates a FileSearcher and walks the filesystem (original behavior).
+	searchFilesFromFS := func(criteria provider.SearchCriteria) ([]string, error) {
 		wcIncludedPaths, wcExcludedPaths := p.getWorkingCopies()
 		includedPaths, excludedPaths := cond.ProviderContext.GetScopedFilepaths()
 		excludedPaths = append(excludedPaths, wcExcludedPaths...)
@@ -896,6 +933,15 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			Log:      p.log,
 		}
 		return fileSearcher.Search(criteria)
+	}
+
+	// searchFiles resolves file lists from the cached index when available,
+	// otherwise falls back to a full filesystem walk.
+	searchFiles := func(criteria provider.SearchCriteria) ([]string, error) {
+		if p.prepared {
+			return p.filterCachedFiles(cond, criteria)
+		}
+		return searchFilesFromFS(criteria)
 	}
 
 	switch cap {
@@ -934,31 +980,27 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if p.prepared && len(p.allParsedConditions) > 0 && !isChainedCondition(cap, cond) {
-			key := makeIncidentCacheKey(cap, cond)
-			var patterns []string
+		if incidents, ok, err := p.tryIncidentCache(cap, cond, func() []string {
 			if c.FilePattern != "" {
-				patterns = []string{c.FilePattern}
+				return []string{c.FilePattern}
 			}
-			scopedFiles, err := p.filterCachedFiles(cond, provider.SearchCriteria{
-				Patterns: patterns,
-			})
-			if err != nil {
-				return response, fmt.Errorf("failed to filter cached files - %w", err)
-			}
-			if incidents, ok := p.incidentsFromCache(key, scopedFiles); ok {
-				response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
-				response.Matched = len(response.Incidents) > 0
-				return response, nil
-			}
+			return nil
+		}()); err != nil {
+			return response, fmt.Errorf("failed to filter cached files - %w", err)
+		} else if ok {
+			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
+			response.Matched = len(response.Incidents) > 0
+			return response, nil
 		}
 
-		// Fallback: full search (chained condition, cache miss, or not prepared)
+		// Fallback: full filesystem walk (chained condition, cache miss, or not prepared).
+		// Uses searchFilesFromFS to bypass the index since chained conditions have
+		// template-expanded Filepaths that aren't in the cached index.
 		patterns := []string{}
 		if c.FilePattern != "" {
 			patterns = append(patterns, c.FilePattern)
 		}
-		filePaths, err := searchFiles(provider.SearchCriteria{
+		filePaths, err := searchFilesFromFS(provider.SearchCriteria{
 			Patterns:           patterns,
 			ConditionFilepaths: c.Filepaths,
 		})
@@ -971,25 +1013,9 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("failed to perform file content search - %w", err)
 		}
 
-		for _, match := range matches {
-			lineNumber := int(match.positionParams.Position.Line)
-
-			response.Incidents = append(response.Incidents, provider.IncidentContext{
-				FileURI:    uri.URI(match.positionParams.TextDocument.URI),
-				LineNumber: &lineNumber,
-				Variables: map[string]interface{}{
-					"matchingText": match.match,
-				},
-				CodeLocation: &provider.Location{
-					StartPosition: provider.Position{Line: float64(lineNumber)},
-					EndPosition:   provider.Position{Line: float64(lineNumber)},
-				},
-			})
-		}
-		if len(response.Incidents) != 0 {
-			response.Matched = true
-		}
+		response.Incidents = filecontentMatchesToIncidents(matches)
 		response.Incidents = p.workingCopyMgr.reformatIncidents(response.Incidents...)
+		response.Matched = len(response.Incidents) > 0
 		return response, nil
 	case "xml":
 		query, err := xpath.CompileWithNS(cond.XML.XPath, cond.XML.Namespaces)
@@ -998,23 +1024,16 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if p.prepared && len(p.allParsedConditions) > 0 && !isChainedCondition(cap, cond) {
-			key := makeIncidentCacheKey(cap, cond)
-			scopedFiles, err := p.filterCachedFiles(cond, provider.SearchCriteria{
-				Patterns: []string{"*.xml", "*.xhtml"},
-			})
-			if err != nil {
-				return response, fmt.Errorf("unable to find XML files: %v", err)
-			}
-			if incidents, ok := p.incidentsFromCache(key, scopedFiles); ok {
-				response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
-				response.Matched = len(response.Incidents) > 0
-				return response, nil
-			}
+		if incidents, ok, err := p.tryIncidentCache(cap, cond, []string{"*.xml", "*.xhtml"}); err != nil {
+			return response, fmt.Errorf("unable to find XML files: %v", err)
+		} else if ok {
+			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
+			response.Matched = len(response.Incidents) > 0
+			return response, nil
 		}
 
-		// Fallback
-		xmlFiles, err := searchFiles(provider.SearchCriteria{
+		// Fallback: full filesystem walk
+		xmlFiles, err := searchFilesFromFS(provider.SearchCriteria{
 			Patterns:           []string{"*.xml", "*.xhtml"},
 			ConditionFilepaths: cond.XML.Filepaths,
 		})
@@ -1034,28 +1053,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					if err != nil {
 						absPath = file
 					}
-					incident := provider.IncidentContext{
-						FileURI: uri.File(absPath),
-						Variables: map[string]interface{}{
-							"matchingXML": compactXML(node.OutputXML(false)),
-							"innerText":   node.InnerText(),
-							"data":        node.Data,
-						},
-					}
-					content := strings.TrimSpace(node.InnerText())
-					if content == "" {
-						content = node.Data
-					}
-					location, err := p.getLocation(ctx, absPath, content)
-					if err == nil {
-						incident.CodeLocation = &location
-						lineNo := int(location.StartPosition.Line)
-						incident.LineNumber = &lineNo
-					} else {
-						lineNum := node.LineNumber
-						incident.LineNumber = &lineNum
-					}
-					response.Incidents = append(response.Incidents, incident)
+					response.Incidents = append(response.Incidents, p.xmlNodeToIncident(ctx, absPath, node))
 				}
 			}
 		}
@@ -1072,23 +1070,16 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if p.prepared && len(p.allParsedConditions) > 0 && !isChainedCondition(cap, cond) {
-			key := makeIncidentCacheKey(cap, cond)
-			scopedFiles, err := p.filterCachedFiles(cond, provider.SearchCriteria{
-				Patterns: []string{"*.xml", "*.xhtml"},
-			})
-			if err != nil {
-				return response, fmt.Errorf("unable to find XML files: %v", err)
-			}
-			if incidents, ok := p.incidentsFromCache(key, scopedFiles); ok {
-				response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
-				response.Matched = len(response.Incidents) > 0
-				return response, nil
-			}
+		if incidents, ok, err := p.tryIncidentCache(cap, cond, []string{"*.xml", "*.xhtml"}); err != nil {
+			return response, fmt.Errorf("unable to find XML files: %v", err)
+		} else if ok {
+			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
+			response.Matched = len(response.Incidents) > 0
+			return response, nil
 		}
 
-		// Fallback
-		xmlFiles, err := searchFiles(provider.SearchCriteria{
+		// Fallback: full filesystem walk
+		xmlFiles, err := searchFilesFromFS(provider.SearchCriteria{
 			Patterns:           []string{"*.xml", "*.xhtml"},
 			ConditionFilepaths: cond.XMLPublicID.Filepaths,
 		})
@@ -1112,14 +1103,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 							if err != nil {
 								absPath = file
 							}
-							response.Incidents = append(response.Incidents, provider.IncidentContext{
-								FileURI: uri.File(absPath),
-								Variables: map[string]interface{}{
-									"matchingXML": compactXML(node.OutputXML(false)),
-									"innerText":   node.InnerText(),
-									"data":        node.Data,
-								},
-							})
+							response.Incidents = append(response.Incidents, xmlPublicIDNodeToIncident(absPath, node))
 						}
 						break
 					}
@@ -1135,23 +1119,16 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if p.prepared && len(p.allParsedConditions) > 0 && !isChainedCondition(cap, cond) {
-			key := makeIncidentCacheKey(cap, cond)
-			scopedFiles, err := p.filterCachedFiles(cond, provider.SearchCriteria{
-				Patterns: []string{"*.json"},
-			})
-			if err != nil {
-				return response, fmt.Errorf("unable to find JSON files: %v", err)
-			}
-			if incidents, ok := p.incidentsFromCache(key, scopedFiles); ok {
-				response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
-				response.Matched = len(response.Incidents) > 0
-				return response, nil
-			}
+		if incidents, ok, err := p.tryIncidentCache(cap, cond, []string{"*.json"}); err != nil {
+			return response, fmt.Errorf("unable to find JSON files: %v", err)
+		} else if ok {
+			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
+			response.Matched = len(response.Incidents) > 0
+			return response, nil
 		}
 
-		// Fallback
-		jsonFiles, err := searchFiles(provider.SearchCriteria{
+		// Fallback: full filesystem walk
+		jsonFiles, err := searchFilesFromFS(provider.SearchCriteria{
 			Patterns:           []string{"*.json"},
 			ConditionFilepaths: cond.JSON.Filepaths,
 		})
@@ -1159,12 +1136,12 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("unable to find JSON files: %v", err)
 		}
 		for _, file := range jsonFiles {
-			reader, err := p.openFileWithEncoding(file)
+			content, err := p.readFileContent(file)
 			if err != nil {
-				log.V(5).Error(err, "error opening json file", "file", file)
+				log.V(5).Error(err, "error reading json file", "file", file)
 				continue
 			}
-			doc, err := jsonquery.Parse(reader)
+			doc, err := jsonquery.Parse(bytes.NewReader(content))
 			if err != nil {
 				log.V(5).Error(err, "error parsing json file", "file", file)
 				continue
@@ -1180,20 +1157,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 					if err != nil {
 						absPath = file
 					}
-					incident := provider.IncidentContext{
-						FileURI: uri.File(absPath),
-						Variables: map[string]interface{}{
-							"matchingJSON": node.InnerText(),
-							"data":         node.Data,
-						},
-					}
-					location, err := p.getLocation(ctx, absPath, node.InnerText())
-					if err == nil {
-						incident.CodeLocation = &location
-						lineNo := int(location.StartPosition.Line)
-						incident.LineNumber = &lineNo
-					}
-					response.Incidents = append(response.Incidents, incident)
+					response.Incidents = append(response.Incidents, p.jsonNodeToIncident(ctx, absPath, node))
 				}
 			}
 		}
@@ -1301,48 +1265,6 @@ func compactXML(xml string) string {
 	return compacted
 }
 
-func (b *builtinServiceClient) queryXMLFile(filePath string, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
-	var content []byte
-	if b.encoding != "" {
-		content, err = engine.OpenFileWithEncoding(filePath, b.encoding)
-		if err != nil {
-			b.log.V(5).Error(err, "failed to convert file encoding for XML, using original file", "file", filePath)
-			content, err = os.ReadFile(filePath)
-			if err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		content, err = os.ReadFile(filePath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// TODO This should start working if/when this merges and releases: https://github.com/golang/go/pull/56848
-	var doc *xmlquery.Node
-	doc, err = xmlquery.ParseWithOptions(strings.NewReader(string(content)), xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}, WithLineNumbers: true})
-	if err != nil {
-		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
-			// TODO HACK just pretend 1.1 xml documents are 1.0 for now while we wait for golang to support 1.1
-			docString := strings.Replace(string(content), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
-			doc, err = xmlquery.Parse(strings.NewReader(docString))
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
-			}
-		} else {
-			return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
-		}
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("recovered panic from xpath query search with err - %v", r)
-		}
-	}()
-	nodes = xmlquery.QuerySelectorAll(doc, query)
-	return nodes, err
-}
-
 func (b *builtinServiceClient) getWorkingCopies() ([]string, []string) {
 	additionalIncludedPaths := []string{}
 	excludedPaths := []string{}
@@ -1399,15 +1321,7 @@ func (b *builtinServiceClient) performFileContentSearch(pattern string, location
 }
 
 func (b *builtinServiceClient) performMultilineSearch(trimmedPattern string, locations []string) ([]fileSearchResult, error) {
-	// Check if pattern is a literal string (no regex metacharacters)
-	// This allows us to use fast bytes.Index() instead of regexp
-	isLiteral := true
-	for _, ch := range trimmedPattern {
-		if strings.ContainsRune(".*+?^$[]{}()|\\", ch) {
-			isLiteral = false
-			break
-		}
-	}
+	isLiteral := isLiteralPattern(trimmedPattern)
 
 	b.log.V(7).Info("pattern", "trimmed pattern", trimmedPattern, "isLiteral", isLiteral)
 
@@ -1488,21 +1402,9 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 		return []fileSearchResult{}, nil
 	}
 
-	var content []byte
-	if b.encoding != "" {
-		content, err = engine.OpenFileWithEncoding(path, b.encoding)
-		if err != nil {
-			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", path)
-			content, err = os.ReadFile(path)
-			if err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		content, err = os.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
+	content, err := b.readFileContent(path)
+	if err != nil {
+		return nil, err
 	}
 
 	// Get absolute path for results
@@ -1511,67 +1413,13 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 		return nil, err
 	}
 
-	// Pre-allocate result slice
-	var r []fileSearchResult
-
 	// Fast path for literal string search using bytes.Index()
 	if isLiteral {
-		literalBytes := []byte(literalPattern)
-		searchPos := 0
-		matches := [][]int{}
-
-		for {
-			idx := bytes.Index(content[searchPos:], literalBytes)
-			if idx == -1 {
-				break
-			}
-			actualPos := searchPos + idx
-			matches = append(matches, []int{actualPos, actualPos + len(literalBytes)})
-			searchPos = actualPos + 1
-		}
-
-		if len(matches) == 0 {
+		spans := findLiteralMatches(content, literalPattern)
+		if len(spans) == 0 {
 			return []fileSearchResult{}, nil
 		}
-
-		r = make([]fileSearchResult, 0, len(matches))
-
-		// Calculate line numbers incrementally (1-based for display)
-		lineNumber := 1
-		lineStart := 0
-		lastPos := 0
-
-		for _, match := range matches {
-			matchStart := match[0]
-			matchEnd := match[1]
-
-			// Count newlines only from last position to current match
-			for i := lastPos; i < matchStart; i++ {
-				if content[i] == '\n' {
-					lineNumber++
-					lineStart = i + 1
-				}
-			}
-			lastPos = matchStart
-
-			// Character position as byte offset from start of line
-			charNumber := matchStart - lineStart
-
-			r = append(r, fileSearchResult{
-				positionParams: protocol.TextDocumentPositionParams{
-					TextDocument: protocol.TextDocumentIdentifier{
-						URI: protocol.DocumentURI(uri.File(absPath)),
-					},
-					Position: protocol.Position{
-						Line:      uint32(lineNumber),
-						Character: uint32(charNumber),
-					},
-				},
-				match: string(content[matchStart:matchEnd]),
-			})
-		}
-
-		return r, nil
+		return buildFileSearchResults(absPath, content, spans), nil
 	}
 
 	// Fast pre-check: try to use Go's standard regexp for quick byte-based filtering
@@ -1580,12 +1428,6 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 
 	if stdRegex != nil {
 		b.log.V(7).Info("using golang regex", "pattern", literalPattern)
-		if runtime.GOOS == "windows" {
-			b.log.V(7).Info("remove CRLF line endings")
-			if bytes.Contains(content, []byte("\r\n")) {
-				content = bytes.ReplaceAll(content, []byte("\r\n"), []byte("\n"))
-			}
-		}
 		// Use byte-based matching for pre-check (no allocation)
 		foundMatch = stdRegex.Match(content)
 	} else {
@@ -1623,99 +1465,21 @@ func (b *builtinServiceClient) processFileWithLiteralCheck(path string, regex *r
 	}
 
 	// Match found in pre-check, now search for all matches and their positions
-	// If we can use standard regexp, do the full search with it to avoid string conversion overhead
 	if stdRegex != nil {
-		// Use standard regexp for better performance
-		matches := stdRegex.FindAllIndex(content, -1)
-		if len(matches) == 0 {
+		spans := findStdRegexMatches(content, stdRegex)
+		if len(spans) == 0 {
 			return []fileSearchResult{}, nil
 		}
-
-		r = make([]fileSearchResult, 0, len(matches))
-
-		// Calculate line numbers incrementally to avoid recounting (1-based for display)
-		lineNumber := 1
-		lineStart := 0
-		lastPos := 0
-
-		for _, match := range matches {
-			matchStart := match[0]
-			matchEnd := match[1]
-
-			// Count newlines only from last position to current match
-			for i := lastPos; i < matchStart; i++ {
-				if content[i] == '\n' {
-					lineNumber++
-					lineStart = i + 1
-				}
-			}
-			lastPos = matchStart
-
-			// Character position as byte offset from start of line
-			charNumber := matchStart - lineStart
-
-			r = append(r, fileSearchResult{
-				positionParams: protocol.TextDocumentPositionParams{
-					TextDocument: protocol.TextDocumentIdentifier{
-						URI: protocol.DocumentURI(uri.File(absPath)),
-					},
-					Position: protocol.Position{
-						Line:      uint32(lineNumber),
-						Character: uint32(charNumber),
-					},
-				},
-				match: string(content[matchStart:matchEnd]),
-			})
-		}
-	} else {
-		// Need regexp2 for full match - convert to string
-		contentStr := string(content)
-
-		// Find all matches in the file content using regexp2
-		match, err := regex.FindStringMatch(contentStr)
-		if err != nil {
-			return nil, err
-		}
-
-		// Calculate line numbers incrementally to avoid recounting (1-based for display)
-		lineNumber := 1
-		lineStart := 0
-		lastPos := 0
-
-		for match != nil {
-			// Count newlines only from last position to current match
-			for i := lastPos; i < match.Index; i++ {
-				if contentStr[i] == '\n' {
-					lineNumber++
-					lineStart = i + 1
-				}
-			}
-			lastPos = match.Index
-
-			// Character position as byte offset from start of line
-			charNumber := match.Index - lineStart
-
-			r = append(r, fileSearchResult{
-				positionParams: protocol.TextDocumentPositionParams{
-					TextDocument: protocol.TextDocumentIdentifier{
-						URI: protocol.DocumentURI(uri.File(absPath)),
-					},
-					Position: protocol.Position{
-						Line:      uint32(lineNumber),
-						Character: uint32(charNumber),
-					},
-				},
-				match: match.String(),
-			})
-
-			match, err = regex.FindNextMatch(match)
-			if err != nil {
-				return nil, err
-			}
-		}
+		return buildFileSearchResults(absPath, content, spans), nil
 	}
 
-	return r, nil
+	// Need regexp2 for full match - convert to string
+	contentStr := string(content)
+	spans, err := findRegexp2Matches(contentStr, regex)
+	if err != nil {
+		return nil, err
+	}
+	return buildFileSearchResults(absPath, content, spans), nil
 }
 
 // performGrepSearch uses platform-native grep/perl for simple (non-multiline) patterns
@@ -1924,21 +1688,9 @@ func (b *builtinServiceClient) processFileWindows(path string, regex *regexp2.Re
 		return []fileSearchResult{}, nil
 	}
 
-	var content []byte
-	if b.encoding != "" {
-		content, err = engine.OpenFileWithEncoding(path, b.encoding)
-		if err != nil {
-			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", path)
-			content, err = os.ReadFile(path)
-			if err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		content, err = os.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
+	content, err := b.readFileContent(path)
+	if err != nil {
+		return nil, err
 	}
 
 	reader := bytes.NewReader(content)
