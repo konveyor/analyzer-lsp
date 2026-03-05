@@ -311,16 +311,17 @@ func (a *analyzer) RuleLabels() []string {
 	return slices.Collect(maps.Keys(labels))
 }
 
-func (a *analyzer) RulesetFilepaths() map[string]string {
-	if len(a.ruleset) == 0 {
-		a.log.Info("no ruleset's to get get labels from")
-		return map[string]string{}
-	}
-
-	filePaths := map[string]string{}
-	// TODO: Need to save more info on analyzer when looping through files.
-	return filePaths
-}
+// TODO (shawn-hurley) add ability to get the filepaths to the rulesets that have been loaded.
+//func (a *analyzer) RulesetFilepaths() map[string]string {
+//	if len(a.ruleset) == 0 {
+//		a.log.Info("no ruleset's to get get labels from")
+//		return map[string]string{}
+//	}
+//
+//	filePaths := map[string]string{}
+//	// TODO: Need to save more info on analyzer when looping through files.
+//	return filePaths
+//}
 
 func (a *analyzer) RuleSets() []engine.RuleSet {
 	// TODO: Implement Clone interface for engine.RuleSet

@@ -18,15 +18,6 @@ func TestAnalyzer_RuleLabels(t *testing.T) {
 	assert.Empty(t, labels)
 }
 
-func TestAnalyzer_RulesetFilepaths(t *testing.T) {
-	// Test with no ruleset
-	analyzer := &analyzer{
-		log: logr.Discard(),
-	}
-	filepaths := analyzer.RulesetFilepaths()
-	assert.Empty(t, filepaths)
-}
-
 func TestAnalyzer_GetProviderForLanguage(t *testing.T) {
 	analyzer := &analyzer{
 		log: logr.Discard(),
