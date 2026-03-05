@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -48,10 +49,37 @@ type builtinServiceClient struct {
 	fileIndex []string
 	// prepared indicates Prepare() completed successfully and fileIndex is valid
 	prepared bool
+
+	// incidentCache stores pre-computed incidents keyed by (capability, search params)
+	// then by file path.
+	incidentCache      map[incidentCacheKey]map[string][]provider.IncidentContext
+	incidentCacheMutex sync.RWMutex
+	// allParsedConditions holds pre-compiled conditions from Prepare(), deduplicated
+	// by cache key. Conditions with chained Filepaths are excluded (they use
+	// template expansion at Evaluate time and must fall back to current behavior).
+	allParsedConditions []parsedCondition
 }
 
 type fileTemplateContext struct {
 	Filepaths []string `json:"filepaths,omitempty"`
+}
+
+type incidentCacheKey struct {
+	cap    string
+	params string
+}
+
+// parsedCondition holds a pre-parsed, pre-compiled condition ready for execution
+// during Prepare()'s per-file processing. Compiling regexes and XPath expressions
+// once here avoids re-compilation for every file.
+type parsedCondition struct {
+	cacheKey            incidentCacheKey
+	cap                 string
+	condition           builtinCondition
+	compiledXPath       *xpath.Expr    // xml, xmlPublicID
+	compiledRegex       *regexp.Regexp // xmlPublicID
+	compiledFilePattern *regexp.Regexp // filecontent FilePattern, nil if empty or invalid regex
+	jsonXPath           string         // json
 }
 
 var _ provider.ServiceClient = &builtinServiceClient{}
@@ -60,11 +88,13 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 	ctx, span := tracing.StartNewSpan(ctx, "builtin.Prepare")
 	defer span.End()
 
-	// Parse all conditions to collect the union of include scopes only.
-	// Per-rule excludes must be applied at Evaluate-time via filterCachedFiles,
-	// not here — unioning excludes across rules would permanently drop files
-	// from the index that other rules need.
+	// Parse all conditions to:
+	// 1. Collect the union of include scopes for the filesystem walk
+	// 2. Pre-compile patterns for per-file processing during incident caching
 	var allIncluded []string
+	seen := map[incidentCacheKey]bool{}
+	var parsedConds []parsedCondition
+
 	for _, cbc := range conditionsByCap {
 		for _, condBytes := range cbc.Conditions {
 			var cond builtinCondition
@@ -74,6 +104,65 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 			}
 			inc, _ := cond.ProviderContext.GetScopedFilepaths()
 			allIncluded = append(allIncluded, inc...)
+
+			if cbc.Cap == "file" || cbc.Cap == "hasTags" {
+				continue
+			}
+			if isChainedCondition(cbc.Cap, cond) {
+				b.log.V(5).Info("skipping chained condition in Prepare", "cap", cbc.Cap)
+				continue
+			}
+			key := makeIncidentCacheKey(cbc.Cap, cond)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+
+			pc := parsedCondition{
+				cacheKey:  key,
+				cap:       cbc.Cap,
+				condition: cond,
+			}
+
+			// Pre-compile patterns to avoid per-file compilation cost
+			switch cbc.Cap {
+			case "filecontent":
+				if cond.Filecontent.Pattern == "" {
+					continue
+				}
+				if cond.Filecontent.FilePattern != "" {
+					if compiled, err := regexp.Compile(cond.Filecontent.FilePattern); err == nil {
+						pc.compiledFilePattern = compiled
+					}
+				}
+			case "xml":
+				compiled, err := xpath.CompileWithNS(cond.XML.XPath, cond.XML.Namespaces)
+				if err != nil || compiled == nil {
+					b.log.V(5).Error(err, "failed to compile xpath in Prepare, skipping", "xpath", cond.XML.XPath)
+					continue
+				}
+				pc.compiledXPath = compiled
+			case "xmlPublicID":
+				compiled, err := xpath.CompileWithNS("//*[@public-id]", cond.XMLPublicID.Namespaces)
+				if err != nil || compiled == nil {
+					b.log.V(5).Error(err, "failed to compile xmlPublicID xpath in Prepare, skipping")
+					continue
+				}
+				pc.compiledXPath = compiled
+				regex, err := regexp.Compile(cond.XMLPublicID.Regex)
+				if err != nil {
+					b.log.V(5).Error(err, "failed to compile xmlPublicID regex in Prepare, skipping", "regex", cond.XMLPublicID.Regex)
+					continue
+				}
+				pc.compiledRegex = regex
+			case "json":
+				if cond.JSON.XPath == "" {
+					continue
+				}
+				pc.jsonXPath = cond.JSON.XPath
+			}
+
+			parsedConds = append(parsedConds, pc)
 		}
 	}
 
@@ -99,8 +188,39 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 	}
 
 	b.fileIndex = files
+	b.allParsedConditions = parsedConds
+	b.incidentCache = make(map[incidentCacheKey]map[string][]provider.IncidentContext)
+
+	// Process all files through worker pool to populate the incident cache.
+	if len(parsedConds) > 0 && len(files) > 0 {
+		const numWorkers = 5
+		fileChan := make(chan string, 10)
+		var wg sync.WaitGroup
+
+		for i := 0; i < numWorkers; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for file := range fileChan {
+					b.processFileForAllCaps(ctx, file)
+				}
+			}()
+		}
+
+		for _, file := range files {
+			fileChan <- file
+		}
+		close(fileChan)
+		wg.Wait()
+
+		b.log.V(5).Info("incident cache populated during Prepare",
+			"fileCount", len(files),
+			"parsedConditions", len(parsedConds),
+			"cacheEntries", len(b.incidentCache))
+	}
+
 	b.prepared = true
-	b.log.V(5).Info("file index built during Prepare", "fileCount", len(files))
+	b.log.V(5).Info("Prepare complete", "fileCount", len(files), "parsedConditions", len(parsedConds))
 	return nil
 }
 
@@ -127,6 +247,578 @@ func (b *builtinServiceClient) filterCachedFiles(cond builtinCondition, criteria
 	}
 
 	return searcher.SearchFromIndex(b.fileIndex, criteria)
+}
+
+// makeIncidentCacheKey builds a canonical cache key for a condition.
+func makeIncidentCacheKey(cap string, cond builtinCondition) incidentCacheKey {
+	switch cap {
+	case "filecontent":
+		return incidentCacheKey{
+			cap:    cap,
+			params: cond.Filecontent.Pattern + "\x00" + cond.Filecontent.FilePattern,
+		}
+	case "xml":
+		return incidentCacheKey{
+			cap:    cap,
+			params: cond.XML.XPath + "\x00" + sortedNamespaces(cond.XML.Namespaces),
+		}
+	case "xmlPublicID":
+		return incidentCacheKey{
+			cap:    cap,
+			params: cond.XMLPublicID.Regex + "\x00" + sortedNamespaces(cond.XMLPublicID.Namespaces),
+		}
+	case "json":
+		return incidentCacheKey{
+			cap:    cap,
+			params: cond.JSON.XPath,
+		}
+	default:
+		return incidentCacheKey{cap: cap}
+	}
+}
+
+func sortedNamespaces(ns map[string]string) string {
+	if len(ns) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(ns))
+	for k := range ns {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var b strings.Builder
+	for i, k := range keys {
+		if i > 0 {
+			b.WriteByte('\x00')
+		}
+		b.WriteString(k)
+		b.WriteByte('=')
+		b.WriteString(ns[k])
+	}
+	return b.String()
+}
+
+// isChainedCondition returns true if the condition has non-empty Filepaths,
+// which are template-expanded at Evaluate() time and cannot be pre-cached.
+func isChainedCondition(cap string, cond builtinCondition) bool {
+	switch cap {
+	case "filecontent":
+		return len(cond.Filecontent.Filepaths) > 0
+	case "xml":
+		return len(cond.XML.Filepaths) > 0
+	case "xmlPublicID":
+		return len(cond.XMLPublicID.Filepaths) > 0
+	case "json":
+		return len(cond.JSON.Filepaths) > 0
+	default:
+		return false
+	}
+}
+
+// mergeIntoCache thread-safely merges incidents for a given cache key and file
+// into the incident cache.
+func (b *builtinServiceClient) mergeIntoCache(key incidentCacheKey, filePath string, incidents []provider.IncidentContext) {
+	if len(incidents) == 0 {
+		return
+	}
+	b.incidentCacheMutex.Lock()
+	defer b.incidentCacheMutex.Unlock()
+	if b.incidentCache[key] == nil {
+		b.incidentCache[key] = make(map[string][]provider.IncidentContext)
+	}
+	b.incidentCache[key][filePath] = append(b.incidentCache[key][filePath], incidents...)
+}
+
+// incidentsFromCache looks up cached incidents for a cache key, filtered to
+// only include files in the provided scope set. Returns nil and false on cache miss.
+func (b *builtinServiceClient) incidentsFromCache(key incidentCacheKey, scopedFiles []string) ([]provider.IncidentContext, bool) {
+	b.incidentCacheMutex.RLock()
+	fileMap, exists := b.incidentCache[key]
+	b.incidentCacheMutex.RUnlock()
+	if !exists {
+		return nil, false
+	}
+
+	var result []provider.IncidentContext
+	for _, f := range scopedFiles {
+		if incidents, ok := fileMap[f]; ok {
+			result = append(result, incidents...)
+		}
+	}
+	return result, true
+}
+
+// matchesFilePattern checks if a file matches a pattern
+func matchesFilePattern(compiledRegex *regexp.Regexp, pattern, relPath, baseName string) bool {
+	if compiledRegex != nil && (compiledRegex.MatchString(relPath) || compiledRegex.MatchString(baseName)) {
+		return true
+	}
+	if strings.Contains(pattern, "*") || strings.Contains(pattern, "?") {
+		if m, err := filepath.Match(pattern, relPath); err == nil && m {
+			return true
+		}
+		if m, err := filepath.Match(pattern, baseName); err == nil && m {
+			return true
+		}
+	}
+	return false
+}
+
+// readFileContent reads a file's content, applying encoding conversion if configured
+func (b *builtinServiceClient) readFileContent(filePath string) ([]byte, error) {
+	if b.encoding != "" {
+		content, err := engine.OpenFileWithEncoding(filePath, b.encoding)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to convert file encoding, using original content", "file", filePath)
+			return os.ReadFile(filePath)
+		}
+		return content, nil
+	}
+	return os.ReadFile(filePath)
+}
+
+// parseXMLContent parses XML content into a DOM. Extracted from queryXMLFile to
+// allow parsing once and running multiple queries against the same DOM.
+func (b *builtinServiceClient) parseXMLContent(filePath string, content []byte) (*xmlquery.Node, error) {
+	doc, err := xmlquery.ParseWithOptions(
+		strings.NewReader(string(content)),
+		xmlquery.ParserOptions{Decoder: &xmlquery.DecoderOptions{Strict: false}, WithLineNumbers: true},
+	)
+	if err != nil {
+		if err.Error() == "xml: unsupported version \"1.1\"; only version 1.0 is supported" {
+			docString := strings.Replace(string(content), "<?xml version=\"1.1\"", "<?xml version = \"1.0\"", 1)
+			doc, err = xmlquery.Parse(strings.NewReader(docString))
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
+			}
+		} else {
+			return nil, fmt.Errorf("unable to parse xml file '%s': %w", filePath, err)
+		}
+	}
+	return doc, nil
+}
+
+// queryXMLDoc runs an XPath query against a pre-parsed XML DOM
+func queryXMLDoc(doc *xmlquery.Node, query *xpath.Expr) (nodes []*xmlquery.Node, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("recovered panic from xpath query search with err - %v", r)
+		}
+	}()
+	nodes = xmlquery.QuerySelectorAll(doc, query)
+	return nodes, nil
+}
+
+// processFileForAllCaps reads a file once and runs all applicable pre-compiled
+// condition searches against it, merging results into the incident cache.
+// This is the core of the "open each file once" optimization.
+func (b *builtinServiceClient) processFileForAllCaps(ctx context.Context, filePath string) {
+	// Skip files that are too large
+	const maxFileSize = 100 * 1024 * 1024 // 100MB
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		b.log.V(5).Error(err, "failed to stat file during Prepare", "file", filePath)
+		return
+	}
+	if fileInfo.Size() > maxFileSize {
+		b.log.V(5).Info("skipping large file during Prepare", "file", filePath, "size", fileInfo.Size())
+		return
+	}
+
+	// Compute relative path from base location for pattern matching
+	relPath, err := filepath.Rel(b.config.Location, filePath)
+	if err != nil {
+		relPath = filepath.Base(filePath)
+	}
+	baseName := filepath.Base(filePath)
+
+	ext := strings.ToLower(filepath.Ext(filePath))
+	isXML := ext == ".xml" || ext == ".xhtml"
+	isJSON := ext == ".json"
+
+	// Determine which capabilities apply to this file
+	needsContent := false
+	needsXML := false
+	needsJSON := false
+
+	for i := range b.allParsedConditions {
+		pc := &b.allParsedConditions[i]
+		switch pc.cap {
+		case "filecontent":
+			// filecontent applies to all files, optionally filtered by FilePattern
+			if pc.condition.Filecontent.FilePattern != "" {
+				if !matchesFilePattern(pc.compiledFilePattern, pc.condition.Filecontent.FilePattern, relPath, baseName) {
+					continue
+				}
+			}
+			needsContent = true
+		case "xml", "xmlPublicID":
+			if isXML {
+				needsXML = true
+			}
+		case "json":
+			if isJSON {
+				needsJSON = true
+			}
+		}
+	}
+
+	// Nothing to do for this file
+	if !needsContent && !needsXML && !needsJSON {
+		return
+	}
+
+	// Read file content once
+	content, err := b.readFileContent(filePath)
+	if err != nil {
+		b.log.V(5).Error(err, "failed to read file during Prepare", "file", filePath)
+		return
+	}
+
+	// Process filecontent conditions
+	if needsContent {
+		b.processFilecontentForFile(filePath, content)
+	}
+
+	// Parse and process XML conditions
+	if needsXML {
+		doc, err := b.parseXMLContent(filePath, content)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to parse XML during Prepare", "file", filePath)
+		} else {
+			b.processXMLForFile(ctx, filePath, doc)
+		}
+	}
+
+	// Parse and process JSON conditions
+	if needsJSON {
+		doc, err := jsonquery.Parse(bytes.NewReader(content))
+		if err != nil {
+			b.log.V(5).Error(err, "failed to parse JSON during Prepare", "file", filePath)
+		} else {
+			b.processJSONForFile(ctx, filePath, doc)
+		}
+	}
+}
+
+// processFilecontentForFile runs all filecontent conditions against pre-read content.
+func (b *builtinServiceClient) processFilecontentForFile(filePath string, content []byte) {
+	relPath, err := filepath.Rel(b.config.Location, filePath)
+	if err != nil {
+		relPath = filepath.Base(filePath)
+	}
+	baseName := filepath.Base(filePath)
+
+	for i := range b.allParsedConditions {
+		pc := &b.allParsedConditions[i]
+		if pc.cap != "filecontent" {
+			continue
+		}
+
+		// Check file pattern filter
+		if pc.condition.Filecontent.FilePattern != "" {
+			if !matchesFilePattern(pc.compiledFilePattern, pc.condition.Filecontent.FilePattern, relPath, baseName) {
+				continue
+			}
+		}
+
+		pattern := pc.condition.Filecontent.Pattern
+		trimmedPattern := strings.TrimPrefix(pattern, "\"")
+		if !strings.HasSuffix(trimmedPattern, `\"`) {
+			trimmedPattern = strings.TrimSuffix(trimmedPattern, `"`)
+		}
+
+		// Use the existing multiline search logic on pre-read content
+		matches := b.searchContentForPattern(filePath, content, trimmedPattern)
+		if len(matches) == 0 {
+			continue
+		}
+
+		incidents := make([]provider.IncidentContext, 0, len(matches))
+		for _, match := range matches {
+			lineNumber := int(match.positionParams.Position.Line)
+			incidents = append(incidents, provider.IncidentContext{
+				FileURI:    uri.URI(match.positionParams.TextDocument.URI),
+				LineNumber: &lineNumber,
+				Variables: map[string]interface{}{
+					"matchingText": match.match,
+				},
+				CodeLocation: &provider.Location{
+					StartPosition: provider.Position{Line: float64(lineNumber)},
+					EndPosition:   provider.Position{Line: float64(lineNumber)},
+				},
+			})
+		}
+		b.mergeIntoCache(pc.cacheKey, filePath, incidents)
+	}
+}
+
+// searchContentForPattern searches pre-read content for a pattern.
+func (b *builtinServiceClient) searchContentForPattern(filePath string, content []byte, trimmedPattern string) []fileSearchResult {
+	// Check if pattern is literal
+	isLiteral := true
+	for _, ch := range trimmedPattern {
+		if strings.ContainsRune(".*+?^$[]{}()|\\", ch) {
+			isLiteral = false
+			break
+		}
+	}
+
+	if isLiteral {
+		return b.searchContentLiteral(filePath, content, trimmedPattern)
+	}
+
+	// Regex path — try standard regexp first
+	fullPattern := `(?m)` + trimmedPattern
+	stdRegex, err := regexp.Compile(fullPattern)
+	if err != nil {
+		// Fall back to regexp2
+		patternRegex, err := regexp2.Compile(fullPattern, regexp2.Multiline)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to compile pattern during Prepare", "pattern", trimmedPattern)
+			return nil
+		}
+		return b.searchContentRegexp2(filePath, content, patternRegex)
+	}
+
+	if !stdRegex.Match(content) {
+		return nil
+	}
+
+	matches := stdRegex.FindAllIndex(content, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+
+	results := make([]fileSearchResult, 0, len(matches))
+	lineNumber := 1
+	lineStart := 0
+	lastPos := 0
+
+	for _, match := range matches {
+		matchStart := match[0]
+		matchEnd := match[1]
+		for i := lastPos; i < matchStart; i++ {
+			if content[i] == '\n' {
+				lineNumber++
+				lineStart = i + 1
+			}
+		}
+		lastPos = matchStart
+		charNumber := matchStart - lineStart
+		results = append(results, fileSearchResult{
+			positionParams: protocol.TextDocumentPositionParams{
+				TextDocument: protocol.TextDocumentIdentifier{
+					URI: protocol.DocumentURI(uri.File(filePath)),
+				},
+				Position: protocol.Position{
+					Line:      uint32(lineNumber),
+					Character: uint32(charNumber),
+				},
+			},
+			match: string(content[matchStart:matchEnd]),
+		})
+	}
+	return results
+}
+
+func (b *builtinServiceClient) searchContentLiteral(filePath string, content []byte, pattern string) []fileSearchResult {
+	literalBytes := []byte(pattern)
+	var matches [][]int
+	searchPos := 0
+	for {
+		idx := bytes.Index(content[searchPos:], literalBytes)
+		if idx == -1 {
+			break
+		}
+		actualPos := searchPos + idx
+		matches = append(matches, []int{actualPos, actualPos + len(literalBytes)})
+		searchPos = actualPos + 1
+	}
+	if len(matches) == 0 {
+		return nil
+	}
+
+	results := make([]fileSearchResult, 0, len(matches))
+	lineNumber := 1
+	lineStart := 0
+	lastPos := 0
+	for _, match := range matches {
+		matchStart := match[0]
+		matchEnd := match[1]
+		for i := lastPos; i < matchStart; i++ {
+			if content[i] == '\n' {
+				lineNumber++
+				lineStart = i + 1
+			}
+		}
+		lastPos = matchStart
+		charNumber := matchStart - lineStart
+		results = append(results, fileSearchResult{
+			positionParams: protocol.TextDocumentPositionParams{
+				TextDocument: protocol.TextDocumentIdentifier{
+					URI: protocol.DocumentURI(uri.File(filePath)),
+				},
+				Position: protocol.Position{
+					Line:      uint32(lineNumber),
+					Character: uint32(charNumber),
+				},
+			},
+			match: string(content[matchStart:matchEnd]),
+		})
+	}
+	return results
+}
+
+func (b *builtinServiceClient) searchContentRegexp2(filePath string, content []byte, regex *regexp2.Regexp) []fileSearchResult {
+	contentStr := string(content)
+	match, err := regex.FindStringMatch(contentStr)
+	if err != nil {
+		return nil
+	}
+
+	var results []fileSearchResult
+	lineNumber := 1
+	lineStart := 0
+	lastPos := 0
+
+	for match != nil {
+		for i := lastPos; i < match.Index; i++ {
+			if contentStr[i] == '\n' {
+				lineNumber++
+				lineStart = i + 1
+			}
+		}
+		lastPos = match.Index
+		charNumber := match.Index - lineStart
+		results = append(results, fileSearchResult{
+			positionParams: protocol.TextDocumentPositionParams{
+				TextDocument: protocol.TextDocumentIdentifier{
+					URI: protocol.DocumentURI(uri.File(filePath)),
+				},
+				Position: protocol.Position{
+					Line:      uint32(lineNumber),
+					Character: uint32(charNumber),
+				},
+			},
+			match: match.String(),
+		})
+		match, err = regex.FindNextMatch(match)
+		if err != nil {
+			break
+		}
+	}
+	return results
+}
+
+// processXMLForFile runs all xml and xmlPublicID conditions against a pre-parsed XML DOM.
+func (b *builtinServiceClient) processXMLForFile(ctx context.Context, filePath string, doc *xmlquery.Node) {
+	for i := range b.allParsedConditions {
+		pc := &b.allParsedConditions[i]
+		if pc.cap != "xml" && pc.cap != "xmlPublicID" {
+			continue
+		}
+		if pc.compiledXPath == nil {
+			continue
+		}
+
+		nodes, err := queryXMLDoc(doc, pc.compiledXPath)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to query XML during Prepare", "file", filePath, "cap", pc.cap)
+			continue
+		}
+
+		if pc.cap == "xml" {
+			if len(nodes) == 0 {
+				continue
+			}
+			incidents := make([]provider.IncidentContext, 0, len(nodes))
+			for _, node := range nodes {
+				incident := provider.IncidentContext{
+					FileURI: uri.File(filePath),
+					Variables: map[string]interface{}{
+						"matchingXML": compactXML(node.OutputXML(false)),
+						"innerText":   node.InnerText(),
+						"data":        node.Data,
+					},
+				}
+				content := strings.TrimSpace(node.InnerText())
+				if content == "" {
+					content = node.Data
+				}
+				location, err := b.getLocation(ctx, filePath, content)
+				if err == nil {
+					incident.CodeLocation = &location
+					lineNo := int(location.StartPosition.Line)
+					incident.LineNumber = &lineNo
+				} else {
+					lineNum := node.LineNumber
+					incident.LineNumber = &lineNum
+				}
+				incidents = append(incidents, incident)
+			}
+			b.mergeIntoCache(pc.cacheKey, filePath, incidents)
+		} else {
+			// xmlPublicID: filter by public-id attribute regex
+			var incidents []provider.IncidentContext
+			for _, node := range nodes {
+				for _, attr := range node.Attr {
+					if attr.Name.Local == "public-id" {
+						if pc.compiledRegex != nil && pc.compiledRegex.MatchString(attr.Value) {
+							incidents = append(incidents, provider.IncidentContext{
+								FileURI: uri.File(filePath),
+								Variables: map[string]interface{}{
+									"matchingXML": compactXML(node.OutputXML(false)),
+									"innerText":   node.InnerText(),
+									"data":        node.Data,
+								},
+							})
+						}
+						break
+					}
+				}
+			}
+			b.mergeIntoCache(pc.cacheKey, filePath, incidents)
+		}
+	}
+}
+
+// processJSONForFile runs all json conditions against a pre-parsed JSON DOM.
+func (b *builtinServiceClient) processJSONForFile(ctx context.Context, filePath string, doc *jsonquery.Node) {
+	for i := range b.allParsedConditions {
+		pc := &b.allParsedConditions[i]
+		if pc.cap != "json" || pc.jsonXPath == "" {
+			continue
+		}
+
+		list, err := jsonquery.QueryAll(doc, pc.jsonXPath)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to query JSON during Prepare", "file", filePath)
+			continue
+		}
+		if len(list) == 0 {
+			continue
+		}
+
+		incidents := make([]provider.IncidentContext, 0, len(list))
+		for _, node := range list {
+			incident := provider.IncidentContext{
+				FileURI: uri.File(filePath),
+				Variables: map[string]interface{}{
+					"matchingJSON": node.InnerText(),
+					"data":         node.Data,
+				},
+			}
+			location, err := b.getLocation(ctx, filePath, node.InnerText())
+			if err == nil {
+				incident.CodeLocation = &location
+				lineNo := int(location.StartPosition.Line)
+				incident.LineNumber = &lineNo
+			}
+			incidents = append(incidents, incident)
+		}
+		b.mergeIntoCache(pc.cacheKey, filePath, incidents)
+	}
 }
 
 func (b *builtinServiceClient) openFileWithEncoding(filePath string) (io.Reader, error) {
@@ -239,6 +931,27 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 			return response, fmt.Errorf("could not parse provided regex pattern as string: %v", conditionInfo)
 		}
 
+		// Try incident cache lookup
+		if p.prepared && len(p.allParsedConditions) > 0 && !isChainedCondition(cap, cond) {
+			key := makeIncidentCacheKey(cap, cond)
+			var patterns []string
+			if c.FilePattern != "" {
+				patterns = []string{c.FilePattern}
+			}
+			scopedFiles, err := p.filterCachedFiles(cond, provider.SearchCriteria{
+				Patterns: patterns,
+			})
+			if err != nil {
+				return response, fmt.Errorf("failed to filter cached files - %w", err)
+			}
+			if incidents, ok := p.incidentsFromCache(key, scopedFiles); ok {
+				response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
+				response.Matched = len(response.Incidents) > 0
+				return response, nil
+			}
+		}
+
+		// Fallback: full search (chained condition, cache miss, or not prepared)
 		patterns := []string{}
 		if c.FilePattern != "" {
 			patterns = append(patterns, c.FilePattern)
@@ -281,6 +994,24 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse provided xpath query '%s': %v", cond.XML.XPath, err)
 		}
+
+		// Try incident cache lookup
+		if p.prepared && len(p.allParsedConditions) > 0 && !isChainedCondition(cap, cond) {
+			key := makeIncidentCacheKey(cap, cond)
+			scopedFiles, err := p.filterCachedFiles(cond, provider.SearchCriteria{
+				Patterns: []string{"*.xml", "*.xhtml"},
+			})
+			if err != nil {
+				return response, fmt.Errorf("unable to find XML files: %v", err)
+			}
+			if incidents, ok := p.incidentsFromCache(key, scopedFiles); ok {
+				response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
+				response.Matched = len(response.Incidents) > 0
+				return response, nil
+			}
+		}
+
+		// Fallback
 		xmlFiles, err := searchFiles(provider.SearchCriteria{
 			Patterns:           []string{"*.xml", "*.xhtml"},
 			ConditionFilepaths: cond.XML.Filepaths,
@@ -337,6 +1068,24 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == nil || err != nil {
 			return response, fmt.Errorf("could not parse public-id xml query '%s': %v", cond.XML.XPath, err)
 		}
+
+		// Try incident cache lookup
+		if p.prepared && len(p.allParsedConditions) > 0 && !isChainedCondition(cap, cond) {
+			key := makeIncidentCacheKey(cap, cond)
+			scopedFiles, err := p.filterCachedFiles(cond, provider.SearchCriteria{
+				Patterns: []string{"*.xml", "*.xhtml"},
+			})
+			if err != nil {
+				return response, fmt.Errorf("unable to find XML files: %v", err)
+			}
+			if incidents, ok := p.incidentsFromCache(key, scopedFiles); ok {
+				response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
+				response.Matched = len(response.Incidents) > 0
+				return response, nil
+			}
+		}
+
+		// Fallback
 		xmlFiles, err := searchFiles(provider.SearchCriteria{
 			Patterns:           []string{"*.xml", "*.xhtml"},
 			ConditionFilepaths: cond.XMLPublicID.Filepaths,
@@ -382,12 +1131,30 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if query == "" {
 			return response, fmt.Errorf("could not parse provided xpath query as string: %v", conditionInfo)
 		}
+
+		// Try incident cache lookup
+		if p.prepared && len(p.allParsedConditions) > 0 && !isChainedCondition(cap, cond) {
+			key := makeIncidentCacheKey(cap, cond)
+			scopedFiles, err := p.filterCachedFiles(cond, provider.SearchCriteria{
+				Patterns: []string{"*.json"},
+			})
+			if err != nil {
+				return response, fmt.Errorf("unable to find JSON files: %v", err)
+			}
+			if incidents, ok := p.incidentsFromCache(key, scopedFiles); ok {
+				response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
+				response.Matched = len(response.Incidents) > 0
+				return response, nil
+			}
+		}
+
+		// Fallback
 		jsonFiles, err := searchFiles(provider.SearchCriteria{
 			Patterns:           []string{"*.json"},
 			ConditionFilepaths: cond.JSON.Filepaths,
 		})
 		if err != nil {
-			return response, fmt.Errorf("unable to find XML files: %v", err)
+			return response, fmt.Errorf("unable to find JSON files: %v", err)
 		}
 		for _, file := range jsonFiles {
 			reader, err := p.openFileWithEncoding(file)
