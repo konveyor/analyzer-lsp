@@ -98,6 +98,8 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 		providerConfig, opts.ignoreAdditionalBuiltinConfigs, opts.pathMappings)
 	log.V(3).Info("loaded provider configs", "locations", locations)
 
+	log.Info("handling analyis mode from opts", "mode", opts.analysisMode)
+
 	providerErrors := []error{}
 	providers := map[string]provider.InternalProviderClient{}
 	ctx := opts.ctx
@@ -106,6 +108,12 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 	}
 	ctx, cancelFunc := context.WithCancel(ctx)
 	for _, config := range finalConfigs {
+		if opts.analysisMode != "" {
+			for i := range config.InitConfig {
+				config.InitConfig[i].AnalysisMode = opts.analysisMode
+			}
+		}
+
 		prov, err := lib.GetProviderClient(config, log, opts.progress)
 		if err != nil {
 			providerErrors = append(providerErrors, err)
