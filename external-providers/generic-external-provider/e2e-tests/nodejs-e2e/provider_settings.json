@@ -4,6 +4,7 @@
         "address": "localhost:14651",
         "initConfig": [{
             "analysisMode": "full",
+            "location": "/analyzer-lsp/examples/nodejs",
             "providerSpecificConfig": {
                 "lspServerName": "nodejs",
                 "lspServerPath": "/usr/local/bin/typescript-language-server",
