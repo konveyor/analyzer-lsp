@@ -280,7 +280,10 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 							"this should not happen, please file a bug", "basePath", f.BasePath, "filePath", file)
 						continue
 					}
-					relPath = filepath.Join(string(os.PathSeparator), relPath)
+					// Normalize to forward slashes for pattern matching.
+				// Regex patterns use '/' as directory separator since
+				// '\' is the regex escape character on all platforms.
+				relPath = "/" + filepath.ToSlash(relPath)
 				} else if slices.Contains(f.AdditionalPaths, file) {
 					// When this comes from an addional path, we won't know
 					// where to search from, so fall back to the full file path.
