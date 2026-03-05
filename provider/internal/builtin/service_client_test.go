@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -1696,6 +1697,28 @@ func Test_builtinServiceClient_Evaluate_WithCache(t *testing.T) {
 				t.Errorf("incident count mismatch: noPrepare=%d, withPrepare=%d",
 					len(resultNoPrepare.Incidents), len(resultWithPrepare.Incidents))
 			}
+
+			// Compare incident variables (matchingText, matchingXML, matchingJSON, etc.)
+			// Build maps keyed by (filePath, variableKey) → value for order-independent comparison
+			type varEntry struct {
+				file string
+				key  string
+			}
+			getVarMap := func(resp provider.ProviderEvaluateResponse) map[varEntry]interface{} {
+				m := map[varEntry]interface{}{}
+				for _, inc := range resp.Incidents {
+					for k, v := range inc.Variables {
+						m[varEntry{file: inc.FileURI.Filename(), key: k}] = v
+					}
+				}
+				return m
+			}
+			varsNoPrepare := getVarMap(resultNoPrepare)
+			varsWithPrepare := getVarMap(resultWithPrepare)
+			if !reflect.DeepEqual(varsNoPrepare, varsWithPrepare) {
+				t.Errorf("incident variables mismatch:\n  noPrepare:   %v\n  withPrepare: %v",
+					varsNoPrepare, varsWithPrepare)
+			}
 		})
 	}
 }
@@ -1823,5 +1846,377 @@ func Test_builtinServiceClient_Prepare_EmptyBaseDir(t *testing.T) {
 
 	if result.Matched {
 		t.Error("expected no matches from empty directory")
+	}
+}
+
+// Test_incidentCaching_scopeFiltering verifies that per-rule scope filtering
+// works correctly when incidents are served from cache.
+func Test_incidentCaching_scopeFiltering(t *testing.T) {
+	baseLocation, err := filepath.Abs(filepath.Join(".", "testdata", "search_scopes"))
+	if err != nil {
+		t.Fatalf("failed to get absolute path: %v", err)
+	}
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 5})
+
+	// Use a filecontent condition that matches files in both dir_a and dir_b
+	cond := builtinCondition{
+		Filecontent: fileContentCondition{Pattern: "fox"},
+	}
+	condBytes, err := yaml.Marshal(&cond)
+	if err != nil {
+		t.Fatalf("failed to marshal condition: %v", err)
+	}
+
+	// Create client and Prepare with the condition
+	sc := &builtinServiceClient{
+		config:         provider.InitConfig{Location: baseLocation},
+		log:            log,
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(log),
+	}
+	sc.workingCopyMgr.init()
+	defer sc.workingCopyMgr.stop()
+
+	conditionsByCap := []provider.ConditionsByCap{
+		{Cap: "filecontent", Conditions: [][]byte{condBytes}},
+	}
+	if err := sc.Prepare(context.TODO(), conditionsByCap); err != nil {
+		t.Fatalf("Prepare() failed: %v", err)
+	}
+
+	// Evaluate without scope — should match all files
+	resultAll, err := sc.Evaluate(context.TODO(), "filecontent", condBytes)
+	if err != nil {
+		t.Fatalf("Evaluate() failed: %v", err)
+	}
+
+	// Now scope to dir_a only by adding ProviderContext to the condition
+	dirAPath, _ := filepath.Abs(filepath.Join(baseLocation, "dir_a"))
+	scopedCond := builtinCondition{
+		Filecontent: fileContentCondition{Pattern: "fox"},
+		ProviderContext: provider.ProviderContext{
+			Template: map[string]engine.ChainTemplate{
+				engine.TemplateContextPathScopeKey: {
+					Filepaths: []string{dirAPath},
+				},
+			},
+		},
+	}
+	scopedCondBytes, err := yaml.Marshal(&scopedCond)
+	if err != nil {
+		t.Fatalf("failed to marshal scoped condition: %v", err)
+	}
+
+	resultScoped, err := sc.Evaluate(context.TODO(), "filecontent", scopedCondBytes)
+	if err != nil {
+		t.Fatalf("scoped Evaluate() failed: %v", err)
+	}
+
+	// Scoped result should have strictly fewer incidents
+	// "fox" appears in a.txt, ab.txt, b.txt (3 files) but NOT ba.txt
+	// dir_a scope includes a.txt and ab.txt only (2 files)
+	if len(resultScoped.Incidents) >= len(resultAll.Incidents) {
+		t.Errorf("scoped result (%d) should have fewer incidents than unscoped (%d)",
+			len(resultScoped.Incidents), len(resultAll.Incidents))
+	}
+
+	// All scoped incidents should be within dir_a
+	for _, inc := range resultScoped.Incidents {
+		path := inc.FileURI.Filename()
+		if !strings.Contains(path, "dir_a") {
+			t.Errorf("scoped incident outside dir_a: %s", path)
+		}
+	}
+}
+
+// Test_incidentCaching_chainedFallback verifies that chained conditions (with
+// Filepaths) fall back to the non-cached path.
+func Test_incidentCaching_chainedFallback(t *testing.T) {
+	baseLocation, err := filepath.Abs(filepath.Join(".", "testdata", "search_scopes"))
+	if err != nil {
+		t.Fatalf("failed to get absolute path: %v", err)
+	}
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 5})
+
+	// Chained condition: filecontent with explicit Filepaths
+	aPath, _ := filepath.Abs(filepath.Join(baseLocation, "dir_a", "a.txt"))
+	cond := builtinCondition{
+		Filecontent: fileContentCondition{
+			Pattern:   "fox",
+			Filepaths: []string{aPath},
+		},
+	}
+	condBytes, err := yaml.Marshal(&cond)
+	if err != nil {
+		t.Fatalf("failed to marshal condition: %v", err)
+	}
+
+	sc := &builtinServiceClient{
+		config:         provider.InitConfig{Location: baseLocation},
+		log:            log,
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(log),
+	}
+	sc.workingCopyMgr.init()
+	defer sc.workingCopyMgr.stop()
+
+	// Prepare — should skip chained condition
+	conditionsByCap := []provider.ConditionsByCap{
+		{Cap: "filecontent", Conditions: [][]byte{condBytes}},
+	}
+	if err := sc.Prepare(context.TODO(), conditionsByCap); err != nil {
+		t.Fatalf("Prepare() failed: %v", err)
+	}
+
+	// Verify chained condition was NOT cached
+	key := makeIncidentCacheKey("filecontent", cond)
+	if _, exists := sc.incidentCache[key]; exists {
+		t.Error("expected chained condition to NOT be in cache")
+	}
+
+	// Evaluate should still work via fallback
+	result, err := sc.Evaluate(context.TODO(), "filecontent", condBytes)
+	if err != nil {
+		t.Fatalf("Evaluate() failed: %v", err)
+	}
+
+	if !result.Matched {
+		t.Error("expected chained condition to match via fallback")
+	}
+
+	// Should only match the single specified file
+	if len(result.Incidents) == 0 {
+		t.Error("expected at least one incident")
+	}
+	for _, inc := range result.Incidents {
+		if !strings.HasSuffix(inc.FileURI.Filename(), "a.txt") {
+			t.Errorf("unexpected file in chained result: %s", inc.FileURI.Filename())
+		}
+	}
+}
+
+// Test_incidentCaching_multipleConditions verifies that multiple conditions
+// of the same capability with different patterns each get their own cache
+// entry and return correct, independent results.
+func Test_incidentCaching_multipleConditions(t *testing.T) {
+	baseLocation, err := filepath.Abs(filepath.Join(".", "testdata", "search_scopes"))
+	if err != nil {
+		t.Fatalf("failed to get absolute path: %v", err)
+	}
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 5})
+
+	// Two filecontent conditions with different patterns
+	condFox := builtinCondition{
+		Filecontent: fileContentCondition{Pattern: "fox"},
+	}
+	condTest := builtinCondition{
+		Filecontent: fileContentCondition{Pattern: "Test"},
+	}
+	condFoxBytes, err := yaml.Marshal(&condFox)
+	if err != nil {
+		t.Fatalf("failed to marshal condFox: %v", err)
+	}
+	condTestBytes, err := yaml.Marshal(&condTest)
+	if err != nil {
+		t.Fatalf("failed to marshal condTest: %v", err)
+	}
+
+	sc := &builtinServiceClient{
+		config:         provider.InitConfig{Location: baseLocation},
+		log:            log,
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(log),
+	}
+	sc.workingCopyMgr.init()
+	defer sc.workingCopyMgr.stop()
+
+	// Prepare with both conditions
+	conditionsByCap := []provider.ConditionsByCap{
+		{Cap: "filecontent", Conditions: [][]byte{condFoxBytes, condTestBytes}},
+	}
+	if err := sc.Prepare(context.TODO(), conditionsByCap); err != nil {
+		t.Fatalf("Prepare() failed: %v", err)
+	}
+
+	// Verify both cache keys exist
+	keyFox := makeIncidentCacheKey("filecontent", condFox)
+	keyTest := makeIncidentCacheKey("filecontent", condTest)
+	if keyFox == keyTest {
+		t.Fatal("expected different cache keys for different patterns")
+	}
+	if _, exists := sc.incidentCache[keyFox]; !exists {
+		t.Error("expected cache entry for 'fox' pattern")
+	}
+	if _, exists := sc.incidentCache[keyTest]; !exists {
+		t.Error("expected cache entry for 'Test' pattern")
+	}
+
+	// Evaluate each and verify independent results
+	resultFox, err := sc.Evaluate(context.TODO(), "filecontent", condFoxBytes)
+	if err != nil {
+		t.Fatalf("Evaluate(fox) failed: %v", err)
+	}
+	resultTest, err := sc.Evaluate(context.TODO(), "filecontent", condTestBytes)
+	if err != nil {
+		t.Fatalf("Evaluate(Test) failed: %v", err)
+	}
+
+	// "fox" appears in .txt files, "Test" appears in .xml and .json files
+	// They should have different incident sets
+	if len(resultFox.Incidents) == 0 {
+		t.Error("expected incidents for 'fox' pattern")
+	}
+	if len(resultTest.Incidents) == 0 {
+		t.Error("expected incidents for 'Test' pattern")
+	}
+
+	// Verify the matched text is correct for each
+	for _, inc := range resultFox.Incidents {
+		text, ok := inc.Variables["matchingText"].(string)
+		if !ok {
+			t.Errorf("fox incident missing matchingText variable: %v", inc.Variables)
+			continue
+		}
+		if !strings.Contains(text, "fox") {
+			t.Errorf("fox result has wrong match text: %s", text)
+		}
+	}
+	for _, inc := range resultTest.Incidents {
+		text, ok := inc.Variables["matchingText"].(string)
+		if !ok {
+			t.Errorf("Test incident missing matchingText variable: %v", inc.Variables)
+			continue
+		}
+		if !strings.Contains(text, "Test") {
+			t.Errorf("Test result has wrong match text: %s", text)
+		}
+	}
+}
+
+// Test_matchesFilePattern_relPath verifies that matchesFilePattern checks patterns
+// against relative paths (not just base filenames). A regex like "dir_b/.*\.txt"
+// should match "dir_a/dir_b/ab.txt" via relPath but NOT "dir_a/a.txt".
+// This mirrors the FileSearcher behavior in lib.go:294-310.
+func Test_matchesFilePattern_relPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		pattern  string
+		relPath  string
+		baseName string
+		want     bool
+	}{
+		{
+			name:     "regex matches relPath only",
+			pattern:  "dir_b/.*\\.txt",
+			relPath:  "dir_a/dir_b/ab.txt",
+			baseName: "ab.txt",
+			want:     true,
+		},
+		{
+			name:     "regex does not match baseName alone",
+			pattern:  "dir_b/.*\\.txt",
+			relPath:  "dir_a/a.txt",
+			baseName: "a.txt",
+			want:     false,
+		},
+		{
+			name:     "glob matches baseName",
+			pattern:  "*.txt",
+			relPath:  "dir_a/a.txt",
+			baseName: "a.txt",
+			want:     true,
+		},
+		{
+			name:     "regex matches baseName",
+			pattern:  `a\.txt`,
+			relPath:  "dir_a/a.txt",
+			baseName: "a.txt",
+			want:     true,
+		},
+		{
+			name:     "no match at all",
+			pattern:  "dir_c/.*\\.xml",
+			relPath:  "dir_a/a.txt",
+			baseName: "a.txt",
+			want:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			compiled, _ := regexp.Compile(tt.pattern)
+			got := matchesFilePattern(compiled, tt.pattern, tt.relPath, tt.baseName)
+			if got != tt.want {
+				t.Errorf("matchesFilePattern(%q, %q, %q) = %v, want %v",
+					tt.pattern, tt.relPath, tt.baseName, got, tt.want)
+			}
+		})
+	}
+}
+
+// Test_incidentCaching_filePatternWithDirComponent verifies that a filePattern
+// containing a directory component (e.g., "dir_b/.*\.txt") correctly filters
+// files by relative path through the full Prepare/Evaluate pipeline.
+func Test_incidentCaching_filePatternWithDirComponent(t *testing.T) {
+	baseLocation, err := filepath.Abs(filepath.Join(".", "testdata", "search_scopes"))
+	if err != nil {
+		t.Fatalf("failed to get absolute path: %v", err)
+	}
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 5})
+
+	// filePattern "dir_b/.*\.txt" should match files whose relative path
+	// contains "dir_b/" — i.e., dir_a/dir_b/ab.txt and dir_b/b.txt
+	// but NOT dir_a/a.txt (relPath doesn't match)
+	cond := builtinCondition{
+		Filecontent: fileContentCondition{
+			Pattern:     "fox",
+			FilePattern: `dir_b/.*\.txt`,
+		},
+	}
+	condBytes, err := yaml.Marshal(&cond)
+	if err != nil {
+		t.Fatalf("failed to marshal condition: %v", err)
+	}
+
+	sc := &builtinServiceClient{
+		config:         provider.InitConfig{Location: baseLocation},
+		log:            log,
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(log),
+	}
+	sc.workingCopyMgr.init()
+	defer sc.workingCopyMgr.stop()
+
+	conditionsByCap := []provider.ConditionsByCap{
+		{Cap: "filecontent", Conditions: [][]byte{condBytes}},
+	}
+	if err := sc.Prepare(context.TODO(), conditionsByCap); err != nil {
+		t.Fatalf("Prepare() failed: %v", err)
+	}
+
+	result, err := sc.Evaluate(context.TODO(), "filecontent", condBytes)
+	if err != nil {
+		t.Fatalf("Evaluate() failed: %v", err)
+	}
+
+	// Expect exactly 2 incidents: ab.txt (in dir_a/dir_b/) and b.txt (in dir_b/)
+	// dir_a/a.txt contains "fox" but its relPath doesn't match "dir_b/.*\.txt"
+	if len(result.Incidents) != 2 {
+		t.Fatalf("expected 2 incidents, got %d", len(result.Incidents))
+	}
+
+	matchedFiles := map[string]bool{}
+	for _, inc := range result.Incidents {
+		matchedFiles[filepath.Base(inc.FileURI.Filename())] = true
+	}
+	if !matchedFiles["ab.txt"] {
+		t.Error("expected incident from ab.txt (dir_a/dir_b/ab.txt)")
+	}
+	if !matchedFiles["b.txt"] {
+		t.Error("expected incident from b.txt (dir_b/b.txt)")
 	}
 }
