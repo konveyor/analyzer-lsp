@@ -64,6 +64,11 @@ type builtinServiceClient struct {
 	// conditions against the updated content.
 	cacheRefreshChan chan cacheRefreshRequest
 
+	// cacheRefreshDone is closed to signal cache refresh workers to exit.
+	// Using a separate done channel (instead of closing cacheRefreshChan)
+	// avoids a panic if the WC manager sends concurrently with Stop().
+	cacheRefreshDone chan struct{}
+
 	// pendingCacheRefresh tracks files whose cache entries have been
 	// invalidated but not yet refreshed. tryIncidentCache falls back
 	// to filesystem walk if any scoped file is pending.
@@ -537,6 +542,7 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 	// and b.allParsedConditions, which are updated on each Prepare call.
 	if b.cacheRefreshChan == nil {
 		b.cacheRefreshChan = make(chan cacheRefreshRequest, 1024)
+		b.cacheRefreshDone = make(chan struct{})
 		b.workingCopyMgr.cacheRefreshChan = b.cacheRefreshChan
 		for range numWorkers {
 			go b.cacheRefreshWorker()
@@ -550,6 +556,9 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 
 func (b *builtinServiceClient) Stop() {
 	b.workingCopyMgr.stop()
+	if b.cacheRefreshDone != nil {
+		close(b.cacheRefreshDone)
+	}
 }
 
 func (p *builtinServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
