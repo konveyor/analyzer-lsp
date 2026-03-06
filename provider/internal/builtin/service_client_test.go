@@ -1667,9 +1667,9 @@ func Test_builtinServiceClient_Evaluate_WithCache(t *testing.T) {
 			resultWithPrepare, errWithPrepare := clientWithPrepare.Evaluate(
 				context.TODO(), tt.capability, condBytes)
 
-			// Compare errors
-			if (errNoPrepare != nil) != (errWithPrepare != nil) {
-				t.Fatalf("error mismatch: noPrepare=%v, withPrepare=%v",
+			// Both branches are expected to succeed in this table.
+			if errNoPrepare != nil || errWithPrepare != nil {
+				t.Fatalf("unexpected Evaluate error: noPrepare=%v, withPrepare=%v",
 					errNoPrepare, errWithPrepare)
 			}
 
@@ -2101,10 +2101,148 @@ func Test_incidentCaching_multipleConditions(t *testing.T) {
 	}
 }
 
-// Test_matchesFilePattern_relPath verifies that matchesFilePattern checks patterns
-// against relative paths (not just base filenames). A regex like "dir_b/.*\.txt"
-// should match "dir_a/dir_b/ab.txt" via relPath but NOT "dir_a/a.txt".
-// This mirrors the FileSearcher behavior in lib.go:294-310.
+// Test_incidentCaching_workingCopyInvalidation verifies that when a file change
+// is notified, the cache is invalidated for the original file and refreshed
+// with the working copy content via the cache refresh worker.
+func Test_incidentCaching_workingCopyInvalidation(t *testing.T) {
+	baseLocation, err := filepath.Abs(filepath.Join(".", "testdata", "search_scopes"))
+	if err != nil {
+		t.Fatalf("failed to get absolute path: %v", err)
+	}
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 5})
+
+	cond := builtinCondition{
+		Filecontent: fileContentCondition{Pattern: "fox"},
+	}
+	condBytes, err := yaml.Marshal(&cond)
+	if err != nil {
+		t.Fatalf("failed to marshal condition: %v", err)
+	}
+
+	sc := &builtinServiceClient{
+		config:         provider.InitConfig{Location: baseLocation},
+		log:            log,
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(log),
+	}
+	sc.workingCopyMgr.init()
+	defer sc.workingCopyMgr.stop()
+
+	conditionsByCap := []provider.ConditionsByCap{
+		{Cap: "filecontent", Conditions: [][]byte{condBytes}},
+	}
+	if err := sc.Prepare(context.TODO(), conditionsByCap); err != nil {
+		t.Fatalf("Prepare() failed: %v", err)
+	}
+
+	// Evaluate before any changes — should find "fox" in a.txt
+	resultBefore, err := sc.Evaluate(context.TODO(), "filecontent", condBytes)
+	if err != nil {
+		t.Fatalf("Evaluate() before change failed: %v", err)
+	}
+	if !resultBefore.Matched {
+		t.Fatal("expected match before file change")
+	}
+
+	aPath, _ := filepath.Abs(filepath.Join(baseLocation, "dir_a", "a.txt"))
+	foundBefore := false
+	for _, inc := range resultBefore.Incidents {
+		if inc.FileURI.Filename() == aPath {
+			foundBefore = true
+			break
+		}
+	}
+	if !foundBefore {
+		t.Fatalf("expected incident for %s before change", aPath)
+	}
+
+	// Notify a change that replaces "fox" with "cat" in a.txt
+	sc.NotifyFileChanges(context.TODO(), provider.FileChange{
+		Path:    aPath,
+		Content: "The quick brown cat jumps over the lazy dog",
+		Saved:   false,
+	})
+
+	// Wait for working copy manager to write the file and
+	// cache refresh worker to re-process it.
+	time.Sleep(2 * time.Second)
+
+	// Evaluate after change — "fox" should no longer match in a.txt
+	resultAfter, err := sc.Evaluate(context.TODO(), "filecontent", condBytes)
+	if err != nil {
+		t.Fatalf("Evaluate() after change failed: %v", err)
+	}
+
+	for _, inc := range resultAfter.Incidents {
+		if inc.FileURI.Filename() == aPath {
+			t.Errorf("expected no incident for %s after replacing 'fox' with 'cat', got match: %v",
+				aPath, inc.Variables["matchingText"])
+		}
+	}
+}
+
+func Test_incidentCaching_workingCopyStillMatches(t *testing.T) {
+	baseLocation, err := filepath.Abs(filepath.Join(".", "testdata", "search_scopes"))
+	if err != nil {
+		t.Fatalf("failed to get absolute path: %v", err)
+	}
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 5})
+
+	cond := builtinCondition{
+		Filecontent: fileContentCondition{Pattern: "fox"},
+	}
+	condBytes, err := yaml.Marshal(&cond)
+	if err != nil {
+		t.Fatalf("failed to marshal condition: %v", err)
+	}
+
+	sc := &builtinServiceClient{
+		config:         provider.InitConfig{Location: baseLocation},
+		log:            log,
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(log),
+	}
+	sc.workingCopyMgr.init()
+	defer sc.workingCopyMgr.stop()
+
+	conditionsByCap := []provider.ConditionsByCap{
+		{Cap: "filecontent", Conditions: [][]byte{condBytes}},
+	}
+	if err := sc.Prepare(context.TODO(), conditionsByCap); err != nil {
+		t.Fatalf("Prepare() failed: %v", err)
+	}
+
+	aPath, _ := filepath.Abs(filepath.Join(baseLocation, "dir_a", "a.txt"))
+
+	// Notify a change that still contains "fox" but with extra text
+	sc.NotifyFileChanges(context.TODO(), provider.FileChange{
+		Path:    aPath,
+		Content: "The quick brown fox jumps over the lazy dog\nand more fox here",
+		Saved:   false,
+	})
+
+	// Wait for cache refresh to complete
+	time.Sleep(2 * time.Second)
+
+	// Evaluate — should still find "fox" in a.txt via cache hit
+	result, err := sc.Evaluate(context.TODO(), "filecontent", condBytes)
+	if err != nil {
+		t.Fatalf("Evaluate() after change failed: %v", err)
+	}
+
+	found := false
+	for _, inc := range result.Incidents {
+		if inc.FileURI.Filename() == aPath {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected incident for %s after WC change that still contains 'fox', but got none", aPath)
+	}
+}
 func Test_matchesFilePattern_relPath(t *testing.T) {
 	tests := []struct {
 		name     string
