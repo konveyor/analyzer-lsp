@@ -53,47 +53,71 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 
 	g.log.V(5).Info("resolving dependency sources for gradle")
 
-	// create a temporary build file to append the task for downloading sources
-	taskgb := filepath.Join(filepath.Dir(g.buildFile), "tmp.gradle")
-	err := CopyFile(g.buildFile, taskgb)
-	if err != nil {
-		return "", "", fmt.Errorf("error copying file %s to %s", g.buildFile, taskgb)
+	taskFile := g.taskFile
+	if taskFile == "" {
+		taskFile = "/usr/local/etc/task.gradle"
 	}
-	defer os.Remove(taskgb)
-
-	// append downloader task
-	if g.taskFile == "" {
-		// if taskFile is empty, we are in container mode
-		g.taskFile = "/usr/local/etc/task.gradle"
-	}
-	// if Gradle >= 9.0, use a newer script for downloading sources
 	gradle9version, _ := version.NewVersion("9.0")
 	if g.gradleVersion.GreaterThanOrEqual(gradle9version) {
-		g.taskFile = filepath.Join(filepath.Dir(g.taskFile), "task-v9.gradle")
+		taskFile = filepath.Join(filepath.Dir(taskFile), "task-v9.gradle")
 	}
 
-	err = AppendToFile(g.taskFile, taskgb)
-	if err != nil {
-		return "", "", fmt.Errorf("error appending file %s to %s", g.taskFile, taskgb)
+	// --build-file / -b was deprecated in Gradle 7.1 (https://github.com/gradle/gradle/issues/16402), still worked in 8.x,
+	// and was removed in Gradle 9.0.0 (gradlew reports "Unknown command-line option '--build-file'" on 9.x).
+	var args []string
+	gradle9OrNewer := g.gradleVersion.GreaterThanOrEqual(gradle9version)
+
+	if !gradle9OrNewer {
+		// Gradle < 9: use a temp combined build file and --build-file so we never rename or modify the project's build.gradle.
+		// This avoids cross-filesystem rename failures and leaves the project intact if the process is killed.
+		buildContent, err := os.ReadFile(g.buildFile)
+		if err != nil {
+			return "", "", fmt.Errorf("error reading build file %s: %w", g.buildFile, err)
+		}
+		taskContent, err := os.ReadFile(taskFile)
+		if err != nil {
+			return "", "", fmt.Errorf("error reading task file %s: %w", taskFile, err)
+		}
+		combinedFile, err := os.CreateTemp(g.location, ".konveyor-sources-*.gradle")
+		if err != nil {
+			return "", "", fmt.Errorf("error creating temporary build file in %s: %w", g.location, err)
+		}
+		combinedPath := combinedFile.Name()
+		defer os.Remove(combinedPath)
+		if _, err := combinedFile.Write(buildContent); err != nil {
+			combinedFile.Close()
+			return "", "", fmt.Errorf("error writing to temporary build file: %w", err)
+		}
+		if _, err := combinedFile.Write(append([]byte("\n"), taskContent...)); err != nil {
+			combinedFile.Close()
+			return "", "", fmt.Errorf("error writing to temporary build file: %w", err)
+		}
+		if err := combinedFile.Close(); err != nil {
+			return "", "", fmt.Errorf("error closing temporary build file: %w", err)
+		}
+		args = []string{"--build-file", combinedPath, "konveyorDownloadSources", "--no-daemon"}
+	} else {
+		// Gradle 9+: --build-file was removed in 9.0.0; use the original approach (temp file + rename) so Gradle sees build.gradle in the project dir.
+		taskgb := filepath.Join(filepath.Dir(g.buildFile), "tmp.gradle")
+		if err := CopyFile(g.buildFile, taskgb); err != nil {
+			return "", "", fmt.Errorf("error copying file %s to %s: %w", g.buildFile, taskgb, err)
+		}
+		defer os.Remove(taskgb)
+		if err := AppendToFile(taskFile, taskgb); err != nil {
+			return "", "", fmt.Errorf("error appending file %s to %s: %w", taskFile, taskgb, err)
+		}
+		tmpgbname := filepath.Join(g.location, "toberenamed.gradle")
+		if err := os.Rename(g.buildFile, tmpgbname); err != nil {
+			return "", "", fmt.Errorf("error renaming file %s to %s: %w", g.buildFile, "toberenamed.gradle", err)
+		}
+		defer os.Rename(tmpgbname, g.buildFile)
+		if err := os.Rename(taskgb, g.buildFile); err != nil {
+			return "", "", fmt.Errorf("error renaming file %s to %s: %w", taskgb, g.buildFile, err)
+		}
+		defer os.Remove(g.buildFile)
+		args = []string{"konveyorDownloadSources", "--no-daemon"}
 	}
 
-	tmpgbname := filepath.Join(g.location, "toberenamed.gradle")
-	err = os.Rename(g.buildFile, tmpgbname)
-	if err != nil {
-		return "", "", fmt.Errorf("error renaming file %s to %s", g.buildFile, "toberenamed.gradle")
-	}
-	defer os.Rename(tmpgbname, g.buildFile)
-
-	err = os.Rename(taskgb, g.buildFile)
-	if err != nil {
-		return "", "", fmt.Errorf("error renaming file %s to %s", g.buildFile, "toberenamed.gradle")
-	}
-	defer os.Remove(g.buildFile)
-
-	args := []string{
-		"konveyorDownloadSources",
-		"--no-daemon",
-	}
 	cmd := exec.CommandContext(ctx, g.wrapper, args...)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("JAVA_HOME=%s", g.javaHome))
 	cmd.Dir = g.location
