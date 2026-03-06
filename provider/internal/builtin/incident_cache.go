@@ -178,7 +178,7 @@ func (b *builtinServiceClient) mergeIntoCache(key incidentCacheKey, filePath str
 	if b.incidentCache[key] == nil {
 		b.incidentCache[key] = make(map[string][]provider.IncidentContext)
 	}
-	b.incidentCache[key][filePath] = append(b.incidentCache[key][filePath], incidents...)
+	b.incidentCache[key][filePath] = incidents
 }
 
 // incidentsFromCache looks up cached incidents for a cache key, filtered to
@@ -203,11 +203,19 @@ func (b *builtinServiceClient) incidentsFromCache(key incidentCacheKey, scopedFi
 // cacheRefreshWorker consumes from cacheRefreshChan and re-runs all parsed
 // conditions against the updated file content, storing results in the cache.
 func (b *builtinServiceClient) cacheRefreshWorker() {
-	for req := range b.cacheRefreshChan {
-		if !b.prepared {
-			continue
+	for {
+		select {
+		case req, ok := <-b.cacheRefreshChan:
+			if !ok {
+				return
+			}
+			if !b.prepared {
+				continue
+			}
+			b.refreshCacheForFile(context.Background(), req.originalPath, req.contentPath)
+		case <-b.cacheRefreshDone:
+			return
 		}
-		b.refreshCacheForFile(context.Background(), req.originalPath, req.contentPath)
 	}
 }
 
@@ -280,8 +288,13 @@ func (b *builtinServiceClient) refreshCacheForFile(ctx context.Context, original
 	}
 
 	if !needsContent && !needsXML && !needsJSON {
+		b.pendingCacheRefresh.Delete(originalPath)
 		return
 	}
+
+	// Clear all existing cache entries for this file before re-processing,
+	// so conditions that no longer match don't leave stale entries.
+	b.invalidateCacheForFile(originalPath)
 
 	content, err := b.readFileContent(contentPath)
 	if err != nil {
