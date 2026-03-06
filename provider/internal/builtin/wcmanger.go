@@ -30,6 +30,8 @@ type workingCopyManager struct {
 	wcMutex       sync.RWMutex
 	workingCopies map[string]workingCopy
 	tempDir       string
+
+	cacheRefreshChan chan<- cacheRefreshRequest
 }
 
 func (t *workingCopyManager) init() error {
@@ -105,6 +107,8 @@ func (t *workingCopyManager) startWorker() {
 			if !ok {
 				return
 			}
+			originalPath := change.Path
+
 			// we need to get rid of volume label on windows
 			var drive string
 			if runtime.GOOS == "windows" {
@@ -116,18 +120,30 @@ func (t *workingCopyManager) startWorker() {
 			wcPath := filepath.Join(t.tempDir, change.Path)
 			// if the change is notifying a file save event
 			// we discard the working copy for it
-			if change.Saved && wcExists {
-				t.wcMutex.Lock()
-				delete(t.workingCopies, change.Path)
-				t.wcMutex.Unlock()
-				if _, err := os.Stat(change.Path); err == nil || !os.IsNotExist(err) {
-					err := os.Remove(wcPath)
-					if err != nil {
-						t.log.Error(err, "failed to remove working copy")
+			if change.Saved {
+				if wcExists {
+					t.wcMutex.Lock()
+					delete(t.workingCopies, change.Path)
+					t.wcMutex.Unlock()
+					if _, err := os.Stat(change.Path); err == nil || !os.IsNotExist(err) {
+						err := os.Remove(wcPath)
+						if err != nil {
+							t.log.Error(err, "failed to remove working copy")
+						}
+						t.log.V(7).Info("working copy deleted", "change", change.Path, "wcPath", wcPath)
 					}
-					t.log.V(7).Info("working copy deleted", "change", change.Path, "wcPath", wcPath)
 				}
-			} else if !change.Saved {
+				// Always re-cache from disk on save, regardless of prior WC
+				if t.cacheRefreshChan != nil {
+					select {
+					case t.cacheRefreshChan <- cacheRefreshRequest{
+						originalPath: originalPath,
+						contentPath:  originalPath,
+					}:
+					case <-t.ctx.Done():
+					}
+				}
+			} else {
 				err := os.MkdirAll(filepath.Dir(wcPath), 0755)
 				if err != nil {
 					t.log.Error(err, "failed to create dir for working copy", "path", change.Path)
@@ -146,6 +162,16 @@ func (t *workingCopyManager) startWorker() {
 					drive:    drive,
 				}
 				t.wcMutex.Unlock()
+				// Working copy written — re-cache from the temp file
+				if t.cacheRefreshChan != nil {
+					select {
+					case t.cacheRefreshChan <- cacheRefreshRequest{
+						originalPath: originalPath,
+						contentPath:  wcPath,
+					}:
+					case <-t.ctx.Done():
+					}
+				}
 			}
 		}
 	}
