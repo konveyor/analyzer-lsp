@@ -1,6 +1,8 @@
 package dependency
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io/fs"
@@ -12,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr/testr"
+	"github.com/hashicorp/go-version"
 )
 
 func TestBinaryResolver(t *testing.T) {
@@ -231,6 +234,36 @@ func TestMavenResolver(t *testing.T) {
 	}
 }
 
+// getGradleVersionForTest runs the Gradle wrapper with --version and parses the version.
+// The resolver uses this to choose between --build-file (Gradle < 9) and the rename approach (Gradle 9+).
+// Returns an error if the wrapper fails (e.g. "Could not determine java version" with old Gradle + new Java).
+func getGradleVersionForTest(t *testing.T, wrapper, projectDir, javaHome string) (version.Version, error) {
+	t.Helper()
+	ctx := context.Background()
+	cmd := exec.CommandContext(ctx, wrapper, "--version")
+	cmd.Dir = projectDir
+	if javaHome != "" {
+		cmd.Env = append(os.Environ(), "JAVA_HOME="+javaHome)
+	}
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return version.Version{}, fmt.Errorf("gradle --version: %w - %s", err, string(output))
+	}
+	vRegex := regexp.MustCompile(`Gradle (\d+(\.\d+)*)`)
+	scanner := bufio.NewScanner(bytes.NewReader(output))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if match := vRegex.FindStringSubmatch(line); len(match) != 0 {
+			v, err := version.NewVersion(match[1])
+			if err != nil {
+				return version.Version{}, fmt.Errorf("parse gradle version %q: %w", match[1], err)
+			}
+			return *v, nil
+		}
+	}
+	return version.Version{}, fmt.Errorf("could not parse Gradle version from gradlew --version output")
+}
+
 func TestGradleResolver(t *testing.T) {
 	// Skip if gradle wrapper is not available
 	gradleWrapper := "testdata/gradle-example/gradlew"
@@ -283,9 +316,35 @@ func TestGradleResolver(t *testing.T) {
 				t.Skip("JAVA_HOME not set, skipping gradle resolver test")
 			}
 
-			taskFile, err := filepath.Abs("../../../gradle/build.gradle")
+			// Resolver expects task.gradle and task-v9.gradle (Docker layout). Copy source scripts
+			// into a temp dir so we don't add production logic just for tests.
+			gradleDir, err := filepath.Abs("../../../gradle")
 			if err != nil {
-				t.Fatalf("unable to get task file path: %s", err)
+				t.Fatalf("unable to get gradle dir: %s", err)
+			}
+			buildContent, err := os.ReadFile(filepath.Join(gradleDir, "build.gradle"))
+			if err != nil {
+				t.Fatalf("unable to read build.gradle: %s", err)
+			}
+			buildV9Content, err := os.ReadFile(filepath.Join(gradleDir, "build-v9.gradle"))
+			if err != nil {
+				t.Fatalf("unable to read build-v9.gradle: %s", err)
+			}
+			taskDir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(taskDir, "task.gradle"), buildContent, 0644); err != nil {
+				t.Fatalf("unable to write task.gradle: %s", err)
+			}
+			if err := os.WriteFile(filepath.Join(taskDir, "task-v9.gradle"), buildV9Content, 0644); err != nil {
+				t.Fatalf("unable to write task-v9.gradle: %s", err)
+			}
+			taskFile := filepath.Join(taskDir, "task.gradle")
+
+			gradleVer, err := getGradleVersionForTest(t, wrapper, location, javaHome)
+			if err != nil {
+				if regexp.MustCompile("Could not determine java version").MatchString(err.Error()) {
+					t.Skip("Gradle wrapper version incompatible with current Java version")
+				}
+				t.Fatalf("get gradle version: %v", err)
 			}
 
 			resolver := GetGradleResolver(ResolverOptions{
@@ -299,6 +358,7 @@ func TestGradleResolver(t *testing.T) {
 				DecompileTool:  fernflower,
 				Labeler:        &testLabeler{},
 				GradleTaskFile: taskFile,
+				Version:        gradleVer,
 			})
 			ctx, cancelFunc := context.WithCancel(context.Background())
 
