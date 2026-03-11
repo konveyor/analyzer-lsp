@@ -120,20 +120,18 @@ func (t *workingCopyManager) startWorker() {
 			wcPath := filepath.Join(t.tempDir, change.Path)
 			// if the change is notifying a file save event
 			// we discard the working copy for it
-			if change.Saved {
-				if wcExists {
-					t.wcMutex.Lock()
-					delete(t.workingCopies, change.Path)
-					t.wcMutex.Unlock()
-					if _, err := os.Stat(change.Path); err == nil || !os.IsNotExist(err) {
-						err := os.Remove(wcPath)
-						if err != nil {
-							t.log.Error(err, "failed to remove working copy")
-						}
-						t.log.V(7).Info("working copy deleted", "change", change.Path, "wcPath", wcPath)
+			if change.Saved && wcExists {
+				t.wcMutex.Lock()
+				delete(t.workingCopies, change.Path)
+				t.wcMutex.Unlock()
+				if _, err := os.Stat(change.Path); err == nil || !os.IsNotExist(err) {
+					err := os.Remove(wcPath)
+					if err != nil {
+						t.log.Error(err, "failed to remove working copy")
 					}
+					t.log.V(7).Info("working copy deleted", "change", change.Path, "wcPath", wcPath)
 				}
-			} else {
+			} else if !change.Saved {
 				err := os.MkdirAll(filepath.Dir(wcPath), 0755)
 				if err != nil {
 					t.log.Error(err, "failed to create dir for working copy", "path", change.Path)
