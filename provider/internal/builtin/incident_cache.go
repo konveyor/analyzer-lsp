@@ -196,8 +196,8 @@ func (b *builtinServiceClient) mergeIntoCache(key incidentCacheKey, filePath str
 // only include files in the provided scope set. Returns nil and false on cache miss.
 func (b *builtinServiceClient) incidentsFromCache(key incidentCacheKey, scopedFiles []string) ([]provider.IncidentContext, bool) {
 	b.incidentCacheMutex.RLock()
+	defer b.incidentCacheMutex.RUnlock()
 	fileMap, exists := b.incidentCache[key]
-	b.incidentCacheMutex.RUnlock()
 	if !exists {
 		return nil, false
 	}
@@ -260,6 +260,8 @@ func (b *builtinServiceClient) invalidateCacheForFile(filePath string) {
 // and updates the incident cache. The filePath should be the original file path
 // (not the working copy temp path) so cache keys align with Evaluate lookups.
 func (b *builtinServiceClient) refreshCacheForFile(ctx context.Context, originalPath string, contentPath string) {
+	defer b.completePendingRefresh(originalPath)
+
 	if !b.prepared || len(b.allParsedConditions) == 0 {
 		return
 	}
@@ -314,7 +316,6 @@ func (b *builtinServiceClient) refreshCacheForFile(ctx context.Context, original
 	}
 
 	if !needsContent && !needsXML && !needsJSON {
-		b.completePendingRefresh(originalPath)
 		return
 	}
 
@@ -354,7 +355,6 @@ func (b *builtinServiceClient) refreshCacheForFile(ctx context.Context, original
 		}
 	}
 
-	b.completePendingRefresh(originalPath)
 	b.log.V(5).Info("cache refreshed for working copy", "original", originalPath, "content", contentPath)
 }
 

@@ -609,24 +609,29 @@ func (p *builtinServiceClient) NotifyFileChanges(ctx context.Context, changes ..
 				cancelFn.(context.CancelFunc)()
 			}
 
-			if change.Saved {
-				val, loaded := p.pendingCacheRefresh.LoadAndDelete(change.Path)
-				if loaded {
-					close(val.(chan struct{}))
-				}
-			} else {
-				ch := make(chan struct{})
-				oldCh, hadPending := p.pendingCacheRefresh.Swap(change.Path, ch)
-				if hadPending {
-					close(oldCh.(chan struct{}))
-				}
+			ch := make(chan struct{})
+			oldCh, hadPending := p.pendingCacheRefresh.Swap(change.Path, ch)
+			if hadPending {
+				close(oldCh.(chan struct{}))
 			}
 
 			p.invalidateCacheForFile(change.Path)
+
+			// For saved changes, send cache refresh directly (re-read from disk).
+			// The WC manager only handles temp file cleanup for saves.
+			if change.Saved {
+				select {
+				case p.cacheRefreshChan <- cacheRefreshRequest{
+					originalPath: change.Path,
+					contentPath:  change.Path,
+				}:
+				case <-ctx.Done():
+				}
+			}
 		}
 	}
-	// Pass to working copy manager — it writes the temp file asynchronously,
-	// then sends a cache refresh request to cacheRefreshChan.
+	// Pass to working copy manager — it writes the temp file (for unsaved
+	// changes) and sends a cache refresh request for it.
 	p.workingCopyMgr.notifyChanges(filtered...)
 	return nil
 }
