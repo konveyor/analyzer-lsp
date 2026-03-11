@@ -132,15 +132,15 @@ func (t *workingCopyManager) startWorker() {
 						}
 						t.log.V(7).Info("working copy deleted", "change", change.Path, "wcPath", wcPath)
 					}
-				}
-				// Always re-cache from disk on save, regardless of prior WC
-				if t.cacheRefreshChan != nil {
-					select {
-					case t.cacheRefreshChan <- cacheRefreshRequest{
-						originalPath: originalPath,
-						contentPath:  originalPath,
-					}:
-					case <-t.ctx.Done():
+					// Re-cache from disk now that the WC overlay is removed
+					if t.cacheRefreshChan != nil {
+						select {
+						case t.cacheRefreshChan <- cacheRefreshRequest{
+							originalPath: originalPath,
+							contentPath:  originalPath,
+						}:
+						case <-t.ctx.Done():
+						}
 					}
 				}
 			} else {

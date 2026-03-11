@@ -21,6 +21,11 @@ import (
 // during Prepare()'s incident caching. Files larger than this are skipped.
 const maxCacheFileSize = 100 * 1024 * 1024 // 100MB
 
+// numWorkers is the number of goroutines used for both the initial
+// incident cache population and the cache refresh worker pool.
+// TODO: make numWorkers configurable via providerSpecificConfig
+const numWorkers = 5
+
 // cacheRefreshRequest is sent from the working copy manager to the
 // builtinServiceClient after a file change has been written to disk.
 type cacheRefreshRequest struct {
@@ -51,11 +56,8 @@ type parsedCondition struct {
 	jsonXPath           string         // json
 }
 
-// makeIncidentCacheKey builds a canonical cache key for a condition.
-// Keys are derived from the parsed condition fields (Pattern, XPath, etc.),
-// not from raw conditionInfo bytes. This ensures Prepare() and Evaluate()
-// produce identical keys as long as YAML unmarshalling is deterministic,
-// which it is for these simple scalar/map fields.
+// makeIncidentCacheKey builds a canonical cache key from a condition's
+// parsed fields (Pattern, XPath, etc.).
 func makeIncidentCacheKey(cap string, cond builtinCondition) incidentCacheKey {
 	switch cap {
 	case "filecontent":
@@ -122,8 +124,10 @@ func isChainedCondition(cap string, cond builtinCondition) bool {
 }
 
 // tryIncidentCache attempts to look up cached incidents for a capability.
-// Returns the incidents, whether a cache hit occurred, and any error.
-func (b *builtinServiceClient) tryIncidentCache(cap string, cond builtinCondition, patterns []string) ([]provider.IncidentContext, bool, error) {
+// If any scoped file has a pending cache refresh, it waits for the refresh
+// to complete before returning results. Returns the incidents, whether a
+// cache hit occurred, and any error.
+func (b *builtinServiceClient) tryIncidentCache(ctx context.Context, cap string, cond builtinCondition, patterns []string) ([]provider.IncidentContext, bool, error) {
 	if !b.prepared || len(b.allParsedConditions) == 0 || isChainedCondition(cap, cond) {
 		return nil, false, nil
 	}
@@ -134,10 +138,17 @@ func (b *builtinServiceClient) tryIncidentCache(cap string, cond builtinConditio
 	if err != nil {
 		return nil, false, err
 	}
-	// If any scoped file is pending cache refresh, fall back to
-	// filesystem walk so Evaluate doesn't return stale/incomplete results.
+	// Wait for any pending cache refreshes to complete before reading
+	// from the cache, so Evaluate never returns stale/incomplete results.
 	for _, f := range scopedFiles {
-		if _, pending := b.pendingCacheRefresh.Load(f); pending {
+		val, pending := b.pendingCacheRefresh.Load(f)
+		if !pending {
+			continue
+		}
+		ch := val.(chan struct{})
+		select {
+		case <-ch:
+		case <-ctx.Done():
 			return nil, false, nil
 		}
 	}
@@ -202,6 +213,8 @@ func (b *builtinServiceClient) incidentsFromCache(key incidentCacheKey, scopedFi
 
 // cacheRefreshWorker consumes from cacheRefreshChan and re-runs all parsed
 // conditions against the updated file content, storing results in the cache.
+// Each refresh gets a per-file child context so that it can be cancelled
+// when a newer change arrives for the same file or on shutdown.
 func (b *builtinServiceClient) cacheRefreshWorker() {
 	for {
 		select {
@@ -212,10 +225,23 @@ func (b *builtinServiceClient) cacheRefreshWorker() {
 			if !b.prepared {
 				continue
 			}
-			b.refreshCacheForFile(context.Background(), req.originalPath, req.contentPath)
-		case <-b.cacheRefreshDone:
+			fileCtx, fileCancel := context.WithCancel(b.cacheRefreshCtx)
+			b.activeRefreshes.Store(req.originalPath, fileCancel)
+			b.refreshCacheForFile(fileCtx, req.originalPath, req.contentPath)
+			b.activeRefreshes.Delete(req.originalPath)
+			fileCancel()
+		case <-b.cacheRefreshCtx.Done():
 			return
 		}
+	}
+}
+
+// completePendingRefresh removes the pending entry for a file and closes
+// its done channel, unblocking any Evaluate calls waiting in tryIncidentCache.
+func (b *builtinServiceClient) completePendingRefresh(filePath string) {
+	val, loaded := b.pendingCacheRefresh.LoadAndDelete(filePath)
+	if loaded {
+		close(val.(chan struct{}))
 	}
 }
 
@@ -288,7 +314,11 @@ func (b *builtinServiceClient) refreshCacheForFile(ctx context.Context, original
 	}
 
 	if !needsContent && !needsXML && !needsJSON {
-		b.pendingCacheRefresh.Delete(originalPath)
+		b.completePendingRefresh(originalPath)
+		return
+	}
+
+	if ctx.Err() != nil {
 		return
 	}
 
@@ -324,7 +354,7 @@ func (b *builtinServiceClient) refreshCacheForFile(ctx context.Context, original
 		}
 	}
 
-	b.pendingCacheRefresh.Delete(originalPath)
+	b.completePendingRefresh(originalPath)
 	b.log.V(5).Info("cache refreshed for working copy", "original", originalPath, "content", contentPath)
 }
 
@@ -487,7 +517,6 @@ func (b *builtinServiceClient) processFilecontentForFile(filePath string, conten
 			continue
 		}
 
-		// Check file pattern filter
 		if pc.condition.Filecontent.FilePattern != "" {
 			if !matchesFilePattern(pc.compiledFilePattern, pc.condition.Filecontent.FilePattern, relPath, baseName) {
 				continue
