@@ -1,4 +1,4 @@
-package konveyor
+package core
 
 import (
 	"context"
@@ -14,7 +14,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
-	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	v1 "github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/progress"
@@ -391,7 +390,7 @@ func (a *analyzer) GetDependencies(outputFilePath string, tree bool) error {
 				continue
 			}
 			for u, ds := range deps {
-				depsTree = append(depsTree, konveyor.DepsTreeItem{
+				depsTree = append(depsTree, v1.DepsTreeItem{
 					FileURI:      string(u),
 					Provider:     prov.Name,
 					Dependencies: ds,
@@ -405,7 +404,7 @@ func (a *analyzer) GetDependencies(outputFilePath string, tree bool) error {
 			}
 			for u, ds := range deps {
 				newDeps := ds
-				depsFlat = append(depsFlat, konveyor.DepsFlatItem{
+				depsFlat = append(depsFlat, v1.DepsFlatItem{
 					Provider:     prov.Name,
 					FileURI:      string(u),
 					Dependencies: newDeps,

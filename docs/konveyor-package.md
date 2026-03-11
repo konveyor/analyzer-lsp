@@ -1,6 +1,6 @@
 # Konveyor Package
 
-The `konveyor` package provides a high-level, programmatic API for running analysis with the Konveyor analyzer. It abstracts the complexity of managing providers, parsing rules, and executing analysis into a clean, fluent interface.
+The `core` package provides a high-level, programmatic API for running analysis with the Konveyor analyzer. It abstracts the complexity of managing providers, parsing rules, and executing analysis into a clean, fluent interface.
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@ The `konveyor` package provides a high-level, programmatic API for running analy
 
 ## Overview
 
-The konveyor package simplifies the analyzer workflow into four main phases:
+The core package simplifies the analyzer workflow into four main phases:
 
 1. **Initialization** - Create an analyzer with configuration
 2. **Rule Parsing** - Parse rules and identify needed providers
@@ -28,15 +28,15 @@ Here's a minimal example to get started:
 ```go
 import (
     "context"
-    "github.com/konveyor/analyzer-lsp/konveyor"
+    "github.com/konveyor/analyzer-lsp/core"
 )
 
 func main() {
     // Create an analyzer
-    analyzer, err := konveyor.NewAnalyzer(
-        konveyor.WithProviderConfigFilePath("provider_settings.json"),
-        konveyor.WithRuleFilepaths([]string{"rules/"}),
-        konveyor.WithLogger(log),
+    analyzer, err := core.NewAnalyzer(
+        core.WithProviderConfigFilePath("provider_settings.json"),
+        core.WithRuleFilepaths([]string{"rules/"}),
+        core.WithLogger(log),
     )
     if err != nil {
         log.Fatal(err)
@@ -89,15 +89,15 @@ type Analyzer interface {
 Create an analyzer instance with configuration options:
 
 ```go
-analyzer, err := konveyor.NewAnalyzer(
-    konveyor.WithLogger(log),
-    konveyor.WithProviderConfigFilePath("provider_settings.json"),
-    konveyor.WithRuleFilepaths([]string{"rules/"}),
-    konveyor.WithLabelSelector("konveyor.io/target=quarkus"),
-    konveyor.WithIncidentLimit(1500),
-    konveyor.WithCodeSnipLimit(20),
-    konveyor.WithContextLinesLimit(10),
-    konveyor.WithAnalysisMode("full"),
+analyzer, err := core.NewAnalyzer(
+    core.WithLogger(log),
+    core.WithProviderConfigFilePath("provider_settings.json"),
+    core.WithRuleFilepaths([]string{"rules/"}),
+    core.WithLabelSelector("konveyor.io/target=quarkus"),
+    core.WithIncidentLimit(1500),
+    core.WithCodeSnipLimit(20),
+    core.WithContextLinesLimit(10),
+    core.WithAnalysisMode("full"),
 )
 ```
 
@@ -146,8 +146,8 @@ Run the analysis:
 results := analyzer.Run()
 // Or with options:
 results := analyzer.Run(
-    konveyor.WithSelector(customSelector),
-    konveyor.WithProgressReporter(reporter),
+    core.WithSelector(customSelector),
+    core.WithProgressReporter(reporter),
 )
 ```
 
@@ -216,10 +216,10 @@ The following options have validation constraints:
 All validation errors are collected during `NewAnalyzer()` and returned as a combined error:
 
 ```go
-analyzer, err := konveyor.NewAnalyzer(
-    konveyor.WithIncidentLimit(-1),           // Invalid: negative
-    konveyor.WithAnalysisMode("invalid"),      // Invalid: unknown mode
-    konveyor.WithRuleFilepaths([]string{}),   // Invalid: empty array
+analyzer, err := core.NewAnalyzer(
+    core.WithIncidentLimit(-1),           // Invalid: negative
+    core.WithAnalysisMode("invalid"),      // Invalid: unknown mode
+    core.WithRuleFilepaths([]string{}),   // Invalid: empty array
 )
 if err != nil {
     // err contains all validation errors combined
@@ -250,20 +250,20 @@ Creates a new analyzer instance.
 
 | Option | Description | Validated | Example |
 |--------|-------------|-----------|---------|
-| `WithLogger(log)` | Set the logger | No | `konveyor.WithLogger(logr.Logger)` |
-| `WithProviderConfigFilePath(path)` | Path to provider settings | Yes (non-empty) | `konveyor.WithProviderConfigFilePath("settings.json")` |
-| `WithRuleFilepaths(paths)` | Paths to rule files/directories | Yes (non-empty array, non-empty paths) | `konveyor.WithRuleFilepaths([]string{"rules/"})` |
-| `WithLabelSelector(selector)` | Filter rules by labels | Yes (syntax) | `konveyor.WithLabelSelector("konveyor.io/target=quarkus")` |
-| `WithDepLabelSelector(selector)` | Filter dependencies by labels | No | `konveyor.WithDepLabelSelector("konveyor.io/dep=critical")` |
-| `WithIncidentSelector(selector)` | Filter incidents by custom variables | No | `konveyor.WithIncidentSelector("(!package=io.konveyor)")` |
-| `WithIncidentLimit(n)` | Max incidents per rule (0=unlimited) | Yes (>= 0) | `konveyor.WithIncidentLimit(1500)` |
-| `WithCodeSnipLimit(n)` | Max code snippets per file (0=unlimited) | Yes (>= 0) | `konveyor.WithCodeSnipLimit(20)` |
-| `WithContextLinesLimit(n)` | Lines of context in violations | Yes (>= 0) | `konveyor.WithContextLinesLimit(10)` |
-| `WithAnalysisMode(mode)` | "full" or "source-only" | Yes (known modes) | `konveyor.WithAnalysisMode("full")` |
-| `WithDependencyRulesDisabled()` | Disable dependency analysis | No | `konveyor.WithDependencyRulesDisabled()` |
-| `WithContext(ctx)` | Set context for cancellation | Yes (non-nil) | `konveyor.WithContext(ctx)` |
-| `WithProgress(progress)` | Custom progress tracker | No | `konveyor.WithProgress(p)` |
-| `WithReporters(reporters...)` | Progress reporters | No | `konveyor.WithReporters(r1, r2)` |
+| `WithLogger(log)` | Set the logger | No | `core.WithLogger(logr.Logger)` |
+| `WithProviderConfigFilePath(path)` | Path to provider settings | Yes (non-empty) | `core.WithProviderConfigFilePath("settings.json")` |
+| `WithRuleFilepaths(paths)` | Paths to rule files/directories | Yes (non-empty array, non-empty paths) | `core.WithRuleFilepaths([]string{"rules/"})` |
+| `WithLabelSelector(selector)` | Filter rules by labels | Yes (syntax) | `core.WithLabelSelector("konveyor.io/target=quarkus")` |
+| `WithDepLabelSelector(selector)` | Filter dependencies by labels | No | `core.WithDepLabelSelector("konveyor.io/dep=critical")` |
+| `WithIncidentSelector(selector)` | Filter incidents by custom variables | No | `core.WithIncidentSelector("(!package=io.konveyor)")` |
+| `WithIncidentLimit(n)` | Max incidents per rule (0=unlimited) | Yes (>= 0) | `core.WithIncidentLimit(1500)` |
+| `WithCodeSnipLimit(n)` | Max code snippets per file (0=unlimited) | Yes (>= 0) | `core.WithCodeSnipLimit(20)` |
+| `WithContextLinesLimit(n)` | Lines of context in violations | Yes (>= 0) | `core.WithContextLinesLimit(10)` |
+| `WithAnalysisMode(mode)` | "full" or "source-only" | Yes (known modes) | `core.WithAnalysisMode("full")` |
+| `WithDependencyRulesDisabled()` | Disable dependency analysis | No | `core.WithDependencyRulesDisabled()` |
+| `WithContext(ctx)` | Set context for cancellation | Yes (non-nil) | `core.WithContext(ctx)` |
+| `WithProgress(progress)` | Custom progress tracker | No | `core.WithProgress(p)` |
+| `WithReporters(reporters...)` | Progress reporters | No | `core.WithReporters(r1, r2)` |
 
 See [Option Validation](#option-validation) for details on validation constraints and error messages.
 
@@ -339,7 +339,7 @@ Get providers that match filters.
 
 ```go
 providers := analyzer.GetProviders(
-    func(p konveyor.Provider) bool {
+    func(p core.Provider) bool {
         caps, _ := p.Capabilities()
         return hasCapability(caps, "dependency")
     },
@@ -404,17 +404,17 @@ import (
     "os"
 
     "github.com/go-logr/logr"
-    "github.com/konveyor/analyzer-lsp/konveyor"
+    "github.com/konveyor/analyzer-lsp/core"
     "gopkg.in/yaml.v2"
 )
 
 func main() {
     logger := logr.Discard()
 
-    analyzer, err := konveyor.NewAnalyzer(
-        konveyor.WithLogger(logger),
-        konveyor.WithProviderConfigFilePath("provider_settings.json"),
-        konveyor.WithRuleFilepaths([]string{"rules/"}),
+    analyzer, err := core.NewAnalyzer(
+        core.WithLogger(logger),
+        core.WithProviderConfigFilePath("provider_settings.json"),
+        core.WithRuleFilepaths([]string{"rules/"}),
     )
     if err != nil {
         log.Fatal(err)
@@ -446,19 +446,19 @@ package main
 import (
     "log"
 
-    "github.com/konveyor/analyzer-lsp/konveyor"
+    "github.com/konveyor/analyzer-lsp/core"
     "github.com/spf13/cobra"
 )
 
 func main() {
-    config := &konveyor.AnalyzerConfig{}
+    config := &core.AnalyzerConfig{}
 
     cmd := &cobra.Command{
         Use:   "analyze",
         Short: "Run analysis on the codebase",
         RunE: func(cmd *cobra.Command, args []string) error {
             // Create analyzer from config
-            analyzer, err := konveyor.NewAnalyzer(config.ToOptions()...)
+            analyzer, err := core.NewAnalyzer(config.ToOptions()...)
             if err != nil {
                 return err
             }
@@ -496,11 +496,11 @@ Now users can run: `analyzer --provider-settings=settings.json --rules=rules/ --
 ### Example 3: With Label Filtering
 
 ```go
-analyzer, err := konveyor.NewAnalyzer(
-    konveyor.WithLogger(log),
-    konveyor.WithProviderConfigFilePath("provider_settings.json"),
-    konveyor.WithRuleFilepaths([]string{"rules/"}),
-    konveyor.WithLabelSelector("konveyor.io/target=quarkus"),
+analyzer, err := core.NewAnalyzer(
+    core.WithLogger(log),
+    core.WithProviderConfigFilePath("provider_settings.json"),
+    core.WithRuleFilepaths([]string{"rules/"}),
+    core.WithLabelSelector("konveyor.io/target=quarkus"),
 )
 
 // Only rules with matching labels will be evaluated
@@ -518,11 +518,11 @@ import (
 // Create custom reporter
 progressReporter := reporter.NewTextReporter(os.Stdout)
 
-analyzer, err := konveyor.NewAnalyzer(
-    konveyor.WithLogger(log),
-    konveyor.WithProviderConfigFilePath("provider_settings.json"),
-    konveyor.WithRuleFilepaths([]string{"rules/"}),
-    konveyor.WithReporters(progressReporter),
+analyzer, err := core.NewAnalyzer(
+    core.WithLogger(log),
+    core.WithProviderConfigFilePath("provider_settings.json"),
+    core.WithRuleFilepaths([]string{"rules/"}),
+    core.WithReporters(progressReporter),
 )
 
 // Progress will be reported to stdout
@@ -531,10 +531,10 @@ analyzer, err := konveyor.NewAnalyzer(
 ### Example 5: Error Handling and Validation
 
 ```go
-analyzer, err := konveyor.NewAnalyzer(
-    konveyor.WithProviderConfigFilePath("settings.json"),
-    konveyor.WithRuleFilepaths([]string{"rules/"}),
-    konveyor.WithIncidentLimit(1500),
+analyzer, err := core.NewAnalyzer(
+    core.WithProviderConfigFilePath("settings.json"),
+    core.WithRuleFilepaths([]string{"rules/"}),
+    core.WithIncidentLimit(1500),
 )
 if err != nil {
     log.Fatalf("Failed to create analyzer: %v", err)
@@ -560,8 +560,8 @@ if len(results) > 0 {
 ### Example 6: Dynamic Rule Paths
 
 ```go
-analyzer, err := konveyor.NewAnalyzer(
-    konveyor.WithProviderConfigFilePath("settings.json"),
+analyzer, err := core.NewAnalyzer(
+    core.WithProviderConfigFilePath("settings.json"),
     // No rules specified initially
 )
 
@@ -578,10 +578,10 @@ results := analyzer.Run()
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 defer cancel()
 
-analyzer, err := konveyor.NewAnalyzer(
-    konveyor.WithContext(ctx),
-    konveyor.WithProviderConfigFilePath("settings.json"),
-    konveyor.WithRuleFilepaths([]string{"rules/"}),
+analyzer, err := core.NewAnalyzer(
+    core.WithContext(ctx),
+    core.WithProviderConfigFilePath("settings.json"),
+    core.WithRuleFilepaths([]string{"rules/"}),
 )
 defer analyzer.Stop()
 
@@ -591,11 +591,11 @@ defer analyzer.Stop()
 ### Example 8: Source-Only Analysis
 
 ```go
-analyzer, err := konveyor.NewAnalyzer(
-    konveyor.WithProviderConfigFilePath("settings.json"),
-    konveyor.WithRuleFilepaths([]string{"rules/"}),
-    konveyor.WithAnalysisMode("source-only"),
-    konveyor.WithDependencyRulesDisabled(),
+analyzer, err := core.NewAnalyzer(
+    core.WithProviderConfigFilePath("settings.json"),
+    core.WithRuleFilepaths([]string{"rules/"}),
+    core.WithAnalysisMode("source-only"),
+    core.WithDependencyRulesDisabled(),
 )
 
 // Will only analyze source code, skip dependency analysis
@@ -633,10 +633,10 @@ Label selectors filter rules during parsing and execution:
 
 ```go
 // Filter by target platform
-konveyor.WithLabelSelector("konveyor.io/target=quarkus")
+core.WithLabelSelector("konveyor.io/target=quarkus")
 
 // Filter dependencies
-konveyor.WithDepLabelSelector("konveyor.io/dep=critical")
+core.WithDepLabelSelector("konveyor.io/dep=critical")
 ```
 
 See [labels.md](labels.md) for label selector syntax.
@@ -646,7 +646,7 @@ See [labels.md](labels.md) for label selector syntax.
 Incident selectors filter violations based on custom variables:
 
 ```go
-konveyor.WithIncidentSelector("(!package=io.konveyor.demo.config-utils)")
+core.WithIncidentSelector("(!package=io.konveyor.demo.config-utils)")
 ```
 
 See [incident_selector.md](incident_selector.md) for syntax details.
@@ -659,10 +659,10 @@ When calling `Run()`, you can customize execution:
 import "github.com/konveyor/analyzer-lsp/engine"
 
 results := analyzer.Run(
-    konveyor.WithScope(engine.Scope{
+    core.WithScope(engine.Scope{
         // Define scope here
     }),
-    konveyor.WithSelector(customSelector),
+    core.WithSelector(customSelector),
 )
 ```
 
@@ -702,7 +702,7 @@ All validation errors are collected and returned as a combined error. See [Optio
 The analyzer manages several resources that need cleanup:
 
 ```go
-analyzer, err := konveyor.NewAnalyzer(...)
+analyzer, err := core.NewAnalyzer(...)
 if err != nil {
     log.Fatal(err)
 }
@@ -710,10 +710,10 @@ defer analyzer.Stop() // Always call Stop()
 ```
 
 `Stop()` is responsible for:
-1. Stopping the rule engine (konveyor/analyzer.go:296)
-2. Stopping all provider clients (konveyor/analyzer.go:297-299)
-3. Unsubscribing progress collectors (konveyor/analyzer.go:300)
-4. Cancelling the context (konveyor/analyzer.go:301)
+1. Stopping the rule engine (core/analyzer.go:296)
+2. Stopping all provider clients (core/analyzer.go:297-299)
+3. Unsubscribing progress collectors (core/analyzer.go:300)
+4. Cancelling the context (core/analyzer.go:301)
 
 ## Reference Implementation
 

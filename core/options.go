@@ -1,4 +1,4 @@
-// Package konveyor provides an analyzer interface for static code analysis.
+// Package core provides an analyzer interface for static code analysis.
 //
 // # Option Validation
 //
@@ -19,7 +19,7 @@
 //
 // All validation errors are collected and returned by NewAnalyzer if any
 // option fails validation.
-package konveyor
+package core
 
 import (
 	"context"

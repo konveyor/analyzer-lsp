@@ -1,4 +1,4 @@
-package konveyor
+package core
 
 import (
 	"context"
@@ -13,17 +13,17 @@ import (
 // Mock implementations for testing
 
 type mockProviderClient struct {
-	capabilities         []provider.Capability
-	initError            error
-	startError           error
-	prepareError         error
-	stopCalled           bool
-	getDepsError         error
-	getDepsDAGError      error
-	deps                 map[uri.URI][]*provider.Dep
-	depsDAG              map[uri.URI][]provider.DepDAGItem
-	additionalBuiltins   []provider.InitConfig
-	serviceClient        provider.ServiceClient
+	capabilities       []provider.Capability
+	initError          error
+	startError         error
+	prepareError       error
+	stopCalled         bool
+	getDepsError       error
+	getDepsDAGError    error
+	deps               map[uri.URI][]*provider.Dep
+	depsDAG            map[uri.URI][]provider.DepDAGItem
+	additionalBuiltins []provider.InitConfig
+	serviceClient      provider.ServiceClient
 }
 
 func (m *mockProviderClient) Capabilities() []provider.Capability {

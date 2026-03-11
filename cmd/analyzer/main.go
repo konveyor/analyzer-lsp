@@ -10,7 +10,7 @@ import (
 
 	logrusr "github.com/bombsimon/logrusr/v3"
 	"github.com/go-logr/logr"
-	"github.com/konveyor/analyzer-lsp/konveyor"
+	"github.com/konveyor/analyzer-lsp/core"
 	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/progress/collector"
@@ -28,7 +28,7 @@ const (
 
 var (
 	// AnalyzerConfig holds the analyzer configuration
-	analyzerConfig = &konveyor.AnalyzerConfig{}
+	analyzerConfig = &core.AnalyzerConfig{}
 
 	// Additional CLI-specific flags
 	outputViolations  string
@@ -96,12 +96,12 @@ func AnalysisCmd() *cobra.Command {
 			// Build options from config and add CLI-specific options
 			options := analyzerConfig.ToOptions()
 			options = append(options,
-				konveyor.WithLogger(log),
-				konveyor.WithContext(ctx),
-				konveyor.WithProgress(analyzerProgress),
+				core.WithLogger(log),
+				core.WithContext(ctx),
+				core.WithProgress(analyzerProgress),
 			)
 
-			analyzer, err := konveyor.NewAnalyzer(options...)
+			analyzer, err := core.NewAnalyzer(options...)
 
 			if err != nil {
 				errLog.Error(err, "Unable to create new Analyzer")

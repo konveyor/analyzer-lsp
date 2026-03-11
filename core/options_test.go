@@ -1,4 +1,4 @@
-package konveyor
+package core
 
 import (
 	"context"

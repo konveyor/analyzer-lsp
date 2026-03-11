@@ -1,4 +1,4 @@
-package konveyor
+package core
 
 import "github.com/konveyor/analyzer-lsp/provider"
 

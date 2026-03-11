@@ -1,4 +1,4 @@
-package konveyor
+package core
 
 import (
 	"github.com/spf13/cobra"
@@ -10,11 +10,11 @@ import (
 //
 // Example usage with cobra:
 //
-//	config := &konveyor.AnalyzerConfig{}
+//	config := &core.AnalyzerConfig{}
 //	cmd := &cobra.Command{
 //	    Use: "analyze",
 //	    Run: func(cmd *cobra.Command, args []string) {
-//	        analyzer, err := konveyor.NewAnalyzer(config.ToOptions()...)
+//	        analyzer, err := core.NewAnalyzer(config.ToOptions()...)
 //	        if err != nil {
 //	            log.Fatal(err)
 //	        }
@@ -71,7 +71,7 @@ type AnalyzerConfig struct {
 //
 // Example:
 //
-//	config := &konveyor.AnalyzerConfig{}
+//	config := &core.AnalyzerConfig{}
 //	rootCmd := &cobra.Command{Use: "analyzer"}
 //	config.AddFlags(rootCmd)
 func (c *AnalyzerConfig) AddFlags(cmd *cobra.Command) {
@@ -94,12 +94,12 @@ func (c *AnalyzerConfig) AddFlags(cmd *cobra.Command) {
 //
 // Example:
 //
-//	config := &konveyor.AnalyzerConfig{
+//	config := &core.AnalyzerConfig{
 //	    ProviderSettings: "provider_settings.json",
 //	    Rules: []string{"rules/"},
 //	    IncidentLimit: 1500,
 //	}
-//	analyzer, err := konveyor.NewAnalyzer(config.ToOptions()...)
+//	analyzer, err := core.NewAnalyzer(config.ToOptions()...)
 //	if err != nil {
 //	    // Handle validation errors from option functions
 //	    log.Fatal(err)

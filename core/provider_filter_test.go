@@ -1,4 +1,4 @@
-package konveyor
+package core
 
 import (
 	"testing"
@@ -9,16 +9,16 @@ import (
 
 func TestFilterByCapability(t *testing.T) {
 	tests := []struct {
-		name         string
-		capability   string
-		provider     Provider
-		expected     bool
+		name       string
+		capability string
+		provider   Provider
+		expected   bool
 	}{
 		{
 			name:       "provider has dependency capability",
 			capability: "dependency",
 			provider: Provider{
-				Name:     "java",
+				Name: "java",
 				provider: &mockProviderClient{
 					capabilities: []provider.Capability{
 						{Name: "dependency"},
@@ -31,7 +31,7 @@ func TestFilterByCapability(t *testing.T) {
 			name:       "provider does not have capability",
 			capability: "dependency",
 			provider: Provider{
-				Name:     "java",
+				Name: "java",
 				provider: &mockProviderClient{
 					capabilities: []provider.Capability{
 						{Name: "other"},
@@ -44,7 +44,7 @@ func TestFilterByCapability(t *testing.T) {
 			name:       "provider has multiple capabilities including target",
 			capability: "referenced",
 			provider: Provider{
-				Name:     "java",
+				Name: "java",
 				provider: &mockProviderClient{
 					capabilities: []provider.Capability{
 						{Name: "dependency"},
@@ -59,7 +59,7 @@ func TestFilterByCapability(t *testing.T) {
 			name:       "provider has no capabilities",
 			capability: "dependency",
 			provider: Provider{
-				Name:     "java",
+				Name: "java",
 				provider: &mockProviderClient{
 					capabilities: []provider.Capability{},
 				},
