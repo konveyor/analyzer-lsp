@@ -53,9 +53,8 @@ type builtinServiceClient struct {
 	// then by file path.
 	incidentCache      map[incidentCacheKey]map[string][]provider.IncidentContext
 	incidentCacheMutex sync.RWMutex
-	// allParsedConditions holds pre-compiled conditions from Prepare(), deduplicated
-	// by cache key. Conditions with chained Filepaths are excluded (they use
-	// template expansion at Evaluate time and must fall back to current behavior).
+	// allParsedConditions holds pre-compiled conditions from Prepare(),
+	// deduplicated by cache key. Chained conditions are excluded.
 	allParsedConditions []parsedCondition
 
 	// cacheRefreshChan receives requests from the working copy manager
@@ -64,15 +63,24 @@ type builtinServiceClient struct {
 	// conditions against the updated content.
 	cacheRefreshChan chan cacheRefreshRequest
 
-	// cacheRefreshDone is closed to signal cache refresh workers to exit.
-	// Using a separate done channel (instead of closing cacheRefreshChan)
-	// avoids a panic if the WC manager sends concurrently with Stop().
-	cacheRefreshDone chan struct{}
+	// cacheRefreshCtx is cancelled in Stop() to signal cache refresh
+	// workers to exit and cancel in-progress refreshes.
+	cacheRefreshCtx    context.Context
+	cacheRefreshCancel context.CancelFunc
+
+	// activeRefreshes tracks cancel funcs for in-progress per-file
+	// cache refreshes, allowing cancellation when a newer change arrives
+	// for the same file.
+	activeRefreshes sync.Map // map[string]context.CancelFunc
+
+	// cacheRefreshMu guards startCacheRefreshWorkers and
+	// stopCacheRefreshWorkers against concurrent access.
+	cacheRefreshMu sync.Mutex
 
 	// pendingCacheRefresh tracks files whose cache entries have been
-	// invalidated but not yet refreshed. tryIncidentCache falls back
-	// to filesystem walk if any scoped file is pending.
-	pendingCacheRefresh sync.Map
+	// invalidated but not yet refreshed. Values are chan struct{},
+	// closed when the refresh completes.
+	pendingCacheRefresh sync.Map // map[string]chan struct{}
 }
 
 type fileTemplateContext struct {
@@ -401,10 +409,15 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 	b.incidentCacheMutex.Lock()
 	b.incidentCache = nil
 	b.incidentCacheMutex.Unlock()
-	b.pendingCacheRefresh.Range(func(key, _ any) bool {
+	b.pendingCacheRefresh.Range(func(key, val any) bool {
+		if ch, ok := val.(chan struct{}); ok {
+			close(ch)
+		}
 		b.pendingCacheRefresh.Delete(key)
 		return true
 	})
+	// Stop old cache refresh workers so re-Prepare can start fresh ones.
+	b.stopCacheRefreshWorkers()
 
 	// Parse all conditions to:
 	// 1. Collect the union of include scopes for the filesystem walk
@@ -512,8 +525,6 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 	b.incidentCacheMutex.Unlock()
 
 	// Process all files through worker pool to populate the incident cache.
-	// TODO: make numWorkers configurable via providerSpecificConfig
-	const numWorkers = 5
 	if len(parsedConds) > 0 && len(files) > 0 {
 		fileChan := make(chan string, 10)
 		wg := sync.WaitGroup{}
@@ -538,27 +549,46 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 			"cacheEntries", len(b.incidentCache))
 	}
 
-	// Set up cache refresh channel and workers once. Workers check b.prepared
-	// and b.allParsedConditions, which are updated on each Prepare call.
-	if b.cacheRefreshChan == nil {
-		b.cacheRefreshChan = make(chan cacheRefreshRequest, 1024)
-		b.cacheRefreshDone = make(chan struct{})
-		b.workingCopyMgr.cacheRefreshChan = b.cacheRefreshChan
-		for range numWorkers {
-			go b.cacheRefreshWorker()
-		}
-	}
+	b.startCacheRefreshWorkers()
 
 	b.prepared = true
 	b.log.V(5).Info("Prepare complete", "fileCount", len(files), "parsedConditions", len(parsedConds))
 	return nil
 }
 
+// startCacheRefreshWorkers initialises the cache refresh channel and spawns
+// worker goroutines the first time it is called. Subsequent calls are no-ops.
+// Safe to call concurrently from Prepare and NotifyFileChanges.
+func (b *builtinServiceClient) startCacheRefreshWorkers() {
+	b.cacheRefreshMu.Lock()
+	defer b.cacheRefreshMu.Unlock()
+	if b.cacheRefreshChan != nil {
+		return
+	}
+	b.cacheRefreshChan = make(chan cacheRefreshRequest, 1024)
+	b.cacheRefreshCtx, b.cacheRefreshCancel = context.WithCancel(context.Background())
+	b.workingCopyMgr.cacheRefreshChan = b.cacheRefreshChan
+	for range numWorkers {
+		go b.cacheRefreshWorker()
+	}
+}
+
+// stopCacheRefreshWorkers cancels running workers and resets state so
+// startCacheRefreshWorkers can re-initialise on the next call.
+func (b *builtinServiceClient) stopCacheRefreshWorkers() {
+	b.cacheRefreshMu.Lock()
+	defer b.cacheRefreshMu.Unlock()
+	if b.cacheRefreshCancel != nil {
+		b.cacheRefreshCancel()
+		b.cacheRefreshCancel = nil
+		b.cacheRefreshChan = nil
+		b.workingCopyMgr.cacheRefreshChan = nil
+	}
+}
+
 func (b *builtinServiceClient) Stop() {
 	b.workingCopyMgr.stop()
-	if b.cacheRefreshDone != nil {
-		close(b.cacheRefreshDone)
-	}
+	b.stopCacheRefreshWorkers()
 }
 
 func (p *builtinServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
@@ -568,12 +598,31 @@ func (p *builtinServiceClient) NotifyFileChanges(ctx context.Context, changes ..
 			filtered = append(filtered, change)
 		}
 	}
-	// Invalidate cache and mark files as pending refresh so that
-	// Evaluate falls back to filesystem walk until the refresh completes.
+	// Mark pending before invalidating to avoid a window where
+	// Evaluate sees an empty cache with no pending flag.
+	p.startCacheRefreshWorkers()
 	if p.prepared {
 		for _, change := range filtered {
+			// Cancel any in-progress refresh for this file
+			cancelFn, hasActive := p.activeRefreshes.LoadAndDelete(change.Path)
+			if hasActive {
+				cancelFn.(context.CancelFunc)()
+			}
+
+			if change.Saved {
+				val, loaded := p.pendingCacheRefresh.LoadAndDelete(change.Path)
+				if loaded {
+					close(val.(chan struct{}))
+				}
+			} else {
+				ch := make(chan struct{})
+				oldCh, hadPending := p.pendingCacheRefresh.Swap(change.Path, ch)
+				if hadPending {
+					close(oldCh.(chan struct{}))
+				}
+			}
+
 			p.invalidateCacheForFile(change.Path)
-			p.pendingCacheRefresh.Store(change.Path, true)
 		}
 	}
 	// Pass to working copy manager — it writes the temp file asynchronously,
@@ -663,7 +712,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if c.FilePattern != "" {
 			patterns = append(patterns, c.FilePattern)
 		}
-		if incidents, ok, err := p.tryIncidentCache(cap, cond, patterns); err != nil {
+		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, patterns); err != nil {
 			return response, fmt.Errorf("failed to filter cached files - %w", err)
 		} else if ok {
 			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
@@ -698,7 +747,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if incidents, ok, err := p.tryIncidentCache(cap, cond, []string{"*.xml", "*.xhtml"}); err != nil {
+		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, []string{"*.xml", "*.xhtml"}); err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		} else if ok {
 			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
@@ -744,7 +793,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if incidents, ok, err := p.tryIncidentCache(cap, cond, []string{"*.xml", "*.xhtml"}); err != nil {
+		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, []string{"*.xml", "*.xhtml"}); err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		} else if ok {
 			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
@@ -793,7 +842,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if incidents, ok, err := p.tryIncidentCache(cap, cond, []string{"*.json"}); err != nil {
+		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, []string{"*.json"}); err != nil {
 			return response, fmt.Errorf("unable to find JSON files: %v", err)
 		} else if ok {
 			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)

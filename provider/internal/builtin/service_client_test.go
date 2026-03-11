@@ -2243,6 +2243,7 @@ func Test_incidentCaching_workingCopyStillMatches(t *testing.T) {
 		t.Errorf("expected incident for %s after WC change that still contains 'fox', but got none", aPath)
 	}
 }
+
 func Test_matchesFilePattern_relPath(t *testing.T) {
 	tests := []struct {
 		name     string
