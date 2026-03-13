@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
@@ -276,4 +277,55 @@ func TestWithContext_Nil(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot be nil")
+}
+
+func TestWithProviderInitTimeout(t *testing.T) {
+	tests := []struct {
+		name            string
+		timeout         time.Duration
+		expectError     bool
+		expectNil       bool
+		expectedTimeout time.Duration
+	}{
+		{
+			name:            "positive timeout",
+			timeout:         5 * time.Minute,
+			expectedTimeout: 5 * time.Minute,
+		},
+		{
+			name:            "zero means no timeout",
+			timeout:         0,
+			expectedTimeout: 0,
+		},
+		{
+			name:        "negative timeout returns error",
+			timeout:     -1 * time.Second,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := &analyzerOptions{}
+
+			err := WithProviderInitTimeout(tt.timeout)(opts)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "must be non-negative")
+				assert.Nil(t, opts.providerInitTimeout)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, opts.providerInitTimeout)
+				assert.Equal(t, tt.expectedTimeout, *opts.providerInitTimeout)
+			}
+		})
+	}
+}
+
+func TestWithProviderInitTimeout_NilByDefault(t *testing.T) {
+	opts := &analyzerOptions{}
+
+	// Without calling WithProviderInitTimeout, field should be nil (default 4 min behavior)
+	assert.Nil(t, opts.providerInitTimeout)
 }

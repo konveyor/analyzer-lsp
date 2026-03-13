@@ -170,6 +170,7 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 		progress:                       opts.progress,
 		collector:                      collector,
 		labelSelector:                  opts.labelSelector,
+		providerInitTimeout:            opts.providerInitTimeout,
 		pathMappings:                   opts.pathMappings,
 		ignoreAdditionalBuiltinConfigs: opts.ignoreAdditionalBuiltinConfigs,
 	}, nil

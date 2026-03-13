@@ -24,6 +24,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
@@ -51,6 +52,7 @@ type analyzerOptions struct {
 	log                     logr.Logger
 	ctx                     context.Context
 
+	providerInitTimeout            *time.Duration
 	pathMappings                   []provider.PathMapping
 	ignoreAdditionalBuiltinConfigs bool
 }
@@ -310,6 +312,28 @@ func WithWorkerCount(count int) AnalyzerOption {
 		}
 		opt.workerCount = count
 		return
+	}
+}
+
+// WithProviderInitTimeout sets the maximum time to wait for all providers
+// to finish initialization.
+//
+// Behavior:
+//   - nil (not called): Uses the default timeout of 8 minutes
+//   - 0: No timeout; waits indefinitely for providers to initialize
+//   - positive value: Uses the specified duration as the timeout
+//
+// Validation:
+//   - Must be non-negative (>= 0)
+//
+// Returns an error if a negative duration is provided.
+func WithProviderInitTimeout(timeout time.Duration) AnalyzerOption {
+	return func(opt *analyzerOptions) error {
+		if timeout < 0 {
+			return fmt.Errorf("provider init timeout must be non-negative, got: %s", timeout)
+		}
+		opt.providerInitTimeout = &timeout
+		return nil
 	}
 }
 

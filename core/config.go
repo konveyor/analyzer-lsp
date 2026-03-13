@@ -1,6 +1,8 @@
 package core
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 )
 
@@ -64,6 +66,10 @@ type AnalyzerConfig struct {
 	// WorkerCount sets the number of workers for parallel rule execution.
 	// Default is 10 if not specified or set to 0.
 	WorkerCount int
+
+	// ProviderInitTimeout sets the maximum time to wait for provider
+	// initialization. Use 0 for no timeout. Default is 8 minutes.
+	ProviderInitTimeout time.Duration
 }
 
 // AddFlags adds all configuration flags to the given cobra command.
@@ -86,6 +92,7 @@ func (c *AnalyzerConfig) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&c.AnalysisMode, "analysis-mode", "", "Analysis mode: 'full' or 'source-only'")
 	cmd.Flags().BoolVar(&c.DisableDependencyRules, "no-dependency-rules", false, "Disable dependency analysis rules")
 	cmd.Flags().IntVar(&c.WorkerCount, "workers", 10, "Number of workers for parallel rule execution")
+	cmd.Flags().DurationVar(&c.ProviderInitTimeout, "provider-init-timeout", 8*time.Minute, "Maximum time to wait for provider initialization (0 = no timeout)")
 }
 
 // ToOptions converts the AnalyzerConfig to a slice of AnalyzerOptions.
@@ -124,6 +131,8 @@ func (c *AnalyzerConfig) ToOptions() []AnalyzerOption {
 	if c.WorkerCount > 0 {
 		options = append(options, WithWorkerCount(c.WorkerCount))
 	}
+
+	options = append(options, WithProviderInitTimeout(c.ProviderInitTimeout))
 
 	return options
 }

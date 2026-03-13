@@ -58,7 +58,7 @@ func TestAnalyzerConfig_ToOptions_AllFields(t *testing.T) {
 	options := config.ToOptions()
 
 	// Should have all options
-	assert.Len(t, options, 10)
+	assert.Len(t, options, 11)
 
 	// Verify options can be applied to analyzerOptions
 	opts := &analyzerOptions{}

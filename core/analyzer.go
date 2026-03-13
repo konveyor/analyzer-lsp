@@ -43,6 +43,7 @@ type analyzer struct {
 	collector          progress.Collector
 	labelSelector      string
 
+	providerInitTimeout            *time.Duration
 	pathMappings                   []provider.PathMapping
 	ignoreAdditionalBuiltinConfigs bool
 }
@@ -185,12 +186,28 @@ func (a *analyzer) ProviderStart() error {
 		close(c)
 	}()
 
-	select {
-	case <-c:
+	// Determine timeout: nil = default 4 min, 0 = no timeout
+	timeout := 8 * time.Minute
+	noTimeout := false
+	if a.providerInitTimeout != nil {
+		if *a.providerInitTimeout == 0 {
+			noTimeout = true
+		} else {
+			timeout = *a.providerInitTimeout
+		}
+	}
+
+	if noTimeout {
+		<-c
 		a.log.V(3).Info("started all non builtin providers")
-	case <-time.After(4 * time.Minute):
-		cancelFunc()
-		return fmt.Errorf("timed out starting providers")
+	} else {
+		select {
+		case <-c:
+			a.log.V(3).Info("started all non builtin providers")
+		case <-time.After(timeout):
+			cancelFunc()
+			return fmt.Errorf("timed out starting providers after %s", timeout)
+		}
 	}
 	cancelFunc()
 
