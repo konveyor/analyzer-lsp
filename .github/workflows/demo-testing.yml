@@ -141,7 +141,7 @@ jobs:
           docker push ttl.sh/konveyor-operator-bundle-${GITHUB_SHA}:2h
   e2e:
     needs: test
-    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
+    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@bugfix/older-runner-image
     with:
       base_tag: "release-0.8"
       operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
