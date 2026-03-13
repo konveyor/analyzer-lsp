@@ -12,6 +12,8 @@ import (
 
 	"github.com/go-logr/logr"
 	reflectClient "github.com/jhump/protoreflect/grpcreflect"
+	"github.com/konveyor/analyzer-lsp/progress"
+	"github.com/konveyor/analyzer-lsp/progress/collector"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/grpc/socket"
 	pb "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
@@ -33,6 +35,7 @@ type grpcProvider struct {
 	conn      *grpc.ClientConn
 	config    provider.Config
 	cancelCmd context.CancelFunc
+	progress  *progress.Progress
 
 	serviceClients []provider.ServiceClient
 }
@@ -166,7 +169,7 @@ func requiresConversion(value interface{}) bool {
 	}
 }
 
-func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalProviderClient, error) {
+func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.Progress) (provider.InternalProviderClient, error) {
 	log = log.WithName(config.Name)
 	log = log.WithValues("provider", "grpc")
 	ctxCmd, cancelCmd := context.WithCancel(context.Background())
@@ -204,6 +207,7 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 		config:         config,
 		cancelCmd:      cancelCmd,
 		serviceClients: []provider.ServiceClient{},
+		progress:       progress,
 	}
 	if foundCodeSnip && foundDepResolve {
 		// create the clients, create the struct that will have all the methods
@@ -359,11 +363,19 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	if r.BuiltinConfig != nil {
 		additionalBuiltinConfig.Location = r.BuiltinConfig.Location
 	}
+
+	// For right now, the only progress reported by a init config will be the
+	// provider prepare
+	collector := collector.NewThrottledCollector(progress.StageProviderPrepare)
+	g.progress.Subscribe(collector)
 	return &grpcServiceClient{
 		id:     r.Id,
 		config: config,
 		client: g.Client,
-		log:    log.WithName("grpcServiceClient"),
+		log:    log.WithName("grpcServiceClient").WithValues("location", config.Location),
+		// Note this is a collector
+		// But we only need the reporter interface
+		reporter: collector,
 	}, additionalBuiltinConfig, nil
 }
 

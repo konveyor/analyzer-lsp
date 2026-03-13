@@ -13,6 +13,7 @@ import (
 	jsonrpc2 "github.com/konveyor/analyzer-lsp/jsonrpc2_v2"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
@@ -51,7 +52,9 @@ type YamlServiceClient struct {
 // Tidy alias
 type serviceClientFn = base.LSPServiceClientFunc[*YamlServiceClient]
 
-type YamlServiceClientBuilder struct{}
+type YamlServiceClientBuilder struct {
+	Progress *progress.Progress
+}
 
 func (y *YamlServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
 	sc := &YamlServiceClient{}
@@ -66,7 +69,7 @@ func (y *YamlServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	// Create handler for workspace/configuration requests. See configParams
 	// comment
 	sc.configParams = make([]map[string]any, 0)
-	h := func(ctx context.Context, req *jsonrpc2.Request) (interface{}, error) {
+	h := func(ctx context.Context, req *jsonrpc2.Request) (any, error) {
 		switch req.Method {
 		case "workspace/configuration":
 			return sc.configParams, nil
@@ -109,6 +112,7 @@ func (y *YamlServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 		),
 		params,
 		nil,
+		y.Progress,
 	)
 	if err != nil {
 		return nil, err
@@ -116,7 +120,7 @@ func (y *YamlServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	sc.LSPServiceClientBase = scBase
 
 	// Initialize the fancy evaluator
-	eval, err := base.NewLspServiceClientEvaluator[*YamlServiceClient](sc, y.GetGenericServiceClientCapabilities(log))
+	eval, err := base.NewLspServiceClientEvaluator(sc, y.GetGenericServiceClientCapabilities(log))
 	if err != nil {
 		return nil, err
 	}
