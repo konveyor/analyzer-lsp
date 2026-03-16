@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"maps"
 	"os"
 	"path/filepath"
@@ -36,11 +35,11 @@ func setupProviderConfigs(
 				location = provider.TranslatePath(location, pathMappings)
 			}
 			location, err := filepath.Abs(location)
-			_, err = os.Stat(location)
-			if _, statErr := os.Stat(location); errors.Is(statErr, &os.PathError{}) {
+			if err != nil {
 				continue
 			}
-			if err != nil {
+			stat, err := os.Stat(location)
+			if err != nil || !stat.IsDir() {
 				continue
 			}
 			// If a extra config is sent back but a builtin config is also passed to use

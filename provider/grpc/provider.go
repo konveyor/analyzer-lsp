@@ -362,6 +362,7 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	additionalBuiltinConfig := provider.InitConfig{}
 	if r.BuiltinConfig != nil {
 		additionalBuiltinConfig.Location = r.BuiltinConfig.Location
+		additionalBuiltinConfig.DependencyPath = r.BuiltinConfig.DependencyPath
 	}
 
 	// For right now, the only progress reported by a init config will be the

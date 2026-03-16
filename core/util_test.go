@@ -108,6 +108,30 @@ func TestSetupProviderConfigs(t *testing.T) {
 			expectedNonBuiltinCount: 1,
 		},
 		{
+			name: "provider with file location (binary jar) should not create builtin config",
+			providerConfigs: []provider.Config{
+				{
+					Name: "java",
+					InitConfig: []provider.InitConfig{
+						{
+							Location: "", // will be set to a file path
+						},
+					},
+				},
+			},
+			setupTempDirs: func(t *testing.T) []string {
+				tmpDir := t.TempDir()
+				jarFile := filepath.Join(tmpDir, "app.jar")
+				err := os.WriteFile(jarFile, []byte("fake jar content"), 0644)
+				assert.NoError(t, err)
+				return []string{jarFile}
+			},
+			expectedConfigCount:     1, // java only (no builtin since location is a file)
+			expectedLocationCount:   0, // file locations are skipped
+			expectBuiltinConfig:     false,
+			expectedNonBuiltinCount: 1,
+		},
+		{
 			name: "builtin provider config",
 			providerConfigs: []provider.Config{
 				{
