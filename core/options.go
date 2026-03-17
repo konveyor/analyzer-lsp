@@ -28,7 +28,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
-	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 )
@@ -55,39 +54,6 @@ type analyzerOptions struct {
 	providerInitTimeout            *time.Duration
 	pathMappings                   []provider.PathMapping
 	ignoreAdditionalBuiltinConfigs bool
-}
-
-type selectorError []error
-
-func (s selectorError) Error() string {
-	if len(s) == 0 {
-		return ""
-	}
-	if len(s) == 1 {
-		return s[0].Error()
-	}
-	errorMsg := "multiple selector errors:\n"
-	for i, err := range s {
-		errorMsg += fmt.Sprintf("  %d: %s\n", i+1, err.Error())
-	}
-	return errorMsg
-}
-
-func (a *analyzerOptions) getSelectors() ([]engine.RuleSelector, error) {
-	selectors := []engine.RuleSelector{}
-	selectorErrors := selectorError{}
-	if a.labelSelector != "" {
-		selector, err := labels.NewLabelSelector[*engine.RuleMeta](a.labelSelector, nil)
-		if err != nil {
-			selectorErrors = append(selectorErrors, err)
-		} else {
-			selectors = append(selectors, selector)
-		}
-	}
-	if len(selectorErrors) > 0 {
-		return nil, selectorErrors
-	}
-	return selectors, nil
 }
 
 // OPTIONALS FOR ENDUSER

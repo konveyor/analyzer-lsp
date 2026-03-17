@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"sync"
@@ -80,7 +81,10 @@ func AnalysisCmd() *cobra.Command {
 			ctx, cancelFunc := context.WithCancel(context.Background())
 			defer cancelFunc()
 
-			progressReporter := createProgressReporter()
+			progressReporter, progressCloser := createProgressReporter()
+			if progressCloser != nil {
+				defer progressCloser.Close()
+			}
 			analyzerCollector := collector.New()
 			analyzerProgress, err := progress.New(
 				progress.WithCollectors(analyzerCollector),
@@ -224,15 +228,17 @@ func validateFlags() error {
 	return nil
 }
 
-// createProgressReporter creates a progress reporter based on CLI flags
-func createProgressReporter() progress.Reporter {
+// createProgressReporter creates a progress reporter based on CLI flags.
+// Returns the reporter and an io.Closer if a file was opened (nil otherwise).
+func createProgressReporter() (progress.Reporter, io.Closer) {
 	// If no output specified, return noop reporter
 	if progressOutput == "" {
-		return progress.NewNoopReporter()
+		return progress.NewNoopReporter(), nil
 	}
 
 	// Determine output writer
 	var writer *os.File
+	var closer io.Closer
 	switch progressOutput {
 	case "stderr":
 		writer = os.Stderr
@@ -247,20 +253,21 @@ func createProgressReporter() progress.Reporter {
 			writer = os.Stderr
 		} else {
 			writer = file
+			closer = file
 		}
 	}
 
 	// Create reporter based on format
 	switch progressFormat {
 	case "json":
-		return reporter.NewJSONReporter(writer)
+		return reporter.NewJSONReporter(writer), closer
 	case "text":
-		return reporter.NewTextReporter(writer)
+		return reporter.NewTextReporter(writer), closer
 	case "bar":
-		return reporter.NewProgressBarReporter(writer)
+		return reporter.NewProgressBarReporter(writer), closer
 	default:
 		// Default to progress bar
-		return reporter.NewProgressBarReporter(writer)
+		return reporter.NewProgressBarReporter(writer), closer
 	}
 }
 

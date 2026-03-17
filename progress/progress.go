@@ -184,7 +184,9 @@ func (p *Progress) Unsubscribe(collector Collector) {
 	p.subscribeMutex.Lock()
 	subscribeCancel := p.collectorCancelMap[collector.ID()]
 	p.subscribeMutex.Unlock()
-	subscribeCancel()
+	if subscribeCancel != nil {
+		subscribeCancel()
+	}
 }
 
 // Subscribe starts receiving events from the specified collector.

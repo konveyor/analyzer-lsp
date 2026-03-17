@@ -5,8 +5,10 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAnalyzer_RuleLabels(t *testing.T) {
@@ -194,4 +196,47 @@ func TestAnalyzer_GetProviders_WithFilters(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAnalyzer_ParseRules_UsesExplicitPaths(t *testing.T) {
+	// Set up a progress instance
+	prog, err := progress.New()
+	require.NoError(t, err)
+
+	// Create analyzer with rulePaths pointing to one file
+	a := &analyzer{
+		log: logr.Discard(),
+		parserConfig: parserConfig{
+			rulePaths: []string{"../parser/testdata/rule-simple-default.yaml"},
+		},
+		allConfigProviders: map[string]provider.InternalProviderClient{
+			"builtin": &mockProviderClient{
+				capabilities: []provider.Capability{
+					{Name: "file"},
+					{Name: "filecontent"},
+					{Name: "xml"},
+					{Name: "json"},
+					{Name: "tag"},
+				},
+			},
+		},
+		progress: prog,
+	}
+
+	// Call ParseRules with an explicit different path
+	_, err = a.ParseRules("../parser/testdata/valid-tag-rule.yaml")
+	require.NoError(t, err)
+
+	// Should have parsed the explicit path (tag rule), not the struct path
+	require.Len(t, a.ruleset, 1)
+	// The tag rule has ruleID "tag-001"
+	found := false
+	for _, rs := range a.ruleset {
+		for _, r := range rs.Rules {
+			if r.RuleID == "tag-001" {
+				found = true
+			}
+		}
+	}
+	assert.True(t, found, "expected rules from explicit path (tag-001), not from struct path (file-001)")
 }

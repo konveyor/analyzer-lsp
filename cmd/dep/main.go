@@ -76,7 +76,7 @@ func DependencyCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			prog, err := progress.New()
+			prog, err := progress.New(progress.WithContext(ctx))
 			if err != nil {
 				errLog.Error(err, "unable to create progress reporter")
 				os.Exit(1)

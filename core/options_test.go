@@ -326,6 +326,6 @@ func TestWithProviderInitTimeout(t *testing.T) {
 func TestWithProviderInitTimeout_NilByDefault(t *testing.T) {
 	opts := &analyzerOptions{}
 
-	// Without calling WithProviderInitTimeout, field should be nil (default 4 min behavior)
+	// Without calling WithProviderInitTimeout, field should be nil (default 8 min behavior)
 	assert.Nil(t, opts.providerInitTimeout)
 }

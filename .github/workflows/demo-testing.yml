@@ -41,7 +41,7 @@ jobs:
 
   build-images:
     name: Build e2e Images
-    uses: shawn-hurley/ci/.github/workflows/e2e-image-build.yaml@main
+    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@main
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.ref }}

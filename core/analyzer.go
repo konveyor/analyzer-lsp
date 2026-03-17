@@ -85,7 +85,7 @@ func (a *analyzer) ParseRules(rulePaths ...string) (Rules, error) {
 		Message:   "starting to parse rules",
 		Current:   currentRules,
 	})
-	for _, f := range a.rulePaths {
+	for _, f := range rulePaths {
 		rs, np, pc, err := parser.LoadRules(f)
 		if err != nil {
 			parserErrors = append(parserErrors, err)
@@ -97,11 +97,11 @@ func (a *analyzer) ParseRules(rulePaths ...string) (Rules, error) {
 			c := providerConditions[k]
 			providerConditions[k] = append(c, v...)
 		}
-		for _, rs := range ruleSets {
-			currentRules += len(rs.Rules)
+		for _, r := range rs {
+			currentRules += len(r.Rules)
 		}
 		collector.Report(progress.Event{
-			Timestamp: time.Time{},
+			Timestamp: time.Now(),
 			Stage:     progress.StageRuleParsing,
 			Message:   fmt.Sprintf("finished parsing rules for: %s", f),
 			Current:   currentRules,
@@ -132,6 +132,7 @@ func (a *analyzer) ProviderStart() error {
 	}
 	additionalBuiltinConfigs := []provider.InitConfig{}
 	providerInitErrors := []error{}
+	var providerInitMu sync.Mutex
 	var builtinProvider *Provider
 
 	a.collector.Report(progress.Event{
@@ -167,7 +168,9 @@ func (a *analyzer) ProviderStart() error {
 				additionalBuiltins, err := pv.provider.ProviderInit(a.ctx, nil)
 				if err != nil {
 					a.log.Error(err, "unable to init provider")
+					providerInitMu.Lock()
 					providerInitErrors = append(providerInitErrors, err)
+					providerInitMu.Unlock()
 				}
 				a.collector.Report(progress.Event{
 					Stage:   progress.StageProviderInit,
@@ -186,7 +189,7 @@ func (a *analyzer) ProviderStart() error {
 		close(c)
 	}()
 
-	// Determine timeout: nil = default 4 min, 0 = no timeout
+	// Determine timeout: nil = default 8 min, 0 = no timeout
 	timeout := 8 * time.Minute
 	noTimeout := false
 	if a.providerInitTimeout != nil {
@@ -434,10 +437,6 @@ func (a *analyzer) GetDependencies(outputFilePath string, tree bool) error {
 	}
 	if len(dependencyError) > 0 {
 		return fmt.Errorf("failed to get dependencies: %w", errors.Join(dependencyError...))
-	}
-
-	if depsFlat == nil && depsTree == nil {
-		return fmt.Errorf("failed to get dependencies")
 	}
 
 	var b []byte
