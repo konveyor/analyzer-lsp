@@ -60,14 +60,17 @@ func setupProviderConfigs(
 		}
 	}
 
-	// Append builtin config once after processing all providers
-	// Only add builtin if we have any builtin locations
-	if len(defaultBuiltinConfigs) > 0 {
-		finalConfigs = append(finalConfigs, provider.Config{
-			Name:       "builtin",
-			InitConfig: slices.Collect(maps.Values(defaultBuiltinConfigs)),
-		})
-	}
+	// Always append the builtin config so the builtin provider is created
+	// and available during rule parsing. Without it, rules using builtin
+	// capabilities (filecontent, file, xml, hasTags) are skipped as
+	// "unavailable provider". InitConfigs may be empty here (e.g., for
+	// binary analysis where locations are Maven URIs or files); the builtin
+	// will receive its actual configs from providers via
+	// additionalBuiltinConfigs during ProviderStart.
+	finalConfigs = append(finalConfigs, provider.Config{
+		Name:       "builtin",
+		InitConfig: slices.Collect(maps.Values(defaultBuiltinConfigs)),
+	})
 
 	return finalConfigs, slices.Collect(maps.Keys(defaultBuiltinConfigs))
 
