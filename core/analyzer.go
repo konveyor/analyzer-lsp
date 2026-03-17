@@ -398,6 +398,9 @@ func (a *analyzer) GetDependencies(outputFilePath string, tree bool) error {
 	var depsFlat []v1.DepsFlatItem
 	var depsTree []v1.DepsTreeItem
 	providers := a.GetProviders(FilterByCapability("dependency"))
+	if len(providers) == 0 {
+		return nil
+	}
 	dependencyError := []error{}
 	for _, prov := range providers {
 		if tree {
