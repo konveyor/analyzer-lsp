@@ -283,9 +283,11 @@ func TestBuildSettingsFile(t *testing.T) {
 				t.Fatal("BuildSettingsFile() returned empty path")
 			}
 
-			expectedPath := filepath.Join(tmpDir, ".analyze", "globalSettings.xml")
-			if path != expectedPath {
-				t.Errorf("expected path %q, got %q", expectedPath, path)
+			// Verify path ends with expected suffix (don't assert full path
+			// since home dir resolution varies across OS)
+			expectedSuffix := filepath.Join(".analyze", "globalSettings.xml")
+			if !strings.HasSuffix(path, expectedSuffix) {
+				t.Errorf("expected path to end with %q, got %q", expectedSuffix, path)
 			}
 
 			content, err := os.ReadFile(path)
@@ -320,9 +322,9 @@ func TestBuildSettingsFileFallbackHome(t *testing.T) {
 		t.Fatalf("BuildSettingsFile() error: %v", err)
 	}
 
-	expectedPath := filepath.Join(tmpDir, ".analyze", "globalSettings.xml")
-	if path != expectedPath {
-		t.Errorf("expected path %q, got %q", expectedPath, path)
+	expectedSuffix := filepath.Join(".analyze", "globalSettings.xml")
+	if !strings.HasSuffix(path, expectedSuffix) {
+		t.Errorf("expected path to end with %q, got %q", expectedSuffix, path)
 	}
 
 	content, err := os.ReadFile(path)
