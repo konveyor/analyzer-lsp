@@ -369,6 +369,7 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// provider prepare
 	collector := collector.NewThrottledCollector(progress.StageProviderPrepare)
 	g.progress.Subscribe(collector)
+	defer g.progress.Unsubscribe(collector)
 	return &grpcServiceClient{
 		id:     r.Id,
 		config: config,

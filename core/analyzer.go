@@ -57,6 +57,7 @@ func (a *analyzer) ParseRules(rulePaths ...string) (Rules, error) {
 	// Now we have all the provider clients that have been configured. We can look at the rules to determine which are needed.
 	collector := collector.New()
 	a.progress.Subscribe(collector)
+	defer a.progress.Unsubscribe(collector)
 	parser := parser.RuleParser{
 		ProviderNameToClient: a.allConfigProviders,
 		Log:                  a.log.WithName("rule-parser"),
