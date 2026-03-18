@@ -286,6 +286,10 @@ func (g *grpcProvider) ProviderInit(ctx context.Context, additionalConfigs []pro
 		g.config.InitConfig = append(g.config.InitConfig, additionalConfigs...)
 	}
 	for _, c := range g.config.InitConfig {
+		// Propagate top-level proxy config to each InitConfig if not already set
+		if c.Proxy == nil && g.config.Proxy != nil {
+			c.Proxy = g.config.Proxy
+		}
 		s, builtinConf, err := g.Init(ctx, g.log, c)
 		if err != nil {
 			g.log.Error(err, "Error inside ProviderInit, after g.Init.")

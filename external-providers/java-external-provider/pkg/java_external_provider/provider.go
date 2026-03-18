@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -325,12 +326,20 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	globalM2, ok := config.ProviderSpecificConfig[GLOBAL_SETTINGS_INIT_OPTION].(string)
 	if !ok {
 		globalM2 = ""
-	} else {
-		log.Info("got global M2 using: %v", "m2", globalM2)
-		globalSettingsFile, returnError = p.BuildSettingsFile(globalM2)
+	}
+	// Generate global settings file if we have a custom cache dir or proxy config
+	if globalM2 != "" || (config.Proxy != nil && (config.Proxy.HTTPProxy != "" || config.Proxy.HTTPSProxy != "")) {
+		if globalM2 != "" {
+			log.Info("using custom Maven local repository", "m2", globalM2)
+		}
+		if config.Proxy != nil {
+			log.Info("proxy config received", "httpProxy", config.Proxy.HTTPProxy, "httpsProxy", config.Proxy.HTTPSProxy, "noProxy", config.Proxy.NoProxy)
+		}
+		globalSettingsFile, returnError = p.BuildSettingsFile(globalM2, config.Proxy)
 		if returnError != nil {
 			return nil, additionalBuiltinConfig, returnError
 		}
+		log.Info("generated Maven global settings file", "path", globalSettingsFile)
 	}
 
 	mavenInsecure, ok := config.ProviderSpecificConfig[MVN_INSECURE_SETTING].(bool)
@@ -684,6 +693,10 @@ func (p *javaProvider) ProviderInit(ctx context.Context, additionalConfigs []pro
 		p.config.InitConfig = append(p.config.InitConfig, additionalConfigs...)
 	}
 	for _, c := range p.config.InitConfig {
+		// Propagate top-level proxy config to each InitConfig if not already set
+		if c.Proxy == nil && p.config.Proxy != nil {
+			c.Proxy = p.config.Proxy
+		}
 		client, builtinConf, err := p.Init(ctx, p.Log, c)
 		if err != nil {
 			return nil, err
@@ -708,13 +721,7 @@ func (p *javaProvider) NotifyFileChanges(ctx context.Context, changes ...provide
 	return provider.FullNotifyFileChangesResponse(ctx, p.clients, changes...)
 }
 
-func (p *javaProvider) BuildSettingsFile(m2CacheDir string) (settingsFile string, err error) {
-	fileContentTemplate := `
-<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
-  <localRepository>%v</localRepository>
-</settings>
-	`
+func (p *javaProvider) BuildSettingsFile(m2CacheDir string, proxy *provider.Proxy) (settingsFile string, err error) {
 	var homeDir string
 	set := true
 	ops := runtime.GOOS
@@ -744,12 +751,105 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string) (settingsFile string
 	if err != nil {
 		return "", err
 	}
-	_, err = fmt.Fprintf(f, fileContentTemplate, m2CacheDir)
+
+	var sb strings.Builder
+	sb.WriteString(`<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+`)
+	if m2CacheDir != "" {
+		sb.WriteString(fmt.Sprintf("  <localRepository>%s</localRepository>\n", m2CacheDir))
+	}
+	if proxy != nil {
+		proxies := buildMavenProxies(proxy)
+		if proxies != "" {
+			sb.WriteString(proxies)
+		}
+	}
+	sb.WriteString("</settings>\n")
+
+	_, err = f.WriteString(sb.String())
 	if err != nil {
 		return "", err
 	}
 
 	return settingsFilePath, nil
+}
+
+// buildMavenProxies generates the <proxies> section for Maven settings.xml
+// from a provider.Proxy config. Maven only reads proxy config from settings.xml,
+// not from environment variables or JVM system properties.
+func buildMavenProxies(proxy *provider.Proxy) string {
+	if proxy == nil {
+		return ""
+	}
+
+	var proxies []string
+	id := 1
+
+	if proxy.HTTPProxy != "" {
+		if entry := buildProxyEntry(proxy.HTTPProxy, "http", id, proxy.NoProxy); entry != "" {
+			proxies = append(proxies, entry)
+			id++
+		}
+	}
+	if proxy.HTTPSProxy != "" {
+		if entry := buildProxyEntry(proxy.HTTPSProxy, "https", id, proxy.NoProxy); entry != "" {
+			proxies = append(proxies, entry)
+		}
+	}
+
+	if len(proxies) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	sb.WriteString("  <proxies>\n")
+	for _, p := range proxies {
+		sb.WriteString(p)
+	}
+	sb.WriteString("  </proxies>\n")
+	return sb.String()
+}
+
+// buildProxyEntry creates a single <proxy> element for Maven settings.xml.
+func buildProxyEntry(proxyURL, protocol string, id int, noProxy string) string {
+	u, err := url.Parse(proxyURL)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	host := u.Hostname()
+	port := u.Port()
+	if port == "" {
+		if u.Scheme == "https" {
+			port = "443"
+		} else {
+			port = "80"
+		}
+	}
+
+	var sb strings.Builder
+	sb.WriteString("    <proxy>\n")
+	sb.WriteString(fmt.Sprintf("      <id>%s-proxy-%d</id>\n", protocol, id))
+	sb.WriteString(fmt.Sprintf("      <active>true</active>\n"))
+	sb.WriteString(fmt.Sprintf("      <protocol>%s</protocol>\n", protocol))
+	sb.WriteString(fmt.Sprintf("      <host>%s</host>\n", host))
+	sb.WriteString(fmt.Sprintf("      <port>%s</port>\n", port))
+	if u.User != nil {
+		username := u.User.Username()
+		if username != "" {
+			sb.WriteString(fmt.Sprintf("      <username>%s</username>\n", username))
+		}
+		if password, ok := u.User.Password(); ok {
+			sb.WriteString(fmt.Sprintf("      <password>%s</password>\n", password))
+		}
+	}
+	if noProxy != "" {
+		// Maven uses | as separator for nonProxyHosts, standard uses comma
+		nonProxyHosts := strings.ReplaceAll(noProxy, ",", "|")
+		sb.WriteString(fmt.Sprintf("      <nonProxyHosts>%s</nonProxyHosts>\n", nonProxyHosts))
+	}
+	sb.WriteString("    </proxy>\n")
+	return sb.String()
 }
 
 func getJavaExecutable(validateJavaVersion bool) (string, error) {
