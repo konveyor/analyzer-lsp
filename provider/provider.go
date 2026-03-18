@@ -49,36 +49,6 @@ var (
 	SchemaTypeBool   openapi3.SchemaType = openapi3.SchemaTypeBoolean
 )
 
-// PrepareProgressReporter is an interface for reporting progress during the Prepare() phase.
-// Implementations should handle concurrent calls safely as progress updates may come from
-// multiple goroutines.
-type PrepareProgressReporter interface {
-	// ReportProgress reports progress for a specific provider.
-	// providerName: Name of the provider (e.g., "nodejs", "java")
-	// filesProcessed: Number of files processed so far
-	// totalFiles: Total number of files to process
-	ReportProgress(providerName string, filesProcessed, totalFiles int)
-}
-
-// PrepareProgressEvent represents a progress update during Prepare() phase.
-// This struct is used for GRPC streaming between external providers and the main analyzer.
-type PrepareProgressEvent struct {
-	ProviderName   string
-	FilesProcessed int
-	TotalFiles     int
-}
-
-// PrepareProgressStreamer is an optional interface that ServiceClient implementations
-// can provide to support streaming progress events over GRPC.
-type PrepareProgressStreamer interface {
-	// StartProgressStream creates and returns a channel for streaming progress events.
-	// The returned channel will receive progress events during Prepare() phase.
-	StartProgressStream() <-chan *PrepareProgressEvent
-
-	// StopProgressStream stops the progress stream and closes the channel.
-	StopProgressStream()
-}
-
 // This will need a better name, may we want to move it to top level
 // Will be used by providers for common interface way of passing in configuration values.
 var builtinConfig = Config{
@@ -125,10 +95,7 @@ type Config struct {
 	Proxy        *Proxy       `yaml:"proxyConfig,omitempty" json:"proxyConfig,omitempty"`
 	InitConfig   []InitConfig `yaml:"initConfig,omitempty" json:"initConfig,omitempty"`
 	ContextLines int
-	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
-	// Used by GRPC providers to report progress during provider initialization.
-	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
-	LogLevel                *int                    `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
+	LogLevel     *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
 }
 
 type Proxy httpproxy.Config
@@ -145,6 +112,15 @@ func (p Proxy) ToEnvVars() map[string]string {
 		proxy["no_proxy"] = p.NoProxy
 	}
 	return proxy
+}
+
+// PathMapping defines a mapping from one path prefix to another.
+// This is used by callers to translate paths returned by providers
+// (e.g., container paths) to paths meaningful in the engine's context
+// (e.g., host paths).
+type PathMapping struct {
+	From string `yaml:"from" json:"from"`
+	To   string `yaml:"to" json:"to"`
 }
 
 type AnalysisMode string
@@ -193,10 +169,6 @@ type InitConfig struct {
 
 	// LogLevel for the provider logger verbosity
 	LogLevel *int `yaml:"logLevel,omitempty" json:"logLevel,omitempty"`
-
-	// PrepareProgressReporter is an optional interface for reporting progress during Prepare() phase.
-	// If provided, the provider will call ReportProgress() as it processes files during symbol cache population.
-	PrepareProgressReporter PrepareProgressReporter `yaml:"-" json:"-"`
 }
 
 type RPCClient interface {
@@ -217,6 +189,18 @@ func GetConfig(filepath string) ([]Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err := ValidateAndDefaultConfigs(configs); err != nil {
+		return nil, err
+	}
+
+	return configs, nil
+}
+
+// ValidateAndDefaultConfigs applies default values and validation to a slice
+// of provider configs. This is used both when loading configs from a file
+// (via GetConfig) and when configs are passed programmatically.
+func ValidateAndDefaultConfigs(configs []Config) error {
 	for idx := range configs {
 		c := &configs[idx]
 		// default to system-wide proxy
@@ -232,20 +216,18 @@ func GetConfig(filepath string) ([]Config, error) {
 			}
 			newConfig, err := validateAndUpdateProviderSpecificConfig(ic.ProviderSpecificConfig)
 			if err != nil {
-				return configs, err
+				return err
 			}
 			ic.ProviderSpecificConfig = newConfig
-
 		}
 	}
 
 	// Validate provider names for duplicate providers.
 	if err := validateProviderName(configs); err != nil {
-		return nil, err
+		return err
 	}
 
-	return configs, nil
-
+	return nil
 }
 
 func validateAndUpdateProviderSpecificConfig(oldPSC map[string]interface{}) (map[string]interface{}, error) {

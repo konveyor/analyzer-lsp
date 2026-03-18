@@ -123,7 +123,7 @@ func main() {
     })
 }
 
-func handleProgressEvent(event progress.ProgressEvent) {
+func handleProgressEvent(event progress.Event) {
     switch event.Stage {
     case progress.StageRuleExecution:
         fmt.Printf("Progress: %d%% (%d/%d)\n",
@@ -198,7 +198,7 @@ type MyCustomReporter struct {
     // Your fields
 }
 
-func (r *MyCustomReporter) Report(event progress.ProgressEvent) {
+func (r *MyCustomReporter) Report(event progress.Event) {
     // Your custom logic
     // - Send to webhook
     // - Update database
@@ -260,7 +260,7 @@ Each line is a complete JSON object that can be parsed independently.
 ### Event Structure
 
 ```go
-type ProgressEvent struct {
+type Event struct {
     Timestamp time.Time              `json:"timestamp"`
     Stage     Stage                  `json:"stage"`
     Message   string                 `json:"message,omitempty"`
@@ -395,7 +395,7 @@ type PrometheusReporter struct {
     percentGauge   prometheus.Gauge
 }
 
-func (r *PrometheusReporter) Report(event progress.ProgressEvent) {
+func (r *PrometheusReporter) Report(event progress.Event) {
     switch event.Stage {
     case progress.StageRuleExecution:
         r.rulesProcessed.Add(1)

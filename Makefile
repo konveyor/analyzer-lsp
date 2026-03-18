@@ -83,8 +83,8 @@ stop-external-providers:
 run-external-providers-pod:
 	podman volume create test-data
 	# copy data to test data volume
-	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
-	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	# run pods w/ defined ports for the test volumes
 	podman pod create --name=analyzer --userns=keep-id
 	podman run --pod analyzer --user=$(USER_ID) --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_JAVA_PROVIDER) --port 14651
@@ -100,7 +100,7 @@ run-demo-image:
 # Provider-specific test targets
 run-java-provider-pod:
 	podman volume create test-data
-	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-java --userns=keep-id 
 	podman run --pod analyzer-java --user=$(USER_ID) --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_JAVA_PROVIDER) --port 14651
 
@@ -123,17 +123,17 @@ stop-java-provider-pod:
 
 run-generic-golang-provider-pod:
 	podman volume create test-data
-	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-generic-golang --userns=keep-id 
 	podman run --pod analyzer-generic-golang --user=$(USER_ID) --name golang -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14651 --name generic
 run-generic-python-provider-pod:
 	podman volume create test-data
-	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-generic-python --userns=keep-id
 	podman run --pod analyzer-generic-python --user=$(USER_ID) --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14651 --name pylsp
 run-generic-nodejs-provider-pod:
 	podman volume create test-data
-	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-generic-nodejs --userns=keep-id
 	podman run --pod analyzer-generic-nodejs --user=$(USER_ID) --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14651 --name nodejs
 
@@ -188,7 +188,7 @@ stop-generic-nodejs-provider-pod:
 
 run-yaml-provider-pod:
 	podman volume create test-data
-	podman run --rm -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-yaml --userns=keep-id 
 	podman run --pod analyzer-yaml --user=$(USER_ID) --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_YQ_PROVIDER) --port 14651
 

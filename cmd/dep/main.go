@@ -12,6 +12,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/engine/labels"
 	"github.com/konveyor/analyzer-lsp/output/v1/konveyor"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/lib"
 	"github.com/sirupsen/logrus"
@@ -75,8 +76,14 @@ func DependencyCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
+			prog, err := progress.New(progress.WithContext(ctx))
+			if err != nil {
+				errLog.Error(err, "unable to create progress reporter")
+				os.Exit(1)
+			}
+
 			for _, config := range configs {
-				prov, err := lib.GetProviderClient(config, log)
+				prov, err := lib.GetProviderClient(config, log, prog)
 				if err != nil {
 					errLog.Error(err, "unable to create provider client")
 					os.Exit(1)

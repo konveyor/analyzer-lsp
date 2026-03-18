@@ -525,7 +525,7 @@ func (r *RuleParser) loadRule(filepath string, ruleSet *engine.RuleSet) ([]engin
 				if err != nil {
 					// If provider is missing, log at debug level and skip this rule
 					if _, ok := err.(MissingProviderError); ok {
-						r.Log.V(5).Info("skipping rule for unavailable provider", "provider", providerKey, "capability", capability, "ruleID", ruleID)
+						r.Log.V(2).Error(err, "skipping rule for unavailable provider", "provider", providerKey, "capability", capability, "ruleID", ruleID)
 						continue
 					}
 					// For other errors, log and return as before
@@ -823,6 +823,7 @@ func (r *RuleParser) getConditions(conditionsInterface []any) ([]engine.Conditio
 				if err != nil {
 					// If provider is missing, log at debug level and skip this condition
 					if _, ok := err.(MissingProviderError); ok {
+						r.Log.V(2).Error(err, "skipping rule for unavailable provider", "provider", providerKey, "capability", capability)
 						r.Log.V(5).Info("skipping condition for unavailable provider", "provider", providerKey, "capability", capability)
 						continue
 					}
