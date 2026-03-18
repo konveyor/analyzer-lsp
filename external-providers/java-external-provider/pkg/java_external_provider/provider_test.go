@@ -188,8 +188,11 @@ func TestBuildSettingsFile(t *testing.T) {
 	p := &javaProvider{}
 
 	// Use a temp dir to avoid polluting real home
+	// Set both XDG_CONFIG_HOME (Linux) and HOME (macOS/fallback)
+	// so the test works on all platforms
 	tmpDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
+	t.Setenv("HOME", tmpDir)
 
 	tests := []struct {
 		name        string
