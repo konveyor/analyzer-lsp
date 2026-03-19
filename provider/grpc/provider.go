@@ -335,18 +335,22 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	g.log.Info("provider configuration", "config", config)
+	var pbProxy *pb.Proxy
+	if config.Proxy != nil {
+		pbProxy = &pb.Proxy{
+			HTTPProxy:  config.Proxy.HTTPProxy,
+			HTTPSProxy: config.Proxy.HTTPSProxy,
+			NoProxy:    config.Proxy.NoProxy,
+		}
+	}
 	c := pb.Config{
 		Location:               config.Location,
 		DependencyPath:         config.DependencyPath,
 		AnalysisMode:           string(config.AnalysisMode),
 		ProviderSpecificConfig: s,
-		Proxy: &pb.Proxy{
-			HTTPProxy:  config.Proxy.HTTPProxy,
-			HTTPSProxy: config.Proxy.HTTPSProxy,
-			NoProxy:    config.Proxy.NoProxy,
-		},
-		LanguageServerPipe: config.PipeName,
-		Initialized:        config.Initialized,
+		Proxy:                  pbProxy,
+		LanguageServerPipe:     config.PipeName,
+		Initialized:            config.Initialized,
 	}
 
 	// Set logLevel if available in provider config

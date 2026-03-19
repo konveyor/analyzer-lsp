@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html"
 	"net/url"
 	"os"
 	"os/exec"
@@ -333,7 +334,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			log.Info("using custom Maven local repository", "m2", globalM2)
 		}
 		if config.Proxy != nil {
-			log.Info("proxy config received", "httpProxy", config.Proxy.HTTPProxy, "httpsProxy", config.Proxy.HTTPSProxy, "noProxy", config.Proxy.NoProxy)
+			log.Info("proxy config received", "httpProxy", redactProxyURL(config.Proxy.HTTPProxy), "httpsProxy", redactProxyURL(config.Proxy.HTTPSProxy), "noProxy", config.Proxy.NoProxy)
 		}
 		globalSettingsFile, returnError = p.BuildSettingsFile(globalM2, config.Proxy)
 		if returnError != nil {
@@ -757,7 +758,7 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string, proxy *provider.Prox
   xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
 `)
 	if m2CacheDir != "" {
-		sb.WriteString(fmt.Sprintf("  <localRepository>%s</localRepository>\n", m2CacheDir))
+		sb.WriteString(fmt.Sprintf("  <localRepository>%s</localRepository>\n", html.EscapeString(m2CacheDir)))
 	}
 	if proxy != nil {
 		proxies := buildMavenProxies(proxy)
@@ -832,24 +833,39 @@ func buildProxyEntry(proxyURL, protocol string, id int, noProxy string) string {
 	sb.WriteString(fmt.Sprintf("      <id>%s-proxy-%d</id>\n", protocol, id))
 	sb.WriteString(fmt.Sprintf("      <active>true</active>\n"))
 	sb.WriteString(fmt.Sprintf("      <protocol>%s</protocol>\n", protocol))
-	sb.WriteString(fmt.Sprintf("      <host>%s</host>\n", host))
-	sb.WriteString(fmt.Sprintf("      <port>%s</port>\n", port))
+	sb.WriteString(fmt.Sprintf("      <host>%s</host>\n", html.EscapeString(host)))
+	sb.WriteString(fmt.Sprintf("      <port>%s</port>\n", html.EscapeString(port)))
 	if u.User != nil {
 		username := u.User.Username()
 		if username != "" {
-			sb.WriteString(fmt.Sprintf("      <username>%s</username>\n", username))
+			sb.WriteString(fmt.Sprintf("      <username>%s</username>\n", html.EscapeString(username)))
 		}
 		if password, ok := u.User.Password(); ok {
-			sb.WriteString(fmt.Sprintf("      <password>%s</password>\n", password))
+			sb.WriteString(fmt.Sprintf("      <password>%s</password>\n", html.EscapeString(password)))
 		}
 	}
 	if noProxy != "" {
 		// Maven uses | as separator for nonProxyHosts, standard uses comma
 		nonProxyHosts := strings.ReplaceAll(noProxy, ",", "|")
-		sb.WriteString(fmt.Sprintf("      <nonProxyHosts>%s</nonProxyHosts>\n", nonProxyHosts))
+		sb.WriteString(fmt.Sprintf("      <nonProxyHosts>%s</nonProxyHosts>\n", html.EscapeString(nonProxyHosts)))
 	}
 	sb.WriteString("    </proxy>\n")
 	return sb.String()
+}
+
+// redactProxyURL removes credentials from a proxy URL for safe logging.
+func redactProxyURL(proxyURL string) string {
+	if proxyURL == "" {
+		return ""
+	}
+	u, err := url.Parse(proxyURL)
+	if err != nil {
+		return "[invalid URL]"
+	}
+	if u.User != nil {
+		u.User = url.User("[REDACTED]")
+	}
+	return u.String()
 }
 
 func getJavaExecutable(validateJavaVersion bool) (string, error) {

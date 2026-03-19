@@ -137,12 +137,12 @@ func TestBuildMavenProxies(t *testing.T) {
 
 func TestBuildProxyEntry(t *testing.T) {
 	tests := []struct {
-		name     string
-		proxyURL string
-		protocol string
-		id       int
-		noProxy  string
-		want     string
+		name      string
+		proxyURL  string
+		protocol  string
+		id        int
+		noProxy   string
+		contains  []string
 		wantEmpty bool
 	}{
 		{
@@ -160,11 +160,38 @@ func TestBuildProxyEntry(t *testing.T) {
 			wantEmpty: true,
 		},
 		{
-			name:     "bare hostname without scheme treated as path not host",
-			proxyURL: "not-a-url",
+			name:      "bare hostname without scheme treated as path not host",
+			proxyURL:  "not-a-url",
+			protocol:  "http",
+			id:        1,
+			wantEmpty: true,
+		},
+		{
+			name:     "valid proxy URL generates entry",
+			proxyURL: "http://proxy.example.com:3128",
 			protocol: "http",
 			id:       1,
-			wantEmpty: true,
+			noProxy:  "localhost,127.0.0.1",
+			contains: []string{
+				"<id>http-proxy-1</id>",
+				"<protocol>http</protocol>",
+				"<host>proxy.example.com</host>",
+				"<port>3128</port>",
+				"<nonProxyHosts>localhost|127.0.0.1</nonProxyHosts>",
+			},
+		},
+		{
+			name:     "proxy URL with credentials",
+			proxyURL: "http://user:pass@proxy.example.com:8080",
+			protocol: "https",
+			id:       2,
+			contains: []string{
+				"<id>https-proxy-2</id>",
+				"<host>proxy.example.com</host>",
+				"<port>8080</port>",
+				"<username>user</username>",
+				"<password>pass</password>",
+			},
 		},
 	}
 
@@ -177,8 +204,10 @@ func TestBuildProxyEntry(t *testing.T) {
 				}
 				return
 			}
-			if !strings.Contains(result, tt.want) {
-				t.Errorf("expected result to contain %q, got:\n%s", tt.want, result)
+			for _, s := range tt.contains {
+				if !strings.Contains(result, s) {
+					t.Errorf("expected result to contain %q, got:\n%s", s, result)
+				}
 			}
 		})
 	}
