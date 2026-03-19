@@ -169,12 +169,13 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 			for {
 				select {
 				case resp := <-returnChan:
-					defer wg.Done()
 					if resp.err != nil {
 						g.log.Error(err, "unable to get java artifact")
+						wg.Done()
 						continue
 					}
 					dependencies = append(dependencies, resp.artifact...)
+					wg.Done()
 				case <-decompilerCtx.Done():
 					return
 				}
