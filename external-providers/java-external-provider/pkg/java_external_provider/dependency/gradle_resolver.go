@@ -170,7 +170,7 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 				select {
 				case resp := <-returnChan:
 					if resp.err != nil {
-						g.log.Error(err, "unable to get java artifact")
+						g.log.Error(resp.err, "unable to get java artifact")
 						wg.Done()
 						continue
 					}
