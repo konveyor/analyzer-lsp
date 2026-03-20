@@ -229,11 +229,11 @@ func (d *decompiler) Decompile(ctx context.Context, artifactPath string) ([]Java
 		for {
 			select {
 			case resp := <-responseChannel:
-				waitGroup.Done()
 				if resp.err != nil {
 					errs = append(errs, resp.err)
 				}
 				artifacts = append(artifacts, resp.Artifacts...)
+				waitGroup.Done()
 			case <-receiverCtx.Done():
 				return
 			}
@@ -294,14 +294,12 @@ func (d *decompiler) DecompileIntoProject(ctx context.Context, artifactPath, pro
 		for {
 			select {
 			case resp := <-responseChannel:
-				// Anything coming back here, should be inside an internal calls
-				// which should handle there own Done for the working group.
-				d.log.Info("got response", "response", resp, "wg", fmt.Sprintf("%#v", &waitGroup))
-				waitGroup.Done()
+				d.log.Info("got response", "response", resp)
 				if resp.err != nil {
 					errs = append(errs, resp.err)
 				}
 				artifacts = append(artifacts, resp.Artifacts...)
+				waitGroup.Done()
 			case <-receiverCtx.Done():
 				return
 			}
