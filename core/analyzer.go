@@ -141,14 +141,13 @@ func (a *analyzer) ProviderStart() error {
 		Message: "Starting provider init",
 		Total:   len(a.providers),
 	})
-	abConfigChan := make(chan []provider.InitConfig, len(a.providers))
+	abConfigChan := make(chan []provider.InitConfig)
 	providerInitCtx, cancelFunc := context.WithCancel(a.ctx)
 	waitGroup := sync.WaitGroup{}
 	go func() {
 		for {
 			select {
 			case config := <-abConfigChan:
-				waitGroup.Done()
 				additionalBuiltinConfigs = append(additionalBuiltinConfigs, config...)
 			case <-providerInitCtx.Done():
 				return
@@ -179,7 +178,11 @@ func (a *analyzer) ProviderStart() error {
 					Current: i + 1,
 					Total:   len(a.providers),
 				})
-				abConfigChan <- additionalBuiltins
+				select {
+				case abConfigChan <- additionalBuiltins:
+				case <-providerInitCtx.Done():
+				}
+				waitGroup.Done()
 			}()
 		}
 	}
