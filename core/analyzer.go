@@ -141,7 +141,7 @@ func (a *analyzer) ProviderStart() error {
 		Message: "Starting provider init",
 		Total:   len(a.providers),
 	})
-	abConfigChan := make(chan []provider.InitConfig)
+	abConfigChan := make(chan []provider.InitConfig, len(a.providers))
 	providerInitCtx, cancelFunc := context.WithCancel(a.ctx)
 	waitGroup := sync.WaitGroup{}
 	go func() {
@@ -202,12 +202,20 @@ func (a *analyzer) ProviderStart() error {
 	}
 
 	if noTimeout {
-		<-c
-		a.log.V(3).Info("started all non builtin providers")
+		select {
+		case <-c:
+			a.log.V(3).Info("started all non builtin providers")
+		case <-a.ctx.Done():
+			cancelFunc()
+			return fmt.Errorf("provider init cancelled: %w", a.ctx.Err())
+		}
 	} else {
 		select {
 		case <-c:
 			a.log.V(3).Info("started all non builtin providers")
+		case <-a.ctx.Done():
+			cancelFunc()
+			return fmt.Errorf("provider init cancelled: %w", a.ctx.Err())
 		case <-time.After(timeout):
 			cancelFunc()
 			return fmt.Errorf("timed out starting providers after %s", timeout)
