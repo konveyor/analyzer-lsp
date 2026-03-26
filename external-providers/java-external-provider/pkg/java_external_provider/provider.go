@@ -853,7 +853,7 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string, proxy *provider.Prox
 		}
 	}
 	settingsFilePath := filepath.Join(homeDir, ".analyze", "globalSettings.xml")
-	err = os.Mkdir(filepath.Join(homeDir, ".analyze"), 0777)
+	err = os.Mkdir(filepath.Join(homeDir, ".analyze"), 0755)
 	if err != nil && !errors.Is(err, os.ErrExist) {
 		return "", err
 	}
@@ -891,7 +891,7 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string, proxy *provider.Prox
 		return "", err
 	}
 
-	err = os.WriteFile(settingsFilePath, output, 0777)
+	err = os.WriteFile(settingsFilePath, output, 0644)
 	if err != nil {
 		return "", err
 	}

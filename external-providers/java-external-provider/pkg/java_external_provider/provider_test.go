@@ -508,7 +508,9 @@ func TestBuildSettingsFileMergesExistingFile(t *testing.T) {
 	t.Setenv("USERPROFILE", tmpDir)
 
 	analyzeDir := filepath.Join(tmpDir, ".analyze")
-	os.MkdirAll(analyzeDir, 0777)
+	if err := os.MkdirAll(analyzeDir, 0755); err != nil {
+		t.Fatalf("failed to create analyze dir: %v", err)
+	}
 	settingsPath := filepath.Join(analyzeDir, "globalSettings.xml")
 
 	tests := []struct {
@@ -691,7 +693,9 @@ func TestBuildSettingsFileMalformedExistingFile(t *testing.T) {
 	t.Setenv("USERPROFILE", tmpDir)
 
 	analyzeDir := filepath.Join(tmpDir, ".analyze")
-	os.MkdirAll(analyzeDir, 0777)
+	if err := os.MkdirAll(analyzeDir, 0755); err != nil {
+		t.Fatalf("failed to create analyze dir: %v", err)
+	}
 	settingsPath := filepath.Join(analyzeDir, "globalSettings.xml")
 
 	// Write malformed XML
