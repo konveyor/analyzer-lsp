@@ -234,7 +234,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 		}
 	}
 
-	if ruleSet != nil {
+	if ruleSet != nil && len(rules) > 0 {
 		if r.Selector != nil {
 			meta := &engine.RuleMeta{
 				Labels: ruleSet.Labels,

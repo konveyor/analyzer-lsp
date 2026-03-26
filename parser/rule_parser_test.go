@@ -1088,6 +1088,13 @@ func TestLoadRules(t *testing.T) {
 			},
 		},
 		{
+			Name:            "directory with only non-yaml files produces no rulesets",
+			testFileName:    "only-non-yaml-files",
+			providerNameClient: map[string]provider.InternalProviderClient{},
+			ExpectedProvider: map[string]provider.InternalProviderClient{},
+			ExpectedRuleSet:  map[string]engine.RuleSet{},
+		},
+		{
 			Name:         "skip valid rule in non-yaml file",
 			testFileName: "folder-with-non-yaml",
 			providerNameClient: map[string]provider.InternalProviderClient{
