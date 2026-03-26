@@ -354,6 +354,7 @@ func TestBuildSettingsFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	tests := []struct {
 		name       string
@@ -476,6 +477,7 @@ func TestBuildSettingsFileFallbackHome(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 	t.Setenv("XDG_CONFIG_HOME", "")
 
 	path, err := p.BuildSettingsFile("/custom/repo", nil)
@@ -503,6 +505,7 @@ func TestBuildSettingsFileMergesExistingFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	analyzeDir := filepath.Join(tmpDir, ".analyze")
 	os.MkdirAll(analyzeDir, 0777)
@@ -685,6 +688,7 @@ func TestBuildSettingsFileMalformedExistingFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	analyzeDir := filepath.Join(tmpDir, ".analyze")
 	os.MkdirAll(analyzeDir, 0777)
@@ -718,6 +722,7 @@ func TestBuildSettingsFileOutputIsValidXML(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	path, err := p.BuildSettingsFile("/custom/repo", &provider.Proxy{
 		HTTPProxy:  "http://user:p%40ss@proxy.example.com:3128",
@@ -753,6 +758,7 @@ func TestBuildSettingsFileRoundTrip(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	// First call creates file
 	_, err := p.BuildSettingsFile("/first/repo", &provider.Proxy{
