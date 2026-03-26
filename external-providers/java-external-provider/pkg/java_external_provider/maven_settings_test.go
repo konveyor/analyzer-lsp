@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -323,6 +324,8 @@ func TestMarshalMavenSettings(t *testing.T) {
 		"<host>proxy.example.com</host>",
 		"<port>3128</port>",
 		`xmlns="http://maven.apache.org/SETTINGS/1.0.0"`,
+		`xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"`,
+		`xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd"`,
 	} {
 		if !strings.Contains(content, want) {
 			t.Errorf("expected output to contain %q, got:\n%s", want, content)
@@ -330,11 +333,9 @@ func TestMarshalMavenSettings(t *testing.T) {
 	}
 }
 
-func TestMarshalMavenSettingsPreservesExistingAttrs(t *testing.T) {
+func TestMarshalMavenSettingsPreservesExistingXmlns(t *testing.T) {
 	s := &mavenSettings{
-		Xmlns:          "http://custom.ns",
-		Xsi:            "http://custom.xsi",
-		SchemaLocation: "http://custom.schema",
+		Xmlns: "http://custom.ns",
 	}
 
 	output, err := marshalMavenSettings(s)
@@ -345,6 +346,13 @@ func TestMarshalMavenSettingsPreservesExistingAttrs(t *testing.T) {
 	content := string(output)
 	if !strings.Contains(content, "http://custom.ns") {
 		t.Errorf("expected custom xmlns preserved, got:\n%s", content)
+	}
+	// xsi attrs should always be set to standard values
+	if !strings.Contains(content, `xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"`) {
+		t.Errorf("expected xmlns:xsi attribute, got:\n%s", content)
+	}
+	if !strings.Contains(content, `xsi:schemaLocation=`) {
+		t.Errorf("expected xsi:schemaLocation attribute, got:\n%s", content)
 	}
 }
 
@@ -801,5 +809,41 @@ func TestBuildSettingsFileRoundTrip(t *testing.T) {
 	}
 	if strings.Contains(contentStr, "first-proxy.example.com") {
 		t.Errorf("expected first-proxy.example.com to be replaced, got:\n%s", contentStr)
+	}
+}
+
+func TestBuildSettingsFileReturnsErrorOnUnreadableFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission-based test not reliable on Windows")
+	}
+
+	p := &javaProvider{}
+
+	tmpDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmpDir)
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
+
+	analyzeDir := filepath.Join(tmpDir, ".analyze")
+	if err := os.MkdirAll(analyzeDir, 0755); err != nil {
+		t.Fatalf("failed to create analyze dir: %v", err)
+	}
+	settingsPath := filepath.Join(analyzeDir, "globalSettings.xml")
+
+	// Write a valid file then make it unreadable
+	err := os.WriteFile(settingsPath, []byte("<settings><localRepository>/keep/me</localRepository></settings>"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write settings: %v", err)
+	}
+	err = os.Chmod(settingsPath, 0000)
+	if err != nil {
+		t.Fatalf("failed to chmod: %v", err)
+	}
+	defer os.Chmod(settingsPath, 0644)
+
+	// Should return an error, not silently overwrite
+	_, err = p.BuildSettingsFile("/new/repo", nil)
+	if err == nil {
+		t.Fatal("expected error when settings file is unreadable, got nil")
 	}
 }

@@ -17,13 +17,13 @@ import (
 // The Extra field captures any XML elements we don't explicitly model,
 // so they are preserved when reading and rewriting an existing file.
 type mavenSettings struct {
-	XMLName         xml.Name          `xml:"settings"`
-	Xmlns           string            `xml:"xmlns,attr,omitempty"`
-	Xsi             string            `xml:"xsi,attr,omitempty"`
-	SchemaLocation  string            `xml:"schemaLocation,attr,omitempty"`
-	LocalRepository string            `xml:"localRepository,omitempty"`
-	Proxies         *mavenProxies     `xml:"proxies,omitempty"`
-	Extra           []mavenExtraEntry `xml:",any"`
+	XMLName           xml.Name          `xml:"settings"`
+	Xmlns             string            `xml:"xmlns,attr,omitempty"`
+	XmlnsXsi          string            `xml:"xmlns:xsi,attr,omitempty"`
+	XsiSchemaLocation string            `xml:"xsi:schemaLocation,attr,omitempty"`
+	LocalRepository   string            `xml:"localRepository,omitempty"`
+	Proxies           *mavenProxies     `xml:"proxies,omitempty"`
+	Extra             []mavenExtraEntry `xml:",any"`
 }
 
 type mavenProxies struct {
@@ -117,12 +117,10 @@ func marshalMavenSettings(s *mavenSettings) ([]byte, error) {
 	if s.Xmlns == "" {
 		s.Xmlns = "http://maven.apache.org/SETTINGS/1.0.0"
 	}
-	if s.Xsi == "" {
-		s.Xsi = "http://www.w3.org/2001/XMLSchema-instance"
-	}
-	if s.SchemaLocation == "" {
-		s.SchemaLocation = "http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd"
-	}
+	// encoding/xml doesn't populate xmlns:xsi and xsi:schemaLocation on
+	// unmarshal, so always set them to ensure valid Maven output.
+	s.XmlnsXsi = "http://www.w3.org/2001/XMLSchema-instance"
+	s.XsiSchemaLocation = "http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd"
 	output, err := xml.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return nil, err
@@ -148,8 +146,8 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string, proxy *provider.Prox
 		}
 	}
 	settingsFilePath := filepath.Join(homeDir, ".analyze", "globalSettings.xml")
-	err = os.Mkdir(filepath.Join(homeDir, ".analyze"), 0755)
-	if err != nil && !errors.Is(err, os.ErrExist) {
+	err = os.MkdirAll(filepath.Dir(settingsFilePath), 0755)
+	if err != nil {
 		return "", err
 	}
 
@@ -161,6 +159,8 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string, proxy *provider.Prox
 			// Existing file is malformed; start fresh
 			settings = nil
 		}
+	} else if !errors.Is(readErr, os.ErrNotExist) {
+		return "", readErr
 	}
 	if settings == nil {
 		settings = &mavenSettings{}
