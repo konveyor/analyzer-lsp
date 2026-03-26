@@ -2,9 +2,9 @@ package java
 
 import (
 	"context"
+	"encoding/xml"
 	"errors"
 	"fmt"
-	"html"
 	"net/url"
 	"os"
 	"os/exec"
@@ -722,101 +722,75 @@ func (p *javaProvider) NotifyFileChanges(ctx context.Context, changes ...provide
 	return provider.FullNotifyFileChangesResponse(ctx, p.clients, changes...)
 }
 
-func (p *javaProvider) BuildSettingsFile(m2CacheDir string, proxy *provider.Proxy) (settingsFile string, err error) {
-	var homeDir string
-	set := true
-	ops := runtime.GOOS
-	if ops == "linux" {
-		homeDir, set = os.LookupEnv("XDG_CONFIG_HOME")
-	}
-	if ops != "linux" || homeDir == "" || !set {
-		// on Unix, including macOS, this returns the $HOME environment variable. On Windows, it returns %USERPROFILE%
-		homeDir, err = os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-	}
-	settingsFilePath := filepath.Join(homeDir, ".analyze", "globalSettings.xml")
-	err = os.Mkdir(filepath.Join(homeDir, ".analyze"), 0777)
-	if err != nil && !errors.Is(err, os.ErrExist) {
-		return "", err
-	}
-	f, err := os.Create(settingsFilePath)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		_ = f.Close()
-	}()
-	err = os.Chmod(settingsFilePath, 0777)
-	if err != nil {
-		return "", err
-	}
-
-	var sb strings.Builder
-	sb.WriteString(`<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
-`)
-	if m2CacheDir != "" {
-		sb.WriteString(fmt.Sprintf("  <localRepository>%s</localRepository>\n", html.EscapeString(m2CacheDir)))
-	}
-	if proxy != nil {
-		proxies := buildMavenProxies(proxy)
-		if proxies != "" {
-			sb.WriteString(proxies)
-		}
-	}
-	sb.WriteString("</settings>\n")
-
-	_, err = f.WriteString(sb.String())
-	if err != nil {
-		return "", err
-	}
-
-	return settingsFilePath, nil
+// mavenSettings represents the top-level Maven settings.xml structure.
+// The Extra field captures any XML elements we don't explicitly model,
+// so they are preserved when reading and rewriting an existing file.
+type mavenSettings struct {
+	XMLName         xml.Name          `xml:"settings"`
+	Xmlns           string            `xml:"xmlns,attr,omitempty"`
+	Xsi             string            `xml:"xsi,attr,omitempty"`
+	SchemaLocation  string            `xml:"schemaLocation,attr,omitempty"`
+	LocalRepository string            `xml:"localRepository,omitempty"`
+	Proxies         *mavenProxies     `xml:"proxies,omitempty"`
+	Extra           []mavenExtraEntry `xml:",any"`
 }
 
-// buildMavenProxies generates the <proxies> section for Maven settings.xml
-// from a provider.Proxy config. Maven only reads proxy config from settings.xml,
-// not from environment variables or JVM system properties.
-func buildMavenProxies(proxy *provider.Proxy) string {
-	if proxy == nil {
-		return ""
+type mavenProxies struct {
+	Proxy []mavenProxyEntry `xml:"proxy"`
+}
+
+type mavenProxyEntry struct {
+	ID             string `xml:"id,omitempty"`
+	Active         string `xml:"active,omitempty"`
+	Protocol       string `xml:"protocol,omitempty"`
+	Host           string `xml:"host,omitempty"`
+	Port           string `xml:"port,omitempty"`
+	Username       string `xml:"username,omitempty"`
+	Password       string `xml:"password,omitempty"`
+	NonProxyHosts  string `xml:"nonProxyHosts,omitempty"`
+}
+
+// mavenExtraEntry captures unknown XML elements so they survive round-tripping.
+type mavenExtraEntry struct {
+	XMLName xml.Name
+	Content string `xml:",innerxml"`
+}
+
+// parseMavenSettings parses a Maven settings.xml from the given bytes.
+func parseMavenSettings(data []byte) (*mavenSettings, error) {
+	var s mavenSettings
+	if err := xml.Unmarshal(data, &s); err != nil {
+		return nil, err
 	}
+	return &s, nil
+}
 
-	var proxies []string
+// buildMavenProxyEntries builds structured proxy entries from provider.Proxy config.
+func buildMavenProxyEntries(proxy *provider.Proxy) []mavenProxyEntry {
+	if proxy == nil {
+		return nil
+	}
+	var entries []mavenProxyEntry
 	id := 1
-
 	if proxy.HTTPProxy != "" {
-		if entry := buildProxyEntry(proxy.HTTPProxy, "http", id, proxy.NoProxy); entry != "" {
-			proxies = append(proxies, entry)
+		if e, ok := buildMavenProxyEntryStruct(proxy.HTTPProxy, "http", id, proxy.NoProxy); ok {
+			entries = append(entries, e)
 			id++
 		}
 	}
 	if proxy.HTTPSProxy != "" {
-		if entry := buildProxyEntry(proxy.HTTPSProxy, "https", id, proxy.NoProxy); entry != "" {
-			proxies = append(proxies, entry)
+		if e, ok := buildMavenProxyEntryStruct(proxy.HTTPSProxy, "https", id, proxy.NoProxy); ok {
+			entries = append(entries, e)
 		}
 	}
-
-	if len(proxies) == 0 {
-		return ""
-	}
-
-	var sb strings.Builder
-	sb.WriteString("  <proxies>\n")
-	for _, p := range proxies {
-		sb.WriteString(p)
-	}
-	sb.WriteString("  </proxies>\n")
-	return sb.String()
+	return entries
 }
 
-// buildProxyEntry creates a single <proxy> element for Maven settings.xml.
-func buildProxyEntry(proxyURL, protocol string, id int, noProxy string) string {
+// buildMavenProxyEntryStruct creates a single mavenProxyEntry from a proxy URL.
+func buildMavenProxyEntryStruct(proxyURL, protocol string, id int, noProxy string) (mavenProxyEntry, bool) {
 	u, err := url.Parse(proxyURL)
 	if err != nil || u.Host == "" {
-		return ""
+		return mavenProxyEntry{}, false
 	}
 	host := u.Hostname()
 	port := u.Port()
@@ -827,31 +801,104 @@ func buildProxyEntry(proxyURL, protocol string, id int, noProxy string) string {
 			port = "80"
 		}
 	}
-
-	var sb strings.Builder
-	sb.WriteString("    <proxy>\n")
-	sb.WriteString(fmt.Sprintf("      <id>%s-proxy-%d</id>\n", protocol, id))
-	sb.WriteString(fmt.Sprintf("      <active>true</active>\n"))
-	sb.WriteString(fmt.Sprintf("      <protocol>%s</protocol>\n", protocol))
-	sb.WriteString(fmt.Sprintf("      <host>%s</host>\n", html.EscapeString(host)))
-	sb.WriteString(fmt.Sprintf("      <port>%s</port>\n", html.EscapeString(port)))
+	entry := mavenProxyEntry{
+		ID:       fmt.Sprintf("%s-proxy-%d", protocol, id),
+		Active:   "true",
+		Protocol: protocol,
+		Host:     host,
+		Port:     port,
+	}
 	if u.User != nil {
-		username := u.User.Username()
-		if username != "" {
-			sb.WriteString(fmt.Sprintf("      <username>%s</username>\n", html.EscapeString(username)))
-		}
-		if password, ok := u.User.Password(); ok {
-			sb.WriteString(fmt.Sprintf("      <password>%s</password>\n", html.EscapeString(password)))
+		entry.Username = u.User.Username()
+		if pw, ok := u.User.Password(); ok {
+			entry.Password = pw
 		}
 	}
 	if noProxy != "" {
-		// Maven uses | as separator for nonProxyHosts, standard uses comma
-		nonProxyHosts := strings.ReplaceAll(noProxy, ",", "|")
-		sb.WriteString(fmt.Sprintf("      <nonProxyHosts>%s</nonProxyHosts>\n", html.EscapeString(nonProxyHosts)))
+		entry.NonProxyHosts = strings.ReplaceAll(noProxy, ",", "|")
 	}
-	sb.WriteString("    </proxy>\n")
-	return sb.String()
+	return entry, true
 }
+
+// marshalMavenSettings serializes a mavenSettings struct to indented XML with
+// the standard XML declaration header.
+func marshalMavenSettings(s *mavenSettings) ([]byte, error) {
+	if s.Xmlns == "" {
+		s.Xmlns = "http://maven.apache.org/SETTINGS/1.0.0"
+	}
+	if s.Xsi == "" {
+		s.Xsi = "http://www.w3.org/2001/XMLSchema-instance"
+	}
+	if s.SchemaLocation == "" {
+		s.SchemaLocation = "http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd"
+	}
+	output, err := xml.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return append([]byte(xml.Header), append(output, '\n')...), nil
+}
+
+func (p *javaProvider) BuildSettingsFile(m2CacheDir string, proxy *provider.Proxy) (settingsFile string, err error) {
+	var homeDir string
+	set := true
+	ops := runtime.GOOS
+	if ops == "linux" {
+		homeDir, set = os.LookupEnv("XDG_CONFIG_HOME")
+	}
+	if ops != "linux" || homeDir == "" || !set {
+		homeDir, err = os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+	}
+	settingsFilePath := filepath.Join(homeDir, ".analyze", "globalSettings.xml")
+	err = os.Mkdir(filepath.Join(homeDir, ".analyze"), 0777)
+	if err != nil && !errors.Is(err, os.ErrExist) {
+		return "", err
+	}
+
+	// Try to read and parse existing settings file
+	var settings *mavenSettings
+	if data, readErr := os.ReadFile(settingsFilePath); readErr == nil {
+		settings, err = parseMavenSettings(data)
+		if err != nil {
+			// Existing file is malformed; start fresh
+			settings = nil
+		}
+	}
+	if settings == nil {
+		settings = &mavenSettings{}
+	}
+
+	// Update localRepository if requested
+	if m2CacheDir != "" {
+		settings.LocalRepository = m2CacheDir
+	}
+
+	// Update proxies if requested
+	if proxy != nil {
+		entries := buildMavenProxyEntries(proxy)
+		if len(entries) > 0 {
+			settings.Proxies = &mavenProxies{Proxy: entries}
+		} else {
+			settings.Proxies = nil
+		}
+	}
+
+	output, err := marshalMavenSettings(settings)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.WriteFile(settingsFilePath, output, 0777)
+	if err != nil {
+		return "", err
+	}
+
+	return settingsFilePath, nil
+}
+
 
 // redactProxyURL removes credentials from a proxy URL for safe logging.
 func redactProxyURL(proxyURL string) string {
