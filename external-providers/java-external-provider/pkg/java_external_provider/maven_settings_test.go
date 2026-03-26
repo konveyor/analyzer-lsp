@@ -110,6 +110,19 @@ func TestBuildMavenProxyEntries(t *testing.T) {
 			},
 		},
 		{
+			name: "noProxy trims whitespace around entries",
+			proxy: &provider.Proxy{
+				HTTPProxy: "http://proxy.example.com:3128",
+				NoProxy:   "localhost, 127.0.0.1, .example.com",
+			},
+			wantCount: 1,
+			checks: func(t *testing.T, entries []mavenProxyEntry) {
+				if entries[0].NonProxyHosts != "localhost|127.0.0.1|.example.com" {
+					t.Errorf("expected trimmed nonProxyHosts, got %q", entries[0].NonProxyHosts)
+				}
+			},
+		},
+		{
 			name: "default port for http",
 			proxy: &provider.Proxy{
 				HTTPProxy: "http://proxy.example.com",
@@ -809,6 +822,34 @@ func TestBuildSettingsFileRoundTrip(t *testing.T) {
 	}
 	if strings.Contains(contentStr, "first-proxy.example.com") {
 		t.Errorf("expected first-proxy.example.com to be replaced, got:\n%s", contentStr)
+	}
+}
+
+func TestBuildSettingsFilePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission-based test not reliable on Windows")
+	}
+
+	p := &javaProvider{}
+
+	tmpDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmpDir)
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
+
+	path, err := p.BuildSettingsFile("/custom/repo", &provider.Proxy{
+		HTTPProxy: "http://user:pass@proxy.example.com:3128",
+	})
+	if err != nil {
+		t.Fatalf("BuildSettingsFile() error: %v", err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("failed to stat settings file: %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0600 {
+		t.Errorf("expected file permissions 0600, got %04o", perm)
 	}
 }
 

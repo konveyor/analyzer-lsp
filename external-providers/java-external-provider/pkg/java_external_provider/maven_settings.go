@@ -106,7 +106,14 @@ func buildMavenProxyEntryStruct(proxyURL, protocol string, id int, noProxy strin
 		}
 	}
 	if noProxy != "" {
-		entry.NonProxyHosts = strings.ReplaceAll(noProxy, ",", "|")
+		parts := strings.Split(noProxy, ",")
+		normalized := make([]string, 0, len(parts))
+		for _, p := range parts {
+			if v := strings.TrimSpace(p); v != "" {
+				normalized = append(normalized, v)
+			}
+		}
+		entry.NonProxyHosts = strings.Join(normalized, "|")
 	}
 	return entry, true
 }
@@ -186,7 +193,7 @@ func (p *javaProvider) BuildSettingsFile(m2CacheDir string, proxy *provider.Prox
 		return "", err
 	}
 
-	err = os.WriteFile(settingsFilePath, output, 0644)
+	err = os.WriteFile(settingsFilePath, output, 0600)
 	if err != nil {
 		return "", err
 	}
