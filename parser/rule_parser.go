@@ -233,7 +233,7 @@ func (r *RuleParser) LoadRules(filepath string) ([]engine.RuleSet, map[string]pr
 		}
 	}
 
-	if ruleSet != nil {
+	if ruleSet != nil && len(rules) > 0 {
 		ruleSet.Rules = rules
 		ruleSets = append(ruleSets, *ruleSet)
 	}
