@@ -1,5 +1,5 @@
 ARG GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:latest
-FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as go-builder
+FROM registry.access.redhat.com/ubi10/go-toolset:1.25 as go-builder
 
 USER 0
 
@@ -35,9 +35,9 @@ USER 1001
 
 FROM ${GOLANG_DEP_IMAGE} as go-dep-provider
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi10/ubi-minimal:latest
 
-ENV NODEJS_VERSION=18
+ENV NODEJS_VERSION=22
 RUN echo -e "[nodejs]\nname=nodejs\nstream=${NODEJS_VERSION}\nprofiles=\nstate=enabled\n" > /etc/dnf/modules.d/nodejs.module
 RUN microdnf install gcc-c++ python-devel go-toolset python3-devel nodejs -y && \
     microdnf clean all && \

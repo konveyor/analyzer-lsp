@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as go-builder
+FROM registry.access.redhat.com/ubi10/go-toolset:1.25 as go-builder
 
 USER 0
 
@@ -30,7 +30,7 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
 
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd yq && go build -o yq-external-provider main.go
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi10/ubi-minimal:latest
 
 RUN microdnf install -y wget tar xz gzip && \
     microdnf clean all

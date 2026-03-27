@@ -3,7 +3,7 @@ ARG JAVA_BUDLE_IMAGE=quay.io/konveyor/jdtls-server-base:${JAVA_BUNDLE_TAG}
 FROM ${JAVA_BUDLE_IMAGE} as base
 
 # Build the manager binary
-FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as builder
+FROM registry.access.redhat.com/ubi10/go-toolset:1.25 as builder
 
 USER 0
 
