@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi9/go-toolset:1.23 AS go-builder
+FROM registry.redhat.io/ubi10/go-toolset:1.23 AS go-builder
 COPY --chown=1001:0 . /workspace
 
 WORKDIR /workspace/external-providers/generic-external-provider
@@ -10,7 +10,7 @@ RUN CGO_ENABLED=1 go build -tags strictfipsruntime -buildvcs=false
 
 FROM brew.registry.redhat.io/rh-osbs/mta-mta-golang-dependency-provider-rhel9:8.0.0 as go-dep-provider
 
-FROM registry.redhat.io/ubi9:latest
+FROM registry.redhat.io/ubi10:latest
 RUN dnf -y module enable nodejs:18
 RUN dnf -y install openssl gcc-c++ python-devel python3-devel nodejs && dnf -y clean all
 

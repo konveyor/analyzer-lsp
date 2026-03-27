@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi9/go-toolset:1.23 AS builder
+FROM registry.redhat.io/ubi10/go-toolset:1.23 AS builder
 COPY --chown=1001:0 . /workspace
 
 WORKDIR /workspace
@@ -7,7 +7,7 @@ ENV GOEXPERIMENT strictfipsruntime
 RUN CGO_ENABLED=1 go build -tags strictfipsruntime -o konveyor-analyzer ./cmd/analyzer/main.go
 RUN CGO_ENABLED=1 go build -tags strictfipsruntime -o konveyor-analyzer-dep ./cmd/dep/main.go
 
-FROM registry.redhat.io/ubi9/ubi:latest
+FROM registry.redhat.io/ubi10/ubi:latest
 RUN dnf -y install python3-devel gcc-c++
 
 RUN mkdir /analyzer-lsp
