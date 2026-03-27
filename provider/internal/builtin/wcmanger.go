@@ -2,9 +2,9 @@ package builtin
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -17,6 +17,7 @@ import (
 type workingCopy struct {
 	filePath string
 	wcPath   string
+	drive    string
 }
 
 type workingCopyManager struct {
@@ -77,10 +78,19 @@ func (t *workingCopyManager) reformatIncidents(incidents ...provider.IncidentCon
 		inc := &incidents[i]
 		if strings.HasPrefix(string(inc.FileURI), "file://") &&
 			strings.HasPrefix(inc.FileURI.Filename(), t.tempDir) {
-			inc.FileURI = uri.File(
-				filepath.Clean(strings.Replace(
-					inc.FileURI.Filename(), t.tempDir, "", -1)))
+			if runtime.GOOS == "windows" {
+				parts := strings.Split(strings.ReplaceAll(inc.FileURI.Filename(), t.tempDir, ""), string(filepath.Separator))
+				t.log.Info("parts here", "parts", parts, "temp-dir", t.tempDir)
+				driveLetter := fmt.Sprintf("%s:\\", parts[1])
+				newParts := []string{driveLetter}
+				newParts = append(newParts, parts[2:]...)
+				inc.FileURI = uri.File(filepath.Clean(filepath.Join(newParts...)))
+			} else {
+				inc.FileURI = uri.File(filepath.Clean(strings.ReplaceAll(
+					inc.FileURI.Filename(), t.tempDir, "")))
+			}
 		}
+
 		formatted = append(formatted, *inc)
 	}
 	return formatted
@@ -96,9 +106,11 @@ func (t *workingCopyManager) startWorker() {
 				return
 			}
 			// we need to get rid of volume label on windows
+			var drive string
 			if runtime.GOOS == "windows" {
-				volLabel := regexp.MustCompile(`^[a-zA-Z]:`)
-				change.Path = volLabel.ReplaceAllString(change.Path, "")
+				drive = filepath.VolumeName(change.Path)
+				driveUpdated, _ := strings.CutSuffix(drive, ":")
+				change.Path = strings.ReplaceAll(change.Path, drive, driveUpdated)
 			}
 			_, wcExists := t.workingCopies[change.Path]
 			wcPath := filepath.Join(t.tempDir, change.Path)
@@ -131,6 +143,7 @@ func (t *workingCopyManager) startWorker() {
 				t.workingCopies[change.Path] = workingCopy{
 					filePath: change.Path,
 					wcPath:   wcPath,
+					drive:    drive,
 				}
 				t.wcMutex.Unlock()
 			}

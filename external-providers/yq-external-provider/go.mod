@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp/external-providers/yq-external-provider
 
-go 1.23.9
+go 1.25
 
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
@@ -40,3 +40,5 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
+
+replace github.com/konveyor/analyzer-lsp => ../../

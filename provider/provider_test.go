@@ -371,7 +371,7 @@ func Test_templateCondition(t *testing.T) {
 					Filepaths: []string{"pom.xml", "subdir/pom.xml"},
 				},
 			},
-			want:    []byte("xml:\n  filepaths: [pom.xml subdir/pom.xml]\n  xpath: //dependencies/dependency"),
+			want:    []byte("xml:\n  filepaths: [pom.xml, subdir/pom.xml]\n  xpath: //dependencies/dependency"),
 			wantErr: false,
 		},
 		{
@@ -394,7 +394,7 @@ func Test_templateCondition(t *testing.T) {
 					ExcludedPaths: []string{"target/", "build/"},
 				},
 			},
-			want:    []byte("xml:\n  filepaths: [pom.xml build.xml]\n  excludedPaths: [target/ build/]\n  xpath: //dependencies/dependency"),
+			want:    []byte("xml:\n  filepaths: [pom.xml, build.xml]\n  excludedPaths: [target/, build/]\n  xpath: //dependencies/dependency"),
 			wantErr: false,
 		},
 		{
@@ -441,7 +441,7 @@ func Test_templateCondition(t *testing.T) {
 					ExcludedPaths: []string{"vendor/", "test/"},
 				},
 			},
-			want:    []byte("search:\n  files: [src/main.go src/utils.go]\n  exclude: [vendor/ test/]"),
+			want:    []byte("search:\n  files: [src/main.go, src/utils.go]\n  exclude: [vendor/, test/]"),
 			wantErr: false,
 		},
 		{
@@ -486,7 +486,7 @@ func Test_templateCondition(t *testing.T) {
 					Filepaths: []string{"path/with spaces/file.xml", "path-with-dashes/file.xml"},
 				},
 			},
-			want:    []byte("xml:\n  filepaths: [path/with spaces/file.xml path-with-dashes/file.xml]"),
+			want:    []byte("xml:\n  filepaths: ['path/with spaces/file.xml', path-with-dashes/file.xml]"),
 			wantErr: false,
 		},
 		{

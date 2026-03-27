@@ -10,6 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/lsp/protocol"
+	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/swaggest/openapi-go/openapi3"
 	"go.lsp.dev/uri"
@@ -33,7 +34,9 @@ type NodeServiceClient struct {
 	includedPaths []string
 }
 
-type NodeServiceClientBuilder struct{}
+type NodeServiceClientBuilder struct {
+	Progress *progress.Progress
+}
 
 func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
 	sc := &NodeServiceClient{}
@@ -61,7 +64,7 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	}
 
 	if c.ProviderSpecificConfig == nil {
-		c.ProviderSpecificConfig = map[string]interface{}{}
+		c.ProviderSpecificConfig = map[string]any{}
 	}
 	c.ProviderSpecificConfig["workspaceFolders"] = sc.Config.WorkspaceFolders
 
@@ -125,6 +128,7 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 		base.LogHandler(log),
 		params,
 		NewNodejsSymbolCacheHelper(log, c),
+		n.Progress,
 	)
 	if err != nil {
 		return nil, err
@@ -166,7 +170,6 @@ type referencedCondition struct {
 	Filepaths                []string `yaml:"filepaths,omitempty"`
 	provider.ProviderContext `yaml:",inline"`
 }
-
 
 // Example evaluate
 func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string, info []byte) (provider.ProviderEvaluateResponse, error) {
@@ -271,6 +274,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	if len(incidents) == 0 {
 		return resp{Matched: false}, nil
 	}
+	sc.Log.Info("incidents for referenced condition", "incidents", len(incidents), "condition", query)
 	return resp{
 		Matched:   true,
 		Incidents: incidents,

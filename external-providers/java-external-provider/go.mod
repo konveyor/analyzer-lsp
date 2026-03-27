@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp/external-providers/java-external-provider
 
-go 1.23.9
+go 1.25
 
 require (
 	github.com/go-logr/logr v1.4.3
@@ -46,3 +46,5 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
+
+replace github.com/konveyor/analyzer-lsp => ../../

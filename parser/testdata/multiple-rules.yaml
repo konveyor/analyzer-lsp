@@ -1,0 +1,17 @@
+- message: all go files
+  ruleID: file-001
+  labels:
+  - "test=filter"
+  category: potential
+  effort: 3
+  when:
+    builtin.file: "*.go"
+- message: all go files
+  ruleID: file-002
+  links:
+  labels:
+  - "test=filter-out"
+  category: potential
+  effort: 3
+  when:
+    builtin.file: "*.go"

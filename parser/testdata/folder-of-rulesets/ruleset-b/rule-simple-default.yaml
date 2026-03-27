@@ -1,5 +1,5 @@
 ---
 - message: all go files
-  ruleID: file-001
+  ruleID: ref-001
   when:
-    builtin.file: "*.go"
+    fake.ref: "*.go"

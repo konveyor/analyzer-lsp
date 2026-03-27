@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp/external-providers/golang-dependency-provider
 
-go 1.23.9
+go 1.25
 
 require (
 	github.com/konveyor/analyzer-lsp v0.9.0-alpha.1.0.20251121202139-b3f742caf596
@@ -34,3 +34,5 @@ require (
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/konveyor/analyzer-lsp => ../../

@@ -1,0 +1,2 @@
+name: "non-yaml-test-ruleset"
+description: "testing that non-yaml files are skipped"

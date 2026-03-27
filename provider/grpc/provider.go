@@ -12,6 +12,8 @@ import (
 
 	"github.com/go-logr/logr"
 	reflectClient "github.com/jhump/protoreflect/grpcreflect"
+	"github.com/konveyor/analyzer-lsp/progress"
+	"github.com/konveyor/analyzer-lsp/progress/collector"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/konveyor/analyzer-lsp/provider/grpc/socket"
 	pb "github.com/konveyor/analyzer-lsp/provider/internal/grpc"
@@ -33,6 +35,7 @@ type grpcProvider struct {
 	conn      *grpc.ClientConn
 	config    provider.Config
 	cancelCmd context.CancelFunc
+	progress  *progress.Progress
 
 	serviceClients []provider.ServiceClient
 }
@@ -166,7 +169,7 @@ func requiresConversion(value interface{}) bool {
 	}
 }
 
-func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalProviderClient, error) {
+func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.Progress) (provider.InternalProviderClient, error) {
 	log = log.WithName(config.Name)
 	log = log.WithValues("provider", "grpc")
 	ctxCmd, cancelCmd := context.WithCancel(context.Background())
@@ -204,6 +207,7 @@ func NewGRPCClient(config provider.Config, log logr.Logger) (provider.InternalPr
 		config:         config,
 		cancelCmd:      cancelCmd,
 		serviceClients: []provider.ServiceClient{},
+		progress:       progress,
 	}
 	if foundCodeSnip && foundDepResolve {
 		// create the clients, create the struct that will have all the methods
@@ -282,6 +286,10 @@ func (g *grpcProvider) ProviderInit(ctx context.Context, additionalConfigs []pro
 		g.config.InitConfig = append(g.config.InitConfig, additionalConfigs...)
 	}
 	for _, c := range g.config.InitConfig {
+		// Propagate top-level proxy config to each InitConfig if not already set
+		if c.Proxy == nil && g.config.Proxy != nil {
+			c.Proxy = g.config.Proxy
+		}
 		s, builtinConf, err := g.Init(ctx, g.log, c)
 		if err != nil {
 			g.log.Error(err, "Error inside ProviderInit, after g.Init.")
@@ -327,18 +335,22 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	g.log.Info("provider configuration", "config", config)
+	var pbProxy *pb.Proxy
+	if config.Proxy != nil {
+		pbProxy = &pb.Proxy{
+			HTTPProxy:  config.Proxy.HTTPProxy,
+			HTTPSProxy: config.Proxy.HTTPSProxy,
+			NoProxy:    config.Proxy.NoProxy,
+		}
+	}
 	c := pb.Config{
 		Location:               config.Location,
 		DependencyPath:         config.DependencyPath,
 		AnalysisMode:           string(config.AnalysisMode),
 		ProviderSpecificConfig: s,
-		Proxy: &pb.Proxy{
-			HTTPProxy:  config.Proxy.HTTPProxy,
-			HTTPSProxy: config.Proxy.HTTPSProxy,
-			NoProxy:    config.Proxy.NoProxy,
-		},
-		LanguageServerPipe: config.PipeName,
-		Initialized:        config.Initialized,
+		Proxy:                  pbProxy,
+		LanguageServerPipe:     config.PipeName,
+		Initialized:            config.Initialized,
 	}
 
 	// Set logLevel if available in provider config
@@ -353,17 +365,27 @@ func (g *grpcProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, provider.InitConfig{}, err
 	}
 	if !r.Successful {
-		return nil, provider.InitConfig{}, fmt.Errorf(r.Error)
+		return nil, provider.InitConfig{}, fmt.Errorf("unable to init: %v", r.Error)
 	}
 	additionalBuiltinConfig := provider.InitConfig{}
 	if r.BuiltinConfig != nil {
 		additionalBuiltinConfig.Location = r.BuiltinConfig.Location
+		additionalBuiltinConfig.DependencyPath = r.BuiltinConfig.DependencyPath
 	}
+
+	// For right now, the only progress reported by a init config will be the
+	// provider prepare
+	collector := collector.NewThrottledCollector(progress.StageProviderPrepare)
+	g.progress.Subscribe(collector)
+	defer g.progress.Unsubscribe(collector)
 	return &grpcServiceClient{
 		id:     r.Id,
 		config: config,
 		client: g.Client,
-		log:    log.WithName("grpcServiceClient"),
+		log:    log.WithName("grpcServiceClient").WithValues("location", config.Location),
+		// Note this is a collector
+		// But we only need the reporter interface
+		reporter: collector,
 	}, additionalBuiltinConfig, nil
 }
 
@@ -476,7 +498,7 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 				conn, err = socket.ConnectGRPC(config.Address)
 			} else {
 				// Use regular HTTP connection
-				conn, err = grpc.NewClient(fmt.Sprintf(config.Address),
+				conn, err = grpc.NewClient(fmt.Sprintf("%s", config.Address),
 					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 					grpc.WithTransportCredentials(insecure.NewCredentials()),
 				)
@@ -492,7 +514,7 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 			return nil, nil, err
 		}
 		if config.JWTToken == "" {
-			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
+			conn, err := grpc.NewClient(fmt.Sprintf("%s", config.Address),
 				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 				grpc.WithTransportCredentials(creds))
 			if err != nil {
@@ -505,7 +527,7 @@ func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.
 			i := &jwtTokeInterceptor{
 				Token: config.JWTToken,
 			}
-			conn, err := grpc.NewClient(fmt.Sprintf(config.Address),
+			conn, err := grpc.NewClient(fmt.Sprintf("%s", config.Address),
 				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(socket.MAX_MESSAGE_SIZE)),
 				grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(i.unaryInterceptor))
 			if err != nil {

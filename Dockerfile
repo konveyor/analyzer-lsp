@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.23 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as builder
 
 USER 0
 WORKDIR /analyzer-lsp
@@ -13,7 +13,7 @@ COPY parser /analyzer-lsp/parser
 COPY provider /analyzer-lsp/provider
 COPY progress /analyzer-lsp/progress
 COPY tracing /analyzer-lsp/tracing
-COPY external-providers /analyzer-lsp/external-providers
+COPY core /analyzer-lsp/core
 COPY go.mod /analyzer-lsp/go.mod
 COPY go.sum /analyzer-lsp/go.sum
 COPY Makefile /analyzer-lsp/Makefile
@@ -32,15 +32,6 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
 USER 1001
 
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod make analyzer deps
-
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as yq-builder
-RUN microdnf install -y wget tar xz gzip && \
-    microdnf clean all
-ARG TARGETARCH
-ARG YQ_VERSION="v4.40.5"
-ARG YQ_BINARY="yq_linux_${TARGETARCH}"
-RUN wget "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz" -O - | tar xz && \
-    mv ${YQ_BINARY} /usr/bin/yq
 
 FROM jaegertracing/all-in-one:latest AS jaeger-builder
 

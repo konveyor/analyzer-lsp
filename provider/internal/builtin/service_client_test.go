@@ -681,11 +681,6 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 					},
 				},
 			},
-			chainTemplate: engine.ChainTemplate{
-				Filepaths: []string{
-					filepath.Join("dir_b", "dir_a", "ba.xml"),
-				},
-			},
 			notifiedFileChanges: []provider.FileChange{
 				{
 					Path:    filepath.Join(baseLocation, "dir_b", "b.xml"),
@@ -776,12 +771,14 @@ func Test_builtinServiceClient_Evaluate_InclusionExclusion(t *testing.T) {
 				config: provider.InitConfig{
 					Location: baseLocation,
 				},
-				log:            testr.New(t),
+				log: testr.NewWithOptions(t, testr.Options{
+					Verbosity: 10,
+				}),
 				includedPaths:  tt.includedPathsFromConfig,
 				excludedDirs:   tt.excludedPathsFromConfig,
 				locationCache:  map[string]float64{},
 				cacheMutex:     sync.RWMutex{},
-				workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
+				workingCopyMgr: NewTempFileWorkingCopyManger(testr.NewWithOptions(t, testr.Options{Verbosity: 10})),
 			}
 			p.workingCopyMgr.init()
 			defer p.workingCopyMgr.stop()
@@ -987,6 +984,8 @@ func Test_builtinServiceClient_Evaluate_ExcludeDirs(t *testing.T) {
 				cacheMutex:     sync.RWMutex{},
 				workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
 			}
+			sc.workingCopyMgr.init()
+			defer sc.workingCopyMgr.stop()
 			conditionInfo, err := yaml.Marshal(&tt.condition)
 			if err != nil {
 				t.Errorf("builtinServiceClient.Evaluate() invalid test case, please check if condition is correct")

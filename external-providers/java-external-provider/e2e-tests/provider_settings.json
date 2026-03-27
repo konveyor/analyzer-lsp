@@ -71,6 +71,19 @@
                     "workspace": "/tmp/jdtls-workspace-binary"
                 },
                 "analysisMode": "full"
+            },
+            {
+                "location": "/analyzer-lsp/examples/sample-tiles-app",
+                "providerSpecificConfig": {
+                    "lspServerName": "java",
+                    "lspServerPath": "/jdtls/bin/jdtls",
+                    "depOpenSourceLabelsFile": "/usr/local/etc/maven.default.index",
+                    "mavenIndexPath": "/usr/local/etc",
+                    "bundles": "/jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-binary"
+                },
+                "analysisMode": "source-only"
             }
         ]
     },
