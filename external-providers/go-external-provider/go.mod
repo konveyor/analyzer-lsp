@@ -7,6 +7,8 @@ require (
 	github.com/go-logr/logr v1.4.2
 	github.com/konveyor/analyzer-lsp v0.0.0
 	github.com/sirupsen/logrus v1.9.3
+	github.com/swaggest/openapi-go v0.2.50
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -19,7 +21,6 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/swaggest/jsonschema-go v0.3.70 // indirect
-	github.com/swaggest/openapi-go v0.2.50 // indirect
 	github.com/swaggest/refl v1.3.0 // indirect
 	go.lsp.dev/uri v0.3.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
@@ -34,7 +35,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/grpc v1.73.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 replace github.com/konveyor/analyzer-lsp => ../../

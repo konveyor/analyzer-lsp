@@ -1,4 +1,5 @@
-# Step 1 scaffold image: gRPC binary only. Runtime LSP/tooling layers land in later steps.
+# Go gRPC provider binary. Step 2 adds full gopls service client code; install gopls +
+# golang-dependency-provider (and other runtime deps) here when matching generic image (plan Step 8).
 FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as go-builder
 
 USER 0

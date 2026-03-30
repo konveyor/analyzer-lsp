@@ -180,4 +180,6 @@ Added under `external-providers/` (stub `BaseClient`, `Init` returns “not impl
 | `python-external-provider/` | `python-external-provider` |
 | `nodejs-external-provider/` | `nodejs-external-provider` |
 
-Each has `main.go`, `go.mod` / `go.sum`, `Dockerfile` (binary-only final image), and `pkg/<name>_external_provider/stub_provider.go`.
+Each has `main.go`, `go.mod` / `go.sum`, `Dockerfile` (binary-only final image until Step 8), and `pkg/<name>_external_provider/`.
+
+**Step 2 (go only):** `go-external-provider` now embeds copied gopls logic (`service_client.go`, `provider.go`) from `generic/server_configurations/generic` without removing originals; stub removed. Unit test `TestNewGoProviderCapabilities`; optional `go test -tags=integration` needs `gopls`.

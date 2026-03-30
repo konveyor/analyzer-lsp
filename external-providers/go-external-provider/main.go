@@ -35,7 +35,7 @@ func main() {
 	}
 	log := logrusr.New(logrusLog).WithName("go-external-provider")
 
-	client := golangprov.NewStubProvider(*lspServerName)
+	client := golangprov.NewGoProvider(*lspServerName, log, nil)
 
 	if (socket == nil || *socket == "") && (port == nil || *port == 0) {
 		log.Error(fmt.Errorf("no serving location"), "port or socket must be set.")
