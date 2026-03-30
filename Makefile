@@ -16,7 +16,7 @@ MOUNT_OPT := :z
 build-dir:
 	mkdir -p build
 
-build: build-dir analyzer deps golang-dependency-provider external-generic yq-external-provider java-external-provider
+build: build-dir analyzer deps golang-dependency-provider external-generic external-go-provider external-python-provider external-nodejs-provider yq-external-provider java-external-provider
 
 analyzer: build-dir
 	go build -o build/konveyor-analyzer ./cmd/analyzer/main.go
@@ -25,6 +25,18 @@ analyzer: build-dir
 external-generic: build-dir
 	(cd external-providers/generic-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/generic-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/generic-external-provider build/generic-external-provider.exe; fi
+
+external-go-provider: build-dir
+	(cd external-providers/go-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/go-external-provider main.go)
+	if [ "${GOOS}" == "windows" ]; then mv build/go-external-provider build/go-external-provider.exe; fi
+
+external-python-provider: build-dir
+	(cd external-providers/python-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/python-external-provider main.go)
+	if [ "${GOOS}" == "windows" ]; then mv build/python-external-provider build/python-external-provider.exe; fi
+
+external-nodejs-provider: build-dir
+	(cd external-providers/nodejs-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/nodejs-external-provider main.go)
+	if [ "${GOOS}" == "windows" ]; then mv build/nodejs-external-provider build/nodejs-external-provider.exe; fi
 
 golang-dependency-provider: build-dir
 	(cd external-providers/golang-dependency-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/golang-dependency-provider main.go)

@@ -167,3 +167,17 @@ Use this as a final grep gate before deleting `generic-external-provider/`:
 ---
 
 *Inventory generated as Step 0 of the implementation plan. Update this file if the repo changes before implementation starts.*
+
+---
+
+## Appendix: Step 1 scaffolds (per-language modules)
+
+Added under `external-providers/` (stub `BaseClient`, `Init` returns “not implemented”; included in `make build`):
+
+| Directory | Binary output (`build/`) |
+|-----------|-------------------------|
+| `go-external-provider/` | `go-external-provider` |
+| `python-external-provider/` | `python-external-provider` |
+| `nodejs-external-provider/` | `nodejs-external-provider` |
+
+Each has `main.go`, `go.mod` / `go.sum`, `Dockerfile` (binary-only final image), and `pkg/<name>_external_provider/stub_provider.go`.
