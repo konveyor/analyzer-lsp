@@ -35,7 +35,7 @@ func main() {
 	}
 	log := logrusr.New(logrusLog).WithName("python-external-provider")
 
-	client := pythonprov.NewStubProvider(*lspServerName)
+	client := pythonprov.NewPythonProvider(*lspServerName, log, nil)
 
 	if (socket == nil || *socket == "") && (port == nil || *port == 0) {
 		log.Error(fmt.Errorf("no serving location"), "port or socket must be set.")
