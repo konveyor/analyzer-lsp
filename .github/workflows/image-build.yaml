@@ -49,6 +49,19 @@ jobs:
             containerfile: "./external-providers/yq-external-provider/Dockerfile"
             context: "."
             architectures: '[ "amd64", "arm64" ]'
+          - name: go-external-provider
+            containerfile: "./external-providers/go-external-provider/Dockerfile"
+            context: "."
+            architectures: '[ "amd64", "arm64" ]'
+            extra-args: "--build-arg GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:${{ needs.compute-deps-refs.outputs.tag }}"
+          - name: python-external-provider
+            containerfile: "./external-providers/python-external-provider/Dockerfile"
+            context: "."
+            architectures: '[ "amd64", "arm64" ]'
+          - name: nodejs-external-provider
+            containerfile: "./external-providers/nodejs-external-provider/Dockerfile"
+            context: "."
+            architectures: '[ "amd64", "arm64" ]'
           - name: java-external-provider
             containerfile: "./external-providers/java-external-provider/Dockerfile"
             context: "."
@@ -66,21 +79,3 @@ jobs:
     secrets:
       registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
       registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}
-  
-  # generic provider requires go dep provider we built in matrix and needs to be sequential
-  generic-external-provider-build:
-    needs: 
-    - image-build
-    - compute-deps-refs
-    uses: konveyor/release-tools/.github/workflows/build-push-images.yaml@main
-    with:
-      registry: "quay.io/konveyor"
-      image_name: generic-external-provider
-      containerfile: "./external-providers/generic-external-provider/Dockerfile"
-      architectures: '[ "amd64", "arm64" ]'
-      context: "."
-      extra-args: "--build-arg GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:${{ needs.compute-deps-refs.outputs.tag }}"
-    secrets:
-      registry_username: ${{ secrets.QUAY_PUBLISH_ROBOT }}
-      registry_password: ${{ secrets.QUAY_PUBLISH_TOKEN }}  
-    

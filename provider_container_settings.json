@@ -1,7 +1,7 @@
 [
     {
         "name": "go",
-        "binaryPath": "/usr/local/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/go-external-provider",
         "useSocket": true,
         "initConfig": [
             {
@@ -36,7 +36,7 @@
     },
     {
         "name": "python",
-        "binaryPath": "/usr/local/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/python-external-provider",
         "initConfig": [
             {
                 "analysisMode": "full",
@@ -59,7 +59,7 @@
     },
     {
         "name": "nodejs",
-        "binaryPath": "/usr/local/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/nodejs-external-provider",
         "initConfig": [
             {
                 "analysisMode": "full",

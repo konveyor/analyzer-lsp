@@ -1,5 +1,5 @@
 - name: "go"
-  binaryPath: "/usr/bin/generic-external-provider"
+  binaryPath: "/usr/bin/go-external-provider"
   initConfig:
   - analysisMode: "full"
     providerSpecificConfig: 

@@ -1,4 +1,4 @@
-# Step 1 scaffold image: gRPC binary only. Node/tsserver runtime layers land in later steps.
+# Node.js gRPC provider binary image with typescript-language-server runtime.
 FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as go-builder
 
 USER 0
@@ -31,6 +31,13 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd nodejs-provider && go build -o nodejs-external-provider main.go
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+ENV NODEJS_VERSION=18
+RUN echo -e "[nodejs]\nname=nodejs\nstream=${NODEJS_VERSION}\nprofiles=\nstate=enabled\n" > /etc/dnf/modules.d/nodejs.module
+RUN microdnf install nodejs npm -y && \
+    microdnf clean all && \
+    rm -rf /var/cache/dnf
+RUN npm install -g typescript-language-server typescript
 
 COPY --from=go-builder /opt/app-root/src/nodejs-provider/nodejs-external-provider /usr/local/bin/nodejs-external-provider
 WORKDIR /addon

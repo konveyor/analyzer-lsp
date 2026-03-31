@@ -1,4 +1,4 @@
-# Step 1 scaffold image: gRPC binary only. Python LSP/runtime layers land in later steps.
+# Python gRPC provider binary image with pylsp runtime.
 FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as go-builder
 
 USER 0
@@ -31,6 +31,11 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd python-provider && go build -o python-external-provider main.go
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+RUN microdnf install python3 python3-pip -y && \
+    microdnf clean all && \
+    rm -rf /var/cache/dnf
+RUN python3 -m pip install --no-cache-dir 'python-lsp-server>=1.8.2'
 
 COPY --from=go-builder /opt/app-root/src/python-provider/python-external-provider /usr/local/bin/python-external-provider
 WORKDIR /addon

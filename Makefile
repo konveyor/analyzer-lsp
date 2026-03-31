@@ -4,6 +4,9 @@ IMG_ANALYZER ?= localhost/analyzer-lsp:$(TAG)
 TAG_JAVA_BUNDLE ?= latest
 IMG_JAVA_PROVIDER ?= localhost/java-provider:$(TAG)
 IMG_GENERIC_PROVIDER ?= localhost/generic-provider:$(TAG)
+IMG_GO_PROVIDER ?= localhost/go-external-provider:$(TAG)
+IMG_PYTHON_PROVIDER ?= localhost/python-external-provider:$(TAG)
+IMG_NODE_PROVIDER ?= localhost/nodejs-external-provider:$(TAG)
 IMG_GO_DEP_PROVIDER ?= localhost/golang-dep-provider:$(TAG)
 IMG_YQ_PROVIDER ?= localhost/yq-provider:$(TAG)
 IMG_C_SHARP_PROVIDER ?= quay.io/konveyor/c-sharp-provider:$(TAG)
@@ -57,13 +60,22 @@ deps: build-dir
 image-build:
 	podman build -f Dockerfile . -t $(IMG_ANALYZER)
 
-build-external:image-build build-generic-provider build-java-provider build-yq-provider
+build-external:image-build build-go-provider build-python-provider build-nodejs-provider build-java-provider build-yq-provider
 
 build-generic-provider: build-golang-dep-provider 
 	podman build --build-arg GOLANG_DEP_IMAGE=$(IMG_GO_DEP_PROVIDER) -f external-providers/generic-external-provider/Dockerfile -t $(IMG_GENERIC_PROVIDER) .
 
 build-golang-dep-provider:
 	podman build -f external-providers/golang-dependency-provider/Dockerfile -t $(IMG_GO_DEP_PROVIDER) .
+
+build-go-provider: build-golang-dep-provider
+	podman build --build-arg GOLANG_DEP_IMAGE=$(IMG_GO_DEP_PROVIDER) -f external-providers/go-external-provider/Dockerfile -t $(IMG_GO_PROVIDER) .
+
+build-python-provider:
+	podman build -f external-providers/python-external-provider/Dockerfile -t $(IMG_PYTHON_PROVIDER) .
+
+build-nodejs-provider:
+	podman build -f external-providers/nodejs-external-provider/Dockerfile -t $(IMG_NODE_PROVIDER) .
 
 build-java-provider:
 	podman build --build-arg=JAVA_BUNDLE_TAG=$(TAG_JAVA_BUNDLE) -f external-providers/java-external-provider/Dockerfile -t $(IMG_JAVA_PROVIDER) .
@@ -74,9 +86,9 @@ build-yq-provider:
 run-external-providers-local:
 	podman run --userns=keep-id --user=$(USER_ID) --name java-provider -d -p 14651:14651 -v $(PWD)/external-providers/java-external-provider/examples:/examples$(MOUNT_OPT) $(IMG_JAVA_PROVIDER) --port 14651
 	podman run --userns=keep-id --user=$(USER_ID) --name yq -d -p 14652:14652 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_YQ_PROVIDER) --port 14652
-	podman run --userns=keep-id --user=$(USER_ID) --entrypoint /usr/local/bin/entrypoint.sh --name golang-provider -d -p 14653:14653 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14653
-	podman run --userns=keep-id --user=$(USER_ID) --name nodejs -d -p 14654:14654 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14654 --name nodejs
-	podman run --userns=keep-id --user=$(USER_ID) --name python -d -p 14655:14655 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
+	podman run --userns=keep-id --user=$(USER_ID) --name golang-provider -d -p 14653:14653 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_GO_PROVIDER) --port 14653 --name generic
+	podman run --userns=keep-id --user=$(USER_ID) --name nodejs -d -p 14654:14654 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_NODE_PROVIDER) --port 14654 --name nodejs
+	podman run --userns=keep-id --user=$(USER_ID) --name python -d -p 14655:14655 -v $(PWD)/examples:/examples$(MOUNT_OPT) $(IMG_PYTHON_PROVIDER) --port 14655 --name pylsp
 
 stop-external-providers:
 	podman kill java-provider || true
@@ -102,9 +114,9 @@ run-external-providers-pod:
 	podman run --pod analyzer --user=$(USER_ID) --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_JAVA_PROVIDER) --port 14651
 	podman run --pod analyzer --user=$(USER_ID) --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_YQ_PROVIDER) --port 14652
 	podman run --pod analyzer --user=$(USER_ID) --name c-sharp -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_C_SHARP_PROVIDER) --port 14656
-	podman run --entrypoint /usr/local/bin/entrypoint.sh --pod analyzer --user=$(USER_ID) --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14653
-	podman run --pod analyzer --user=$(USER_ID) --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14654 --name nodejs
-	podman run --pod analyzer --user=$(USER_ID) --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14655 --name pylsp
+	podman run --pod analyzer --user=$(USER_ID) --name golang-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GO_PROVIDER) --port 14653 --name generic
+	podman run --pod analyzer --user=$(USER_ID) --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_NODE_PROVIDER) --port 14654 --name nodejs
+	podman run --pod analyzer --user=$(USER_ID) --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_PYTHON_PROVIDER) --port 14655 --name pylsp
 
 run-demo-image:
 	podman run --user=$(USER_ID) --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) -v $(PWD)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml${MOUNT_OPT} -v $(PWD)/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} -v $(PWD)/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} -v $(PWD)/provider_pod_local_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} $(IMG_ANALYZER) --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source' --rules=/analyzer-lsp/rule-example.yaml --provider-settings=/analyzer-lsp/provider_settings.json
@@ -137,17 +149,17 @@ run-generic-golang-provider-pod:
 	podman volume create test-data
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-generic-golang --userns=keep-id 
-	podman run --pod analyzer-generic-golang --user=$(USER_ID) --name golang -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14651 --name generic
+	podman run --pod analyzer-generic-golang --user=$(USER_ID) --name golang -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GO_PROVIDER) --port 14651 --name generic
 run-generic-python-provider-pod:
 	podman volume create test-data
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-generic-python --userns=keep-id
-	podman run --pod analyzer-generic-python --user=$(USER_ID) --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14651 --name pylsp
+	podman run --pod analyzer-generic-python --user=$(USER_ID) --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_PYTHON_PROVIDER) --port 14651 --name pylsp
 run-generic-nodejs-provider-pod:
 	podman volume create test-data
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman pod create --name=analyzer-generic-nodejs --userns=keep-id
-	podman run --pod analyzer-generic-nodejs --user=$(USER_ID) --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GENERIC_PROVIDER) --port 14651 --name nodejs
+	podman run --pod analyzer-generic-nodejs --user=$(USER_ID) --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_NODE_PROVIDER) --port 14651 --name nodejs
 
 run-demo-generic-golang:
 	podman run --user=$(USER_ID) --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-golang \
