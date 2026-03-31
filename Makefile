@@ -109,6 +109,7 @@ run-external-providers-pod:
 	# copy data to test data volume
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=0 -v test-data:/target$(MOUNT_OPT) --entrypoint=sh alpine -c 'chmod -R a+rwX /target'
 	# run pods w/ defined ports for the test volumes
 	podman pod create --name=analyzer --userns=keep-id
 	podman run --pod analyzer --user=$(USER_ID) --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_JAVA_PROVIDER) --port 14651
@@ -125,6 +126,7 @@ run-demo-image:
 run-java-provider-pod:
 	podman volume create test-data
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/external-providers/java-external-provider/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=0 -v test-data:/target$(MOUNT_OPT) --entrypoint=sh alpine -c 'chmod -R a+rwX /target'
 	podman pod create --name=analyzer-java --userns=keep-id 
 	podman run --pod analyzer-java --user=$(USER_ID) --name java-provider -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_JAVA_PROVIDER) --port 14651
 
@@ -145,74 +147,78 @@ stop-java-provider-pod:
 	podman pod rm analyzer-java || true
 	podman volume rm test-data || true
 
-run-generic-golang-provider-pod:
+run-go-provider-pod:
 	podman volume create test-data
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
-	podman pod create --name=analyzer-generic-golang --userns=keep-id 
-	podman run --pod analyzer-generic-golang --user=$(USER_ID) --name golang -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GO_PROVIDER) --port 14651 --name generic
-run-generic-python-provider-pod:
+	podman run --rm --user=0 -v test-data:/target$(MOUNT_OPT) --entrypoint=sh alpine -c 'chmod -R a+rwX /target'
+	podman pod create --name=analyzer-go --userns=keep-id 
+	podman run --pod analyzer-go --user=$(USER_ID) --name golang -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_GO_PROVIDER) --port 14651 --name generic
+run-python-provider-pod:
 	podman volume create test-data
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
-	podman pod create --name=analyzer-generic-python --userns=keep-id
-	podman run --pod analyzer-generic-python --user=$(USER_ID) --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_PYTHON_PROVIDER) --port 14651 --name pylsp
-run-generic-nodejs-provider-pod:
+	podman run --rm --user=0 -v test-data:/target$(MOUNT_OPT) --entrypoint=sh alpine -c 'chmod -R a+rwX /target'
+	podman pod create --name=analyzer-python --userns=keep-id
+	podman run --pod analyzer-python --user=$(USER_ID) --name python -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_PYTHON_PROVIDER) --port 14651 --name pylsp
+run-nodejs-provider-pod:
 	podman volume create test-data
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
-	podman pod create --name=analyzer-generic-nodejs --userns=keep-id
-	podman run --pod analyzer-generic-nodejs --user=$(USER_ID) --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_NODE_PROVIDER) --port 14651 --name nodejs
+	podman run --rm --user=0 -v test-data:/target$(MOUNT_OPT) --entrypoint=sh alpine -c 'chmod -R a+rwX /target'
+	podman pod create --name=analyzer-nodejs --userns=keep-id
+	podman run --pod analyzer-nodejs --user=$(USER_ID) --name nodejs -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_NODE_PROVIDER) --port 14651 --name nodejs
 
-run-demo-generic-golang:
-	podman run --user=$(USER_ID) --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-golang \
+run-demo-go:
+	podman run --user=$(USER_ID) --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-go \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/golang-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/go-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/go-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
+		-v $(PWD)/external-providers/go-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
 		--provider-settings=/analyzer-lsp/provider_settings.json \
 		--dep-label-selector='!konveyor.io/dep-source=open-source'
-run-demo-generic-python:
-	podman run --user=$(USER_ID) --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-python \
+run-demo-python:
+	podman run --user=$(USER_ID) --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-python \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/python-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/python-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/python-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
+		-v $(PWD)/external-providers/python-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
 		--provider-settings=/analyzer-lsp/provider_settings.json \
 		--dep-label-selector='!konveyor.io/dep-source=open-source'
-run-demo-generic-nodejs:
-	podman run --user=$(USER_ID) --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-generic-nodejs \
+run-demo-nodejs:
+	podman run --user=$(USER_ID) --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-nodejs \
 		-v test-data:/analyzer-lsp/examples$(MOUNT_OPT) \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
-		-v $(PWD)/external-providers/generic-external-provider/e2e-tests/nodejs-e2e/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/nodejs-external-provider/e2e-tests/demo-output.yaml:/analyzer-lsp/output.yaml${MOUNT_OPT} \
+		-v $(PWD)/external-providers/nodejs-external-provider/e2e-tests/provider_settings.json:/analyzer-lsp/provider_settings.json${MOUNT_OPT} \
+		-v $(PWD)/external-providers/nodejs-external-provider/e2e-tests/rule-example.yaml:/analyzer-lsp/rule-example.yaml${MOUNT_OPT} \
 		$(IMG_ANALYZER) \
 		--output-file=/analyzer-lsp/output.yaml \
 		--rules=/analyzer-lsp/rule-example.yaml \
 		--provider-settings=/analyzer-lsp/provider_settings.json \
 		--dep-label-selector='!konveyor.io/dep-source=open-source'
 
-stop-generic-golang-provider-pod:
-	podman pod kill analyzer-generic-golang || true
-	podman pod rm analyzer-generic-golang || true
+stop-go-provider-pod:
+	podman pod kill analyzer-go || true
+	podman pod rm analyzer-go || true
 	podman volume rm test-data || true
 
-stop-generic-python-provider-pod:
-	podman pod kill analyzer-generic-python || true
-	podman pod rm analyzer-generic-python || true
+stop-python-provider-pod:
+	podman pod kill analyzer-python || true
+	podman pod rm analyzer-python || true
 	podman volume rm test-data || true
 
-stop-generic-nodejs-provider-pod:
-	podman pod kill analyzer-generic-nodejs || true
-	podman pod rm analyzer-generic-nodejs || true
+stop-nodejs-provider-pod:
+	podman pod kill analyzer-nodejs || true
+	podman pod rm analyzer-nodejs || true
 	podman volume rm test-data || true
 
 run-yaml-provider-pod:
 	podman volume create test-data
 	podman run --rm --user=$(USER_ID) -v test-data:/target$(MOUNT_OPT) -v $(PWD)/examples:/src/$(MOUNT_OPT) --entrypoint=cp alpine -a /src/. /target/
+	podman run --rm --user=0 -v test-data:/target$(MOUNT_OPT) --entrypoint=sh alpine -c 'chmod -R a+rwX /target'
 	podman pod create --name=analyzer-yaml --userns=keep-id 
 	podman run --pod analyzer-yaml --user=$(USER_ID) --name yq -d -v test-data:/analyzer-lsp/examples$(MOUNT_OPT) $(IMG_YQ_PROVIDER) --port 14651
 
@@ -239,18 +245,16 @@ test-all: test-all-providers test-analyzer
 test-analyzer: run-external-providers-pod run-demo-image stop-external-providers-pod
 
 # Run all provider tests sequentially
-test-all-providers: test-java test-generic test-yaml
+test-all-providers: test-java test-go test-python test-nodejs test-yaml
 	@echo "All provider tests completed successfully!"
 
 test-java: run-java-provider-pod run-demo-java stop-java-provider-pod
 
-test-golang: run-generic-golang-provider-pod run-demo-generic-golang stop-generic-golang-provider-pod
+test-go: run-go-provider-pod run-demo-go stop-go-provider-pod
 
-test-python: run-generic-python-provider-pod run-demo-generic-python stop-generic-python-provider-pod
+test-python: run-python-provider-pod run-demo-python stop-python-provider-pod
 
-test-nodejs: run-generic-nodejs-provider-pod run-demo-generic-nodejs stop-generic-nodejs-provider-pod
-
-test-generic: test-nodejs test-python test-golang 
+test-nodejs: run-nodejs-provider-pod run-demo-nodejs stop-nodejs-provider-pod
 
 test-yaml: run-yaml-provider-pod run-demo-yaml stop-yaml-provider-pod
 

@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       java: ${{ steps.filter.outputs.java }}
-      generic: ${{ steps.filter.outputs.generic }}
+      go: ${{ steps.filter.outputs.go }}
+      python: ${{ steps.filter.outputs.python }}
+      nodejs: ${{ steps.filter.outputs.nodejs }}
       yq: ${{ steps.filter.outputs.yq}}
       c-sharp: ${{ steps.filter.outputs.c-sharp }}
     steps:
@@ -27,10 +29,18 @@ jobs:
               - '**'
               - '!external-providers/**'
               - 'external-providers/java-external-provider/**'
-            generic:
+            go:
               - '**'
               - '!external-providers/**'
-              - 'external-providers/generic-external-provider/**'
+              - 'external-providers/go-external-provider/**'
+            python:
+              - '**'
+              - '!external-providers/**'
+              - 'external-providers/python-external-provider/**'
+            nodejs:
+              - '**'
+              - '!external-providers/**'
+              - 'external-providers/nodejs-external-provider/**'
             yq:
               - '**'
               - '!external-providers/**'
@@ -62,30 +72,30 @@ jobs:
             demo-output-path: external-providers/java-external-provider/e2e-tests/demo-output.yaml
             provider_settings-path: external-providers/java-external-provider/e2e-tests/provider_settings.json
             testing-rules: external-providers/java-external-provider/e2e-tests/rule-example.yaml
-            # Generic golang
-          - provider: generic
-            artifact_pattern: "*{analyzer-lsp,generic-external-provider}"
+            # Go
+          - provider: go
+            artifact_pattern: "*{analyzer-lsp,go-external-provider}"
             test-data: examples
-            image_env: IMG_GENERIC_PROVIDER
-            demo-output-path: external-providers/generic-external-provider/e2e-tests/golang-e2e/demo-output.yaml
-            provider_settings-path: external-providers/generic-external-provider/e2e-tests/golang-e2e/provider_settings.json
-            testing-rules: external-providers/generic-external-provider/e2e-tests/golang-e2e/rule-example.yaml
-            # Generic python
-          - provider: generic
-            artifact_pattern: "*{analyzer-lsp,generic-external-provider}"
+            image_env: IMG_GO_PROVIDER
+            demo-output-path: external-providers/go-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/go-external-provider/e2e-tests/provider_settings.json
+            testing-rules: external-providers/go-external-provider/e2e-tests/rule-example.yaml
+            # Python
+          - provider: python
+            artifact_pattern: "*{analyzer-lsp,python-external-provider}"
             test-data: examples
-            image_env: IMG_GENERIC_PROVIDER
-            demo-output-path: external-providers/generic-external-provider/e2e-tests/python-e2e/demo-output.yaml
-            provider_settings-path: external-providers/generic-external-provider/e2e-tests/python-e2e/provider_settings.json
-            testing-rules: external-providers/generic-external-provider/e2e-tests/python-e2e/rule-example.yaml
-            # Generic nodejs
-          - provider: generic
-            artifact_pattern: "*{analyzer-lsp,generic-external-provider}"
+            image_env: IMG_PYTHON_PROVIDER
+            demo-output-path: external-providers/python-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/python-external-provider/e2e-tests/provider_settings.json
+            testing-rules: external-providers/python-external-provider/e2e-tests/rule-example.yaml
+            # Node.js
+          - provider: nodejs
+            artifact_pattern: "*{analyzer-lsp,nodejs-external-provider}"
             test-data: examples
-            image_env: IMG_GENERIC_PROVIDER
-            demo-output-path: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/demo-output.yaml
-            provider_settings-path: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/provider_settings.json
-            testing-rules: external-providers/generic-external-provider/e2e-tests/nodejs-e2e/rule-example.yaml
+            image_env: IMG_NODE_PROVIDER
+            demo-output-path: external-providers/nodejs-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/nodejs-external-provider/e2e-tests/provider_settings.json
+            testing-rules: external-providers/nodejs-external-provider/e2e-tests/rule-example.yaml
           - provider: yq
             artifact_pattern: "*{analyzer-lsp,yq-external-provider}"
             test-data: examples
@@ -129,7 +139,9 @@ jobs:
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
         run: |
           java_provider_image_regex=".*java(-external)?-provider.*"
-          generic_provider_image_regex=".*generic(-external)?-provider.*"
+          go_provider_image_regex=".*go(-external)?-provider.*"
+          python_provider_image_regex=".*python(-external)?-provider.*"
+          node_provider_image_regex=".*nodejs(-external)?-provider.*"
           yq_provider_image_regex=".*yq-external-provider.*"
           analyzer_regex=".*analyzer-lsp.*"
           c_sharp_provider_image_regex=".*c-sharp-provider.*"
@@ -150,12 +162,20 @@ jobs:
               echo "Analyzer image  Found Set Env Var: IMG_ANALYZER=$image"
               echo "IMG_ANALYZER=$image" >> $GITHUB_ENV
             fi
-            if [[ "$image" =~ $generic_provider_image_regex ]]; then
-              echo "Generic Provider Image Found Set Env Var: GENERIC_PROVIDER_IMG=$image"
-              echo "IMG_GENERIC_PROVIDER=$image" >> $GITHUB_ENV
+            if [[ "$image" =~ $go_provider_image_regex ]]; then
+              echo "Go Provider Image Found Set Env Var: IMG_GO_PROVIDER=$image"
+              echo "IMG_GO_PROVIDER=$image" >> $GITHUB_ENV
+            fi
+            if [[ "$image" =~ $python_provider_image_regex ]]; then
+              echo "Python Provider Image Found Set Env Var: IMG_PYTHON_PROVIDER=$image"
+              echo "IMG_PYTHON_PROVIDER=$image" >> $GITHUB_ENV
+            fi
+            if [[ "$image" =~ $node_provider_image_regex ]]; then
+              echo "Node.js Provider Image Found Set Env Var: IMG_NODE_PROVIDER=$image"
+              echo "IMG_NODE_PROVIDER=$image" >> $GITHUB_ENV
             fi
             if [[ "$image" =~ $yq_provider_image_regex ]]; then
-              echo "Generic Provider Image Found Set Env Var: IMG_YQ_PROVIDER=$image"
+              echo "YQ Provider Image Found Set Env Var: IMG_YQ_PROVIDER=$image"
               echo "IMG_YQ_PROVIDER=$image" >> $GITHUB_ENV
             fi
           done
@@ -168,6 +188,7 @@ jobs:
         run: |
           podman volume create test-data
           podman run --rm -v test-data:/target:U,Z -v $(pwd)/${{ matrix.test-data }}:/src/:U,Z --entrypoint=cp alpine -a /src/. /target/
+          podman run --rm --user=0 -v test-data:/target:U,Z --entrypoint=sh alpine -c 'chmod -R a+rwX /target'
           podman pod create --name=analyzer-${{ matrix.provider }}
           podman run --pod analyzer-${{ matrix.provider }} --name ${{ matrix.provider }}-provider -d -v test-data:/analyzer-lsp/examples:U,Z $${{ matrix.image_env}} --port 14651
           podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-${{ matrix.provider }} \
@@ -258,7 +279,9 @@ jobs:
       - name: Load images into podman
         run: |
           java_provider_image_regex=".*java(-external)?-provider.*"
-          generic_provider_image_regex=".*generic(-external)?-provider.*"
+          go_provider_image_regex=".*go(-external)?-provider.*"
+          python_provider_image_regex=".*python(-external)?-provider.*"
+          node_provider_image_regex=".*nodejs(-external)?-provider.*"
           yq_provider_image_regex=".*yq-external-provider.*"
           analyzer_regex=".*analyzer-lsp.*"
           c_sharp_provider_image_regex=".*c-sharp-provider.*"
@@ -279,9 +302,17 @@ jobs:
               echo "Analyzer image Found Set Env Var: IMG_ANALYZER=$image"
               echo "IMG_ANALYZER=$image" >> $GITHUB_ENV
             fi
-            if [[ "$image" =~ $generic_provider_image_regex ]]; then
-              echo "Generic Provider Image Found Set Env Var: IMG_GENERIC_PROVIDER=$image"
-              echo "IMG_GENERIC_PROVIDER=$image" >> $GITHUB_ENV
+            if [[ "$image" =~ $go_provider_image_regex ]]; then
+              echo "Go Provider Image Found Set Env Var: IMG_GO_PROVIDER=$image"
+              echo "IMG_GO_PROVIDER=$image" >> $GITHUB_ENV
+            fi
+            if [[ "$image" =~ $python_provider_image_regex ]]; then
+              echo "Python Provider Image Found Set Env Var: IMG_PYTHON_PROVIDER=$image"
+              echo "IMG_PYTHON_PROVIDER=$image" >> $GITHUB_ENV
+            fi
+            if [[ "$image" =~ $node_provider_image_regex ]]; then
+              echo "Node.js Provider Image Found Set Env Var: IMG_NODE_PROVIDER=$image"
+              echo "IMG_NODE_PROVIDER=$image" >> $GITHUB_ENV
             fi
             if [[ "$image" =~ $yq_provider_image_regex ]]; then
               echo "YQ Provider Image Found Set Env Var: IMG_YQ_PROVIDER=$image"
@@ -299,14 +330,15 @@ jobs:
           # copy data to test data volume
           podman run --rm  -v test-data:/target:U,Z -v $(pwd)/examples:/src/:U,Z --entrypoint=cp alpine -a /src/. /target/
           podman run --rm  -v test-data:/target:U,Z -v $(pwd)/external-providers/java-external-provider/examples:/src/:U,Z --entrypoint=cp alpine -a /src/. /target/
+          podman run --rm --user=0 -v test-data:/target:U,Z --entrypoint=sh alpine -c 'chmod -R a+rwX /target'
           # run pods w/ defined ports for the test volumes
           podman pod create --name=analyzer --userns=keep-id
           podman run --pod analyzer --name java-provider -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_JAVA_PROVIDER --port 14651
           podman run --pod analyzer --name yq -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_YQ_PROVIDER --port 14652
           podman run --pod analyzer --name c-sharp -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_C_SHARP_PROVIDER --port 14656
-          podman run --entrypoint /usr/local/bin/entrypoint.sh --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_GENERIC_PROVIDER --port 14653
-          podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_GENERIC_PROVIDER --port 14654 --name nodejs
-          podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_GENERIC_PROVIDER --port 14655 --name pylsp
+          podman run --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_GO_PROVIDER --port 14653 --name generic
+          podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_NODE_PROVIDER --port 14654 --name nodejs
+          podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_PYTHON_PROVIDER --port 14655 --name pylsp
           podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples:U,Z -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:U,Z -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:U,Z -v $(pwd)/rule-example.yaml:/analyzer-lsp/rule-example.yaml:U,Z -v $(pwd)/provider_pod_local_settings.json:/analyzer-lsp/provider_settings.json:U,Z $IMG_ANALYZER --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source' --rules=/analyzer-lsp/rule-example.yaml --provider-settings=/analyzer-lsp/provider_settings.json
       
       - name: install yq for testing
@@ -324,9 +356,9 @@ jobs:
       - name: Re-tag and push provider images to ttl.sh
         run: |
           podman tag $IMG_JAVA_PROVIDER ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
-          podman tag $IMG_GENERIC_PROVIDER ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
+          podman tag $IMG_GO_PROVIDER ttl.sh/konveyor-go-external-provider-${{ github.sha }}:2h
           podman push ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
-          podman push ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
+          podman push ttl.sh/konveyor-go-external-provider-${{ github.sha }}:2h
 
       - uses: actions/checkout@v3
         with:
@@ -348,7 +380,7 @@ jobs:
           operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
           addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
           tackle_hub: "quay.io/konveyor/tackle2-hub:${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}"
-          provider_generic: ttl.sh/konveyor-generic-external-provider-${{ github.sha }}:2h
+          provider_generic: ttl.sh/konveyor-go-external-provider-${{ github.sha }}:2h
           provider_java: ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
       - name: push bundle image 
         run: |

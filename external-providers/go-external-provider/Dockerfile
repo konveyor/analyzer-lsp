@@ -32,7 +32,10 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
 
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd go-provider && go build -o go-external-provider main.go
 
-RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod GOBIN=/opt/app-root/src/go-provider go install golang.org/x/tools/gopls@v0.20.0
+RUN mkdir -p /opt/app-root/src/go/pkg/sumdb
+RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod \
+    --mount=type=cache,id=gosumdb,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/sumdb \
+    GOBIN=/opt/app-root/src/go-provider go install golang.org/x/tools/gopls@v0.20.0
 
 FROM ${GOLANG_DEP_IMAGE} as go-dep-provider
 

@@ -1,0 +1,5 @@
+- name: konveyor-analysis
+  errors:
+    golang-gomod-dependencies: exit status 1
+  unmatched:
+  - go-lang-ref-001
