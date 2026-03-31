@@ -23,7 +23,9 @@ make test-all
 
 # Run specific provider E2E tests
 make test-java
-make test-generic
+make test-go
+make test-python
+make test-nodejs
 make test-yaml
 
 # Run just the analyzer integration test
@@ -178,22 +180,20 @@ podman logs java-provider
 make stop-java-provider-pod
 ```
 
-#### Generic Provider (Go/Python/Node.js)
+#### Go, Python, and Node.js LSP providers
+
+Each language has its own E2E target (separate provider image and settings):
 
 ```bash
-make test-generic
-```
-
-This runs tests for all three languages sequentially:
-- `test-golang`
-- `test-python`
-- `test-nodejs`
-
-**Individual language tests:**
-```bash
-make test-golang
+make test-go
 make test-python
 make test-nodejs
+```
+
+Run all three in sequence:
+
+```bash
+make test-go && make test-python && make test-nodejs
 ```
 
 #### YAML Provider
@@ -243,7 +243,7 @@ make test-all
 
 1. **test-all-providers** - Tests each provider individually
    - `make test-java` - Java provider E2E tests
-   - `make test-generic` - Generic provider E2E tests (Go, Python, Node.js)
+   - `make test-go` / `make test-python` / `make test-nodejs` - Per-language LSP provider E2E tests
    - `make test-yaml` - YAML provider E2E tests
 
 2. **test-analyzer** - Full integration test

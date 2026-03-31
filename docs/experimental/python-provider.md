@@ -1,8 +1,8 @@
-# Python Provider using Generic Provider
+# Python provider (`python-external-provider`)
 
-Updated: 2023-09-28
+Updated: 2023-09-28 (provider binary names refreshed 2026)
 
-We are using [python-lsp-server](https://github.com/python-lsp/python-lsp-server) (`pylsp`) to create a Python provider using generic-external-provider.
+We use [python-lsp-server](https://github.com/python-lsp/python-lsp-server) (`pylsp`) behind the dedicated **`python-external-provider`** binary (see `external-providers/python-external-provider/`).
 
 **If you're interested in jumping to the results, [click here](#results).**
 
@@ -27,21 +27,23 @@ The server can be run with the following optional arguments:
 ```json
 {
   "name": "python",
-  "binaryPath": "/path/to/generic-external-provider",
+  "binaryPath": "/path/to/python-external-provider",
   "initConfig": [{
     "location": "examples/python",
     "analysisMode": "full",
     "providerSpecificConfig": {
-      "name": "python",
+      "lspServerName": "pylsp",
       "lspServerPath": "/path/to/pylsp",
-      "lspArgs": ["--log-file", "debug-python.log"],
-      "referencedOutputIgnoreContains": [
+      "lspServerArgs": ["--log-file", "debug-python.log"],
+      "workspaceFolders": ["file:///path/to/examples/python"],
+      "dependencyFolders": [
         "examples/python/__pycache__",
         "examples/python/.venv"
-      ]
+      ],
+      "dependencyProviderPath": ""
     }
   }]
-},
+}
 ```
 
 ### Example Project
@@ -197,14 +199,14 @@ Unfortunately, there are still some wrinkles that need to be solved.
 
 ### Pylsp capabilities response incorrect
 
-When responding with its capabilites, python-lsp-server returns an object. However, the spec requires it to be an array of objects. See [tables.go](../../external-providers/generic-external-provider/pkg/generic/tables.go) for the fix.
+When responding with its capabilites, python-lsp-server returns an object. However, the spec requires it to be an array of objects. Normalization lives in the shared LSP protocol layer (see `lsp/protocol` types such as `Or_ServerCapabilities_notebookDocumentSync` and related marshaling); the Python client is `external-providers/python-external-provider/pkg/python_external_provider/service_client.go`.
 
 - https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#notebookDocumentSyncOptions
 - https://github.com/python-lsp/python-lsp-server/blob/05698fa11bfc566ae7e040a2ed272247f8d406b2/pylsp/python_lsp.py#L298
 
 ### Pylsp includes definitions in results
 
-`pylsp` is currently returning references that are usages *and* definitions. `gopls` does not do this. Theoretically, the code I added in `external-providers/generic-external-provider/pkg/generic/service_client.go` should fix this by setting IncludeDeclaration to false, but it doesn't for some reason:
+`pylsp` is currently returning references that are usages *and* definitions. `gopls` does not do this. Reference requests set `IncludeDeclaration: false` in shared LSP client code (see `lsp/base_service_client/base_service_client.go`); behavior may still differ by server:
 
 ```go
 params := &protocol.ReferenceParams{

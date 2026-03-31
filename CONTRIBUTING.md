@@ -97,7 +97,9 @@ make test-all
 
 # Specific provider tests
 make test-java
-make test-generic
+make test-go
+make test-python
+make test-nodejs
 make test-yaml
 ```
 
