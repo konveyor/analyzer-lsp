@@ -17,7 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Copy of generic-external-provider/pkg/server_configurations/nodejs/service_client.go
+// Evolved from pre-split generic server_configurations (nodejs).
 // for nodejs-external-provider (implementation plan Step 4).
 
 type NodeServiceClientConfig struct {

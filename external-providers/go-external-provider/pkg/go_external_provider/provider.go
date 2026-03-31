@@ -9,8 +9,8 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 )
 
-// goProvider is a dedicated gopls-backed external provider (logic copied from
-// generic_external_provider, without multi-language switching).
+// goProvider is a dedicated gopls-backed external provider (logic evolved from the
+// pre-split combined LSP provider, without multi-language switching).
 type goProvider struct {
 	capabilities []provider.Capability
 	progress     *progress.Progress

@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Copy of generic-external-provider/pkg/server_configurations/pylsp/service_client.go
+// Evolved from pre-split generic server_configurations (pylsp).
 // for python-external-provider (generic tree unchanged — implementation plan Step 3).
 
 type PythonServiceClientConfig struct {

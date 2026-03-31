@@ -3,7 +3,6 @@ TAG ?= latest
 IMG_ANALYZER ?= localhost/analyzer-lsp:$(TAG)
 TAG_JAVA_BUNDLE ?= latest
 IMG_JAVA_PROVIDER ?= localhost/java-provider:$(TAG)
-IMG_GENERIC_PROVIDER ?= localhost/generic-provider:$(TAG)
 IMG_GO_PROVIDER ?= localhost/go-external-provider:$(TAG)
 IMG_PYTHON_PROVIDER ?= localhost/python-external-provider:$(TAG)
 IMG_NODE_PROVIDER ?= localhost/nodejs-external-provider:$(TAG)
@@ -19,15 +18,11 @@ MOUNT_OPT := :z
 build-dir:
 	mkdir -p build
 
-build: build-dir analyzer deps golang-dependency-provider external-generic external-go-provider external-python-provider external-nodejs-provider yq-external-provider java-external-provider
+build: build-dir analyzer deps golang-dependency-provider external-go-provider external-python-provider external-nodejs-provider yq-external-provider java-external-provider
 
 analyzer: build-dir
 	go build -o build/konveyor-analyzer ./cmd/analyzer/main.go
 	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer build/konveyor-analyzer.exe; fi
-
-external-generic: build-dir
-	(cd external-providers/generic-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/generic-external-provider main.go)
-	if [ "${GOOS}" == "windows" ]; then mv build/generic-external-provider build/generic-external-provider.exe; fi
 
 external-go-provider: build-dir
 	(cd external-providers/go-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/go-external-provider main.go)
@@ -61,9 +56,6 @@ image-build:
 	podman build -f Dockerfile . -t $(IMG_ANALYZER)
 
 build-external:image-build build-go-provider build-python-provider build-nodejs-provider build-java-provider build-yq-provider
-
-build-generic-provider: build-golang-dep-provider 
-	podman build --build-arg GOLANG_DEP_IMAGE=$(IMG_GO_DEP_PROVIDER) -f external-providers/generic-external-provider/Dockerfile -t $(IMG_GENERIC_PROVIDER) .
 
 build-golang-dep-provider:
 	podman build -f external-providers/golang-dependency-provider/Dockerfile -t $(IMG_GO_DEP_PROVIDER) .

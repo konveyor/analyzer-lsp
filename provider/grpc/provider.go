@@ -422,7 +422,7 @@ func (g *grpcProvider) NotifyFileChanges(ctx context.Context, changes ...provide
 // used as the Unix socket temp-file prefix (see socket.GetAddress).
 //
 // Order: (1) non-empty lspServerName from the first init config — matches how
-// generic-external-provider selects its LSP stack and keeps go/python/node rules
+// Go/Python/Node external providers select their LSP stack and keep go/python/node rules
 // that expect e.g. "generic" / "pylsp"; (2) provider Config.Name when set — for
 // binaries with no lspServerName (e.g. yq, or java with only block name); (3) "generic".
 func subprocessName(config provider.Config) string {

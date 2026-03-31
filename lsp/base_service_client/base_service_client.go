@@ -429,7 +429,7 @@ func (sc *LSPServiceClientBase) Prepare(ctx context.Context, conditionsByCap []p
 }
 
 // This GetDependencies method was the one that was present in the
-// generic-external-provider before I got my hands on it. Not too sure what it's
+// legacy combined external LSP provider before I got my hands on it. Not too sure what it's
 // used for. I didn't want to break anything so I just made it the default
 // implementation.
 func (sc *LSPServiceClientBase) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {

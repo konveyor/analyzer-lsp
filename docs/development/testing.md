@@ -56,10 +56,9 @@ external-providers/
 │   ├── rule-example.yaml          # Java-specific test rules
 │   ├── demo-output.yaml           # Expected output
 │   └── provider_settings.json     # Provider configuration
-├── generic-external-provider/e2e-tests/
-│   ├── golang-e2e/
-│   ├── python-e2e/
-│   └── nodejs-e2e/
+├── go-external-provider/e2e-tests/
+├── python-external-provider/e2e-tests/
+├── nodejs-external-provider/e2e-tests/
 └── yq-external-provider/e2e-tests/
     ├── rule-example.yaml
     ├── demo-output.yaml
@@ -141,7 +140,9 @@ E2E tests use container-based providers to simulate real-world usage.
    This builds:
    - `localhost/analyzer-lsp:latest` - Main analyzer
    - `localhost/java-provider:latest` - Java provider
-   - `localhost/generic-provider:latest` - Go/Python/Node.js provider
+   - `localhost/go-external-provider:latest` - Go (gopls) provider
+   - `localhost/python-external-provider:latest` - Python (pylsp) provider
+   - `localhost/nodejs-external-provider:latest` - Node.js provider
    - `localhost/yq-provider:latest` - YAML provider
 
 2. **Ensure a container tool is installed and running**

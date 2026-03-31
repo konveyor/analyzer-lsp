@@ -47,7 +47,7 @@ Providers are the mechanism by which analyzer-lsp performs language-specific ana
 
 **Examples:**
 - `java-external-provider` - Java analysis via Eclipse JDTLS
-- `generic-external-provider` - Go, Python, Node.js via their LSP servers
+- `go-external-provider`, `python-external-provider`, `nodejs-external-provider` - Go, Python, and Node.js via their LSP servers
 - `yq-external-provider` - YAML analysis via yq
 
 **When to use:** Semantic analysis requiring language understanding
@@ -63,7 +63,7 @@ Providers are the mechanism by which analyzer-lsp performs language-specific ana
 
 ## Quick Start: Adding a New Language
 
-The easiest way to add support for a new language is using the generic-external-provider with a generic LSP server.
+The easiest way to add support for a new language is to copy an existing language-specific external provider (for example `go-external-provider`) and adapt it for your LSP server.
 
 ### Prerequisites
 
@@ -85,7 +85,7 @@ Create a `provider_settings.json` entry:
 [
   {
     "name": "rust",
-    "binaryPath": "/path/to/generic-external-provider",
+    "binaryPath": "/path/to/go-external-provider",
     "initConfig": [{
       "location": "/path/to/rust/project",
       "analysisMode": "full",
@@ -111,11 +111,11 @@ Create a `provider_settings.json` entry:
 ### Step 3: Test the Provider
 
 ```bash
-# Build generic provider
-make external-generic
+# Build your external provider (add a Makefile target like external-go-provider, or use `make build`)
+make external-go-provider
 
-# Start provider
-./build/generic-external-provider --port 14660 --name rust
+# Start provider (--name must match initConfig providerSpecificConfig.lspServerName)
+./build/go-external-provider --port 14660 --name generic
 
 # In another terminal, run analyzer
 go run cmd/analyzer/main.go \
@@ -377,76 +377,38 @@ capability:
 
 ## Creating an LSP-Based Provider
 
-### Using generic-external-provider
+### New language module (recommended)
 
-For most languages, extend the generic provider:
+There is no shared multi-language dispatcher binary anymore. Add a **dedicated** module under `external-providers/<lang>-external-provider/` modeled on `go-external-provider`, `python-external-provider`, or `nodejs-external-provider`:
 
-#### 1. Create Service Client
+1. **Provider type** — Implement `provider.BaseClient` (see `external-providers/go-external-provider/pkg/go_external_provider/provider.go`): capabilities, `Init`, and construction of your LSP `ServiceClient`.
+2. **Service client** — Embed or compose `lsp/base_service_client.LSPServiceClientBase` and implement language-specific initialization, handlers, and evaluation (see the same providers’ `service_client.go` files).
+3. **Main and Makefile** — Add `main.go` with `--port` / `--name`, a `go.mod` with a `replace` to the analyzer-lsp module root, and a Makefile target `external-<lang>-provider` that builds into `build/`.
+4. **Register in CI/images** — Follow `Dockerfile` patterns next to those providers and wire the binary into `provider_container_settings.json` (or your deployment settings).
 
-Create `external-providers/generic-external-provider/pkg/server_configurations/mylang/service_client.go`:
-
-```go
-package mylang
-
-import (
-    "github.com/konveyor/analyzer-lsp/external-providers/generic-external-provider/pkg/generic"
-)
-
-type MyLangServiceClient struct {
-    generic.GenericServiceClient
-    // Add language-specific fields
-}
-
-func (c *MyLangServiceClient) Init(ctx context.Context, log logr.Logger, config InitConfig) error {
-    // Custom initialization
-    return c.GenericServiceClient.Init(ctx, log, config)
-}
-
-// Override capabilities as needed
-func (c *MyLangServiceClient) Capabilities() []Capability {
-    return []Capability{
-        // Your capabilities
-    }
-}
-```
-
-#### 2. Register Service Client
-
-In `constants.go`:
-
-```go
-var SupportedLanguages = map[string]ServiceClientConstructor{
-    "generic": NewGenericServiceClient,
-    "gopls":   NewGoplsServiceClient,
-    "pylsp":   NewPylspServiceClient,
-    "mylang":  NewMyLangServiceClient,  // Add yours
-}
-```
-
-#### 3. Build and Test
+Build and run locally:
 
 ```bash
-# Build
-make external-generic
+make external-go-provider   # or your new target
 
-# Create test configuration
 cat > provider_settings.json <<EOF
 [{
   "name": "mylang",
-  "binaryPath": "./build/generic-external-provider",
+  "binaryPath": "./build/go-external-provider",
   "initConfig": [{
     "location": "/path/to/code",
     "providerSpecificConfig": {
-      "lspServerName": "mylang",
+      "lspServerName": "generic",
       "lspServerPath": "/path/to/mylang-lsp"
     }
   }]
 }]
 EOF
 
-# Test
-./build/generic-external-provider --port 14660 --name mylang
+./build/go-external-provider --port 14660 --name generic
 ```
+
+Adjust `binaryPath`, `lspServerName`, and `--name` to match your module and rule provider identifiers.
 
 ## Testing Your Provider
 

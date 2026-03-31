@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Copy of generic-external-provider/pkg/server_configurations/generic/service_client.go
+// Evolved from pre-split generic server_configurations (gopls / "generic").
 // for the dedicated go-external-provider (no generic tree changes — see implementation plan Step 2).
 
 type GoServiceClientConfig struct {
