@@ -8,33 +8,27 @@ USER 0
 RUN mkdir go-provider
 COPY / /analyzer-lsp
 
-COPY --chmod=0777 external-providers/go-external-provider/go.mod go-provider/go.mod
+COPY --chmod=0644 external-providers/go-external-provider/go.mod go-provider/go.mod
 COPY external-providers/go-external-provider/go.sum go-provider/go.sum
 
 COPY external-providers/go-external-provider/main.go go-provider/main.go
 COPY external-providers/go-external-provider/pkg/ go-provider/pkg/
 
-RUN mkdir -p /opt/app-root/src/go && \
+RUN mkdir -p /opt/app-root/src/go/pkg/sumdb && \
     chgrp -R 0 /opt/app-root/src/go && \
     chmod -R g=u /opt/app-root/src/go && \
     chgrp -R 0 go-provider && \
     chmod -R g=u go-provider
 
-USER 0
-
-RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod \
-    chown -R 1001:0 /opt/app-root/src/go/pkg/mod && \
-    chmod -R g+w /opt/app-root/src/go/pkg/mod
-
-USER 1001
-
-RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd go-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
-
-RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd go-provider && go build -o go-external-provider main.go
-
-RUN mkdir -p /opt/app-root/src/go/pkg/sumdb
-RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod \
-    --mount=type=cache,id=gosumdb,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/sumdb \
+# Build as root: non-root + BuildKit cache mounts (uid=1001) often yields permission denied in CI on both amd64 and arm64.
+# Cache ids are image-specific (avoid clashing with other Dockerfiles). Module + sumdb caches are
+# architecture-agnostic; compiled output uses GOCACHE (not mounted). Matrix CI usually runs amd64/arm64 on separate runners.
+RUN --mount=type=cache,id=gomod-go-external-provider,target=/opt/app-root/src/go/pkg/mod \
+    --mount=type=cache,id=gosumdb-go-external-provider,target=/opt/app-root/src/go/pkg/sumdb \
+    cd go-provider && \
+    go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && \
+    go mod tidy && \
+    go build -o go-external-provider main.go && \
     GOBIN=/opt/app-root/src/go-provider go install golang.org/x/tools/gopls@v0.20.0
 
 FROM ${GOLANG_DEP_IMAGE} as go-dep-provider
