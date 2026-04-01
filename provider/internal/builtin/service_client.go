@@ -406,9 +406,7 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 	b.prepared = false
 	b.fileIndex = nil
 	b.allParsedConditions = nil
-	b.incidentCacheMutex.Lock()
 	b.incidentCache = nil
-	b.incidentCacheMutex.Unlock()
 	b.pendingCacheRefresh.Range(func(key, val any) bool {
 		if ch, ok := val.(chan struct{}); ok {
 			close(ch)
@@ -520,11 +518,7 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 
 	b.fileIndex = files
 	b.allParsedConditions = parsedConds
-	// NOTE: do not defer Unlock here – the worker pool below calls
-	// mergeIntoCache which also acquires incidentCacheMutex and would deadlock.
-	b.incidentCacheMutex.Lock()
 	b.incidentCache = make(map[incidentCacheKey]map[string][]provider.IncidentContext)
-	b.incidentCacheMutex.Unlock()
 
 	// Process all files through worker pool to populate the incident cache.
 	if len(parsedConds) > 0 && len(files) > 0 {
@@ -562,8 +556,6 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 // worker goroutines the first time it is called. Subsequent calls are no-ops.
 // Safe to call concurrently from Prepare and NotifyFileChanges.
 func (b *builtinServiceClient) startCacheRefreshWorkers() {
-	b.cacheRefreshMu.Lock()
-	defer b.cacheRefreshMu.Unlock()
 	if b.cacheRefreshChan != nil {
 		return
 	}
@@ -578,8 +570,6 @@ func (b *builtinServiceClient) startCacheRefreshWorkers() {
 // stopCacheRefreshWorkers cancels running workers and resets state so
 // startCacheRefreshWorkers can re-initialise on the next call.
 func (b *builtinServiceClient) stopCacheRefreshWorkers() {
-	b.cacheRefreshMu.Lock()
-	defer b.cacheRefreshMu.Unlock()
 	if b.cacheRefreshCancel != nil {
 		b.cacheRefreshCancel()
 		b.cacheRefreshCancel = nil
