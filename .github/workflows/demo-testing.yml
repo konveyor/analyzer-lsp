@@ -1,3 +1,4 @@
+# TEMP(konveyor/ci#204): Pin konveyor/ci to branch feature/262-refactor-generic-provider — revert all @refs to @main before merging this PR.
 name: Demo Testing
 
 on:
@@ -51,7 +52,7 @@ jobs:
 
   build-images:
     name: Build e2e Images
-    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@main
+    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@feature/262-refactor-generic-provider
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.ref }}
@@ -406,7 +407,7 @@ jobs:
     steps:
       - name: Run Koncur Testing
         id: koncur-test
-        uses: konveyor/ci/koncur-kantra@main
+        uses: konveyor/ci/koncur-kantra@feature/262-refactor-generic-provider
         with:
           os: ${{ matrix.os.os }}
           image_pattern: |
@@ -419,7 +420,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Test Hub with Koncur
-        uses: konveyor/ci/koncur-tackle-hub@main
+        uses: konveyor/ci/koncur-tackle-hub@feature/262-refactor-generic-provider
         with:
           image_pattern: |
             *{tackle-keyloak-init,tackle2-*,provider}--${{ github.run_id }}
@@ -427,7 +428,7 @@ jobs:
   
   e2e:
     needs: test
-    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
+    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@feature/262-refactor-generic-provider
     with:
       operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
       tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"
