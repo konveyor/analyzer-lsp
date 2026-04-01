@@ -520,6 +520,8 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 
 	b.fileIndex = files
 	b.allParsedConditions = parsedConds
+	// NOTE: do not defer Unlock here – the worker pool below calls
+	// mergeIntoCache which also acquires incidentCacheMutex and would deadlock.
 	b.incidentCacheMutex.Lock()
 	b.incidentCache = make(map[incidentCacheKey]map[string][]provider.IncidentContext)
 	b.incidentCacheMutex.Unlock()
@@ -588,7 +590,14 @@ func (b *builtinServiceClient) stopCacheRefreshWorkers() {
 
 func (b *builtinServiceClient) Stop() {
 	b.workingCopyMgr.stop()
-	b.stopCacheRefreshWorkers()
+	b.cacheRefreshMu.Lock()
+	defer b.cacheRefreshMu.Unlock()
+	if b.cacheRefreshCancel != nil {
+		b.cacheRefreshCancel()
+	}
+	b.cacheRefreshCancel = nil
+	b.cacheRefreshChan = nil
+	b.workingCopyMgr.cacheRefreshChan = nil
 }
 
 func (p *builtinServiceClient) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {

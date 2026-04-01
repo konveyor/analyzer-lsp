@@ -256,6 +256,62 @@ func (b *builtinServiceClient) invalidateCacheForFile(filePath string) {
 	}
 }
 
+// fileNeedsProcessing scans all parsed conditions and returns which categories
+// of processing the given file requires. This avoids reading/parsing files
+// that no condition would match.
+func (b *builtinServiceClient) fileNeedsProcessing(relPath, baseName string, isXML, isJSON bool) (needsContent, needsXML, needsJSON bool) {
+	for i := range b.allParsedConditions {
+		pc := &b.allParsedConditions[i]
+		switch pc.cap {
+		case "filecontent":
+			if pc.condition.Filecontent.FilePattern != "" {
+				if !matchesFilePattern(pc.compiledFilePattern, pc.condition.Filecontent.FilePattern, relPath, baseName) {
+					continue
+				}
+			}
+			needsContent = true
+		case "xml", "xmlPublicID":
+			if isXML {
+				needsXML = true
+			}
+		case "json":
+			if isJSON {
+				needsJSON = true
+			}
+		}
+	}
+	return
+}
+
+// runConditionsOnFile runs the per-type condition processors against already-loaded
+// file content, parsing XML/JSON as needed and delegating to the shared per-type
+// processing functions.
+func (b *builtinServiceClient) runConditionsOnFile(ctx context.Context, filePath string, content []byte,
+	relPath, baseName string, needsContent, needsXML, needsJSON bool) {
+
+	if needsContent {
+		b.processFilecontentForFile(filePath, content, relPath, baseName)
+	}
+
+	if needsXML {
+		doc, err := b.parseXMLContent(filePath, content)
+		if err != nil {
+			b.log.V(5).Error(err, "failed to parse XML", "file", filePath)
+		} else if doc != nil {
+			b.processXMLForFile(ctx, filePath, doc)
+		}
+	}
+
+	if needsJSON {
+		doc, err := jsonquery.Parse(bytes.NewReader(content))
+		if err != nil {
+			b.log.V(5).Error(err, "failed to parse JSON", "file", filePath)
+		} else if doc != nil {
+			b.processJSONForFile(ctx, filePath, doc)
+		}
+	}
+}
+
 // refreshCacheForFile re-runs all parsed conditions against the given file
 // and updates the incident cache. The filePath should be the original file path
 // (not the working copy temp path) so cache keys align with Evaluate lookups.
@@ -289,32 +345,7 @@ func (b *builtinServiceClient) refreshCacheForFile(ctx context.Context, original
 	isXML := ext == ".xml" || ext == ".xhtml"
 	isJSON := ext == ".json"
 
-	// Check if any condition applies to this file before reading it
-	needsContent := false
-	needsXML := false
-	needsJSON := false
-
-	for i := range b.allParsedConditions {
-		pc := &b.allParsedConditions[i]
-		switch pc.cap {
-		case "filecontent":
-			if pc.condition.Filecontent.FilePattern != "" {
-				if !matchesFilePattern(pc.compiledFilePattern, pc.condition.Filecontent.FilePattern, relPath, baseName) {
-					continue
-				}
-			}
-			needsContent = true
-		case "xml", "xmlPublicID":
-			if isXML {
-				needsXML = true
-			}
-		case "json":
-			if isJSON {
-				needsJSON = true
-			}
-		}
-	}
-
+	needsContent, needsXML, needsJSON := b.fileNeedsProcessing(relPath, baseName, isXML, isJSON)
 	if !needsContent && !needsXML && !needsJSON {
 		return
 	}
@@ -333,27 +364,7 @@ func (b *builtinServiceClient) refreshCacheForFile(ctx context.Context, original
 		return
 	}
 
-	if needsContent {
-		b.processFilecontentForFile(originalPath, content, relPath, baseName)
-	}
-
-	if needsXML {
-		doc, err := b.parseXMLContent(originalPath, content)
-		if err != nil {
-			b.log.V(5).Error(err, "failed to parse XML for cache refresh", "file", originalPath)
-		} else {
-			b.processXMLForFile(ctx, originalPath, doc)
-		}
-	}
-
-	if needsJSON {
-		doc, err := jsonquery.Parse(bytes.NewReader(content))
-		if err != nil {
-			b.log.V(5).Error(err, "failed to parse JSON for cache refresh", "file", originalPath)
-		} else {
-			b.processJSONForFile(ctx, originalPath, doc)
-		}
-	}
+	b.runConditionsOnFile(ctx, originalPath, content, relPath, baseName, needsContent, needsXML, needsJSON)
 
 	b.log.V(5).Info("cache refreshed for working copy", "original", originalPath, "content", contentPath)
 }
@@ -371,142 +382,28 @@ func (b *builtinServiceClient) processFileForAllCaps(ctx context.Context, filePa
 	isXML := ext == ".xml" || ext == ".xhtml"
 	isJSON := ext == ".json"
 
-	var content []byte
-	contentLoaded := false
-	loadContent := func() bool {
-		if contentLoaded {
-			return content != nil
-		}
-		contentLoaded = true
-		fileInfo, err := os.Stat(filePath)
-		if err != nil {
-			b.log.V(5).Error(err, "failed to stat file during Prepare", "file", filePath)
-			return false
-		}
-		if fileInfo.Size() > maxCacheFileSize {
-			b.log.V(5).Info("skipping large file during Prepare", "file", filePath, "size", fileInfo.Size())
-			return false
-		}
-		content, err = b.readFileContent(filePath)
-		if err != nil {
-			b.log.V(5).Error(err, "failed to read file during Prepare", "file", filePath)
-			content = nil
-			return false
-		}
-		return true
+	needsContent, needsXML, needsJSON := b.fileNeedsProcessing(relPath, baseName, isXML, isJSON)
+	if !needsContent && !needsXML && !needsJSON {
+		return
 	}
 
-	var xmlDoc *xmlquery.Node
-	xmlParsed := false
-	var jsonDoc *jsonquery.Node
-	jsonParsed := false
-
-	for i := range b.allParsedConditions {
-		pc := &b.allParsedConditions[i]
-		switch pc.cap {
-		case "filecontent":
-			if pc.condition.Filecontent.FilePattern != "" {
-				if !matchesFilePattern(pc.compiledFilePattern, pc.condition.Filecontent.FilePattern, relPath, baseName) {
-					continue
-				}
-			}
-			if !loadContent() {
-				return
-			}
-			pattern := pc.condition.Filecontent.Pattern
-			trimmedPattern := strings.TrimPrefix(pattern, "\"")
-			if !strings.HasSuffix(trimmedPattern, `\"`) {
-				trimmedPattern = strings.TrimSuffix(trimmedPattern, `"`)
-			}
-			matches := b.searchContentForPattern(filePath, content, trimmedPattern)
-			if len(matches) > 0 {
-				b.mergeIntoCache(pc.cacheKey, filePath, filecontentMatchesToIncidents(matches))
-			}
-
-		case "xml", "xmlPublicID":
-			if !isXML {
-				continue
-			}
-			if pc.compiledXPath == nil {
-				continue
-			}
-			if !loadContent() {
-				return
-			}
-			if !xmlParsed {
-				xmlParsed = true
-				xmlDoc, err = b.parseXMLContent(filePath, content)
-				if err != nil {
-					b.log.V(5).Error(err, "failed to parse XML during Prepare", "file", filePath)
-				}
-			}
-			if xmlDoc == nil {
-				continue
-			}
-			nodes, err := queryXMLDoc(xmlDoc, pc.compiledXPath)
-			if err != nil {
-				b.log.V(5).Error(err, "failed to query XML during Prepare", "file", filePath, "cap", pc.cap)
-				continue
-			}
-			if pc.cap == "xml" {
-				if len(nodes) == 0 {
-					continue
-				}
-				incidents := make([]provider.IncidentContext, 0, len(nodes))
-				for _, node := range nodes {
-					incidents = append(incidents, b.xmlNodeToIncident(ctx, filePath, node))
-				}
-				b.mergeIntoCache(pc.cacheKey, filePath, incidents)
-			} else {
-				var incidents []provider.IncidentContext
-				for _, node := range nodes {
-					for _, attr := range node.Attr {
-						if attr.Name.Local == "public-id" {
-							if pc.compiledRegex != nil && pc.compiledRegex.MatchString(attr.Value) {
-								incidents = append(incidents, xmlPublicIDNodeToIncident(filePath, node))
-							}
-							break
-						}
-					}
-				}
-				b.mergeIntoCache(pc.cacheKey, filePath, incidents)
-			}
-
-		case "json":
-			if !isJSON {
-				continue
-			}
-			if pc.jsonXPath == "" {
-				continue
-			}
-			if !loadContent() {
-				return
-			}
-			if !jsonParsed {
-				jsonParsed = true
-				jsonDoc, err = jsonquery.Parse(bytes.NewReader(content))
-				if err != nil {
-					b.log.V(5).Error(err, "failed to parse JSON during Prepare", "file", filePath)
-				}
-			}
-			if jsonDoc == nil {
-				continue
-			}
-			list, err := jsonquery.QueryAll(jsonDoc, pc.jsonXPath)
-			if err != nil {
-				b.log.V(5).Error(err, "failed to query JSON during Prepare", "file", filePath)
-				continue
-			}
-			if len(list) == 0 {
-				continue
-			}
-			incidents := make([]provider.IncidentContext, 0, len(list))
-			for _, node := range list {
-				incidents = append(incidents, b.jsonNodeToIncident(ctx, filePath, node))
-			}
-			b.mergeIntoCache(pc.cacheKey, filePath, incidents)
-		}
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		b.log.V(5).Error(err, "failed to stat file during Prepare", "file", filePath)
+		return
 	}
+	if fileInfo.Size() > maxCacheFileSize {
+		b.log.V(5).Info("skipping large file during Prepare", "file", filePath, "size", fileInfo.Size())
+		return
+	}
+
+	content, err := b.readFileContent(filePath)
+	if err != nil {
+		b.log.V(5).Error(err, "failed to read file during Prepare", "file", filePath)
+		return
+	}
+
+	b.runConditionsOnFile(ctx, filePath, content, relPath, baseName, needsContent, needsXML, needsJSON)
 }
 
 // processFilecontentForFile runs all filecontent conditions against pre-read content.
