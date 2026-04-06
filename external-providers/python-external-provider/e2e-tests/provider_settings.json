@@ -6,7 +6,7 @@
             "analysisMode": "full",
             "providerSpecificConfig": {
                 "location": "/analyzer-lsp/examples/python",
-                "lspServerName": "pylsp",
+                "lspServerName": "python",
                 "lspServerPath": "/usr/local/bin/pylsp",
                 "lspServerArgs": [],
                 "lspServerInitializationOptions": "",
