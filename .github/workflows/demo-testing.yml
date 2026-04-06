@@ -338,9 +338,9 @@ jobs:
           podman run --pod analyzer --name java-provider -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_JAVA_PROVIDER --port 14651
           podman run --pod analyzer --name yq -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_YQ_PROVIDER --port 14652
           podman run --pod analyzer --name c-sharp -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_C_SHARP_PROVIDER --port 14656
-          podman run --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_GO_PROVIDER --port 14653 --name generic
+          podman run --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_GO_PROVIDER --port 14653 --name go
           podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_NODE_PROVIDER --port 14654 --name nodejs
-          podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_PYTHON_PROVIDER --port 14655 --name pylsp
+          podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_PYTHON_PROVIDER --port 14655 --name python
           podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer -v test-data:/analyzer-lsp/examples:U,Z -v $(pwd)/demo-dep-output.yaml:/analyzer-lsp/demo-dep-output.yaml:U,Z -v $(pwd)/demo-output.yaml:/analyzer-lsp/output.yaml:U,Z -v $(pwd)/rule-example.yaml:/analyzer-lsp/rule-example.yaml:U,Z -v $(pwd)/provider_pod_local_settings.json:/analyzer-lsp/provider_settings.json:U,Z $IMG_ANALYZER --output-file=/analyzer-lsp/output.yaml --dep-output-file=/analyzer-lsp/demo-dep-output.yaml --dep-label-selector='!konveyor.io/dep-source=open-source' --rules=/analyzer-lsp/rule-example.yaml --provider-settings=/analyzer-lsp/provider_settings.json
       
       - name: install yq for testing

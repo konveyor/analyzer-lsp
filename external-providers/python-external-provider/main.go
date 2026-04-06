@@ -16,7 +16,7 @@ var (
 	port          = flag.Int("port", 0, "Port must be set")
 	socket        = flag.String("socket", "", "Socket to be used")
 	logLevel      = flag.Int("log-level", 5, "Level to log")
-	lspServerName = flag.String("name", "pylsp", "LSP server name advertised to the analyzer")
+	lspServerName = flag.String("name", "python", "LSP server name advertised to the analyzer")
 	certFile      = flag.String("certFile", "", "Path to the cert file")
 	keyFile       = flag.String("keyFile", "", "Path to the key file")
 	secretKey     = flag.String("secretKey", "", "Secret Key value")

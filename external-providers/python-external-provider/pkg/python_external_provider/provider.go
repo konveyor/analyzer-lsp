@@ -18,8 +18,8 @@ func (p *pythonProvider) SetProgress(progress *progress.Progress) {
 	p.progress = progress
 }
 
-// NewPythonProvider constructs the gRPC-facing BaseClient for python-external-provider (pylsp).
-// lspServerName should match rule provider ids (typically "pylsp" or "generic" depending on config).
+// NewPythonProvider constructs the gRPC-facing BaseClient for python-external-provider.
+// lspServerName should match rule provider ids (typically "python").
 func NewPythonProvider(lspServerName string, log logr.Logger, progress *progress.Progress) provider.BaseClient {
 	_ = lspServerName
 	p := &pythonProvider{

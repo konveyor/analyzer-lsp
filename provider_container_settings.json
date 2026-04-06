@@ -7,7 +7,7 @@
             {
                 "analysisMode": "full",
                 "providerSpecificConfig": {
-                    "lspServerName": "generic",
+                    "lspServerName": "go",
                     "lspServerPath": "/usr/local/bin/gopls",
                     "lspServerArgs": [],
                     "lspServerInitializationOptions": "",
@@ -41,7 +41,7 @@
             {
                 "analysisMode": "full",
                 "providerSpecificConfig": {
-                    "lspServerName": "pylsp",
+                    "lspServerName": "python",
                     "lspServerPath": "/usr/local/bin/pylsp",
                     "lspServerArgs": [],
                     "lspServerInitializationOptions": "",

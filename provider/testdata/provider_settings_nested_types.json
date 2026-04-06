@@ -6,7 +6,7 @@
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
-                "lspServerName": "generic",
+                "lspServerName": "go",
                 "lspServerPath": "/usr/local/bin/gopls",
                 "lspServerArgs": ["string"],
                 "lspServerInitializationOptions": "",

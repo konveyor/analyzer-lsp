@@ -6,7 +6,7 @@
             "analysisMode": "full",
             "location": "/analyzer-lsp/examples/golang",
             "providerSpecificConfig": {
-                "lspServerName": "generic",
+                "lspServerName": "go",
                 "lspServerPath": "/usr/local/bin/gopls",
                 "lspServerArgs": [],
                 "lspServerInitializationOptions": "",
@@ -37,7 +37,7 @@
             "analysisMode": "full",
             "location": "/analyzer-lsp/examples/python",
             "providerSpecificConfig": {
-                "lspServerName": "pylsp",
+                "lspServerName": "python",
                 "lspServerPath": "/usr/local/bin/pylsp",
                 "lspServerArgs": [],
                 "lspServerInitializationOptions": "",

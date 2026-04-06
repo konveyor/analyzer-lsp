@@ -22,7 +22,7 @@ func (p *goProvider) SetProgress(progress *progress.Progress) {
 }
 
 // NewGoProvider constructs the gRPC-facing BaseClient for go-external-provider.
-// lspServerName should match rule provider ids (typically "generic" for golang today).
+// lspServerName should match rule provider ids (typically "go" for golang).
 // progress may be nil; Init will create one if needed when SetProgress was not used.
 func NewGoProvider(lspServerName string, log logr.Logger, progress *progress.Progress) provider.BaseClient {
 	_ = lspServerName // matches main --name / rules provider id; reserved for future use
