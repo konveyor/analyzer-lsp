@@ -1,5 +1,14 @@
 - name: konveyor-analysis
   errors:
     golang-gomod-dependencies: exit status 1
-  unmatched:
-  - go-lang-ref-001
+  violations:
+    go-lang-ref-001:
+      description: ""
+      category: potential
+      incidents:
+      - uri: file:///analyzer-lsp/examples/golang/main.go
+        message: 'golang apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/golang/main.go:11'
+        lineNumber: 11
+        variables:
+          file: file:///analyzer-lsp/examples/golang/main.go
+      effort: 1
