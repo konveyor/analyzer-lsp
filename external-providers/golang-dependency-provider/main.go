@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -56,22 +57,29 @@ func ConvertDagItemsToList(items []provider.DepDAGItem) []provider.Dep {
 	return deps
 }
 
+const envDependencyProviderModuleDir = "DEPENDENCY_PROVIDER_MODULE_DIR"
+
 func GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
 	// We are going to run the graph command, and write a parser for this.
 	// This is so that we can get the tree of deps.
 
-	path := "go.mod"
-	file := uri.File(path)
+	modRoot, err := resolveModuleRoot()
+	if err != nil {
+		return nil, err
+	}
+	goModPath := filepath.Join(modRoot, "go.mod")
+	file := uri.File(goModPath)
 
-	moddir := filepath.Dir(path)
 	// get the graph output
 	buf := bytes.Buffer{}
 	cmd := exec.Command("go", "mod", "graph")
-	cmd.Dir = moddir
+	cmd.Dir = modRoot
 	cmd.Stdout = &buf
-	err := cmd.Run()
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	err = cmd.Run()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("go mod graph in %q: %w: %s", modRoot, err, strings.TrimSpace(stderr.String()))
 	}
 
 	// use base and graph to get the deps and their deps.
@@ -87,6 +95,105 @@ func GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
 	m[file] = deps
 
 	return m, nil
+}
+
+func resolveModuleRoot() (string, error) {
+	if d := os.Getenv(envDependencyProviderModuleDir); d != "" {
+		abs, err := filepath.Abs(filepath.Clean(d))
+		if err != nil {
+			return "", err
+		}
+		if _, err := os.Stat(filepath.Join(abs, "go.mod")); err != nil {
+			return "", err
+		}
+		return abs, nil
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	wd = filepath.Clean(wd)
+
+	gomod, err := goEnvGOMOD(wd)
+	if err != nil {
+		return "", err
+	}
+	if !isNoModuleGOMOD(gomod) {
+		return filepath.Clean(filepath.Dir(gomod)), nil
+	}
+
+	root, err := findGoModPath(wd)
+	if err != nil {
+		return "", err
+	}
+	return root, nil
+}
+
+func goEnvGOMOD(dir string) (string, error) {
+	cmd := exec.Command("go", "env", "GOMOD")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+func isNoModuleGOMOD(gomod string) bool {
+	if gomod == "" {
+		return true
+	}
+	clean := filepath.Clean(gomod)
+	if clean == filepath.Clean(os.DevNull) {
+		return true
+	}
+	base := strings.ToLower(filepath.Base(clean))
+	return base == "nul" || base == "null"
+}
+
+func findGoModPath(root string) (string, error) {
+	rootAbs, err := filepath.Abs(filepath.Clean(root))
+	if err != nil {
+		return "", err
+	}
+	skipDir := map[string]bool{
+		"vendor":       true,
+		".git":         true,
+		"node_modules": true,
+		".cache":       true,
+	}
+	seen := map[string]bool{rootAbs: true}
+	queue := []string{rootAbs}
+	for len(queue) > 0 {
+		dir := queue[0]
+		queue = queue[1:]
+		goModPath := filepath.Join(dir, "go.mod")
+		if st, err := os.Stat(goModPath); err == nil && !st.IsDir() {
+			return dir, nil
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if !e.IsDir() {
+				continue
+			}
+			if skipDir[e.Name()] {
+				continue
+			}
+			subAbs, err := filepath.Abs(filepath.Join(dir, e.Name()))
+			if err != nil {
+				continue
+			}
+			if seen[subAbs] {
+				continue
+			}
+			seen[subAbs] = true
+			queue = append(queue, subAbs)
+		}
+	}
+	return "", fmt.Errorf("no go.mod found under %q", rootAbs)
 }
 
 // parseGoDepString parses a golang dependency string

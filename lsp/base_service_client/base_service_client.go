@@ -23,6 +23,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// envDependencyProviderModuleDir is set on the dependency provider subprocess when
+// LSPServiceClientConfig.DependencyProviderModuleDir is configured.
+const envDependencyProviderModuleDir = "DEPENDENCY_PROVIDER_MODULE_DIR"
+
 // Cannot have generic function type aliases, but this is still better than typing out
 // the entire function type definition
 type LSPServiceClientFunc[T HasLSPServiceClientBase] func(T, context.Context, string, []byte) (provider.ProviderEvaluateResponse, error)
@@ -59,6 +63,8 @@ type LSPServiceClientConfig struct {
 
 	// Path to a simple binary that lists the dependencies for a given language.
 	DependencyProviderPath string `yaml:"dependencyProviderPath,omitempty"`
+	// If non-empty, sets DEPENDENCY_PROVIDER_MODULE_DIR for the dependency provider subprocess.
+	DependencyProviderModuleDir string `yaml:"dependencyProviderModuleDir,omitempty"`
 }
 
 // Provides a generic `Evaluate` method, that calls the associated method found
@@ -442,6 +448,9 @@ func (sc *LSPServiceClientBase) GetDependencies(ctx context.Context) (map[uri.UR
 	}
 	// Expects dependency provider to output provider.Dep structs to stdout
 	cmd := exec.Command(cmdStr)
+	if modDir := sc.BaseConfig.DependencyProviderModuleDir; modDir != "" {
+		cmd.Env = append(os.Environ(), envDependencyProviderModuleDir+"="+modDir)
+	}
 	workspaceURI := sc.BaseConfig.WorkspaceFolders[0]
 	// Remove file:// prefix if present
 	if strings.HasPrefix(workspaceURI, "file://") {
