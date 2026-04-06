@@ -19,14 +19,14 @@ func TestGoServiceClientBuilderCapabilities(t *testing.T) {
 }
 
 func TestGoProviderInitErrorPath(t *testing.T) {
-	p := goext.NewGoProvider("generic", logr.Discard(), nil)
+	p := goext.NewGoProvider("go", logr.Discard(), nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	_, _, err := p.Init(ctx, logr.Discard(), provider.InitConfig{
 		ProviderSpecificConfig: map[string]interface{}{
-			"lspServerName": "generic",
+			"lspServerName": "go",
 			"lspServerPath": "/definitely/not/a/real/lsp-server",
 			"lspServerArgs": []interface{}{},
 		},

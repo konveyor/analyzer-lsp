@@ -42,7 +42,7 @@ func TestPylspInitAndEvaluate(t *testing.T) {
 	logrusLog.SetLevel(logrus.Level(5))
 	log := logrusr.New(logrusLog)
 
-	prov := pythonext.NewPythonProvider("pylsp", log, nil)
+	prov := pythonext.NewPythonProvider("python", log, nil)
 
 	repoRoot := testRepoRoot(t)
 	pyDir := filepath.Join(repoRoot, "examples", "python")
@@ -50,7 +50,7 @@ func TestPylspInitAndEvaluate(t *testing.T) {
 
 	pylspSC, _, err := prov.Init(context.Background(), log, provider.InitConfig{
 		ProviderSpecificConfig: map[string]interface{}{
-			"lspServerName":    "pylsp",
+			"lspServerName":    "python",
 			"lspServerPath":    "pylsp",
 			"lspServerArgs":    []interface{}{},
 			"workspaceFolders": []interface{}{pyFolderURI},

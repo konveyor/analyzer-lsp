@@ -537,7 +537,7 @@ func Test_GetConfigs(t *testing.T) {
 			title:        "testnested",
 			testdataFile: "testdata/provider_settings_nested_types.json",
 			expectedProviderSpecificConfig: map[string]interface{}{
-				"lspServerName":                  "generic",
+				"lspServerName":                  "go",
 				"lspServerPath":                  "/usr/local/bin/gopls",
 				"lspServerArgs":                  []interface{}{"string"},
 				"lspServerInitializationOptions": "",
@@ -554,7 +554,7 @@ func Test_GetConfigs(t *testing.T) {
 			title:        "test nested yaml",
 			testdataFile: "testdata/provider_settings_simple.yaml",
 			expectedProviderSpecificConfig: map[string]interface{}{
-				"lspServerName":                  "generic",
+				"lspServerName":                  "go",
 				"lspServerPath":                  "/usr/local/bin/gopls",
 				"lspServerArgs":                  []interface{}{"string"},
 				"lspServerInitializationOptions": "",

@@ -9,7 +9,7 @@ import (
 
 func TestNewGoProviderCapabilities(t *testing.T) {
 	log := logr.Discard()
-	p := goext.NewGoProvider("generic", log, nil)
+	p := goext.NewGoProvider("go", log, nil)
 	caps := p.Capabilities()
 	if len(caps) == 0 {
 		t.Fatalf("expected non-empty capabilities, got %d", len(caps))

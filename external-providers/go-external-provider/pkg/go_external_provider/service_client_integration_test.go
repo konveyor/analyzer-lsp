@@ -37,14 +37,14 @@ func TestGoplsInitAndEvaluate(t *testing.T) {
 	logrusLog.SetLevel(logrus.Level(5))
 	log := logrusr.New(logrusLog)
 
-	prov := goext.NewGoProvider("generic", log, nil)
+	prov := goext.NewGoProvider("go", log, nil)
 
 	repoRoot := testRepoRoot(t)
 	goplsExamples := "file://" + filepath.Join(repoRoot, "examples", "golang")
 
 	goplsSC, _, err := prov.Init(context.Background(), log, provider.InitConfig{
 		ProviderSpecificConfig: map[string]interface{}{
-			"lspServerName":    "generic",
+			"lspServerName":    "go",
 			"lspServerPath":    "gopls",
 			"lspServerArgs":    []interface{}{"-vv", "-logfile", "debug-go.log", "-rpc.trace"},
 			"workspaceFolders": []interface{}{goplsExamples},

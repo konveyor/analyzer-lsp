@@ -19,14 +19,14 @@ func TestPythonServiceClientBuilderCapabilities(t *testing.T) {
 }
 
 func TestPythonProviderInitErrorPath(t *testing.T) {
-	p := pythonext.NewPythonProvider("pylsp", logr.Discard(), nil)
+	p := pythonext.NewPythonProvider("python", logr.Discard(), nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	_, _, err := p.Init(ctx, logr.Discard(), provider.InitConfig{
 		ProviderSpecificConfig: map[string]interface{}{
-			"lspServerName": "pylsp",
+			"lspServerName": "python",
 			"lspServerPath": "/definitely/not/a/real/lsp-server",
 			"lspServerArgs": []interface{}{},
 		},
