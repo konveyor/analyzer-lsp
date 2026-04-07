@@ -54,10 +54,7 @@ func (n *NodeServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c 
 	params := protocol.InitializeParams{}
 
 	if c.Location != "" {
-		if !strings.HasPrefix(c.Location, "file://") {
-			c.Location = "file://" + c.Location
-		}
-		sc.Config.WorkspaceFolders = []string{c.Location}
+		sc.Config.WorkspaceFolders = []string{string(uri.File(c.Location))}
 	}
 
 	if c.ProviderSpecificConfig == nil {

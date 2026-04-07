@@ -37,10 +37,16 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 COPY --from=go-builder /opt/app-root/src/go-provider/go-external-provider /usr/local/bin/go-external-provider
 COPY --from=go-builder /opt/app-root/src/go-provider/gopls /usr/local/bin/gopls
+COPY --from=go-builder /usr/bin/go /usr/local/bin/go
+COPY --from=go-builder /usr/lib/golang /usr/lib/golang
 COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 WORKDIR /addon
 RUN chgrp -R 0 /addon && chmod -R g=u /addon
 USER 1001
-ENV HOME /addon
+ENV HOME=/addon \
+    GOROOT=/usr/lib/golang \
+    GOPATH=/addon/go \
+    GOCACHE=/addon/.cache/go-build \
+    GOMODCACHE=/addon/go/pkg/mod
 
 ENTRYPOINT ["/usr/local/bin/go-external-provider"]

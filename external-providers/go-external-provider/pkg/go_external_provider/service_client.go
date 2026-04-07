@@ -11,6 +11,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"github.com/swaggest/openapi-go/openapi3"
+	"go.lsp.dev/uri"
 	"gopkg.in/yaml.v2"
 )
 
@@ -46,7 +47,7 @@ func (g *GoServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c pr
 	params := protocol.InitializeParams{}
 
 	if c.Location != "" {
-		sc.Config.WorkspaceFolders = []string{c.Location}
+		sc.Config.WorkspaceFolders = []string{string(uri.File(c.Location))}
 	}
 
 	if len(sc.Config.WorkspaceFolders) == 0 {

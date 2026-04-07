@@ -48,7 +48,7 @@ func (p *PythonServiceClientBuilder) Init(ctx context.Context, log logr.Logger, 
 	params := protocol.InitializeParams{}
 
 	if c.Location != "" {
-		sc.Config.WorkspaceFolders = []string{c.Location}
+		sc.Config.WorkspaceFolders = []string{string(uri.File(c.Location))}
 	}
 
 	if len(sc.Config.WorkspaceFolders) == 0 {
