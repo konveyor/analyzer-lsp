@@ -28,30 +28,19 @@ func main() {
 	logrusLog := logrus.New()
 	logrusLog.SetOutput(os.Stdout)
 	logrusLog.SetFormatter(&logrus.TextFormatter{})
-	if logLevel != nil {
-		logrusLog.SetLevel(logrus.Level(*logLevel))
-	} else {
-		logrusLog.SetLevel(logrus.Level(20))
-	}
+	logrusLog.SetLevel(logrus.Level(*logLevel))
 	log := logrusr.New(logrusLog).WithName("python-external-provider")
 
 	client := pythonprov.NewPythonProvider(*lspServerName, log, nil)
 
-	if (socket == nil || *socket == "") && (port == nil || *port == 0) {
+	if *socket == "" && *port == 0 {
 		log.Error(fmt.Errorf("no serving location"), "port or socket must be set.")
 		os.Exit(1)
 	}
 
-	var c, k, secret string
-	if certFile != nil {
-		c = *certFile
-	}
-	if keyFile != nil {
-		k = *keyFile
-	}
-	if secretKey != nil {
-		secret = *secretKey
-	}
+	c := *certFile
+	k := *keyFile
+	secret := *secretKey
 
 	s := provider.NewServer(client, *port, c, k, secret, *socket, log)
 	ctx := context.TODO()

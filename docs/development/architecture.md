@@ -227,7 +227,7 @@ type BaseClient interface {
 
 ---
 
-#### `/external-providers/go-external-provider`, `/python-external-provider`, `/nodejs-external-provider`
+#### `/external-providers/go-external-provider`, `/external-providers/python-external-provider`, `/external-providers/nodejs-external-provider`
 **Purpose:** Dedicated LSP-backed external providers for Go (gopls), Python (pylsp), and Node.js.
 
 **Capabilities:** Symbol references, definitions, workspace symbols, and language-specific LSP behavior per provider.

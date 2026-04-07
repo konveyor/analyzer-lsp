@@ -282,4 +282,4 @@ Use or adapt the following in release announcements:
 - **Breaking:** Removed `generic-external-provider`. Go, Python, and Node.js analysis now use `go-external-provider`, `python-external-provider`, and `nodejs-external-provider` binaries and `quay.io/konveyor/{go,python,nodejs}-external-provider` images.
 - **Migration:** Replace each `binaryPath` that pointed at `generic-external-provider` with the per-language binary; deploy the matching new image per language. `lspServerName` values for rules remain `generic` / `pylsp` / `nodejs`.
 - **YAML:** Unchanged—use `yq-external-provider` only (no YAML LSP path on the old generic binary).
-- **Downstream:** Operator, Kantra, Hub/KAI, and custom integrators must update default images and extension references; see [downstream tracking](enhancements/generic-provider-to-specific-providers-downstream-tracking.md) for coordination.
+- **Downstream:** Operator, Kantra, Hub/KAI, and custom integrators must update default images and extension references; see [implementation plan](plan/generic-provider-to-specific-providers-implementation-plan.md) for coordination details.
