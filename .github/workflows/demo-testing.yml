@@ -168,6 +168,7 @@ jobs:
         run: |
           podman volume create test-data
           podman run --rm -v test-data:/target:U,Z -v $(pwd)/${{ matrix.test-data }}:/src/:U,Z --entrypoint=cp alpine -a /src/. /target/
+          podman run --rm --user=0 -v test-data:/target:Z --entrypoint=sh alpine -c 'chown -R 1001:0 /target && chmod -R a+rwX /target'
           podman pod create --name=analyzer-${{ matrix.provider }}
           podman run --pod analyzer-${{ matrix.provider }} --name ${{ matrix.provider }}-provider -d -v test-data:/analyzer-lsp/examples:U,Z $${{ matrix.image_env}} --port 14651
           podman run --entrypoint /usr/local/bin/konveyor-analyzer --pod=analyzer-${{ matrix.provider }} \
@@ -299,6 +300,7 @@ jobs:
           # copy data to test data volume
           podman run --rm  -v test-data:/target:U,Z -v $(pwd)/examples:/src/:U,Z --entrypoint=cp alpine -a /src/. /target/
           podman run --rm  -v test-data:/target:U,Z -v $(pwd)/external-providers/java-external-provider/examples:/src/:U,Z --entrypoint=cp alpine -a /src/. /target/
+          podman run --rm --user=0 -v test-data:/target:Z --entrypoint=sh alpine -c 'chown -R 1001:0 /target && chmod -R a+rwX /target'
           # run pods w/ defined ports for the test volumes
           podman pod create --name=analyzer --userns=keep-id
           podman run --pod analyzer --name java-provider -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_JAVA_PROVIDER --port 14651
