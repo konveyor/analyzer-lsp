@@ -18,7 +18,7 @@ MOUNT_OPT := :z
 build-dir:
 	mkdir -p build
 
-build: build-dir analyzer deps golang-dependency-provider external-go-provider external-python-provider external-nodejs-provider yq-external-provider java-external-provider
+build: build-dir analyzer deps external-go-provider external-python-provider external-nodejs-provider yq-external-provider java-external-provider
 
 analyzer: build-dir
 	go build -o build/konveyor-analyzer ./cmd/analyzer/main.go
@@ -35,10 +35,6 @@ external-python-provider: build-dir
 external-nodejs-provider: build-dir
 	(cd external-providers/nodejs-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/nodejs-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/nodejs-external-provider build/nodejs-external-provider.exe; fi
-
-golang-dependency-provider: build-dir
-	(cd external-providers/golang-dependency-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/golang-dependency-provider main.go)
-	if [ "${GOOS}" == "windows" ]; then mv build/golang-dependency-provider build/golang-dependency-provider.exe; fi
 
 yq-external-provider: build-dir
 	(cd external-providers/yq-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/yq-external-provider main.go)
@@ -57,11 +53,8 @@ image-build:
 
 build-external:image-build build-go-provider build-python-provider build-nodejs-provider build-java-provider build-yq-provider
 
-build-golang-dep-provider:
-	podman build -f external-providers/golang-dependency-provider/Dockerfile -t $(IMG_GO_DEP_PROVIDER) .
-
-build-go-provider: build-golang-dep-provider
-	podman build --build-arg GOLANG_DEP_IMAGE=$(IMG_GO_DEP_PROVIDER) -f external-providers/go-external-provider/Dockerfile -t $(IMG_GO_PROVIDER) .
+build-go-provider:
+	podman build -f external-providers/go-external-provider/Dockerfile -t $(IMG_GO_PROVIDER) .
 
 build-python-provider:
 	podman build -f external-providers/python-external-provider/Dockerfile -t $(IMG_PYTHON_PROVIDER) .

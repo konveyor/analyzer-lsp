@@ -16,6 +16,5 @@
         version: "v1"
         kind: "Deployment"
         1: "newThing"
-      object: 
+      object:
         nestedObject: "object"
-      dependencyProviderPath: "/usr/bin/golang-dependency-provider"

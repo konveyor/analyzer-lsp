@@ -117,3 +117,26 @@ func (g *GoServiceClientBuilder) GetGoServiceClientCapabilities(log logr.Logger)
 	}
 	return caps
 }
+
+func (sc *GoServiceClient) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	dag, err := sc.GetDependenciesDAG(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	m := map[uri.URI][]*provider.Dep{}
+	for u, items := range dag {
+		m[u] = provider.ConvertDagItemsToList(items)
+	}
+	return m, nil
+}
+
+func (sc *GoServiceClient) GetDependenciesDAG(ctx context.Context) (map[uri.URI][]provider.DepDAGItem, error) {
+	// Use workspace folder from config
+	if len(sc.Config.WorkspaceFolders) == 0 {
+		return nil, fmt.Errorf("no workspace folders configured")
+	}
+
+	// Call the dependency analysis logic
+	return getDependenciesDAG(sc.Config.WorkspaceFolders[0])
+}

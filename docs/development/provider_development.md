@@ -56,9 +56,6 @@ Providers are the mechanism by which analyzer-lsp performs language-specific ana
 
 **Purpose:** Specialized analysis not covered by LSP
 
-**Examples:**
-- `golang-dependency-provider` - Go module dependency analysis
-
 **When to use:** Domain-specific analysis beyond LSP capabilities
 
 ## Quick Start: Adding a New Language

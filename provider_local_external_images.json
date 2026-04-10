@@ -11,9 +11,7 @@
                 "lspServerInitializationOptions": "",
 
                 "workspaceFolders": ["file:///examples/golang"],
-                "dependencyFolders": [],
-
-                "dependencyProviderPath": "/usr/local/bin/golang-dependency-provider"
+                "dependencyFolders": []
             }
         }]
     },

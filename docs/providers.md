@@ -46,8 +46,7 @@ Example for an external **Go** provider:
             "providerSpecificConfig": {
                 "lspServerName": "generic",
                 "lspServerPath": "/path/to/gopls",
-                "lspServerArgs": ["arg1", "arg2"],
-                "dependencyProviderPath": "/path/to/golang-dependency-provider"
+                "lspServerArgs": ["arg1", "arg2"]
             }
         }
     ]
@@ -108,7 +107,7 @@ Common `providerSpecificConfig` fields for these providers include:
 
 * `workspaceFolders` / `dependencyFolders`: Workspace roots and paths to treat as dependencies (see [`provider_container_settings.json`](../provider_container_settings.json)).
 
-* `dependencyProviderPath`: Optional path to a binary that prints dependencies as `map[uri.URI][]provider.Dep` (see `"github.com/konveyor/analyzer-lsp/provider"`). Often required for **Go**; may be empty for Python/Node when unused.
+* `dependencyProviderPath`: Optional path to a binary that prints dependencies as `map[uri.URI][]provider.Dep` (see `"github.com/konveyor/analyzer-lsp/provider"`). May be empty when unused.
 
 ### Java provider
 
@@ -247,12 +246,12 @@ Published from [`.github/workflows/image-build.yaml`](https://github.com/konveyo
 
 | Language | Image | Notes |
 |----------|-------|--------|
-| Go (gopls) | `quay.io/konveyor/go-external-provider:<tag>` | Built with `GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:<tag>` |
+| Go (gopls) | `quay.io/konveyor/go-external-provider:<tag>` | |
 | Python (pylsp) | `quay.io/konveyor/python-external-provider:<tag>` | |
 | Node.js | `quay.io/konveyor/nodejs-external-provider:<tag>` | |
 | (removed) | ~~`quay.io/konveyor/generic-external-provider`~~ | Replaced by the three images above |
 
-Other related images (unchanged pattern): `quay.io/konveyor/analyzer-lsp`, `quay.io/konveyor/golang-dependency-provider`, `quay.io/konveyor/yq-external-provider`, `quay.io/konveyor/java-external-provider`.
+Other related images (unchanged pattern): `quay.io/konveyor/analyzer-lsp`, `quay.io/konveyor/yq-external-provider`, `quay.io/konveyor/java-external-provider`.
 
 ### Container binary paths (default layout)
 
@@ -263,8 +262,6 @@ Inside the language provider images, the gRPC entrypoints are installed as:
 | Go | `/usr/local/bin/go-external-provider` |
 | Python | `/usr/local/bin/python-external-provider` |
 | Node.js | `/usr/local/bin/nodejs-external-provider` |
-
-Go analysis also expects **`dependencyProviderPath`** pointing at **`/usr/local/bin/golang-dependency-provider`** (from the `golang-dependency-provider` image or an equivalent build). See [`provider_container_settings.json`](../provider_container_settings.json) for a full working example.
 
 ### Config mapping (before → after)
 

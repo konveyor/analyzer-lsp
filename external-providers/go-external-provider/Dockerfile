@@ -1,6 +1,4 @@
-ARG GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:latest
-
-# Go gRPC provider binary image with gopls + golang-dependency-provider runtime.
+# Go gRPC provider binary image with gopls runtime.
 FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as go-builder
 
 USER 0
@@ -31,15 +29,12 @@ RUN --mount=type=cache,id=gomod-go-external-provider,target=/opt/app-root/src/go
     go build -o go-external-provider main.go && \
     GOBIN=/opt/app-root/src/go-provider go install golang.org/x/tools/gopls@v0.20.0
 
-FROM ${GOLANG_DEP_IMAGE} as go-dep-provider
-
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 COPY --from=go-builder /opt/app-root/src/go-provider/go-external-provider /usr/local/bin/go-external-provider
 COPY --from=go-builder /opt/app-root/src/go-provider/gopls /usr/local/bin/gopls
 COPY --from=go-builder /usr/bin/go /usr/local/bin/go
 COPY --from=go-builder /usr/lib/golang /usr/lib/golang
-COPY --from=go-dep-provider /usr/local/bin/golang-dependency-provider /usr/local/bin/golang-dependency-provider
 WORKDIR /addon
 RUN chgrp -R 0 /addon && chmod -R g=u /addon
 USER 1001

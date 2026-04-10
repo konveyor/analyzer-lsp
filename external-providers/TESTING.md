@@ -13,11 +13,6 @@ external-providers/
 │       ├── rule-example.yaml          # Java-specific test rules
 │       ├── demo-output.yaml           # Expected output for Java tests
 │       └── provider_settings.json     # Java provider configuration
-├── golang-dependency-provider/
-│   └── e2e-tests/
-│       ├── rule-example.yaml          # Go-specific test rules
-│       ├── demo-output.yaml           # Expected output for Go tests
-│       └── provider_settings.json     # Go provider configuration
 ├── go-external-provider/
 │   └── e2e-tests/                     # Go (gopls) LSP provider demos
 ├── python-external-provider/

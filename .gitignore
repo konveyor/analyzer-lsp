@@ -22,7 +22,6 @@ go.work
 go.work.sum
 *.exe
 
-external-providers/golang-dependency-provider/golang-dependency-provider
 external-providers/dotnet-external-provider/bin/*
 external-providers/dotnet-external-provider/examples/HelloWorld/HelloWorld/bin/*
 external-providers/dotnet-external-provider/examples/HelloWorld/HelloWorld/obj/*

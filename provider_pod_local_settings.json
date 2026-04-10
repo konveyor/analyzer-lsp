@@ -12,9 +12,7 @@
                 "lspServerInitializationOptions": "",
 
                 "workspaceFolders": ["file:///analyzer-lsp/examples/golang"],
-                "dependencyFolders": [],
-
-                "dependencyProviderPath": "/usr/local/bin/golang-dependency-provider"
+                "dependencyFolders": []
             }
         }]
     },

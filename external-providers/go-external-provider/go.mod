@@ -8,6 +8,7 @@ require (
 	github.com/konveyor/analyzer-lsp v0.0.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/swaggest/openapi-go v0.2.50
+	go.lsp.dev/uri v0.3.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -22,7 +23,6 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/swaggest/jsonschema-go v0.3.70 // indirect
 	github.com/swaggest/refl v1.3.0 // indirect
-	go.lsp.dev/uri v0.3.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect

@@ -1,10 +1,8 @@
-package main
+package go_external_provider
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"log"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -19,48 +17,16 @@ const (
 	golangDownloadableDepSourceLabel = "downloadable"
 )
 
-// TODO implement this for real
-func main() {
-	ll, err := GetDependenciesDAG()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	if len(ll) == 0 {
-		return
+// getDependenciesDAG runs go mod graph in the workspace and parses the output
+// to build a dependency DAG.
+func getDependenciesDAG(workspaceFolder string) (map[uri.URI][]provider.DepDAGItem, error) {
+	// Remove file:// prefix if present
+	workspacePath := workspaceFolder
+	if strings.HasPrefix(workspaceFolder, "file://") {
+		workspacePath = workspaceFolder[7:]
 	}
 
-	m := map[uri.URI][]*provider.Dep{}
-	for u, d := range ll {
-		m[u] = provider.ConvertDagItemsToList(d)
-	}
-
-	jsonStr, err := json.Marshal(m)
-	if err != nil {
-		log.Fatal(fmt.Errorf("unable to marshal dependencies"))
-		return
-	}
-
-	// Outputs the dependency list for the generic provider
-	fmt.Println(string(jsonStr))
-
-}
-
-func ConvertDagItemsToList(items []provider.DepDAGItem) []provider.Dep {
-	deps := []provider.Dep{}
-	for _, i := range items {
-		d := i.Dep
-		deps = append(deps, d)
-		deps = append(deps, ConvertDagItemsToList(i.AddedDeps)...)
-	}
-	return deps
-}
-
-func GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
-	// We are going to run the graph command, and write a parser for this.
-	// This is so that we can get the tree of deps.
-
-	path := "go.mod"
+	path := filepath.Join(workspacePath, "go.mod")
 	file := uri.File(path)
 
 	moddir := filepath.Dir(path)
@@ -75,7 +41,6 @@ func GetDependenciesDAG() (map[uri.URI][]provider.DepDAGItem, error) {
 	}
 
 	// use base and graph to get the deps and their deps.
-
 	data := buf.String()
 	lines := strings.Split(data, "\n")
 

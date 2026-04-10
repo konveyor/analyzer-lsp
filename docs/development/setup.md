@@ -213,7 +213,6 @@ This creates in `build/`:
 - `go-external-provider` - Go (gopls) provider
 - `python-external-provider` - Python (pylsp) provider
 - `nodejs-external-provider` - Node.js provider
-- `golang-dependency-provider` - Go dependency provider
 - `yq-external-provider` - YAML provider
 - `java-external-provider` - Java provider
 
@@ -237,7 +236,6 @@ This builds:
 - `localhost/go-external-provider:latest`
 - `localhost/python-external-provider:latest`
 - `localhost/nodejs-external-provider:latest`
-- `localhost/golang-dep-provider:latest`
 - `localhost/yq-provider:latest`
 
 ### Building Individual Providers
@@ -253,9 +251,6 @@ make java-external-provider
 
 # YAML provider
 make yq-external-provider
-
-# Go dependency provider
-make golang-dependency-provider
 ```
 
 ### Platform-Specific Builds

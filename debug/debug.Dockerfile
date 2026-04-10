@@ -19,7 +19,6 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 RUN go build -gcflags="all=-N -l" -o konveyor-analyzer ./cmd/analyzer/main.go
 RUN go build -gcflags="all=-N -l" -o konveyor-analyzer-dep ./cmd/dep/main.go
 RUN cd external-providers/go-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go build -gcflags="all=-N -l" -o go-external-provider main.go
-RUN cd external-providers/golang-dependency-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go build -gcflags="all=-N -l" -o golang-dependency-provider main.go
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as yq-builder
 RUN microdnf install -y wget tar xz gzip && \
@@ -40,7 +39,6 @@ COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/bin/
 COPY --from=builder /analyzer-lsp/konveyor-analyzer /usr/bin/konveyor-analyzer
 COPY --from=builder /analyzer-lsp/konveyor-analyzer-dep /usr/bin/konveyor-analyzer-dep
 COPY --from=builder /analyzer-lsp/external-providers/go-external-provider/go-external-provider /usr/bin/go-external-provider
-COPY --from=builder /analyzer-lsp/external-providers/golang-dependency-provider/golang-dependency-provider /usr/bin/golang-dependency-provider
 
 COPY --from=builder /go/bin/dlv /
 

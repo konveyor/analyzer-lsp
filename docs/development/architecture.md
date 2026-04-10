@@ -234,16 +234,6 @@ type BaseClient interface {
 
 ---
 
-#### `/external-providers/golang-dependency-provider`
-**Purpose:** Go module dependency analysis.
-
-**Capabilities:**
-- Go module parsing
-- Dependency graph construction
-- Version resolution
-
----
-
 #### `/external-providers/yq-external-provider`
 **Purpose:** YAML and Kubernetes manifest analysis using yq.
 
