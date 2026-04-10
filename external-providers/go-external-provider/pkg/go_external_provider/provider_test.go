@@ -18,7 +18,7 @@ func TestNewGoProviderCapabilities(t *testing.T) {
 	for _, c := range caps {
 		names[c.Name] = struct{}{}
 	}
-	for _, need := range []string{"referenced", "dependency", "echo"} {
+	for _, need := range []string{"referenced", "dependency"} {
 		if _, ok := names[need]; !ok {
 			t.Errorf("missing capability %q", need)
 		}

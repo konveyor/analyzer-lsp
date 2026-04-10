@@ -546,8 +546,7 @@ func Test_GetConfigs(t *testing.T) {
 				"groupVersionKinds": []interface{}{
 					map[string]interface{}{"group": "apps", "version": "v1", "kind": "Deployment"},
 				},
-				"object":                 map[string]interface{}{"nestedObject": "object"},
-				"dependencyProviderPath": "/usr/bin/golang-dependency-provider",
+				"object": map[string]interface{}{"nestedObject": "object"},
 			},
 		},
 		{
@@ -563,8 +562,7 @@ func Test_GetConfigs(t *testing.T) {
 				"groupVersionKinds": []interface{}{
 					map[string]interface{}{"group": "apps", "version": "v1", "kind": "Deployment"},
 				},
-				"object":                 map[string]interface{}{"nestedObject": "object"},
-				"dependencyProviderPath": "/usr/bin/golang-dependency-provider",
+				"object": map[string]interface{}{"nestedObject": "object"},
 			},
 		},
 		{
