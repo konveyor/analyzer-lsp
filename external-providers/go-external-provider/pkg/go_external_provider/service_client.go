@@ -108,41 +108,5 @@ func (g *GoServiceClientBuilder) GetGoServiceClientCapabilities(log logr.Logger)
 			Fn:         serviceClientFn(base.EvaluateNoOp[*GoServiceClient]),
 		})
 	}
-	echoCap, err := provider.ToProviderCap(r, log, echoCondition{}, "echo")
-	if err != nil {
-		log.Error(err, "unable to get echo cap")
-	} else {
-		caps = append(caps, base.LSPServiceClientCapability{
-			Capability: echoCap,
-			Fn:         serviceClientFn((*GoServiceClient).EvaluateEcho),
-		})
-	}
 	return caps
-}
-
-type echoCondition struct {
-	Echo struct {
-		Input string `yaml:"input" json:"input"`
-	} `yaml:"echo" json:"input"`
-}
-
-func (sc *GoServiceClient) EvaluateEcho(ctx context.Context, cap string, info []byte) (provider.ProviderEvaluateResponse, error) {
-	_ = ctx
-	_ = cap
-	var cond echoCondition
-	err := yaml.Unmarshal(info, &cond)
-	if err != nil {
-		return provider.ProviderEvaluateResponse{}, fmt.Errorf("error unmarshaling query info")
-	}
-
-	return provider.ProviderEvaluateResponse{
-		Matched: true,
-		Incidents: []provider.IncidentContext{
-			{
-				Variables: map[string]interface{}{
-					"output": cond.Echo.Input,
-				},
-			},
-		},
-	}, nil
 }
