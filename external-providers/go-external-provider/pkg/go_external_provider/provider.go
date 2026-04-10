@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	base "github.com/konveyor/analyzer-lsp/lsp/base_service_client"
 	"github.com/konveyor/analyzer-lsp/progress"
 	"github.com/konveyor/analyzer-lsp/provider"
 )
@@ -12,8 +13,9 @@ import (
 // goProvider is a dedicated gopls-backed external provider (logic evolved from the
 // pre-split combined LSP provider, without multi-language switching).
 type goProvider struct {
-	capabilities []provider.Capability
-	progress     *progress.Progress
+	capabilities     []provider.Capability
+	lspCapabilities  []base.LSPServiceClientCapability
+	progress         *progress.Progress
 }
 
 // SetProgress is invoked by provider.NewServer before serving.
@@ -31,7 +33,8 @@ func NewGoProvider(lspServerName string, log logr.Logger, progress *progress.Pro
 	}
 
 	builder := &GoServiceClientBuilder{}
-	for _, cap := range builder.GetGoServiceClientCapabilities(log) {
+	p.lspCapabilities = builder.GetGoServiceClientCapabilities(log)
+	for _, cap := range p.lspCapabilities {
 		p.capabilities = append(p.capabilities, provider.Capability{
 			Name:   cap.Name,
 			Input:  cap.Input,
@@ -55,7 +58,10 @@ func (p *goProvider) Init(ctx context.Context, log logr.Logger, c provider.InitC
 		}
 	}
 
-	builder := &GoServiceClientBuilder{Progress: p.progress}
+	builder := &GoServiceClientBuilder{
+		Progress:       p.progress,
+		lspCapabilities: p.lspCapabilities,
+	}
 	sc, err := builder.Init(ctx, log, c)
 	if err != nil {
 		return nil, provider.InitConfig{}, fmt.Errorf("go provider init: %w", err)

@@ -32,7 +32,8 @@ type GoServiceClient struct {
 }
 
 type GoServiceClientBuilder struct {
-	Progress *progress.Progress
+	Progress        *progress.Progress
+	lspCapabilities []base.LSPServiceClientCapability
 }
 
 func (g *GoServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
@@ -78,7 +79,13 @@ func (g *GoServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c pr
 	}
 	sc.LSPServiceClientBase = scBase
 
-	eval, err := base.NewLspServiceClientEvaluator[*GoServiceClient](sc, g.GetGoServiceClientCapabilities(log))
+	// Reuse capabilities built during NewGoProvider, or build them if not provided
+	caps := g.lspCapabilities
+	if caps == nil {
+		caps = g.GetGoServiceClientCapabilities(log)
+	}
+
+	eval, err := base.NewLspServiceClientEvaluator[*GoServiceClient](sc, caps)
 	if err != nil {
 		return nil, fmt.Errorf("lsp service client evaluator error: %w", err)
 	}
