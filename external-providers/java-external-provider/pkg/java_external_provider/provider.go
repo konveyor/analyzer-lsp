@@ -41,6 +41,7 @@ const (
 	DISABLE_MAVEN_SEARCH          = "disableMavenSearch"
 	GRADLE_SOURCES_TASK_FILE      = "gradleSourcesTaskFile"
 	MAVEN_INDEX_PATH              = "mavenIndexPath"
+	RULE_QUERY_TIMEOUT_OPTION     = "ruleQueryTimeout"
 )
 
 const (
@@ -418,6 +419,11 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		config.DependencyPath = depLocation
 	}
 
+	ruleQueryTimeout, err := parseRuleQueryTimeout(config)
+	if err != nil {
+		return nil, additionalBuiltinConfig, err
+	}
+
 	if config.RPC != nil {
 		return &javaServiceClient{
 			rpc:               config.RPC,
@@ -428,6 +434,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			buildTool:         buildTool,
 			mvnIndexPath:      mavenOpenSourceIndex,
 			mvnSettingsFile:   mavenSettingsFile,
+			ruleQueryTimeout:  ruleQueryTimeout,
 		}, provider.InitConfig{}, nil
 	} else if lspServerPath == "" {
 		return nil, additionalBuiltinConfig, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
@@ -568,6 +575,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		mvnIndexPath:       mavenOpenSourceIndex,
 		mvnSettingsFile:    mavenSettingsFile,
 		jdtlsProcessExited: &jdtlsProcessExited,
+		ruleQueryTimeout:   ruleQueryTimeout,
 	}
 
 	svcClient.initialization(ctx)

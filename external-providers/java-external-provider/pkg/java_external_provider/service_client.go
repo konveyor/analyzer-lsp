@@ -41,6 +41,7 @@ type javaServiceClient struct {
 	mvnIndexPath       string
 	mvnSettingsFile    string
 	jdtlsProcessExited *chan bool
+	ruleQueryTimeout   time.Duration
 }
 
 var _ provider.ServiceClient = &javaServiceClient{}
@@ -229,6 +230,9 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	if strings.HasSuffix(c.Referenced.Pattern, "*") || strings.HasSuffix(c.Referenced.Pattern, "*)") {
 		timeout = 10 * time.Minute
 	}
+	if p.ruleQueryTimeout > 0 {
+		timeout = p.ruleQueryTimeout
+	}
 	p.activeRPCCalls.Add(1)
 	defer p.activeRPCCalls.Done()
 
@@ -239,10 +243,15 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 		if jsonrpc2.IsRPCClosed(err) {
 			log.Error(err, "connection to the language server is closed, language server is not running")
 			return refs, fmt.Errorf("connection to the language server is closed, language server is not running")
-		} else {
-			log.Error(err, "unable to ask for Konveyor rule entry")
-			return refs, fmt.Errorf("unable to ask for Konveyor rule entry")
 		}
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(timeOutCtx.Err(), context.DeadlineExceeded) {
+			log.Error(err, "Konveyor rule entry timed out waiting for workspace/executeCommand",
+				"timeout", timeout,
+				"ruleID", condCTX.RuleID)
+			return refs, fmt.Errorf("konveyor rule entry timed out after %s ruleID=%s: %w", timeout, condCTX.RuleID, err)
+		}
+		log.Error(err, "unable to ask for Konveyor rule entry")
+		return refs, fmt.Errorf("unable to ask for Konveyor rule entry: %w", err)
 	}
 
 	// If no additional filtering needed, return language server results as-is
@@ -484,6 +493,30 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	}
 	p.log.V(2).Info("java connection initialized")
 
+}
+
+func parseRuleQueryTimeout(cfg provider.InitConfig) (time.Duration, error) {
+	if cfg.ProviderSpecificConfig == nil {
+		return 0, nil
+	}
+	m := cfg.ProviderSpecificConfig
+	v, ok := m[RULE_QUERY_TIMEOUT_OPTION]
+	if !ok || v == nil {
+		return 0, nil
+	}
+	s, ok := v.(string)
+	if !ok {
+		return 0, fmt.Errorf("providerSpecificConfig.%s must be a string, e.g. '15m'", RULE_QUERY_TIMEOUT_OPTION)
+	}
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, nil
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing rule timeout %s: %w", RULE_QUERY_TIMEOUT_OPTION, err)
+	}
+	return d, nil
 }
 
 func createProjectAndClasspathFiles(basePath string, projectName string) error {
