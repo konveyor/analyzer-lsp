@@ -14,9 +14,9 @@ import (
 
 	"github.com/konveyor/analyzer-lsp/core"
 	"github.com/konveyor/analyzer-lsp/engine"
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	konveyor "github.com/konveyor/analyzer-lsp/output/v1/konveyor"
 	"github.com/konveyor/analyzer-lsp/provider"
-	"gopkg.in/yaml.v2"
 )
 
 // Config holds the MCP server configuration parsed from CLI flags.
@@ -30,6 +30,7 @@ type Config struct {
 	Transport          string // "stdio" or "http"
 	HTTPAddr           string // address for HTTP transport
 	Verbosity          int
+	OAuthToken         string // Bearer token for HTTP transport auth
 }
 
 // Run starts the MCP server with the given configuration.
@@ -51,10 +52,16 @@ func Run(cfg Config) error {
 
 	switch cfg.Transport {
 	case "http":
-		handler := mcpsdk.NewStreamableHTTPHandler(func(r *http.Request) *mcpsdk.Server {
+		mcpHandler := mcpsdk.NewStreamableHTTPHandler(func(r *http.Request) *mcpsdk.Server {
 			return server
 		}, nil)
-		log.Printf("MCP server listening on %s", cfg.HTTPAddr)
+		var handler http.Handler = mcpHandler
+		if cfg.OAuthToken != "" {
+			handler = bearerAuthMiddleware(cfg.OAuthToken, mcpHandler)
+			log.Printf("MCP server listening on %s (auth enabled)", cfg.HTTPAddr)
+		} else {
+			log.Printf("MCP server listening on %s (no auth)", cfg.HTTPAddr)
+		}
 		return http.ListenAndServe(cfg.HTTPAddr, handler)
 	default: // stdio
 		return server.Run(ctx, &mcpsdk.StdioTransport{})
@@ -192,36 +199,32 @@ func (s *coreAnalyzerService) ListProviders() []ProviderInfo {
 }
 
 func (s *coreAnalyzerService) GetDependencies() ([]konveyor.DepsFlatItem, error) {
-	// core.Analyzer.GetDependencies writes to a file. We'll use a temp file
-	// and read it back, or we can return empty for now and enhance later.
-	tmpFile, err := os.CreateTemp("", "konveyor-deps-*.yaml")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create temp file: %w", err)
-	}
-	tmpPath := tmpFile.Name()
-	tmpFile.Close()
-	defer os.Remove(tmpPath)
-
-	if err := s.analyzer.GetDependencies(tmpPath, false); err != nil {
-		return nil, err
-	}
-
-	// Read the deps file
-	data, err := os.ReadFile(tmpPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read deps file: %w", err)
-	}
-
-	if len(data) == 0 {
+	ctx := context.Background()
+	providers := s.analyzer.GetProviders(core.FilterByCapability("dependency"))
+	if len(providers) == 0 {
 		return []konveyor.DepsFlatItem{}, nil
 	}
 
-	// The output is YAML
-	var deps []konveyor.DepsFlatItem
-	if err := yamlUnmarshal(data, &deps); err != nil {
-		return nil, fmt.Errorf("failed to parse deps: %w", err)
+	var depsFlat []konveyor.DepsFlatItem
+	var errs []error
+	for _, prov := range providers {
+		deps, err := prov.GetDependencies(ctx)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("provider %s: %w", prov.Name, err))
+			continue
+		}
+		for u, ds := range deps {
+			depsFlat = append(depsFlat, konveyor.DepsFlatItem{
+				Provider:     prov.Name,
+				FileURI:      string(u),
+				Dependencies: ds,
+			})
+		}
 	}
-	return deps, nil
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("failed to get dependencies: %v", errs)
+	}
+	return depsFlat, nil
 }
 
 func (s *coreAnalyzerService) ListRules() []RuleInfo {
@@ -262,7 +265,82 @@ func (s *coreAnalyzerService) Stop() error {
 	return s.analyzer.Stop()
 }
 
-// yamlUnmarshal wraps yaml.Unmarshal.
-func yamlUnmarshal(data []byte, v any) error {
-	return yaml.Unmarshal(data, v)
+// bearerAuthMiddleware validates OAuth 2.1 Bearer tokens on HTTP transport.
+func bearerAuthMiddleware(token string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if !strings.HasPrefix(auth, "Bearer ") || strings.TrimPrefix(auth, "Bearer ") != token {
+			w.Header().Set("WWW-Authenticate", `Bearer`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// incidentVariables adapts an incident's Variables map to the labels.Labeled interface
+// so it can be matched with a label selector. This mirrors engine/internal.VariableLabelSelector.
+type incidentVariables map[string]interface{}
+
+func (v incidentVariables) GetLabels() []string {
+	if len(v) == 0 {
+		return []string{""}
+	}
+	s := make([]string, 0, len(v))
+	for k, val := range v {
+		s = append(s, fmt.Sprintf("%s=%s", k, val))
+	}
+	return s
+}
+
+func matchVariables(elem string, items []string) bool {
+	for _, i := range items {
+		if strings.Contains(elem, ".") {
+			if strings.Contains(i, fmt.Sprintf("%v.", elem)) {
+				return true
+			}
+		}
+		if i == elem {
+			return true
+		}
+	}
+	return false
+}
+
+// filterByIncidentSelector applies an incident selector expression to filter
+// incidents in the results, matching the behavior of engine's incident selector.
+func filterByIncidentSelector(rulesets []konveyor.RuleSet, selector string) []konveyor.RuleSet {
+	sel, err := labels.NewLabelSelector[incidentVariables](selector, matchVariables)
+	if err != nil {
+		return rulesets
+	}
+
+	filtered := make([]konveyor.RuleSet, 0, len(rulesets))
+	for _, rs := range rulesets {
+		newRS := konveyor.RuleSet{
+			Name:        rs.Name,
+			Description: rs.Description,
+			Tags:        rs.Tags,
+		}
+		violations := map[string]konveyor.Violation{}
+		for ruleID, v := range rs.Violations {
+			var incidents []konveyor.Incident
+			for _, inc := range v.Incidents {
+				vars := incidentVariables(inc.Variables)
+				matched, matchErr := sel.Matches(vars)
+				if matchErr != nil || matched {
+					incidents = append(incidents, inc)
+				}
+			}
+			if len(incidents) > 0 {
+				v.Incidents = incidents
+				violations[ruleID] = v
+			}
+		}
+		if len(violations) > 0 {
+			newRS.Violations = violations
+			filtered = append(filtered, newRS)
+		}
+	}
+	return filtered
 }

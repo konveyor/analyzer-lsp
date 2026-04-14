@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/konveyor/analyzer-lsp/provider"
+	"go.lsp.dev/uri"
 )
 
 // Provider wraps an internal provider client and exposes its capabilities.
@@ -21,6 +22,11 @@ func (p *Provider) Capabilities() []provider.Capability {
 // NotifyFileChanges forwards file change notifications to the underlying provider.
 func (p *Provider) NotifyFileChanges(ctx context.Context, changes ...provider.FileChange) error {
 	return p.provider.NotifyFileChanges(ctx, changes...)
+}
+
+// GetDependencies returns the flat dependency list from the underlying provider.
+func (p *Provider) GetDependencies(ctx context.Context) (map[uri.URI][]*provider.Dep, error) {
+	return p.provider.GetDependencies(ctx)
 }
 
 // TODO: need to figure out a nice encapsulation of this.

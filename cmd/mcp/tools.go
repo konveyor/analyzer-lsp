@@ -5,11 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/go-logr/logr"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/konveyor/analyzer-lsp/engine/labels"
 	konveyor "github.com/konveyor/analyzer-lsp/output/v1/konveyor"
+	"github.com/konveyor/analyzer-lsp/parser"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"gopkg.in/yaml.v2"
 )
@@ -58,6 +62,9 @@ func registerAnalyzeTool(server *mcpsdk.Server, svc AnalyzerService) {
 		})
 		if err != nil {
 			return nil, nil, err
+		}
+		if input.IncidentSelector != "" {
+			rulesets = filterByIncidentSelector(rulesets, input.IncidentSelector)
 		}
 		return jsonResult(rulesets)
 	})
@@ -126,97 +133,89 @@ type validationResult struct {
 func registerValidateRulesTool(server *mcpsdk.Server, svc AnalyzerService) {
 	mcpsdk.AddTool(server, &mcpsdk.Tool{
 		Name:        "validate_rules",
-		Description: "Validate Konveyor rule YAML syntax and structure. Provide either inline YAML content or a file path. Returns validation errors if any.",
+		Description: "Validate Konveyor rule YAML syntax and structure. Provide either inline YAML content or a file path. Uses the full rule parser to check for structural issues like missing ruleIDs, invalid conditions, and malformed fields.",
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, input validateRulesInput) (*mcpsdk.CallToolResult, any, error) {
-		content := input.RulesContent
-		if content == "" && input.RulesPath != "" {
-			data, err := os.ReadFile(input.RulesPath)
-			if err != nil {
-				return nil, nil, fmt.Errorf("failed to read rules file: %w", err)
-			}
-			content = string(data)
-		}
-		if content == "" {
+		if input.RulesContent == "" && input.RulesPath == "" {
 			return nil, nil, fmt.Errorf("either rules_content or rules_path must be provided")
 		}
 
-		result := validateRuleYAML(content)
+		rulePath := input.RulesPath
+		if input.RulesContent != "" {
+			// Write inline content to a temp file for the parser
+			tmpDir, err := os.MkdirTemp("", "konveyor-validate-*")
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to create temp dir: %w", err)
+			}
+			defer os.RemoveAll(tmpDir)
+
+			tmpFile := filepath.Join(tmpDir, "rules.yaml")
+			if err := os.WriteFile(tmpFile, []byte(input.RulesContent), 0600); err != nil {
+				return nil, nil, fmt.Errorf("failed to write temp rules file: %w", err)
+			}
+			rulePath = tmpFile
+		}
+
+		result := validateRulesWithParser(rulePath)
 		return jsonResult(result)
 	})
 }
 
-func validateRuleYAML(content string) validationResult {
-	var parsed interface{}
-	err := yaml.Unmarshal([]byte(content), &parsed)
+func validateRulesWithParser(rulePath string) validationResult {
+	// First check basic YAML syntax
+	data, err := os.ReadFile(rulePath)
 	if err != nil {
+		return validationResult{
+			Valid:  false,
+			Errors: []string{fmt.Sprintf("failed to read rules file: %v", err)},
+		}
+	}
+
+	var parsed any
+	if err := yaml.Unmarshal(data, &parsed); err != nil {
 		return validationResult{
 			Valid:  false,
 			Errors: []string{fmt.Sprintf("YAML parse error: %v", err)},
 		}
 	}
 
-	// Validate structure: should be a list or a map with expected fields
-	errors := []string{}
-
-	switch v := parsed.(type) {
-	case []interface{}:
-		for i, item := range v {
-			if m, ok := item.(map[interface{}]interface{}); ok {
-				if errs := validateRulesetStructure(m); len(errs) > 0 {
-					for _, e := range errs {
-						errors = append(errors, fmt.Sprintf("ruleset[%d]: %s", i, e))
-					}
-				}
-			} else {
-				errors = append(errors, fmt.Sprintf("ruleset[%d]: expected a mapping, got %T", i, item))
-			}
-		}
-	case map[interface{}]interface{}:
-		if errs := validateRulesetStructure(v); len(errs) > 0 {
-			errors = append(errors, errs...)
-		}
-	default:
-		errors = append(errors, fmt.Sprintf("expected a YAML mapping or list, got %T", parsed))
+	// Use the real rule parser for deep structural validation.
+	// Without providers, rules referencing providers will be skipped
+	// (not errored), but structural issues will be caught.
+	ruleParser := parser.RuleParser{
+		ProviderNameToClient: map[string]provider.InternalProviderClient{},
+		Log:                  logr.Discard(),
 	}
 
-	if len(errors) > 0 {
-		return validationResult{Valid: false, Errors: errors}
-	}
-	return validationResult{Valid: true, Message: "Rule YAML is valid"}
-}
-
-func validateRulesetStructure(m map[interface{}]interface{}) []string {
-	var errors []string
-	knownKeys := map[string]bool{
-		"name": true, "description": true, "labels": true,
-		"tags": true, "rules": true, "when": true, "message": true,
-		"ruleID": true, "effort": true, "perform": true,
-		"category": true, "customVariables": true, "links": true,
-		"tag": true,
-	}
-
-	for k := range m {
-		key := fmt.Sprintf("%v", k)
-		if !knownKeys[key] {
-			// Not an error, just note unknown keys for extensibility
-			_ = key
+	rulesets, _, _, parseErr := ruleParser.LoadRules(rulePath)
+	if parseErr != nil {
+		return validationResult{
+			Valid:  false,
+			Errors: []string{parseErr.Error()},
 		}
 	}
 
-	// Check that if "rules" is present, it's a list
-	if rules, ok := m["rules"]; ok {
-		if _, ok := rules.([]interface{}); !ok && rules != nil {
-			errors = append(errors, "'rules' field must be a list")
-		}
+	ruleCount := 0
+	for _, rs := range rulesets {
+		ruleCount += len(rs.Rules)
 	}
 
-	return errors
+	return validationResult{
+		Valid:   true,
+		Message: fmt.Sprintf("Rule YAML is valid: %d ruleset(s), %d rule(s) loaded", len(rulesets), ruleCount),
+	}
 }
 
 // --- list_rules ---
 
 type listRulesInput struct {
 	LabelSelector string `json:"label_selector,omitempty" jsonschema:"Optional label selector to filter rules"`
+}
+
+// ruleInfoLabeled adapts RuleInfo to the labels.Labeled interface.
+type ruleInfoLabeled RuleInfo
+
+func (r ruleInfoLabeled) GetLabels() []string {
+	return r.Labels
 }
 
 func registerListRulesTool(server *mcpsdk.Server, svc AnalyzerService) {
@@ -228,13 +227,18 @@ func registerListRulesTool(server *mcpsdk.Server, svc AnalyzerService) {
 
 		// Filter by label selector if provided
 		if input.LabelSelector != "" {
+			sel, err := labels.NewLabelSelector[ruleInfoLabeled](input.LabelSelector, nil)
+			if err != nil {
+				return nil, nil, fmt.Errorf("invalid label selector: %w", err)
+			}
 			filtered := []RuleInfo{}
 			for _, r := range rules {
-				for _, label := range r.Labels {
-					if strings.Contains(label, input.LabelSelector) {
-						filtered = append(filtered, r)
-						break
-					}
+				matched, matchErr := sel.Matches(ruleInfoLabeled(r))
+				if matchErr != nil {
+					continue
+				}
+				if matched {
+					filtered = append(filtered, r)
 				}
 			}
 			rules = filtered

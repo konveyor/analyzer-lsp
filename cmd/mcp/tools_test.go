@@ -173,6 +173,57 @@ func TestAnalyzeTool_HappyPath(t *testing.T) {
 	assert.Equal(t, "eap-rules", rulesets[0].Name)
 }
 
+func TestAnalyzeTool_IncidentSelector(t *testing.T) {
+	effort := 3
+	svc := &mockAnalyzerService{
+		analyzeFunc: func(params AnalyzeParams) ([]konveyor.RuleSet, error) {
+			return []konveyor.RuleSet{
+				{
+					Name: "test",
+					Violations: map[string]konveyor.Violation{
+						"rule-001": {
+							Description: "test rule",
+							Effort:      &effort,
+							Incidents: []konveyor.Incident{
+								{
+									URI:     uri.URI("file:///src/a.java"),
+									Message: "match",
+									Variables: map[string]interface{}{
+										"package": "io.konveyor.demo",
+									},
+								},
+								{
+									URI:     uri.URI("file:///src/b.java"),
+									Message: "no match",
+									Variables: map[string]interface{}{
+										"package": "com.other.package",
+									},
+								},
+							},
+						},
+					},
+				},
+			}, nil
+		},
+	}
+
+	server := NewMCPServer(svc)
+	result := callTool(t, server, "analyze", map[string]interface{}{
+		"incident_selector": "package=io.konveyor.demo",
+		"reset_cache":       true,
+	})
+
+	require.False(t, result.IsError)
+	text := result.Content[0].(*mcpsdk.TextContent).Text
+	var rulesets []konveyor.RuleSet
+	err := json.Unmarshal([]byte(text), &rulesets)
+	require.NoError(t, err)
+	require.Len(t, rulesets, 1)
+	incidents := rulesets[0].Violations["rule-001"].Incidents
+	assert.Len(t, incidents, 1)
+	assert.Equal(t, "match", incidents[0].Message)
+}
+
 func TestAnalyzeTool_PassesExcludedPaths(t *testing.T) {
 	svc := &mockAnalyzerService{
 		analyzeFunc: func(params AnalyzeParams) ([]konveyor.RuleSet, error) {
@@ -314,6 +365,31 @@ func TestListRulesTool(t *testing.T) {
 	assert.Equal(t, "eap8-001", rules[0].ID)
 }
 
+func TestListRulesTool_LabelSelector(t *testing.T) {
+	svc := &mockAnalyzerService{
+		listRulesFunc: func() []RuleInfo {
+			return []RuleInfo{
+				{ID: "eap8-001", Description: "EJB migration", Labels: []string{"konveyor.io/target=eap8", "konveyor.io/source=eap6"}, RuleSetName: "eap"},
+				{ID: "quarkus-001", Description: "Quarkus migration", Labels: []string{"konveyor.io/target=quarkus"}, RuleSetName: "quarkus"},
+				{ID: "spring-001", Description: "Spring migration", Labels: []string{"konveyor.io/target=spring"}, RuleSetName: "spring"},
+			}
+		},
+	}
+
+	server := NewMCPServer(svc)
+	result := callTool(t, server, "list_rules", map[string]interface{}{
+		"label_selector": "konveyor.io/target=eap8",
+	})
+
+	require.False(t, result.IsError)
+	text := result.Content[0].(*mcpsdk.TextContent).Text
+	var rules []RuleInfo
+	err := json.Unmarshal([]byte(text), &rules)
+	require.NoError(t, err)
+	require.Len(t, rules, 1)
+	assert.Equal(t, "eap8-001", rules[0].ID)
+}
+
 // --- ValidateRules Tool Tests ---
 
 func TestValidateRulesTool_ValidYAML(t *testing.T) {
@@ -321,11 +397,11 @@ func TestValidateRulesTool_ValidYAML(t *testing.T) {
 
 	server := NewMCPServer(svc)
 	result := callTool(t, server, "validate_rules", map[string]interface{}{
-		"rules_content": `- name: test-ruleset
-  description: A test ruleset
-  rules:
-    - ruleID: test-001
-      message: test message
+		"rules_content": `- ruleID: test-001
+  message: test message
+  when:
+    builtin.file:
+      pattern: "*.go"
 `,
 	})
 
@@ -351,6 +427,25 @@ func TestValidateRulesTool_InvalidYAML(t *testing.T) {
 	err := json.Unmarshal([]byte(text), &vr)
 	require.NoError(t, err)
 	assert.False(t, vr.Valid)
+	assert.NotEmpty(t, vr.Errors)
+}
+
+func TestValidateRulesTool_MissingWhen(t *testing.T) {
+	svc := &mockAnalyzerService{}
+
+	server := NewMCPServer(svc)
+	result := callTool(t, server, "validate_rules", map[string]interface{}{
+		"rules_content": `- ruleID: bad-rule
+  message: missing when block
+`,
+	})
+
+	require.False(t, result.IsError)
+	text := result.Content[0].(*mcpsdk.TextContent).Text
+	var vr validationResult
+	err := json.Unmarshal([]byte(text), &vr)
+	require.NoError(t, err)
+	assert.False(t, vr.Valid, "rule without 'when' block should be invalid")
 	assert.NotEmpty(t, vr.Errors)
 }
 

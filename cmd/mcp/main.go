@@ -21,6 +21,10 @@ func main() {
 			contextLines, _ := cmd.Flags().GetInt("context-lines")
 			transport, _ := cmd.Flags().GetString("transport")
 			httpAddr, _ := cmd.Flags().GetString("http-addr")
+			oauthToken, _ := cmd.Flags().GetString("oauth-token")
+			if oauthToken == "" {
+				oauthToken = os.Getenv("MCP_OAUTH_TOKEN")
+			}
 			verbosity, _ := cmd.Flags().GetInt("verbosity")
 
 			cfg := Config{
@@ -32,6 +36,7 @@ func main() {
 				ContextLines:   contextLines,
 				Transport:      transport,
 				HTTPAddr:       httpAddr,
+				OAuthToken:     oauthToken,
 				Verbosity:      verbosity,
 			}
 
@@ -47,6 +52,7 @@ func main() {
 	rootCmd.Flags().Int("context-lines", 10, "Context lines around incidents")
 	rootCmd.Flags().String("transport", "stdio", "Transport type: stdio or http")
 	rootCmd.Flags().String("http-addr", ":8080", "HTTP listen address (when transport=http)")
+	rootCmd.Flags().String("oauth-token", "", "Bearer token for OAuth 2.1 auth on HTTP transport (env: MCP_OAUTH_TOKEN)")
 	rootCmd.Flags().Int("verbosity", 0, "Log verbosity level")
 
 	if err := rootCmd.Execute(); err != nil {

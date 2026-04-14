@@ -160,7 +160,7 @@ func TestIntegration_FullWorkflow(t *testing.T) {
 	validateResult, err := session.CallTool(ctx, &mcpsdk.CallToolParams{
 		Name: "validate_rules",
 		Arguments: map[string]any{
-			"rules_content": "- name: test\n  rules: []\n",
+			"rules_content": "- ruleID: test-001\n  message: test\n  when:\n    builtin.file:\n      pattern: \"*.go\"\n",
 		},
 	})
 	require.NoError(t, err)
@@ -216,4 +216,75 @@ func TestIntegration_HTTPTransport(t *testing.T) {
 	require.False(t, result.IsError)
 	text := result.Content[0].(*mcpsdk.TextContent).Text
 	assert.Contains(t, text, "builtin")
+}
+
+// TestIntegration_BearerAuth tests OAuth 2.1 Bearer token auth on HTTP transport.
+func TestIntegration_BearerAuth(t *testing.T) {
+	svc := &mockAnalyzerService{
+		listProvidersFunc: func() []ProviderInfo {
+			return []ProviderInfo{
+				{Name: "java", Capabilities: []string{"referenced"}},
+			}
+		},
+	}
+
+	server := NewMCPServer(svc)
+	token := "test-secret-token"
+
+	mcpHandler := mcpsdk.NewStreamableHTTPHandler(func(r *http.Request) *mcpsdk.Server {
+		return server
+	}, nil)
+	handler := bearerAuthMiddleware(token, mcpHandler)
+
+	ts := httptest.NewServer(handler)
+	defer ts.Close()
+
+	ctx := context.Background()
+
+	// Without token — should get 401
+	resp, err := http.Get(ts.URL)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	resp.Body.Close()
+
+	// With wrong token — should get 401
+	req, _ := http.NewRequest("GET", ts.URL, nil)
+	req.Header.Set("Authorization", "Bearer wrong-token")
+	resp, err = http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	resp.Body.Close()
+
+	// With correct token — should work (connect via MCP client)
+	client := mcpsdk.NewClient(&mcpsdk.Implementation{
+		Name:    "auth-test",
+		Version: "1.0.0",
+	}, nil)
+
+	session, err := client.Connect(ctx, &mcpsdk.StreamableClientTransport{
+		Endpoint: ts.URL,
+		HTTPClient: &http.Client{
+			Transport: &bearerTransport{Token: token},
+		},
+	}, nil)
+	require.NoError(t, err)
+	defer session.Close()
+
+	result, err := session.CallTool(ctx, &mcpsdk.CallToolParams{
+		Name: "list_providers",
+	})
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+	text := result.Content[0].(*mcpsdk.TextContent).Text
+	assert.Contains(t, text, "java")
+}
+
+// bearerTransport is an http.RoundTripper that adds a Bearer token.
+type bearerTransport struct {
+	Token string
+}
+
+func (t *bearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Authorization", "Bearer "+t.Token)
+	return http.DefaultTransport.RoundTrip(req)
 }
