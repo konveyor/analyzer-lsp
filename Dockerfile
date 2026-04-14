@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as builder
+FROM registry.access.redhat.com/ubi10/go-toolset:1.25 as builder
 
 USER 0
 WORKDIR /analyzer-lsp
@@ -35,7 +35,7 @@ RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/sr
 
 FROM jaegertracing/all-in-one:latest AS jaeger-builder
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi10/ubi-minimal:latest
 
 COPY --from=jaeger-builder /go/bin/all-in-one-linux /usr/local/bin/all-in-one-linux
 COPY --from=builder /analyzer-lsp/build/konveyor-analyzer /usr/local/bin/konveyor-analyzer
