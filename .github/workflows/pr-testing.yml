@@ -59,6 +59,7 @@ jobs:
           make extract-maven-index-files
           cd external-providers/java-external-provider/
           go mod edit -replace github.com/konveyor/analyzer-lsp=../..
+          go mod tidy
           go test -v ./...
       
       - name: Test Java External Provider
@@ -66,7 +67,8 @@ jobs:
         run: |
           cd external-providers/java-external-provider/
           go mod edit -replace github.com/konveyor/analyzer-lsp=../..
-          go test -timeout=20m -v -skip 'TestConstructArtifactFromSHA' ./... 
+          go mod tidy
+          go test -timeout=20m -v -skip 'TestConstructArtifactFromSHA' ./...
       
       - name: Build binaries
         env:
