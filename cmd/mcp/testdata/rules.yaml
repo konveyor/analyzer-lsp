@@ -1,0 +1,34 @@
+- message: "all go files"
+  ruleID: file-001
+  description: "Testing that we can get all the go files in the project"
+  labels:
+    - "testing"
+    - "konveyor.io/target=testing"
+  category: potential
+  effort: 3
+  when:
+    builtin.file:
+      pattern: "*.go"
+- message: "Found Go module file"
+  ruleID: file-003
+  description: "Detects go.mod files"
+  labels:
+    - "testing"
+    - "konveyor.io/target=testing"
+  category: optional
+  effort: 1
+  when:
+    builtin.file:
+      pattern: "go.mod"
+- message: "Go file contains import statement - '{{{matchingText}}}'"
+  ruleID: filecontent-001
+  description: "Finds import statements in Go files"
+  labels:
+    - "testing"
+    - "konveyor.io/target=testing"
+  category: potential
+  effort: 2
+  when:
+    builtin.filecontent:
+      pattern: "import \\("
+      filePattern: "*.go"

@@ -1,0 +1,10 @@
+[
+    {
+        "name": "builtin",
+        "initConfig": [
+            {
+                "location": "examples/golang/"
+            }
+        ]
+    }
+]

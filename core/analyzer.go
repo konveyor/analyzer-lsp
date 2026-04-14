@@ -304,10 +304,15 @@ func (a *analyzer) Run(options ...EngineOption) []v1.RuleSet {
 	}
 
 	a.log.Info("after defaulting", "options", engineOptions, "labelSelector", a.labelSelector)
-	// TODO: Handle Scopes
-	ruleset := a.engine.RunRulesWithOptions(a.ctx, a.ruleset, []engine.RunOption{
+	runOpts := []engine.RunOption{
 		engine.WithProgressReporter(engineOptions.progressReporter),
-	}, engineOptions.selectors...)
+	}
+	var ruleset []v1.RuleSet
+	if engineOptions.Scope != nil {
+		ruleset = a.engine.RunRulesScopedWithOptions(a.ctx, a.ruleset, engineOptions.Scope, runOpts, engineOptions.selectors...)
+	} else {
+		ruleset = a.engine.RunRulesWithOptions(a.ctx, a.ruleset, runOpts, engineOptions.selectors...)
+	}
 
 	sort.SliceStable(ruleset, func(i, j int) bool {
 		return ruleset[i].Name < ruleset[j].Name
