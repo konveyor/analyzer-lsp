@@ -418,17 +418,32 @@ func (g *grpcProvider) NotifyFileChanges(ctx context.Context, changes ...provide
 	return provider.FullNotifyFileChangesResponse(ctx, g.serviceClients, changes...)
 }
 
+// subprocessName is the value passed to external provider binaries as --name and
+// used as the Unix socket temp-file prefix (see socket.GetAddress).
+//
+// Order: (1) non-empty lspServerName from the first init config — matches how
+// Go/Python/Node external providers select their LSP stack and keep go/python/node rules
+// that expect e.g. "generic" / "pylsp"; (2) provider Config.Name when set — for
+// binaries with no lspServerName (e.g. yq, or java with only block name); (3) "generic".
+func subprocessName(config provider.Config) string {
+	if len(config.InitConfig) > 0 {
+		pc := config.InitConfig[0].ProviderSpecificConfig
+		if pc != nil {
+			if s, ok := pc["lspServerName"].(string); ok && s != "" {
+				return s
+			}
+		}
+	}
+	if config.Name != "" {
+		return config.Name
+	}
+	return "generic"
+}
+
 func start(ctx context.Context, config provider.Config, log logr.Logger) (*grpc.ClientConn, io.ReadCloser, error) {
 	// Here the Provider will start the GRPC Server if a binary is set.
 	if config.BinaryPath != "" {
-		ic := config.InitConfig
-		// For the generic external provider
-		name := "generic"
-		if len(ic) != 0 {
-			if newName, ok := ic[0].ProviderSpecificConfig["lspServerName"].(string); ok {
-				name = newName
-			}
-		}
+		name := subprocessName(config)
 
 		var cmd *exec.Cmd
 		var connectionString string

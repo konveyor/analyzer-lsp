@@ -1,21 +1,20 @@
 [
     {
         "name": "go",
-        "binaryPath": "/usr/local/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/go-external-provider",
         "useSocket": true,
         "initConfig": [
             {
                 "analysisMode": "full",
                 "providerSpecificConfig": {
-                    "lspServerName": "generic",
+                    "lspServerName": "go",
                     "lspServerPath": "/usr/local/bin/gopls",
                     "lspServerArgs": [],
                     "lspServerInitializationOptions": "",
                     "workspaceFolders": [
                         "file:///analyzer-lsp/examples/golang"
                     ],
-                    "dependencyFolders": [],
-                    "dependencyProviderPath": "/usr/local/bin/golang-dependency-provider"
+                    "dependencyFolders": []
                 }
             }
         ]
@@ -36,12 +35,12 @@
     },
     {
         "name": "python",
-        "binaryPath": "/usr/local/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/python-external-provider",
         "initConfig": [
             {
                 "analysisMode": "full",
                 "providerSpecificConfig": {
-                    "lspServerName": "pylsp",
+                    "lspServerName": "python",
                     "lspServerPath": "/usr/local/bin/pylsp",
                     "lspServerArgs": [],
                     "lspServerInitializationOptions": "",
@@ -59,7 +58,7 @@
     },
     {
         "name": "nodejs",
-        "binaryPath": "/usr/local/bin/generic-external-provider",
+        "binaryPath": "/usr/local/bin/nodejs-external-provider",
         "initConfig": [
             {
                 "analysisMode": "full",

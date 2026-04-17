@@ -68,7 +68,7 @@ The project includes automated tests for all providers and the analyzer engine.
 make test-all
 ```
 
-This runs tests for all providers (Java, Generic, YAML) and the analyzer engine.
+This runs tests for all providers (Java, Go, Python, Node.js, YAML) and the analyzer engine.
 
 ### Test Individual Providers
 
@@ -76,23 +76,16 @@ This runs tests for all providers (Java, Generic, YAML) and the analyzer engine.
 # Test Java provider
 make test-java
 
-# Test all generic providers (Go, Python, Node.js)
-make test-generic
+# Test Go / Python / Node.js LSP providers (separate targets)
+make test-go
+make test-python
+make test-nodejs
 
 # Test YAML provider
 make test-yaml
 
 # Test analyzer engine with all providers
 make test-analyzer
-```
-
-### Test Specific Generic Providers
-
-```sh
-# Test individual generic providers
-make test-golang
-make test-python
-make test-nodejs
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed testing instructions and troubleshooting.

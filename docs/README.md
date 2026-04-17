@@ -2,7 +2,7 @@
 
 ## User Documentation
 
-* [Providers](./providers.md) - Configure language providers for analysis
+* [Providers](./providers.md) - Configure language providers for analysis (includes [migrating from the removed generic-external-provider](./providers.md#migrating-from-generic-external-provider))
 * [Rules](./rules.md) - Write and understand analysis rules
 * [Output](./output.md) - Understand analyzer output format
 * [Rule Labels](./labels.md) - Use labels to filter and organize rules

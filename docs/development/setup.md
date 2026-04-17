@@ -210,8 +210,9 @@ make build
 This creates in `build/`:
 - `konveyor-analyzer` - Main analyzer CLI
 - `konveyor-analyzer-dep` - Dependency analyzer CLI
-- `generic-external-provider` - Go/Python/Node.js provider
-- `golang-dependency-provider` - Go dependency provider
+- `go-external-provider` - Go (gopls) provider
+- `python-external-provider` - Python (pylsp) provider
+- `nodejs-external-provider` - Node.js provider
 - `yq-external-provider` - YAML provider
 - `java-external-provider` - Java provider
 
@@ -232,24 +233,24 @@ make build-external
 This builds:
 - `localhost/analyzer-lsp:latest`
 - `localhost/java-provider:latest`
-- `localhost/generic-provider:latest`
-- `localhost/golang-dep-provider:latest`
+- `localhost/go-external-provider:latest`
+- `localhost/python-external-provider:latest`
+- `localhost/nodejs-external-provider:latest`
 - `localhost/yq-provider:latest`
 
 ### Building Individual Providers
 
 ```bash
-# Generic provider (Go/Python/Node.js)
-make external-generic
+# Go / Python / Node.js LSP providers
+make external-go-provider
+make external-python-provider
+make external-nodejs-provider
 
 # Java provider
 make java-external-provider
 
 # YAML provider
 make yq-external-provider
-
-# Go dependency provider
-make golang-dependency-provider
 ```
 
 ### Platform-Specific Builds
@@ -388,10 +389,10 @@ Log levels:
 Run provider standalone:
 
 ```bash
-# Generic provider (Go example)
-./build/generic-external-provider \
+# Go LSP provider (lspServerName / --name is typically "generic" for golang rules)
+./build/go-external-provider \
   --port 14653 \
-  --name gopls
+  --name generic
 
 # In another terminal, attach analyzer
 go run cmd/analyzer/main.go \
@@ -471,8 +472,8 @@ go mod download
 brew install gnu-sed
 
 # Or run build commands directly
-cd external-providers/generic-external-provider
-go build -o ../../build/generic-external-provider main.go
+cd external-providers/go-external-provider
+go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go build -o ../../build/go-external-provider main.go
 ```
 
 #### Container Image Issues
