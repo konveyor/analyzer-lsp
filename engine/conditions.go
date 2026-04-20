@@ -319,12 +319,45 @@ type ChainTemplate struct {
 // ToMap converts the ChainTemplate to a map suitable for mustache template rendering.
 // All fields are always exposed (even if empty) to ensure templates can reliably
 // reference them without worrying about undefined values.
+// Filepaths and ExcludedPaths are rendered as YAML flow-sequence strings so that
+// paths containing special characters (e.g. [Content_Types].xml, spaces) remain
+// valid when the rendered condition is parsed by the builtin provider.
 func (c *ChainTemplate) ToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"filepaths":     c.Filepaths,
-		"excludedPaths": c.ExcludedPaths,
+		"filepaths":     sliceToYAMLFlowString(c.Filepaths),
+		"excludedPaths": sliceToYAMLFlowString(c.ExcludedPaths),
 		"extras":        c.Extras,
 	}
+}
+
+// sliceToYAMLFlowString formats a string slice as a YAML flow sequence (e.g. ["a", "path with space"])
+// so that the result is valid YAML when substituted into a condition and parsed by yaml.Unmarshal.
+// Paths containing special characters are single-quoted; single quotes inside are escaped as ''.
+func sliceToYAMLFlowString(paths []string) string {
+	if len(paths) == 0 {
+		return "[]"
+	}
+	parts := make([]string, len(paths))
+	for i, p := range paths {
+		parts[i] = quoteYAMLFlowScalar(p)
+	}
+	return "[" + strings.Join(parts, ", ") + "]"
+}
+
+// quoteYAMLFlowScalar returns a YAML flow scalar that can be used inside a flow sequence.
+// If the string contains no special characters it is returned as-is; otherwise it is
+// wrapped in single quotes with internal single quotes escaped as ''.
+func quoteYAMLFlowScalar(s string) string {
+	if s == "" {
+		return "''"
+	}
+	for _, r := range s {
+		switch r {
+		case ' ', '[', ']', ':', '#', ',', '{', '}', '\'', '"', '\n', '\t', '&', '*', '!', '|', '>', '%', '@', '`':
+			return "'" + strings.ReplaceAll(s, "'", "''") + "'"
+		}
+	}
+	return s
 }
 
 func (c *ChainTemplate) FilterIncidentsByFilePaths(incidents []IncidentContext) []IncidentContext {
