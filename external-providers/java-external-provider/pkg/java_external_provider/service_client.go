@@ -25,22 +25,23 @@ import (
 )
 
 type javaServiceClient struct {
-	rpc                provider.RPCClient
-	cancelFunc         context.CancelFunc
-	config             provider.InitConfig
-	log                logr.Logger
-	cmd                *exec.Cmd
-	bundles            []string
-	workspace          string
-	globalSettings     string
-	includedPaths      []string
-	cleanExplodedBins  []string
-	activeRPCCalls     sync.WaitGroup
-	depsLocationCache  map[string]int
-	buildTool          bldtool.BuildTool
-	mvnIndexPath       string
-	mvnSettingsFile    string
-	jdtlsProcessExited *chan bool
+	rpc                 provider.RPCClient
+	cancelFunc          context.CancelFunc
+	config              provider.InitConfig
+	log                 logr.Logger
+	cmd                 *exec.Cmd
+	bundles             []string
+	workspace           string
+	globalSettings      string
+	includedPaths       []string
+	cleanExplodedBins   []string
+	activeRPCCalls      sync.WaitGroup
+	depsLocationCache   map[string]int
+	buildTool           bldtool.BuildTool
+	mvnIndexPath        string
+	mvnSettingsFile     string
+	jdtlsProcessExited  *chan bool
+	workspaceReady      chan struct{} // closed when JDTLS workspace import is complete
 }
 
 var _ provider.ServiceClient = &javaServiceClient{}
@@ -109,7 +110,14 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 }
 
 func (p *javaServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
-	return nil
+	p.log.Info("waiting for JDTLS workspace to be ready")
+	select {
+	case <-p.workspaceReady:
+		p.log.Info("JDTLS workspace is ready, proceeding with evaluation")
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled while waiting for JDTLS workspace import to complete: %w", ctx.Err())
+	}
 }
 
 func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, condCTX *provider.ProviderContext) ([]protocol.WorkspaceSymbol, error) {
@@ -422,7 +430,11 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
 	params := &protocol.InitializeParams{}
 	params.RootURI = string(uri.File(absLocation))
-	params.Capabilities = protocol.ClientCapabilities{}
+	params.Capabilities = protocol.ClientCapabilities{
+		Window: &protocol.WindowClientCapabilities{
+			WorkDoneProgress: true,
+		},
+	}
 	params.ExtendedClientCapilities = map[string]any{
 		"classFileContentsSupport": true,
 	}

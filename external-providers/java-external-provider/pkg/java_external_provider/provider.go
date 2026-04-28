@@ -417,6 +417,9 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	if config.RPC != nil {
+		// Pre-existing RPC connection — JDTLS is assumed to be already ready
+		alreadyReady := make(chan struct{})
+		close(alreadyReady)
 		return &javaServiceClient{
 			rpc:               config.RPC,
 			config:            config,
@@ -426,6 +429,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 			buildTool:         buildTool,
 			mvnIndexPath:      mavenOpenSourceIndex,
 			mvnSettingsFile:   mavenSettingsFile,
+			workspaceReady:    alreadyReady,
 		}, provider.InitConfig{}, nil
 	} else if lspServerPath == "" {
 		return nil, additionalBuiltinConfig, fmt.Errorf("invalid lspServerPath provided, unable to init java provider")
@@ -542,8 +546,20 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// Create a shared input,ouput dialer
 	dialer := base.NewStdDialer(stdin, stdout)
 
+	// Set up workspace readiness tracking via JDTLS progress notifications.
+	// The workspaceReady channel is closed when JDTLS signals that workspace
+	// import (Maven/Gradle) is complete, either via $/progress or language/status.
+	workspaceReady := make(chan struct{})
+	if buildTool == nil {
+		// No Maven/Gradle build tool — there is no project import to wait for.
+		// Pre-close the channel so Prepare() returns immediately.
+		log.Info("no build tool detected, skipping workspace import wait")
+		close(workspaceReady)
+	}
+	progressHandler := newJDTLSProgressHandler(log, workspaceReady)
+
 	rpc, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{
-		Handler: &base.DefaultHandler{},
+		Handler: base.NewChainHandler(&base.DefaultHandler{}, progressHandler),
 	})
 	if err != nil {
 		cancelFunc()
@@ -552,20 +568,21 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	}
 
 	svcClient := javaServiceClient{
-		rpc:                rpc,
-		cancelFunc:         cancelFunc,
-		config:             config,
-		cmd:                cmd,
-		bundles:            bundles,
-		workspace:          workspace,
-		log:                log,
-		globalSettings:     globalSettingsFile,
-		depsLocationCache:  make(map[string]int),
-		includedPaths:      provider.GetIncludedPathsFromConfig(config, false),
-		buildTool:          buildTool,
-		mvnIndexPath:       mavenOpenSourceIndex,
-		mvnSettingsFile:    mavenSettingsFile,
-		jdtlsProcessExited: &jdtlsProcessExited,
+		rpc:                 rpc,
+		cancelFunc:          cancelFunc,
+		config:              config,
+		cmd:                 cmd,
+		bundles:             bundles,
+		workspace:           workspace,
+		log:                 log,
+		globalSettings:      globalSettingsFile,
+		depsLocationCache:   make(map[string]int),
+		includedPaths:       provider.GetIncludedPathsFromConfig(config, false),
+		buildTool:           buildTool,
+		mvnIndexPath:        mavenOpenSourceIndex,
+		mvnSettingsFile:     mavenSettingsFile,
+		jdtlsProcessExited:  &jdtlsProcessExited,
+		workspaceReady:      workspaceReady,
 	}
 
 	svcClient.initialization(ctx)
