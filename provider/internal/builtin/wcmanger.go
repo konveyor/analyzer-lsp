@@ -30,6 +30,8 @@ type workingCopyManager struct {
 	wcMutex       sync.RWMutex
 	workingCopies map[string]workingCopy
 	tempDir       string
+
+	cacheRefreshChan chan<- cacheRefreshRequest
 }
 
 func (t *workingCopyManager) init() error {
@@ -105,6 +107,8 @@ func (t *workingCopyManager) startWorker() {
 			if !ok {
 				return
 			}
+			originalPath := change.Path
+
 			// we need to get rid of volume label on windows
 			var drive string
 			if runtime.GOOS == "windows" {
@@ -146,6 +150,16 @@ func (t *workingCopyManager) startWorker() {
 					drive:    drive,
 				}
 				t.wcMutex.Unlock()
+				// Working copy written — re-cache from the temp file
+				if t.cacheRefreshChan != nil {
+					select {
+					case t.cacheRefreshChan <- cacheRefreshRequest{
+						originalPath: originalPath,
+						contentPath:  wcPath,
+					}:
+					case <-t.ctx.Done():
+					}
+				}
 			}
 		}
 	}

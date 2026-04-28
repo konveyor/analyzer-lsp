@@ -49,8 +49,49 @@ type IncludeExcludeConstraints struct {
 // 2. Rule scope constraints
 // 3. Provider config level constraints
 func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
+	return f.search(s, newCachedWalkDir())
+}
+
+// isWithinBase returns true if targetPath is at or under basePath.
+// Uses filepath.Rel for correct boundary checks (avoids false positives
+// where e.g. "/repo/app2" would match prefix "/repo/app").
+func isWithinBase(basePath, targetPath string) bool {
+	rel, err := filepath.Rel(filepath.Clean(basePath), filepath.Clean(targetPath))
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)))
+}
+
+// SearchFromIndex applies the same filtering logic as Search but against
+// a pre-built file index instead of walking the filesystem. AdditionalPaths
+// are still walked on the real filesystem since they may contain files
+// outside the index (e.g., working copy temp directories).
+func (f *FileSearcher) SearchFromIndex(index []string, s SearchCriteria) ([]string, error) {
+	fsWalk := newCachedWalkDir()
+	walk := func(path string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
+		if !isWithinBase(f.BasePath, path) {
+			// Additional paths (working copies) — walk real filesystem
+			return fsWalk(path, excludedDirs, excludedPatterns)
+		}
+		// Filter index in memory. Exclusions are applied later by search()
+		// via filterFilesByPathsOrPatterns, so we only need path containment here.
+		var files []string
+		for _, file := range index {
+			if isWithinBase(path, file) {
+				files = append(files, file)
+			}
+		}
+		return files, nil
+	}
+	return f.search(s, walk)
+}
+
+// search is the internal implementation shared by Search and SearchFromIndex.
+// The walkDirFunc parameter controls how files are discovered — either via
+// filesystem walk (Search) or by filtering a pre-built index (SearchFromIndex).
+func (f *FileSearcher) search(s SearchCriteria, walkDirFunc cachedWalkDir) ([]string, error) {
 	statFunc := newCachedOsStat()
-	walkDirFunc := newCachedWalkDir()
 	walkErrors := []error{}
 
 	f.Log.V(5).Info("searching for files", "criteria", s, "additionalPaths", f.AdditionalPaths,
@@ -216,7 +257,7 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				absPath = filepath.Join(f.BasePath, pattern)
 			}
 			if stat, statErr := statFunc(absPath); statErr == nil {
-				if stat.IsDir() && strings.HasPrefix(file, absPath) {
+				if stat.IsDir() && isWithinBase(absPath, file) {
 					patternMatched = true
 				} else if !stat.IsDir() {
 					if absPath == file {
@@ -234,7 +275,7 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				}
 				// try matching as go regex pattern
 				var relPath string
-				if strings.HasPrefix(file, f.BasePath) {
+				if isWithinBase(f.BasePath, file) {
 					// This is not in a working copy manager or some other additional path
 					// We want to just search for matches within the base path.
 					var err error
@@ -244,7 +285,10 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 							"this should not happen, please file a bug", "basePath", f.BasePath, "filePath", file)
 						continue
 					}
-					relPath = filepath.Join(string(os.PathSeparator), relPath)
+						// Normalize to forward slashes for pattern matching.
+					// Regex patterns use '/' as directory separator since
+					// '\' is the regex escape character on all platforms.
+					relPath = "/" + filepath.ToSlash(relPath)
 				} else if slices.Contains(f.AdditionalPaths, file) {
 					// When this comes from an addional path, we won't know
 					// where to search from, so fall back to the full file path.
