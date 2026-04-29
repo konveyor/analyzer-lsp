@@ -286,7 +286,7 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 	ruleContext := r.runTaggingRules(ctx, taggingRules, mapRuleSets, conditionContext, scopes, cfg)
 
 	// Need a better name for this thing
-	ret := make(chan response)
+	ret := make(chan response, len(otherRules))
 
 	ranRules := len(taggingRules)
 	var matchedRules int32
@@ -360,8 +360,14 @@ func (r *ruleEngine) RunRulesScopedWithOptions(ctx context.Context, ruleSets []R
 		rule.conditionContext = newContext
 		rule.scope = scopes
 		rule.carrier = carrier
-		r.ruleProcessing <- rule
+		select {
+		case r.ruleProcessing <- rule:
+		case <-ctx.Done():
+			wg.Done()
+			goto dispatchDone
+		}
 	}
+dispatchDone:
 	r.logger.V(5).Info("All rules added buffer, waiting for engine to complete", "size", len(otherRules))
 
 	done := make(chan struct{})

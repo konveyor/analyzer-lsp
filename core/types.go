@@ -114,7 +114,7 @@ func NewAnalyzer(options ...AnalyzerOption) (Analyzer, error) {
 			}
 		}
 
-		prov, err := lib.GetProviderClient(config, log, opts.progress)
+		prov, err := lib.GetProviderClient(ctx, config, log, opts.progress)
 		if err != nil {
 			providerErrors = append(providerErrors, err)
 			continue
