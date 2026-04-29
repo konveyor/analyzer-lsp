@@ -550,12 +550,6 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// The workspaceReady channel is closed when JDTLS signals that workspace
 	// import (Maven/Gradle) is complete, either via $/progress or language/status.
 	workspaceReady := make(chan struct{})
-	if buildTool == nil {
-		// No Maven/Gradle build tool — there is no project import to wait for.
-		// Pre-close the channel so Prepare() returns immediately.
-		log.Info("no build tool detected, skipping workspace import wait")
-		close(workspaceReady)
-	}
 	progressHandler := newJDTLSProgressHandler(log, workspaceReady)
 
 	rpc, err := jsonrpc2.Dial(ctx, dialer, jsonrpc2.ConnectionOptions{
