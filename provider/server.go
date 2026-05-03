@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"os"
@@ -164,7 +163,7 @@ func (s *server) Start(ctx context.Context) error {
 	reflection.Register(gs)
 	s.Log.Info(fmt.Sprintf("server listening at %v", listen.Addr()))
 	if err := gs.Serve(listen); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		return fmt.Errorf("failed to serve: %v", err)
 	}
 	return nil
 }
