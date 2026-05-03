@@ -163,7 +163,7 @@ func (s *server) Start(ctx context.Context) error {
 	reflection.Register(gs)
 	s.Log.Info(fmt.Sprintf("server listening at %v", listen.Addr()))
 	if err := gs.Serve(listen); err != nil {
-		return fmt.Errorf("failed to serve: %v", err)
+		return fmt.Errorf("failed to serve: %w", err)
 	}
 	return nil
 }
