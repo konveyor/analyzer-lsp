@@ -6,6 +6,7 @@
 target/
 *.metadata*
 jdt.ls-java-project
+examples/c-sharp-dummy-example/obj/
 examples/java/*.project
 examples/python/.venv
 examples/python/__pycache__
