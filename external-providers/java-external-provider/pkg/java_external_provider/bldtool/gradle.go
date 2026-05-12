@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency"
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
+	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/gradletasks"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"go.lsp.dev/uri"
 )
@@ -135,7 +136,17 @@ func (g *gradleBuildTool) GetSourceFileLocation(path string, jarPath string, jav
 }
 
 func (g *gradleBuildTool) GetLocalRepoPath() string {
-	return ""
+	// Return the Gradle cache path where dependencies are stored
+	// JDTLS will use Gradle's classpath to find sources, which are in hash subdirectories
+	gradleHome := os.Getenv("GRADLE_USER_HOME")
+	if gradleHome != "" {
+		return filepath.Join(gradleHome, "caches", "modules-2", "files-2.1")
+	}
+	home := os.Getenv("HOME")
+	if home == "" {
+		home = "/root"
+	}
+	return filepath.Join(home, ".gradle", "caches", "modules-2", "files-2.1")
 }
 
 // getDependenciesForGradle invokes the Gradle wrapper to get the dependency tree and returns all project dependencies
@@ -341,17 +352,22 @@ func (g *gradleBuildTool) GetGradleVersion(ctx context.Context) (version.Version
 	args := []string{
 		"--version",
 	}
+	java8Home := os.Getenv("JAVA8_HOME")
+	g.log.V(5).Info("attempting to get Gradle version with Java 8", "wrapper", exe, "java8Home", java8Home)
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Dir = filepath.Dir(g.hashFile)
-	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA8_HOME")))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", java8Home))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		g.log.V(5).Info("Gradle version check with Java 8 failed, trying with default JAVA_HOME", "error", err, "output", string(output))
 		// if executing with 8 we get an error, try with 17
+		javaHome := os.Getenv("JAVA_HOME")
 		cmd = exec.CommandContext(ctx, exe, args...)
 		cmd.Dir = filepath.Dir(g.hashFile)
-		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", os.Getenv("JAVA_HOME")))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 		output, err = cmd.CombinedOutput()
 		if err != nil {
+			g.log.Info("failed to get Gradle version", "wrapper", exe, "javaHome", javaHome, "error", err, "output", string(output))
 			return version.Version{}, fmt.Errorf("error trying to get Gradle version: %w - Gradle output: %s", err, string(output))
 		}
 	}
@@ -385,4 +401,126 @@ func (g *gradleBuildTool) GetJavaHomeForGradle(ctx context.Context) (string, err
 		return java8home, nil
 	}
 	return os.Getenv("JAVA_HOME"), nil
+}
+
+// ResolveDependenciesToCache executes a Gradle task that downloads all dependency JARs to the Gradle cache.
+// This ensures that JDTLS has access to dependency classes for analysis.
+// Returns nil on success, or logs and returns nil on failure (graceful degradation).
+func (g *gradleBuildTool) ResolveDependenciesToCache(ctx context.Context) error {
+	g.log.Info("resolving Gradle dependencies to cache")
+
+	// Be defensive - if we can't get basic Gradle info, skip resolution rather than fail
+	gradleVersion, err := g.GetGradleVersion(ctx)
+	if err != nil {
+		g.log.Info("unable to get Gradle version, skipping dependency pre-resolution", "error", err)
+		return nil // Don't fail initialization, just skip this optimization
+	}
+
+	// Determine which task content to use based on Gradle version
+	gradle9version, _ := version.NewVersion("9.0")
+	var taskContent string
+	if gradleVersion.GreaterThanOrEqual(gradle9version) {
+		taskContent = gradletasks.ResolveDepsTaskGradle9
+		g.log.Info("using Gradle 9+ resolve-deps task (embedded)", "version", gradleVersion.String())
+	} else {
+		taskContent = gradletasks.ResolveDepsTaskGradle
+		g.log.Info("using Gradle <9 resolve-deps task (embedded)", "version", gradleVersion.String())
+	}
+
+	javaHome, err := g.GetJavaHomeForGradle(ctx)
+	if err != nil {
+		g.log.Info("unable to get Java home, skipping dependency pre-resolution", "error", err)
+		return nil // Don't fail initialization
+	}
+
+	wrapper, err := g.GetGradleWrapper()
+	if err != nil {
+		g.log.Info("unable to get Gradle wrapper, skipping dependency pre-resolution", "error", err)
+		return nil // Don't fail initialization
+	}
+
+	var args []string
+	gradle9OrNewer := gradleVersion.GreaterThanOrEqual(gradle9version)
+
+	if !gradle9OrNewer {
+		// Gradle < 9: use a temp combined build file and --build-file
+		buildContent, err := os.ReadFile(g.hashFile)
+		if err != nil {
+			return fmt.Errorf("error reading build file %s: %w", g.hashFile, err)
+		}
+		combinedFile, err := os.CreateTemp(filepath.Dir(g.hashFile), ".konveyor-resolve-deps-*.gradle")
+		if err != nil {
+			return fmt.Errorf("error creating temporary build file: %w", err)
+		}
+		combinedPath := combinedFile.Name()
+		defer os.Remove(combinedPath)
+
+		// Write original build.gradle content
+		if _, err := combinedFile.Write(buildContent); err != nil {
+			combinedFile.Close()
+			return fmt.Errorf("error writing to temporary build file: %w", err)
+		}
+		// Append embedded task content
+		if _, err := combinedFile.Write(append([]byte("\n"), []byte(taskContent)...)); err != nil {
+			combinedFile.Close()
+			return fmt.Errorf("error writing task content to temporary build file: %w", err)
+		}
+		if err := combinedFile.Close(); err != nil {
+			return fmt.Errorf("error closing temporary build file: %w", err)
+		}
+
+		g.log.V(5).Info("created temporary combined build file", "path", combinedPath)
+		args = []string{"--build-file", combinedPath, "konveyorResolveDependencies", "--no-daemon"}
+	} else {
+		// Gradle 9+: --build-file was removed in 9.0.0; use file rename approach
+		taskgb := filepath.Join(filepath.Dir(g.hashFile), "tmp-resolve-deps.gradle")
+		if err := dependency.CopyFile(g.hashFile, taskgb); err != nil {
+			return fmt.Errorf("error copying file %s to %s: %w", g.hashFile, taskgb, err)
+		}
+		defer os.Remove(taskgb)
+
+		// Append embedded task content to the copied file
+		f, err := os.OpenFile(taskgb, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return fmt.Errorf("error opening file %s for append: %w", taskgb, err)
+		}
+		if _, err := f.Write(append([]byte("\n"), []byte(taskContent)...)); err != nil {
+			f.Close()
+			return fmt.Errorf("error appending task content to %s: %w", taskgb, err)
+		}
+		f.Close()
+
+		tmpgbname := filepath.Join(filepath.Dir(g.hashFile), "toberenamed-resolve-deps.gradle")
+		if err := os.Rename(g.hashFile, tmpgbname); err != nil {
+			return fmt.Errorf("error renaming file %s to %s: %w", g.hashFile, tmpgbname, err)
+		}
+		defer os.Rename(tmpgbname, g.hashFile)
+		if err := os.Rename(taskgb, g.hashFile); err != nil {
+			return fmt.Errorf("error renaming file %s to %s: %w", taskgb, g.hashFile, err)
+		}
+		defer os.Remove(g.hashFile)
+		args = []string{"konveyorResolveDependencies", "--no-daemon"}
+	}
+
+	timeout, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
+
+	cmd := exec.CommandContext(timeout, wrapper, args...)
+	cmd.Dir = filepath.Dir(g.hashFile)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("JAVA_HOME=%s", javaHome))
+
+	g.log.Info("executing Gradle dependency resolution", "wrapper", wrapper, "args", args, "dir", filepath.Dir(g.hashFile), "javaHome", javaHome)
+	output, err := cmd.CombinedOutput()
+
+	// Always log the output for debugging, regardless of success/failure
+	g.log.Info("Gradle dependency resolution output", "output", string(output))
+
+	if err != nil {
+		g.log.Info("Gradle dependency resolution completed with warnings or errors", "error", err)
+		// Don't fail hard - some dependencies may not resolve but analysis can still proceed
+		return nil
+	}
+
+	g.log.Info("Gradle dependency resolution completed successfully")
+	return nil
 }

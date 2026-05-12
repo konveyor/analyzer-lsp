@@ -161,3 +161,14 @@ func GetBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	}
 	return nil
 }
+
+// ResolveGradleDependenciesToCache attempts to download all dependency JARs to the Gradle cache
+// if the provided BuildTool is a Gradle project. This ensures JDTLS has access to dependency
+// classes for analysis. Returns nil if not a Gradle project or if resolution succeeds.
+func ResolveGradleDependenciesToCache(ctx context.Context, bt BuildTool) error {
+	if gradleTool, ok := bt.(*gradleBuildTool); ok {
+		return gradleTool.ResolveDependenciesToCache(ctx)
+	}
+	// Not a Gradle project, nothing to do
+	return nil
+}

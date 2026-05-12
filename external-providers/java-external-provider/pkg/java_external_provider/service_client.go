@@ -440,6 +440,15 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	}
 	// See https://github.com/eclipse-jdtls/eclipse.jdt.ls/blob/1a3dd9323756113bf39cfab82746d57a2fd19474/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/preferences/Preferences.java
 	java8home := os.Getenv("JAVA8_HOME")
+	gradleUserHome := os.Getenv("GRADLE_USER_HOME")
+	if gradleUserHome == "" {
+		// Default to standard Gradle user home if not set
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			gradleUserHome = filepath.Join(homeDir, ".gradle")
+		}
+	}
+
 	params.InitializationOptions = map[string]any{
 		"bundles":          absBundles,
 		"workspaceFolders": []string{string(uri.File(absLocation))},
@@ -459,8 +468,18 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 				},
 				"import": map[string]any{
 					"gradle": map[string]any{
+						"enabled": true,
+						"wrapper": map[string]any{
+							"enabled": true,
+						},
+						"offline": map[string]any{
+							"enabled": false,
+						},
 						"java": map[string]any{
 							"home": java8home,
+						},
+						"user": map[string]any{
+							"home": gradleUserHome,
 						},
 					},
 				},
