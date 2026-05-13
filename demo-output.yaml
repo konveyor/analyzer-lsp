@@ -334,6 +334,16 @@
           13                 HttpResponseMessage response = await client.GetAsync(url);
           14                 response.EnsureSuccessStatusCode(); // Throws an exception if the HTTP status code is not 2xx
           15                 string responseBody = await response.Content.ReadAsStringAsync();
+          15                 string responseBody = await response.Content.ReadAsStringAsync();
+          16                 Console.WriteLine(responseBody);
+          17             }
+          18             catch (HttpRequestException e)
+          19             {
+          20                 Console.WriteLine($"Request exception: {e.Message}");
+          21             }
+          22         }
+          23     }
+          24 }
         lineNumber: 16
         variables:
           file: file:///analyzer-lsp/examples/c-sharp-dummy-example/Program.cs
@@ -355,6 +365,11 @@
           17             }
           18             catch (HttpRequestException e)
           19             {
+          20                 Console.WriteLine($"Request exception: {e.Message}");
+          21             }
+          22         }
+          23     }
+          24 }
         lineNumber: 20
         variables:
           file: file:///analyzer-lsp/examples/c-sharp-dummy-example/Program.cs
