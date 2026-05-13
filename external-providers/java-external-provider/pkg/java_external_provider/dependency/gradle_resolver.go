@@ -148,18 +148,17 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 	cacheRoot := filepath.Join(gradleHome, "caches", "modules-2")
 
 	if len(unresolvedSources) > 0 {
-		// Gradle cache dir structure changes over time - we need to find where the actual dependencies are stored
-		cache, err := g.findGradleCache(unresolvedSources[0].GroupId)
-		if err != nil {
-			return "", "", err
-		}
+		// Modern Gradle versions (4.0+) use a consistent cache structure: modules-2/files-2.1
+		// Older versions may differ, but we primarily support Gradle 4+
+		gradleHome := g.findGradleHome()
+		cacheFiles21 := filepath.Join(gradleHome, "caches", "modules-2", "files-2.1")
 		decompiler, err := getDecompiler(DecompilerOpts{
 			DecompileTool:  g.decompileTool,
 			log:            g.log,
 			workers:        DefaultWorkerPoolSize,
 			labler:         g.labeler,
 			mavenIndexPath: g.mvnIndexPath,
-			m2Repo:         cache,
+			m2Repo:         cacheRoot, // Use cacheRoot (modules-2) for decompiler, not files-2.1
 		})
 		if err != nil {
 			return "", "", err
@@ -195,12 +194,19 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 			// Gradle cache structure: cache/groupId/artifactId/version/hash/file.jar
 			// Note: Unlike Maven, Gradle cache keeps groupId with dots (not converted to slashes)
 			// e.g., io.konveyor.demo not io/konveyor/demo
-			artifactDir := filepath.Join(cache, artifact.GroupId, artifact.ArtifactId, artifact.Version)
+			artifactDir := filepath.Join(cacheFiles21, artifact.GroupId, artifact.ArtifactId, artifact.Version)
 			jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
 			artifactPath, err := g.findGradleArtifact(artifactDir, jarName)
 			if err != nil {
-				cancelFunc()
-				return "", "", err
+				// Artifact not found in cache - log warning and skip
+				// This can happen when a transitive dependency is excluded or the dependency resolution
+				// task didn't fully resolve all dependencies
+				g.log.V(3).Info("artifact not found in cache, skipping decompilation",
+					"groupId", artifact.GroupId,
+					"artifactId", artifact.ArtifactId,
+					"version", artifact.Version,
+					"error", err)
+				continue
 			}
 			wg.Add(1)
 			go func() {
@@ -215,33 +221,9 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 		wg.Wait()
 		cancelFunc()
 
-		return g.location, cache, nil
+		return g.location, cacheRoot, nil
 	}
 	return g.location, cacheRoot, nil
-}
-
-// findGradleCache looks for the folder within the Gradle cache where the actual dependencies are stored
-// by walking the cache directory looking for a directory equal to the given sample group id
-func (g *gradleResolver) findGradleCache(sampleGroupId string) (string, error) {
-	gradleHome := g.findGradleHome()
-	cacheRoot := filepath.Join(gradleHome, "caches")
-	cache := ""
-	walker := func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return fmt.Errorf("found error looking for cache directory: %w", err)
-		}
-		if d.IsDir() && d.Name() == sampleGroupId {
-			cache = path
-			return filepath.SkipAll
-		}
-		return nil
-	}
-	err := filepath.WalkDir(cacheRoot, walker)
-	if err != nil {
-		return "", err
-	}
-	cache = filepath.Dir(cache) // return the parent of the found directory
-	return cache, nil
 }
 
 // findGradleHome returns the Gradle user home directory where dependencies are cached.
