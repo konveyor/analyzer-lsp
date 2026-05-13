@@ -440,12 +440,51 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	}
 	// See https://github.com/eclipse-jdtls/eclipse.jdt.ls/blob/1a3dd9323756113bf39cfab82746d57a2fd19474/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/preferences/Preferences.java
 	java8home := os.Getenv("JAVA8_HOME")
-	gradleUserHome := os.Getenv("GRADLE_USER_HOME")
-	if gradleUserHome == "" {
-		// Default to standard Gradle user home if not set
-		homeDir, err := os.UserHomeDir()
-		if err == nil {
-			gradleUserHome = filepath.Join(homeDir, ".gradle")
+
+	// Build the java settings map
+	javaSettings := map[string]any{
+		"configuration": map[string]any{
+			"maven": map[string]any{
+				"userSettings":   p.mvnSettingsFile,
+				"globalSettings": p.globalSettings,
+			},
+		},
+		"autobuild": map[string]any{
+			"enabled": false,
+		},
+		"maven": map[string]any{
+			"downloadSources": downloadSources,
+		},
+	}
+
+	// Only add Gradle import settings if this is actually a Gradle project
+	// Adding Gradle import settings to Maven projects can confuse JDTLS
+	if bldtool.IsGradleProject(p.buildTool) {
+		gradleUserHome := os.Getenv("GRADLE_USER_HOME")
+		if gradleUserHome == "" {
+			// Default to standard Gradle user home if not set
+			homeDir, err := os.UserHomeDir()
+			if err == nil {
+				gradleUserHome = filepath.Join(homeDir, ".gradle")
+			}
+		}
+
+		javaSettings["import"] = map[string]any{
+			"gradle": map[string]any{
+				"enabled": true,
+				"wrapper": map[string]any{
+					"enabled": true,
+				},
+				"offline": map[string]any{
+					"enabled": false,
+				},
+				"java": map[string]any{
+					"home": java8home,
+				},
+				"user": map[string]any{
+					"home": gradleUserHome,
+				},
+			},
 		}
 	}
 
@@ -453,37 +492,7 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 		"bundles":          absBundles,
 		"workspaceFolders": []string{string(uri.File(absLocation))},
 		"settings": map[string]any{
-			"java": map[string]any{
-				"configuration": map[string]any{
-					"maven": map[string]any{
-						"userSettings":   p.mvnSettingsFile,
-						"globalSettings": p.globalSettings,
-					},
-				},
-				"autobuild": map[string]any{
-					"enabled": false,
-				},
-				"maven": map[string]any{
-					"downloadSources": downloadSources,
-				},
-				"import": map[string]any{
-					"gradle": map[string]any{
-						"enabled": true,
-						"wrapper": map[string]any{
-							"enabled": true,
-						},
-						"offline": map[string]any{
-							"enabled": false,
-						},
-						"java": map[string]any{
-							"home": java8home,
-						},
-						"user": map[string]any{
-							"home": gradleUserHome,
-						},
-					},
-				},
-			},
+			"java": javaSettings,
 		},
 	}
 

@@ -172,3 +172,9 @@ func ResolveGradleDependenciesToCache(ctx context.Context, bt BuildTool) error {
 	// Not a Gradle project, nothing to do
 	return nil
 }
+
+// IsGradleProject returns true if the provided BuildTool is a Gradle project.
+func IsGradleProject(bt BuildTool) bool {
+	_, ok := bt.(*gradleBuildTool)
+	return ok
+}
