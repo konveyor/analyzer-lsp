@@ -95,6 +95,9 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 		args = []string{"--build-file", combinedPath, "konveyorDownloadSources", "--no-daemon"}
 	} else {
 		// Gradle 9+: --build-file was removed in 9.0.0; use the original approach (temp file + rename) so Gradle sees build.gradle in the project dir.
+		// IMPORTANT: Must use --no-configuration-cache because our task does resolution work
+		// at configuration time. With configuration cache enabled, Gradle caches the configuration
+		// phase and our source download code won't run on subsequent executions.
 		taskgb := filepath.Join(filepath.Dir(g.buildFile), "tmp.gradle")
 		buildContent, err := os.ReadFile(g.buildFile)
 		if err != nil {
@@ -123,7 +126,7 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 			return "", "", fmt.Errorf("error renaming file %s to %s: %w", taskgb, g.buildFile, err)
 		}
 		defer os.Remove(g.buildFile)
-		args = []string{"konveyorDownloadSources", "--no-daemon"}
+		args = []string{"konveyorDownloadSources", "--no-daemon", "--no-configuration-cache"}
 	}
 
 	cmd := exec.CommandContext(ctx, g.wrapper, args...)

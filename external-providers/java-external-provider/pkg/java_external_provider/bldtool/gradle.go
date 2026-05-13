@@ -473,6 +473,9 @@ func (g *gradleBuildTool) ResolveDependenciesToCache(ctx context.Context) error 
 		args = []string{"--build-file", combinedPath, "konveyorResolveDependencies", "--no-daemon"}
 	} else {
 		// Gradle 9+: --build-file was removed in 9.0.0; use file rename approach
+		// IMPORTANT: Must use --no-configuration-cache because our task does resolution work
+		// at configuration time. With configuration cache enabled, Gradle caches the configuration
+		// phase and our dependency resolution code won't run on subsequent executions.
 		taskgb := filepath.Join(filepath.Dir(g.hashFile), "tmp-resolve-deps.gradle")
 		if err := dependency.CopyFile(g.hashFile, taskgb); err != nil {
 			return fmt.Errorf("error copying file %s to %s: %w", g.hashFile, taskgb, err)
@@ -499,7 +502,7 @@ func (g *gradleBuildTool) ResolveDependenciesToCache(ctx context.Context) error 
 			return fmt.Errorf("error renaming file %s to %s: %w", taskgb, g.hashFile, err)
 		}
 		defer os.Remove(g.hashFile)
-		args = []string{"konveyorResolveDependencies", "--no-daemon"}
+		args = []string{"konveyorResolveDependencies", "--no-daemon", "--no-configuration-cache"}
 	}
 
 	timeout, cancel := context.WithTimeout(ctx, 10*time.Minute)
