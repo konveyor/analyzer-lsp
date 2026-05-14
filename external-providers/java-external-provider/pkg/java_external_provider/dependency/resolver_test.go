@@ -316,29 +316,6 @@ func TestGradleResolver(t *testing.T) {
 				t.Skip("JAVA_HOME not set, skipping gradle resolver test")
 			}
 
-			// Resolver expects task.gradle and task-v9.gradle (Docker layout). Copy source scripts
-			// into a temp dir so we don't add production logic just for tests.
-			gradleDir, err := filepath.Abs("../../../gradle")
-			if err != nil {
-				t.Fatalf("unable to get gradle dir: %s", err)
-			}
-			buildContent, err := os.ReadFile(filepath.Join(gradleDir, "build.gradle"))
-			if err != nil {
-				t.Fatalf("unable to read build.gradle: %s", err)
-			}
-			buildV9Content, err := os.ReadFile(filepath.Join(gradleDir, "build-v9.gradle"))
-			if err != nil {
-				t.Fatalf("unable to read build-v9.gradle: %s", err)
-			}
-			taskDir := t.TempDir()
-			if err := os.WriteFile(filepath.Join(taskDir, "task.gradle"), buildContent, 0644); err != nil {
-				t.Fatalf("unable to write task.gradle: %s", err)
-			}
-			if err := os.WriteFile(filepath.Join(taskDir, "task-v9.gradle"), buildV9Content, 0644); err != nil {
-				t.Fatalf("unable to write task-v9.gradle: %s", err)
-			}
-			taskFile := filepath.Join(taskDir, "task.gradle")
-
 			gradleVer, err := getGradleVersionForTest(t, wrapper, location, javaHome)
 			if err != nil {
 				if regexp.MustCompile("Could not determine java version").MatchString(err.Error()) {
@@ -351,16 +328,31 @@ func TestGradleResolver(t *testing.T) {
 				Log: testr.NewWithOptions(t, testr.Options{
 					Verbosity: 5,
 				}),
-				Location:       filepath.Clean(location),
-				BuildFile:      buildFile,
-				Wrapper:        wrapper,
-				JavaHome:       javaHome,
-				DecompileTool:  fernflower,
-				Labeler:        &testLabeler{},
-				GradleTaskFile: taskFile,
-				Version:        gradleVer,
+				Location:      filepath.Clean(location),
+				BuildFile:     buildFile,
+				Wrapper:       wrapper,
+				JavaHome:      javaHome,
+				DecompileTool: fernflower,
+				Labeler:       &testLabeler{},
+				Version:       gradleVer,
 			})
 			ctx, cancelFunc := context.WithCancel(context.Background())
+
+			// First, resolve binary dependencies to cache (required before resolving sources)
+			// Run a simple Gradle task that triggers dependency resolution
+			// Using 'build' or 'assemble' would work, but 'classes' is lighter and sufficient
+			cmd := exec.CommandContext(ctx, wrapper, "classes", "--no-daemon")
+			cmd.Dir = location
+			cmd.Env = append(os.Environ(), fmt.Sprintf("JAVA_HOME=%s", javaHome))
+			if output, err := cmd.CombinedOutput(); err != nil {
+				if contains := regexp.MustCompile("Could not determine java version").MatchString(err.Error()); contains {
+					t.Skip("Gradle wrapper version incompatible with current Java version")
+				}
+				t.Logf("gradle classes task output: %s", output)
+				// Don't fail if classes task fails - some test projects may not compile
+				// The important thing is that dependencies get resolved to cache
+			}
+
 
 			projectLocation, gradleCache, err := resolver.ResolveSources(ctx)
 			if err != nil {

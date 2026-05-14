@@ -400,6 +400,15 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		return nil, additionalBuiltinConfig, errors.New("unable to get build tool")
 	}
 
+	// For Gradle projects, download all dependency JARs to cache FIRST
+	// This must happen before ResolveSources because the source download task
+	// needs the binary JARs to already be present to check which ones have sources
+	log.Info("Pre-resolving Gradle dependencies to cache for JDTLS")
+	if err := bldtool.ResolveGradleDependenciesToCache(ctx, buildTool); err != nil {
+		log.Error(err, "failed to pre-resolve Gradle dependencies, analysis may be incomplete")
+		// Continue anyway - partial analysis is better than no analysis
+	}
+
 	if buildTool.ShouldResolve() || mode == provider.FullAnalysisMode {
 		log.Info("Resolving project", "location", config.Location)
 		resolver, err := buildTool.GetResolver(fernflower)
