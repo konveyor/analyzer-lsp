@@ -112,7 +112,7 @@ jobs:
     name: Build e2e Images
     needs: [extract-pr-info]
     if: always()
-    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@feature/262-refactor-generic-provider
+    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@build-from-pr-comments
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.ref }}
