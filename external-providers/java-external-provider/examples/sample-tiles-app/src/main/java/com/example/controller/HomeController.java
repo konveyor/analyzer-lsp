@@ -22,6 +22,8 @@ public class HomeController {
     public void doStuffWithHomeService() {
         B input = new B();
         homeService.doThings(input);
+
+        HomeService.EmbeddedHomeServiceClass embeddedHomeServiceClass = homeService.new EmbeddedHomeServiceClass();
     }
 
     @GetMapping("http://localhost:8080/whatever/")
