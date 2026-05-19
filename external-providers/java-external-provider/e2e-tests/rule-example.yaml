@@ -474,3 +474,13 @@
   description: "METHOD match with annotated pattern with boolean element"
   category: mandatory
   effort: 1
+
+- ruleID: konveyor-java-pattern-test-23
+  when:
+    java.referenced:
+      pattern: com.example.service.HomeService.EmbeddedHomeServiceClass.embeddedHomeServiceMethod
+      location: METHOD_CALL
+  message: "METHOD_CALL match in embedded class"
+  description: "METHOD_CALL match in embedded class"
+  category: mandatory
+  effort: 1
