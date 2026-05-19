@@ -116,7 +116,7 @@ jobs:
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.ref }}
-      ci_ref: 'feature/262-refactor-generic-provider'
+      ci_ref: 'build-from-pr-comments'
       overrides: ${{ needs.extract-pr-info.outputs.overrides }}
 
   provider-tests:
