@@ -1,9 +1,9 @@
 - name: "go"
-  binaryPath: "/usr/bin/generic-external-provider"
+  binaryPath: "/usr/bin/go-external-provider"
   initConfig:
   - analysisMode: "full"
     providerSpecificConfig: 
-      lspServerName: "generic"
+      lspServerName: "go"
       lspServerPath: "/usr/local/bin/gopls"
       lspServerArgs: 
       - "string"
@@ -16,6 +16,5 @@
         version: "v1"
         kind: "Deployment"
         1: "newThing"
-      object: 
+      object:
         nestedObject: "object"
-      dependencyProviderPath: "/usr/bin/golang-dependency-provider"

@@ -4,8 +4,78 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/konveyor/analyzer-lsp/provider"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestSubprocessName(t *testing.T) {
+	tests := []struct {
+		name   string
+		config provider.Config
+		want   string
+	}{
+		{
+			name: "lspServerName wins over provider name",
+			config: provider.Config{
+				Name: "go",
+				InitConfig: []provider.InitConfig{{
+					ProviderSpecificConfig: map[string]interface{}{
+						"lspServerName": "generic",
+					},
+				}},
+			},
+			want: "generic",
+		},
+		{
+			name: "pylsp for python block",
+			config: provider.Config{
+				Name: "python",
+				InitConfig: []provider.InitConfig{{
+					ProviderSpecificConfig: map[string]interface{}{
+						"lspServerName": "pylsp",
+					},
+				}},
+			},
+			want: "pylsp",
+		},
+		{
+			name: "provider name when lspServerName absent",
+			config: provider.Config{
+				Name: "yaml",
+				InitConfig: []provider.InitConfig{{
+					ProviderSpecificConfig: map[string]interface{}{
+						"lspServerPath": "/bin/yq",
+					},
+				}},
+			},
+			want: "yaml",
+		},
+		{
+			name: "empty lspServerName falls through to provider name",
+			config: provider.Config{
+				Name: "java",
+				InitConfig: []provider.InitConfig{{
+					ProviderSpecificConfig: map[string]interface{}{
+						"lspServerName": "",
+					},
+				}},
+			},
+			want: "java",
+		},
+		{
+			name:   "default generic",
+			config: provider.Config{},
+			want:   "generic",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := subprocessName(tt.config); got != tt.want {
+				t.Errorf("subprocessName() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestConvertTypedSlices(t *testing.T) {
 	tests := []struct {

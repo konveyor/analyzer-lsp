@@ -52,7 +52,9 @@ make build-external        # Build all external providers
 go test ./...              # Run all unit tests
 make test-all              # Run complete E2E test suite
 make test-java             # Test Java provider
-make test-generic          # Test Go/Python/Node.js providers
+make test-go               # Test Go LSP provider
+make test-python           # Test Python LSP provider
+make test-nodejs           # Test Node.js LSP provider
 make test-analyzer         # Full integration test
 
 # Development

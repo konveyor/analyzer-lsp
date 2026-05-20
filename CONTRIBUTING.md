@@ -97,7 +97,9 @@ make test-all
 
 # Specific provider tests
 make test-java
-make test-generic
+make test-go
+make test-python
+make test-nodejs
 make test-yaml
 ```
 
@@ -241,18 +243,18 @@ Use semantic providers (nodejs, java, go, python) for symbol references, and bui
 
 For comprehensive guidance on creating providers, see **[Provider Development Guide](docs/development/provider_development.md)**.
 
-### Quick Start: Add a Language Using Generic Provider
+### Quick Start: Add a Language Using an External LSP Provider
 
-If your language has an LSP server, you can add support quickly:
+If your language has an LSP server, add a dedicated module under `external-providers/` (use `go-external-provider` as a template; see the [Provider Development Guide](docs/development/provider_development.md)). Example provider settings shape:
 
 ```json
 {
   "name": "rust",
-  "binaryPath": "/path/to/generic-external-provider",
+  "binaryPath": "/path/to/rust-external-provider",
   "initConfig": [{
     "location": "/path/to/rust/project",
     "providerSpecificConfig": {
-      "lspServerName": "generic",
+      "lspServerName": "rust",
       "lspServerPath": "rust-analyzer",
       "workspaceFolders": ["file:///path/to/rust/project"]
     }

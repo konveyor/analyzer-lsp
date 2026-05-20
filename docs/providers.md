@@ -22,48 +22,94 @@ Provider configuration fields are:
   * `analysisMode`: one of full or source-only. This will tell the provider what it should analyze.
   * `providerSpecificConfig`: Reserved for additional configuration options specific to a provider.
 
-Currently supported providers are - `builtin`, `java` and `go`, or any provider that provides the GRPC interface.
+In-tree and first-party external providers include `builtin`, `java`, `go`, `python`, `nodejs`, and `yaml` (via `yq-external-provider`). Any binary that implements the analyzer gRPC provider interface can be referenced from `binaryPath`.
 
 If an explicit `proxyConfig` is not specified for a provider, system-wide proxy settings configured via environment variables `http_proxy`, `https_proxy` & `no_proxy` are used by default. An explicit `proxyConfig` is typically needed for providers that run externally and are not part of the same process as the rule engine. For the rule engine and the builtin providers, system-wide proxy settings are sufficient.
 
 ```Note For Java: full analysis mode will search all the dependency and source, source-only will only search the source code. for a Jar/Ear/War, this is the code that is compiled in that archive and nothing else.
 ```
 
-#### Generic provider
+### External LSP providers (Go, Python, Node.js)
 
-Generic provider can be used to create an external provider for any language that is compliant with LSP 3.17 specifications.
+Go, Python, and Node.js each use a **dedicated** external provider binary (`go-external-provider`, `python-external-provider`, `nodejs-external-provider` in container images). The analyzer passes `--name` to the binary from `initConfig[0].providerSpecificConfig.lspServerName` (for gopls-backed rules this is typically `"generic"`; Python uses `"pylsp"` and Node.js uses `"nodejs"`).
 
-Here's an example config for a external `go` provider that is initialized using the generic provider binary.
+Example for an external **Go** provider:
 
 ```json
 {
     "name": "go",
-    "binaryPath": "/path/to/generic/provider/binary",
+    "binaryPath": "/usr/local/bin/go-external-provider",
     "initConfig": [
         {
             "location": "/path/to/application/source/code",
             "analysisMode": "full",
             "providerSpecificConfig": {
-                "name": "go",
-                "lspServerPath": "/path/to/language/server/binary",
-                "lspArgs": ["arg1", "arg2", "arg3"],
-                "dependencyProviderPath": "/path/to/dependency/provider/binary"
+                "lspServerName": "generic",
+                "lspServerPath": "/path/to/gopls",
+                "lspServerArgs": ["arg1", "arg2"]
             }
         }
     ]
 }
 ```
 
-The `generic provider` takes the following options in `providerSpecificConfig`:
+Example for an external **Python** provider:
 
-* `name`: Name of the provider to be displayed in the logs.
+```json
+{
+    "name": "python",
+    "binaryPath": "/usr/local/bin/python-external-provider",
+    "initConfig": [
+        {
+            "location": "/path/to/application/source/code",
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "pylsp",
+                "lspServerPath": "/usr/local/bin/pylsp",
+                "lspServerArgs": [],
+                "workspaceFolders": ["file:///path/to/application/source/code"],
+                "dependencyFolders": ["path/to/venv", "path/to/__pycache__"],
+                "dependencyProviderPath": ""
+            }
+        }
+    ]
+}
+```
 
-* `lspArgs`: Arguments to be passed to run the langauge server. Optional field.
+Example for an external **Node.js** provider:
 
-* `dependencyProviderPath`: Path to a binary that prints the dependencies of the application as a `map[uri.URI][]provider.Dep{}`. The Dep struct can be imported from 
-`"github.com/konveyor/analyzer-lsp/provider"`.
+```json
+{
+    "name": "nodejs",
+    "binaryPath": "/usr/local/bin/nodejs-external-provider",
+    "initConfig": [
+        {
+            "location": "/path/to/application/source/code",
+            "analysisMode": "full",
+            "providerSpecificConfig": {
+                "lspServerName": "nodejs",
+                "lspServerPath": "/usr/local/bin/typescript-language-server",
+                "lspServerArgs": ["--stdio"],
+                "workspaceFolders": ["file:///path/to/application/source/code"],
+                "dependencyFolders": [],
+                "dependencyProviderPath": ""
+            }
+        }
+    ]
+}
+```
 
-#### Java provider
+Common `providerSpecificConfig` fields for these providers include:
+
+* `lspServerName`: Passed to the external provider process as `--name`; must match the language / capability namespace your rules expect.
+
+* `lspServerPath` / `lspServerArgs`: How to start the language server.
+
+* `workspaceFolders` / `dependencyFolders`: Workspace roots and paths to treat as dependencies (see [`provider_container_settings.json`](../provider_container_settings.json)).
+
+* `dependencyProviderPath`: Optional path to a binary that prints dependencies as `map[uri.URI][]provider.Dep` (see `"github.com/konveyor/analyzer-lsp/provider"`). May be empty when unused.
+
+### Java provider
 
 Here's an example config for `java` provider that is currently in-tree and does not use gRPC:
 
@@ -108,7 +154,7 @@ The `java` provider also takes following options in `providerSpecificConfig`:
 
 * `jvmMaxMem`: Max memory for JVM, value is passed as-is using `-Xmx` option. _Note that the default `-Xms` value set on JVM is `1G`, therefore, `jvmMaxMem` value less than `1G` has no effect_
 
-#### Builtin Provider
+### Builtin Provider
 
 The `builtin` provider is configured by default. To override the default config, a new config can be added to provider settings file:
 
@@ -187,3 +233,50 @@ The `builtin` provider takes following additional configuration options in `prov
   ```
 
   **Note:** Analyzing dependency directories like `node_modules` can significantly increase analysis time and may cause "argument list too long" errors on projects with many files.
+
+## Migrating from `generic-external-provider`
+
+The former **single** multi-language binary and image **`generic-external-provider`** has been **removed**. Go, Python, and Node.js now each have a **dedicated** binary and container image. This is a **breaking change** for anyone who referenced the old binary path or image name.
+
+**If you must stay on the old layout temporarily**, pin an older analyzer-lsp release and image tag that still ships `quay.io/konveyor/generic-external-provider` (and a matching analyzer version), then plan a one-time config update.
+
+### Registry images (Konveyor / Quay)
+
+Published from [`.github/workflows/image-build.yaml`](https://github.com/konveyor/analyzer-lsp/blob/main/.github/workflows/image-build.yaml) to `quay.io/konveyor/` (tags such as `latest` or release branch names):
+
+| Language | Image | Notes |
+|----------|-------|--------|
+| Go (gopls) | `quay.io/konveyor/go-external-provider:<tag>` | |
+| Python (pylsp) | `quay.io/konveyor/python-external-provider:<tag>` | |
+| Node.js | `quay.io/konveyor/nodejs-external-provider:<tag>` | |
+| (removed) | ~~`quay.io/konveyor/generic-external-provider`~~ | Replaced by the three images above |
+
+Other related images (unchanged pattern): `quay.io/konveyor/analyzer-lsp`, `quay.io/konveyor/yq-external-provider`, `quay.io/konveyor/java-external-provider`.
+
+### Container binary paths (default layout)
+
+Inside the language provider images, the gRPC entrypoints are installed as:
+
+| Provider | `binaryPath` inside image |
+|----------|---------------------------|
+| Go | `/usr/local/bin/go-external-provider` |
+| Python | `/usr/local/bin/python-external-provider` |
+| Node.js | `/usr/local/bin/nodejs-external-provider` |
+
+### Config mapping (before → after)
+
+| Before (one image, three processes) | After (three images or three binaries) |
+|-----------------------------------|----------------------------------------|
+| One `binaryPath` to `generic-external-provider` with `lspServerName` `generic` / `pylsp` / `nodejs` | **Separate** provider entries: each `binaryPath` points at `go-external-provider`, `python-external-provider`, or `nodejs-external-provider` |
+| Same `lspServerName` values in `providerSpecificConfig` | **Keep** `lspServerName` as `generic` (gopls), `pylsp`, and `nodejs` respectively so existing **rules** (`golang.*`, `python.*`, `nodejs.*`) keep matching |
+
+You need **three** provider blocks (or three sidecars) instead of reusing one binary with different `--name` flags.
+
+### Draft release notes (changelog bullets)
+
+Use or adapt the following in release announcements:
+
+- **Breaking:** Removed `generic-external-provider`. Go, Python, and Node.js analysis now use `go-external-provider`, `python-external-provider`, and `nodejs-external-provider` binaries and `quay.io/konveyor/{go,python,nodejs}-external-provider` images.
+- **Migration:** Replace each `binaryPath` that pointed at `generic-external-provider` with the per-language binary; deploy the matching new image per language. `lspServerName` values for rules remain `generic` / `pylsp` / `nodejs`.
+- **YAML:** Unchanged—use `yq-external-provider` only (no YAML LSP path on the old generic binary).
+- **Downstream:** Operator, Kantra, Hub/KAI, and custom integrators must update default images and extension references; see [implementation plan](plan/generic-provider-to-specific-providers-implementation-plan.md) for coordination details.

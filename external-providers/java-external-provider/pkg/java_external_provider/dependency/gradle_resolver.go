@@ -10,12 +10,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency/labels"
+	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/gradletasks"
 	"github.com/konveyor/analyzer-lsp/tracing"
 )
 
@@ -53,19 +53,20 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 
 	g.log.V(5).Info("resolving dependency sources for gradle")
 
-	taskFile := g.taskFile
-	if taskFile == "" {
-		taskFile = "/usr/local/etc/task.gradle"
-	}
+	// Use embedded task content instead of reading from file
 	gradle9version, _ := version.NewVersion("9.0")
-	if g.gradleVersion.GreaterThanOrEqual(gradle9version) {
-		taskFile = filepath.Join(filepath.Dir(taskFile), "task-v9.gradle")
+	gradle9OrNewer := g.gradleVersion.GreaterThanOrEqual(gradle9version)
+
+	var taskContent string
+	if gradle9OrNewer {
+		taskContent = gradletasks.DownloadSourcesTaskGradle9
+	} else {
+		taskContent = gradletasks.DownloadSourcesTaskGradle
 	}
 
 	// --build-file / -b was deprecated in Gradle 7.1 (https://github.com/gradle/gradle/issues/16402), still worked in 8.x,
 	// and was removed in Gradle 9.0.0 (gradlew reports "Unknown command-line option '--build-file'" on 9.x).
 	var args []string
-	gradle9OrNewer := g.gradleVersion.GreaterThanOrEqual(gradle9version)
 
 	if !gradle9OrNewer {
 		// Gradle < 9: use a temp combined build file and --build-file so we never rename or modify the project's build.gradle.
@@ -73,10 +74,6 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 		buildContent, err := os.ReadFile(g.buildFile)
 		if err != nil {
 			return "", "", fmt.Errorf("error reading build file %s: %w", g.buildFile, err)
-		}
-		taskContent, err := os.ReadFile(taskFile)
-		if err != nil {
-			return "", "", fmt.Errorf("error reading task file %s: %w", taskFile, err)
 		}
 		combinedFile, err := os.CreateTemp(g.location, ".konveyor-sources-*.gradle")
 		if err != nil {
@@ -88,7 +85,7 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 			combinedFile.Close()
 			return "", "", fmt.Errorf("error writing to temporary build file: %w", err)
 		}
-		if _, err := combinedFile.Write(append([]byte("\n"), taskContent...)); err != nil {
+		if _, err := combinedFile.Write(append([]byte("\n"), []byte(taskContent)...)); err != nil {
 			combinedFile.Close()
 			return "", "", fmt.Errorf("error writing to temporary build file: %w", err)
 		}
@@ -98,14 +95,28 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 		args = []string{"--build-file", combinedPath, "konveyorDownloadSources", "--no-daemon"}
 	} else {
 		// Gradle 9+: --build-file was removed in 9.0.0; use the original approach (temp file + rename) so Gradle sees build.gradle in the project dir.
+		// IMPORTANT: Must use --no-configuration-cache because our task does resolution work
+		// at configuration time. With configuration cache enabled, Gradle caches the configuration
+		// phase and our source download code won't run on subsequent executions.
 		taskgb := filepath.Join(filepath.Dir(g.buildFile), "tmp.gradle")
-		if err := CopyFile(g.buildFile, taskgb); err != nil {
-			return "", "", fmt.Errorf("error copying file %s to %s: %w", g.buildFile, taskgb, err)
+		buildContent, err := os.ReadFile(g.buildFile)
+		if err != nil {
+			return "", "", fmt.Errorf("error reading build file %s: %w", g.buildFile, err)
+		}
+		if err := os.WriteFile(taskgb, buildContent, 0644); err != nil {
+			return "", "", fmt.Errorf("error writing to temp file %s: %w", taskgb, err)
 		}
 		defer os.Remove(taskgb)
-		if err := AppendToFile(taskFile, taskgb); err != nil {
-			return "", "", fmt.Errorf("error appending file %s to %s: %w", taskFile, taskgb, err)
+		f, err := os.OpenFile(taskgb, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return "", "", fmt.Errorf("error opening temp file %s for append: %w", taskgb, err)
 		}
+		if _, err := f.WriteString("\n" + taskContent); err != nil {
+			f.Close()
+			return "", "", fmt.Errorf("error appending task content to temp file: %w", err)
+		}
+		f.Close()
+
 		tmpgbname := filepath.Join(g.location, "toberenamed.gradle")
 		if err := os.Rename(g.buildFile, tmpgbname); err != nil {
 			return "", "", fmt.Errorf("error renaming file %s to %s: %w", g.buildFile, "toberenamed.gradle", err)
@@ -115,7 +126,7 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 			return "", "", fmt.Errorf("error renaming file %s to %s: %w", taskgb, g.buildFile, err)
 		}
 		defer os.Remove(g.buildFile)
-		args = []string{"konveyorDownloadSources", "--no-daemon"}
+		args = []string{"konveyorDownloadSources", "--no-daemon", "--no-configuration-cache"}
 	}
 
 	cmd := exec.CommandContext(ctx, g.wrapper, args...)
@@ -139,19 +150,18 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 	gradleHome := g.findGradleHome()
 	cacheRoot := filepath.Join(gradleHome, "caches", "modules-2")
 
-	if len(unresolvedSources) > 1 {
-		// Gradle cache dir structure changes over time - we need to find where the actual dependencies are stored
-		cache, err := g.findGradleCache(unresolvedSources[0].GroupId)
-		if err != nil {
-			return "", "", err
-		}
+	if len(unresolvedSources) > 0 {
+		// Modern Gradle versions (4.0+) use a consistent cache structure: modules-2/files-2.1
+		// Older versions may differ, but we primarily support Gradle 4+
+		gradleHome := g.findGradleHome()
+		cacheFiles21 := filepath.Join(gradleHome, "caches", "modules-2", "files-2.1")
 		decompiler, err := getDecompiler(DecompilerOpts{
 			DecompileTool:  g.decompileTool,
 			log:            g.log,
 			workers:        DefaultWorkerPoolSize,
 			labler:         g.labeler,
 			mavenIndexPath: g.mvnIndexPath,
-			m2Repo:         cache,
+			m2Repo:         cacheRoot, // Use cacheRoot (modules-2) for decompiler, not files-2.1
 		})
 		if err != nil {
 			return "", "", err
@@ -184,13 +194,22 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 		for _, artifact := range unresolvedSources {
 			g.log.V(5).WithValues("artifact", artifact).Info("sources for artifact not found, decompiling...")
 
-			groupDirs := filepath.Join(strings.Split(artifact.GroupId, ".")...)
-			artifactDir := filepath.Join(cache, groupDirs, artifact.Version, artifact.ArtifactId)
+			// Gradle cache structure: cache/groupId/artifactId/version/hash/file.jar
+			// Note: Unlike Maven, Gradle cache keeps groupId with dots (not converted to slashes)
+			// e.g., io.konveyor.demo not io/konveyor/demo
+			artifactDir := filepath.Join(cacheFiles21, artifact.GroupId, artifact.ArtifactId, artifact.Version)
 			jarName := fmt.Sprintf("%s-%s.jar", artifact.ArtifactId, artifact.Version)
 			artifactPath, err := g.findGradleArtifact(artifactDir, jarName)
 			if err != nil {
-				cancelFunc()
-				return "", "", err
+				// Artifact not found in cache - log warning and skip
+				// This can happen when a transitive dependency is excluded or the dependency resolution
+				// task didn't fully resolve all dependencies
+				g.log.V(3).Info("artifact not found in cache, skipping decompilation",
+					"groupId", artifact.GroupId,
+					"artifactId", artifact.ArtifactId,
+					"version", artifact.Version,
+					"error", err)
+				continue
 			}
 			wg.Add(1)
 			go func() {
@@ -205,49 +224,29 @@ func (g *gradleResolver) ResolveSources(ctx context.Context) (string, string, er
 		wg.Wait()
 		cancelFunc()
 
-		return g.location, cache, nil
+		return g.location, cacheRoot, nil
 	}
 	return g.location, cacheRoot, nil
 }
 
-// findGradleCache looks for the folder within the Gradle cache where the actual dependencies are stored
-// by walking the cache directory looking for a directory equal to the given sample group id
-func (g *gradleResolver) findGradleCache(sampleGroupId string) (string, error) {
-	gradleHome := g.findGradleHome()
-	cacheRoot := filepath.Join(gradleHome, "caches")
-	cache := ""
-	walker := func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return fmt.Errorf("found error looking for cache directory: %w", err)
-		}
-		if d.IsDir() && d.Name() == sampleGroupId {
-			cache = path
-			return filepath.SkipAll
-		}
-		return nil
-	}
-	err := filepath.WalkDir(cacheRoot, walker)
-	if err != nil {
-		return "", err
-	}
-	cache = filepath.Dir(cache) // return the parent of the found directory
-	return cache, nil
-}
-
-// findGradleHome tries to get the .gradle directory from several places
-// 1. Check GRADLE_USER_HOME: https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home
-// 2. check $GRADLE_HOME
-// 3. check $HOME/.gradle
-// 4. else, set to /root/.gradle
+// findGradleHome returns the Gradle user home directory where dependencies are cached.
+// This is NEVER the Gradle installation directory (GRADLE_HOME), but always the user's
+// dependency cache location.
+//
+// Priority:
+// 1. GRADLE_USER_HOME environment variable (if set)
+// 2. $HOME/.gradle (standard default location)
+// 3. /root/.gradle (fallback for containers)
+//
+// See: https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home
 func (g *gradleResolver) findGradleHome() string {
 	gradleHome := os.Getenv("GRADLE_USER_HOME")
 	if gradleHome != "" {
 		return gradleHome
 	}
-	gradleHome = os.Getenv("GRADLE_HOME")
-	if gradleHome != "" {
-		return gradleHome
-	}
+	// NOTE: We explicitly do NOT use GRADLE_HOME here - that's the Gradle installation
+	// directory (e.g., /usr/share/gradle or ~/.sdkman/candidates/gradle/current),
+	// not where dependencies are cached
 	home := os.Getenv("HOME")
 	if home == "" {
 		home = "/root"

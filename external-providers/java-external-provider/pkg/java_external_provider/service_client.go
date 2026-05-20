@@ -25,22 +25,23 @@ import (
 )
 
 type javaServiceClient struct {
-	rpc                provider.RPCClient
-	cancelFunc         context.CancelFunc
-	config             provider.InitConfig
-	log                logr.Logger
-	cmd                *exec.Cmd
-	bundles            []string
-	workspace          string
-	globalSettings     string
-	includedPaths      []string
-	cleanExplodedBins  []string
-	activeRPCCalls     sync.WaitGroup
-	depsLocationCache  map[string]int
-	buildTool          bldtool.BuildTool
-	mvnIndexPath       string
-	mvnSettingsFile    string
-	jdtlsProcessExited *chan bool
+	rpc                 provider.RPCClient
+	cancelFunc          context.CancelFunc
+	config              provider.InitConfig
+	log                 logr.Logger
+	cmd                 *exec.Cmd
+	bundles             []string
+	workspace           string
+	globalSettings      string
+	includedPaths       []string
+	cleanExplodedBins   []string
+	activeRPCCalls      sync.WaitGroup
+	depsLocationCache   map[string]int
+	buildTool           bldtool.BuildTool
+	mvnIndexPath        string
+	mvnSettingsFile     string
+	jdtlsProcessExited  *chan bool
+	workspaceReady      chan struct{} // closed when JDTLS workspace import is complete
 }
 
 var _ provider.ServiceClient = &javaServiceClient{}
@@ -109,7 +110,14 @@ func (p *javaServiceClient) Evaluate(ctx context.Context, cap string, conditionI
 }
 
 func (p *javaServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {
-	return nil
+	p.log.Info("waiting for JDTLS workspace to be ready")
+	select {
+	case <-p.workspaceReady:
+		p.log.Info("JDTLS workspace is ready, proceeding with evaluation")
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled while waiting for JDTLS workspace import to complete: %w", ctx.Err())
+	}
 }
 
 func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, condCTX *provider.ProviderContext) ([]protocol.WorkspaceSymbol, error) {
@@ -422,37 +430,69 @@ func (p *javaServiceClient) initialization(ctx context.Context) {
 	//TODO(shawn-hurley): add ability to parse path to URI in a real supported way
 	params := &protocol.InitializeParams{}
 	params.RootURI = string(uri.File(absLocation))
-	params.Capabilities = protocol.ClientCapabilities{}
+	params.Capabilities = protocol.ClientCapabilities{
+		Window: &protocol.WindowClientCapabilities{
+			WorkDoneProgress: true,
+		},
+	}
 	params.ExtendedClientCapilities = map[string]any{
 		"classFileContentsSupport": true,
 	}
 	// See https://github.com/eclipse-jdtls/eclipse.jdt.ls/blob/1a3dd9323756113bf39cfab82746d57a2fd19474/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/preferences/Preferences.java
 	java8home := os.Getenv("JAVA8_HOME")
+
+	// Build the java settings map
+	javaSettings := map[string]any{
+		"configuration": map[string]any{
+			"maven": map[string]any{
+				"userSettings":   p.mvnSettingsFile,
+				"globalSettings": p.globalSettings,
+			},
+		},
+		"autobuild": map[string]any{
+			"enabled": false,
+		},
+		"maven": map[string]any{
+			"downloadSources": downloadSources,
+		},
+	}
+
+	// Only add Gradle import settings if this is actually a Gradle project
+	// Adding Gradle import settings to Maven projects can confuse JDTLS
+	if bldtool.IsGradleProject(p.buildTool) {
+		gradleUserHome := os.Getenv("GRADLE_USER_HOME")
+		if gradleUserHome == "" {
+			// Default to standard Gradle user home if not set
+			homeDir, err := os.UserHomeDir()
+			if err == nil {
+				gradleUserHome = filepath.Join(homeDir, ".gradle")
+			}
+		}
+
+		javaSettings["import"] = map[string]any{
+			"gradle": map[string]any{
+				"enabled": true,
+				"wrapper": map[string]any{
+					"enabled": true,
+				},
+				"offline": map[string]any{
+					"enabled": false,
+				},
+				"java": map[string]any{
+					"home": java8home,
+				},
+				"user": map[string]any{
+					"home": gradleUserHome,
+				},
+			},
+		}
+	}
+
 	params.InitializationOptions = map[string]any{
 		"bundles":          absBundles,
 		"workspaceFolders": []string{string(uri.File(absLocation))},
 		"settings": map[string]any{
-			"java": map[string]any{
-				"configuration": map[string]any{
-					"maven": map[string]any{
-						"userSettings":   p.mvnSettingsFile,
-						"globalSettings": p.globalSettings,
-					},
-				},
-				"autobuild": map[string]any{
-					"enabled": false,
-				},
-				"maven": map[string]any{
-					"downloadSources": downloadSources,
-				},
-				"import": map[string]any{
-					"gradle": map[string]any{
-						"java": map[string]any{
-							"home": java8home,
-						},
-					},
-				},
-			},
+			"java": javaSettings,
 		},
 	}
 

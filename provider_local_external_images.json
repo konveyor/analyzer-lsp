@@ -5,15 +5,13 @@
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
-                "lspServerName": "generic",
+                "lspServerName": "go",
                 "lspServerPath": "/usr/local/bin/gopls",
                 "lspServerArgs": [],
                 "lspServerInitializationOptions": "",
 
                 "workspaceFolders": ["file:///examples/golang"],
-                "dependencyFolders": [],
-
-                "dependencyProviderPath": "/usr/local/bin/golang-dependency-provider"
+                "dependencyFolders": []
             }
         }]
     },
@@ -35,7 +33,7 @@
         "initConfig": [{
             "analysisMode": "full",
             "providerSpecificConfig": {
-                "lspServerName": "pylsp",
+                "lspServerName": "python",
                 "lspServerPath": "/usr/local/bin/pylsp",
                 "lspServerArgs": [],
                 "lspServerInitializationOptions": "",

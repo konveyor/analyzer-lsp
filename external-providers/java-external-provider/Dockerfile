@@ -34,7 +34,14 @@ USER 1001
 
 RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd java && go mod edit -replace=github.com/konveyor/analyzer-lsp=/analyzer-lsp && go mod tidy
 
-RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd java && go build -a -o java-external-provider main.go
+RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd java && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -a -o java-external-provider main.go
+
+RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd java && \
+    CGO_ENABLED=0 GOOS=darwin go build -trimpath -ldflags="-s -w" -o darwin-java-external-provider main.go
+
+RUN --mount=type=cache,id=gomod,uid=1001,gid=0,mode=0777,target=/opt/app-root/src/go/pkg/mod cd java && \
+    CGO_ENABLED=0 GOOS=windows go build -trimpath -ldflags="-s -w" -o windows-java-external-provider.exe main.go
 
 FROM base
 
@@ -43,6 +50,8 @@ RUN chgrp -R 0 /addon && chmod -R g=u /addon
 USER 1001
 
 COPY --from=builder /opt/app-root/src/java/java-external-provider /usr/local/bin/java-external-provider
+COPY --from=builder /opt/app-root/src/java/darwin-java-external-provider /usr/local/bin/darwin-java-external-provider
+COPY --from=builder /opt/app-root/src/java/windows-java-external-provider.exe /usr/local/bin/windows-java-external-provider.exe
 RUN mkdir -p /root/.gradle
 COPY external-providers/java-external-provider/gradle/build.gradle /usr/local/etc/task.gradle
 COPY external-providers/java-external-provider/gradle/build-v9.gradle /usr/local/etc/task-v9.gradle

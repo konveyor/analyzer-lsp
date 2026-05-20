@@ -88,9 +88,22 @@ func (b *baseArtifact) Done() {
 }
 
 func (b *baseArtifact) getM2Path(dep JavaArtifact) string {
-	// Gives us the filepath parts from the group.
+	// Detect if this is a Gradle cache structure
+	isGradleCache := strings.Contains(b.m2Repo, "modules-2/files-2.1") || strings.Contains(b.m2Repo, "modules-2\\files-2.1")
+
+	if isGradleCache {
+		// For Gradle cache, we need to place sources in the same hash subdirectory as the binary JAR
+		// The artifactPath points to the binary JAR, e.g.:
+		// .../io.konveyor.demo/config-utils/1.0.0/ce39b3b148dc6a478b8244d139982cdc9b6acb17/config-utils-1.0.0.jar
+		// We need to extract the hash directory from it and use that
+
+		// Get the directory containing the JAR file (which is the hash directory)
+		hashDir := filepath.Dir(b.artifactPath)
+		return hashDir
+	}
+
+	// Maven: convert dots to directory separators
 	groupParts := strings.Split(dep.GroupId, ".")
-	// Gets us the filepath representation for the group
 	groupFilePath := filepath.Join(groupParts...)
 
 	// Destination for this file during copy always goes to the m2Repo.
