@@ -83,7 +83,7 @@ func DependencyCmd() *cobra.Command {
 			}
 
 			for _, config := range configs {
-				prov, err := lib.GetProviderClient(config, log, prog)
+				prov, err := lib.GetProviderClient(context.Background(), config, log, prog)
 				if err != nil {
 					errLog.Error(err, "unable to create provider client")
 					os.Exit(1)

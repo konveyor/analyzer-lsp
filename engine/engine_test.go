@@ -1690,3 +1690,129 @@ func TestCreateViolation(t *testing.T) {
 		})
 	}
 }
+
+func TestRunRules_CancelDuringDispatch(t *testing.T) {
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+	log := logrusr.New(logrusLog)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ruleEngine := CreateRuleEngine(ctx, 1, log)
+	defer ruleEngine.Stop()
+
+	// 20 slow rules: more than channel buffer (10), so dispatch will block
+	// without the ctx.Done() guard in the dispatch loop.
+	msg := "test"
+	rules := make([]Rule, 20)
+	for i := range rules {
+		rules[i] = Rule{
+			RuleMeta: RuleMeta{RuleID: fmt.Sprintf("rule-%d", i)},
+			Perform:  Perform{Message: Message{Text: &msg}},
+			When:     createTestConditional(true, nil, true), // sleep=true (5s)
+		}
+	}
+	rulesets := []RuleSet{{Name: "test", Rules: rules}}
+
+	// Cancel context shortly after dispatch begins
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		cancel()
+	}()
+
+	done := make(chan struct{})
+	go func() {
+		ruleEngine.RunRules(ctx, rulesets)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success: RunRules returned after cancellation
+	case <-time.After(10 * time.Second):
+		t.Fatal("RunRules did not return within 10s after context cancellation - deadlock detected")
+	}
+}
+
+func TestRunRules_CancelDuringExecution(t *testing.T) {
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+	log := logrusr.New(logrusLog)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ruleEngine := CreateRuleEngine(ctx, 10, log)
+	defer ruleEngine.Stop()
+
+	// 10 slow rules that all fit in workers (no dispatch blocking)
+	msg := "test"
+	rules := make([]Rule, 10)
+	for i := range rules {
+		rules[i] = Rule{
+			RuleMeta: RuleMeta{RuleID: fmt.Sprintf("rule-%d", i)},
+			Perform:  Perform{Message: Message{Text: &msg}},
+			When:     createTestConditional(true, nil, true), // sleep=true (5s)
+		}
+	}
+	rulesets := []RuleSet{{Name: "test", Rules: rules}}
+
+	// Cancel after rules are dispatched but during worker sleep
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		cancel()
+	}()
+
+	done := make(chan struct{})
+	go func() {
+		ruleEngine.RunRules(ctx, rulesets)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(10 * time.Second):
+		t.Fatal("RunRules did not return within 10s after context cancellation during execution")
+	}
+}
+
+func TestEngineStop_AfterCancelledRun(t *testing.T) {
+	logrusLog := logrus.New()
+	logrusLog.SetOutput(io.Discard)
+	logrusLog.SetLevel(logrus.PanicLevel)
+	log := logrusr.New(logrusLog)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ruleEngine := CreateRuleEngine(ctx, 10, log)
+
+	msg := "test"
+	rules := []Rule{
+		{
+			RuleMeta: RuleMeta{RuleID: "rule-0"},
+			Perform:  Perform{Message: Message{Text: &msg}},
+			When:     createTestConditional(true, nil, true), // sleep=true
+		},
+	}
+	rulesets := []RuleSet{{Name: "test", Rules: rules}}
+
+	// Cancel quickly and run
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		cancel()
+	}()
+	ruleEngine.RunRules(ctx, rulesets)
+
+	// Stop must return promptly, not deadlock
+	done := make(chan struct{})
+	go func() {
+		ruleEngine.Stop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(5 * time.Second):
+		t.Fatal("ruleEngine.Stop() did not return within 5s after cancelled run")
+	}
+}
