@@ -26,7 +26,7 @@ func getDependenciesDAG(workspaceFolder string) (map[uri.URI][]provider.DepDAGIt
 	// Remove file:// prefix if present
 	workspacePath := workspaceFolder
 	if strings.HasPrefix(workspaceFolder, "file://") {
-		workspacePath = workspaceFolder[7:]
+		workspacePath = uri.URI(workspaceFolder).Filename()
 	}
 
 	// If workspace folder is provided and has DEPENDENCY_PROVIDER_MODULE_DIR env var not set,
