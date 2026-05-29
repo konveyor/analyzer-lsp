@@ -230,9 +230,14 @@ func TestNormalizePathForComparison(t *testing.T) {
 			expected: "/project/src/Main.java",
 		},
 		{
-			name:     "windows-style path",
+			name:     "windows-style path uppercase drive letter",
 			input:    "file:///C:/project/src/Main.java",
-			expected: "/C:/project/src/Main.java",
+			expected: "C:/project/src/Main.java",
+		},
+		{
+			name:     "windows-style path lowercase drive letter",
+			input:    "file:///c:/Users/user/project/src/Main.java",
+			expected: "c:/Users/user/project/src/Main.java",
 		},
 		{
 			name:     "csharp metadata URI",
