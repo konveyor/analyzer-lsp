@@ -20,11 +20,6 @@ import (
 // Evolved from pre-split generic server_configurations (nodejs).
 // for nodejs-external-provider (implementation plan Step 4).
 
-// fileURIToPath converts a file:// URI or plain path to a filesystem path
-// suitable for use with OS file operations. It handles the Windows-specific
-// issue where file:///c:/... strips to /c:/... (with a leading slash) which
-// is rejected by the Windows CreateFile API. The leading slash is removed
-// when the result looks like a Windows drive-letter path (/c:/...).
 func fileURIToPath(rawPath string) string {
 	path := strings.TrimPrefix(rawPath, "file://")
 	path = strings.TrimPrefix(path, "file:")
