@@ -24,16 +24,11 @@ type nodejsSymbolSearchHelper struct {
 }
 
 func (h *nodejsSymbolSearchHelper) GetDocumentUris(conditionsByCap ...provider.ConditionsByCap) []uri.URI {
-	primaryPath := h.config.Location
-	if after, ok := strings.CutPrefix(primaryPath, fmt.Sprintf("%s://", uri.FileScheme)); ok {
-		primaryPath = after
-	}
+	primaryPath := fileURIToPath(h.config.Location)
 	additionalPaths := []string{}
 	if val, ok := h.config.ProviderSpecificConfig["workspaceFolders"].([]string); ok {
 		for _, path := range val {
-			if after, prefixOk := strings.CutPrefix(path, fmt.Sprintf("%s://", uri.FileScheme)); prefixOk {
-				path = after
-			}
+			path = fileURIToPath(path)
 			if primaryPath == "" {
 				primaryPath = path
 				continue

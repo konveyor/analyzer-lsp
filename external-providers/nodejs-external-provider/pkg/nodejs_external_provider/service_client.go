@@ -20,6 +20,18 @@ import (
 // Evolved from pre-split generic server_configurations (nodejs).
 // for nodejs-external-provider (implementation plan Step 4).
 
+func fileURIToPath(rawPath string) string {
+	path := strings.TrimPrefix(rawPath, "file://")
+	path = strings.TrimPrefix(path, "file:")
+	// Strip leading slash from Windows drive letter paths: /c:/... → c:/...
+	if len(path) >= 3 && path[0] == '/' &&
+		((path[1] >= 'A' && path[1] <= 'Z') || (path[1] >= 'a' && path[1] <= 'z')) &&
+		path[2] == ':' {
+		path = path[1:]
+	}
+	return filepath.FromSlash(path)
+}
+
 type NodeServiceClientConfig struct {
 	base.LSPServiceClientConfig `yaml:",inline"`
 
@@ -169,8 +181,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 
 	basePath := ""
 	if len(sc.BaseConfig.WorkspaceFolders) > 0 {
-		basePath = sc.BaseConfig.WorkspaceFolders[0]
-		basePath = strings.TrimPrefix(basePath, "file://")
+		basePath = fileURIToPath(sc.BaseConfig.WorkspaceFolders[0])
 	}
 
 	nonEmptyDependencyFolders := []string{}
@@ -259,7 +270,10 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 			sc.Log.V(7).Info("unable to get base location", "symbol", s)
 			continue
 		}
-		if len(sc.BaseConfig.WorkspaceFolders) < 1 || !strings.Contains(baseLocation.URI, sc.BaseConfig.WorkspaceFolders[0]) {
+		if len(sc.BaseConfig.WorkspaceFolders) < 1 || !strings.HasPrefix(
+			provider.NormalizePathForComparison(baseLocation.URI),
+			provider.NormalizePathForComparison(sc.BaseConfig.WorkspaceFolders[0]),
+		) {
 			continue
 		}
 

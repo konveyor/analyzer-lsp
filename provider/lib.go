@@ -285,7 +285,7 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 							"this should not happen, please file a bug", "basePath", f.BasePath, "filePath", file)
 						continue
 					}
-						// Normalize to forward slashes for pattern matching.
+					// Normalize to forward slashes for pattern matching.
 					// Regex patterns use '/' as directory separator since
 					// '\' is the regex escape character on all platforms.
 					relPath = "/" + filepath.ToSlash(relPath)
@@ -596,6 +596,12 @@ func NormalizePathForComparison(path string) string {
 	// Remove common URI schemes (some systems emit file: instead of file://)
 	path = strings.TrimPrefix(path, "file://")
 	path = strings.TrimPrefix(path, "file:")
+
+	if len(path) >= 3 && path[0] == '/' &&
+		((path[1] >= 'A' && path[1] <= 'Z') || (path[1] >= 'a' && path[1] <= 'z')) &&
+		path[2] == ':' {
+		path = path[1:]
+	}
 
 	// Clean the path to resolve . and .. elements
 	path = filepath.Clean(path)
