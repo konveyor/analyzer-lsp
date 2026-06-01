@@ -19,7 +19,7 @@
           kind: Class
           name: Bean
           package: com.example.apps
-          isDependencyIncident: false
+        isDependencyIncident: false
       effort: 1
     java-gradle-project:
       description: |
@@ -662,7 +662,7 @@
           kind: Method
           name: main
           package: com.example.apps
-          isDependencyIncident: false
+        isDependencyIncident: false
       effort: 1
     maven-javax-to-jakarta-00002:
       description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
@@ -763,6 +763,7 @@
           kind: Field
           name: repository
           package: io.konveyor.demo.ordermanagement.service
+        isDependencyIncident: false
     field-rule-00002:
       description: Sample field declaration rule (field_declaration)
       category: mandatory
@@ -776,6 +777,7 @@
           kind: Field
           name: repository
           package: io.konveyor.demo.ordermanagement.service
+        isDependencyIncident: false
     java-annotation-inspection-01:
       description: |
         This rule looks for a given class annotated with a given annotation
@@ -790,6 +792,7 @@
           kind: Class
           name: PersistenceConfig
           package: io.konveyor.demo.ordermanagement.config
+        isDependencyIncident: false
     java-annotation-inspection-02:
       description: |
         This rule looks for a given method annotated with a given annotation
@@ -804,6 +807,7 @@
           kind: Method
           name: entityManagerFactory
           package: io.konveyor.demo.ordermanagement.config
+        isDependencyIncident: false
     java-annotation-inspection-03:
       description: |
         This rule looks for a given field annotated with a given annotation
@@ -818,6 +822,7 @@
           kind: Field
           name: customerService
           package: io.konveyor.demo.ordermanagement.controller
+        isDependencyIncident: false
     java-annotation-inspection-04:
       description: |
         This rule looks for a given annotation used with some given properties (elements)
@@ -832,6 +837,7 @@
           kind: Property
           name: GetMapping
           package: io.konveyor.demo.ordermanagement.controller
+        isDependencyIncident: false
     java-annotation-inspection-05:
       description: |
         This rule looks for a given annotation used with another annotation
@@ -846,6 +852,7 @@
           kind: Property
           name: Configuration
           package: io.konveyor.demo.ordermanagement.config
+        isDependencyIncident: false
     java-chaining-01:
       description: There should only be one instance of this rule
       category: mandatory
@@ -860,6 +867,7 @@
           kind: Class
           name: OrderManagementAppInitializer
           package: io.konveyor.demo.ordermanagement
+        isDependencyIncident: false
     java-downloaded-maven-artifact:
       description: |
         This rule tests the application downloaded from maven artifact
@@ -875,6 +883,7 @@
           kind: Module
           name: io.javaoperatorsdk.operator.Operator
           package: io.javaoperatorsdk.operator.sample
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/java-project/src/main/java/io/javaoperatorsdk/operator/sample/QuarkusOperator.java
         message: ""
         codeSnip: "\n 7  import io.quarkus.runtime.Quarkus;\n 8  import io.quarkus.runtime.QuarkusApplication;\n 9  import io.quarkus.runtime.annotations.QuarkusMain;\n10  import javax.inject.Inject;\n11  \n12  @QuarkusMain\n13  public class QuarkusOperator implements QuarkusApplication {\n14  @Inject\n15  KubernetesClient client;\n16  @Inject\n17  Operator operator;\n18  @Inject\n19  ConfigurationService configuration;\n20  @Inject\n21  CustomServiceController controller;\n22  \n23  public static void main(String... args) {\n24  Quarkus.run(QuarkusOperator.class, args);\n25  }\n26  \n27  public int run(String... args) throws Exception {"
@@ -884,5 +893,6 @@
           kind: Field
           name: operator
           package: io.javaoperatorsdk.operator.sample
+        isDependencyIncident: false
   unmatched:
-    - konveyor-java-pattern-test-5
+  - konveyor-java-pattern-test-5

@@ -25,4 +25,4 @@
         isDependencyIncident: false
       effort: 1
   unmatched:
-    - python-sample-rule-003
+  - python-sample-rule-003
