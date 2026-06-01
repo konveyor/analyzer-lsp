@@ -19,6 +19,7 @@
           kind: Class
           name: Bean
           package: com.example.apps
+          isDependencyIncident: false
       effort: 1
     java-gradle-project:
       description: |
@@ -34,6 +35,7 @@
           kind: Module
           name: com.sun.net.httpserver.HttpExchange
           package: io.jeffchao.template.server
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/gradle-multi-project-example/template-server/src/main/java/io/jeffchao/template/server/Server.java
         message: Only incidents in gradle project should appear
         codeSnip: "\n14  String portString = System.getenv(\"PORT\");\n15  int port = portString == null ? 8080 : Integer.valueOf(portString);\n16  HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);\n17  server.createContext(\"/\", new MyHandler());\n18  server.setExecutor(null); // creates a default executor\n19  server.start();\n20  }\n21  \n22  static class MyHandler implements HttpHandler {\n23  @Override\n24  public void handle(HttpExchange t) throws IOException {\n25  String response = \"Hello from Gradle!\";\n26  t.sendResponseHeaders(200, response.length());\n27  OutputStream os = t.getResponseBody();\n28  os.write(response.getBytes());\n29  os.close();\n30  }\n31  }\n32  }"
@@ -43,6 +45,7 @@
           kind: Method
           name: handle
           package: io.jeffchao.template.server
+        isDependencyIncident: false
       effort: 3
     java-inclusion-test:
       description: |
@@ -59,6 +62,7 @@
           kind: Class
           name: FileReader
           package: io.konveyor.util
+        isDependencyIncident: false
       effort: 3
     java-pomxml-dependencies:
       description: ""
@@ -71,6 +75,7 @@
         variables:
           name: junit.junit
           version: "4.12"
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: dependency junit.junit with 4.11 is bad and you should feel bad for using it
         codeSnip: "\n20  <properties>\n21  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n22  <maven.compiler.source>1.7</maven.compiler.source>\n23  <maven.compiler.target>1.7</maven.compiler.target>\n24  <javaee-api.version>7.0</javaee-api.version>\n25  </properties>\n26  \n27  <dependencies>\n28  <dependency>\n29  <groupId>junit</groupId>\n30  <artifactId>junit</artifactId>\n31  <version>4.11</version>\n32  <scope>test</scope>\n33  </dependency>\n34  <dependency>\n35  <groupId>io.fabric8</groupId>\n36  <artifactId>kubernetes-client</artifactId>\n37  <version>6.0.0</version>\n38  </dependency>\n39  <dependency>\n40  <groupId>io.fabric8</groupId>"
@@ -78,6 +83,7 @@
         variables:
           name: junit.junit
           version: "4.11"
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/java/pom.xml
         message: dependency io.fabric8.kubernetes-client with 6.0.0 is bad and you should feel bad for using it
         codeSnip: "\n26  \n27  <dependencies>\n28  <dependency>\n29  <groupId>junit</groupId>\n30  <artifactId>junit</artifactId>\n31  <version>4.11</version>\n32  <scope>test</scope>\n33  </dependency>\n34  <dependency>\n35  <groupId>io.fabric8</groupId>\n36  <artifactId>kubernetes-client</artifactId>\n37  <version>6.0.0</version>\n38  </dependency>\n39  <dependency>\n40  <groupId>io.fabric8</groupId>\n41  <artifactId>kubernetes-client-api</artifactId>\n42  <version>6.0.0</version>\n43  </dependency>\n44  <dependency>\n45  <groupId>javax</groupId>\n46  <artifactId>javaee-api</artifactId>"
@@ -85,6 +91,7 @@
         variables:
           name: io.fabric8.kubernetes-client
           version: 6.0.0
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-1:
       description: PACKAGE match with stars
@@ -99,6 +106,7 @@
           kind: Module
           name: org.springframework.web.servlet.view.tiles3
           package: com.example.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: PACKAGE match with stars
         codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")"
@@ -108,6 +116,7 @@
           kind: Module
           name: org.springframework.web.servlet.view.tiles3
           package: com.example.config
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-2:
       description: Exact PACKAGE match
@@ -122,6 +131,7 @@
           kind: Module
           name: org.springframework.web.servlet
           package: io.konveyor.demo.ordermanagement
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: Exact PACKAGE match
         codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {"
@@ -131,6 +141,7 @@
           kind: Module
           name: org.springframework.web.servlet
           package: com.example.config
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-3:
       description: Exact PACKAGE match with wildcard at the end
@@ -145,6 +156,7 @@
           kind: Module
           name: org.springframework.web.servlet
           package: io.konveyor.demo.ordermanagement
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: Exact PACKAGE match with wildcard at the end
         codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  "
@@ -154,6 +166,7 @@
           kind: Module
           name: org.springframework.web.servlet.view.tiles3
           package: com.example.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: Exact PACKAGE match with wildcard at the end
         codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")"
@@ -163,6 +176,7 @@
           kind: Module
           name: org.springframework.web.servlet.view.tiles3
           package: com.example.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: Exact PACKAGE match with wildcard at the end
         codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {"
@@ -172,6 +186,7 @@
           kind: Module
           name: org.springframework.web.servlet
           package: com.example.config
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-4:
       description: Exact IMPORT match
@@ -186,6 +201,7 @@
           kind: Module
           name: org.springframework.web.servlet.ViewResolver
           package: com.example.config
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-6:
       description: IMPORT match with asterisk at the end (without dot)
@@ -200,6 +216,7 @@
           kind: Module
           name: org.springframework.web.servlet.DispatcherServlet
           package: io.konveyor.demo.ordermanagement
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: IMPORT match with asterisk at the end (without dot)
         codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  "
@@ -209,6 +226,7 @@
           kind: Module
           name: org.springframework.web.servlet.view.tiles3.TilesConfigurer
           package: com.example.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: IMPORT match with asterisk at the end (without dot)
         codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")"
@@ -218,6 +236,7 @@
           kind: Module
           name: org.springframework.web.servlet.view.tiles3.TilesViewResolver
           package: com.example.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: IMPORT match with asterisk at the end (without dot)
         codeSnip: "\n 1  package com.example.config;\n 2  \n 3  import org.springframework.context.annotation.Bean;\n 4  import org.springframework.context.annotation.Configuration;\n 5  import org.springframework.web.servlet.view.tiles3.TilesConfigurer;\n 6  import org.springframework.web.servlet.view.tiles3.TilesViewResolver;\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {"
@@ -227,6 +246,7 @@
           kind: Module
           name: org.springframework.web.servlet.ViewResolver
           package: com.example.config
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-7:
       description: METHOD match with asterisk at the end
@@ -241,6 +261,7 @@
           kind: Method
           name: doStuffWithHomeService
           package: com.example.controller
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
         message: METHOD match with asterisk at the end
         codeSnip: "\n 5  import org.springframework.core.AttributeAccessor;\n 6  \n 7  public class HomeService implements AttributeAccessor {\n 8  \n 9  private TypedEntity<B> typedEntity;\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {"
@@ -250,6 +271,7 @@
           kind: Method
           name: doStuff
           package: com.example.service
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
         message: METHOD match with asterisk at the end
         codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
@@ -259,6 +281,7 @@
           kind: Method
           name: doThings
           package: com.example.service
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-8:
       description: METHOD match with asterisk at the end and class name
@@ -273,6 +296,7 @@
           kind: Method
           name: doStuff
           package: com.example.service
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
         message: METHOD match with asterisk at the end and class name
         codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
@@ -282,6 +306,7 @@
           kind: Method
           name: doThings
           package: com.example.service
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-9:
       description: METHOD match with asterisk at the end and fully qualified class name
@@ -296,6 +321,7 @@
           kind: Method
           name: doStuff
           package: com.example.service
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/service/HomeService.java
         message: METHOD match with asterisk at the end and fully qualified class name
         codeSnip: "\n10  \n11  public HomeService() {\n12  this.typedEntity = new TypedEntity<>(new B());\n13  }\n14  \n15  public void doStuff() {\n16  B b = new B();\n17  TypedEntity<B> typedEntity = new TypedEntity<>(b);\n18  }\n19  \n20  public <T extends B> String doThings(T input) {\n21  return \"Hello World!\";\n22  }\n23  \n24  @Override\n25  public void setAttribute(String name, Object value) {\n26  \n27  }\n28  \n29  @Override\n30  public Object getAttribute(String name) {"
@@ -305,6 +331,7 @@
           kind: Method
           name: doThings
           package: com.example.service
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-10:
       description: Exact METHOD match with fully qualified class name
@@ -319,6 +346,7 @@
           kind: Method
           name: doThings
           package: com.example.service
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-11:
       description: Exact METHOD match with fully qualified class name and type parameters
@@ -333,6 +361,7 @@
           kind: Method
           name: doThings
           package: com.example.service
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-12:
       description: Exact METHOD_CALL match with fully qualified class name
@@ -347,6 +376,7 @@
           kind: Method
           name: doStuffWithHomeService
           package: com.example.controller
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-13:
       description: METHOD_CALL match with asterisk and fully qualified class name
@@ -361,6 +391,7 @@
           kind: Method
           name: doStuffWithHomeService
           package: com.example.controller
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-14:
       description: METHOD_CALL match with asterisk for whole method name and fully qualified class name
@@ -375,6 +406,7 @@
           kind: Method
           name: doStuffWithHomeService
           package: com.example.controller
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-15:
       description: FIELD match with asterisk for name and fq type
@@ -389,6 +421,7 @@
           kind: Field
           name: typedEntity
           package: com.example.service
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-16:
       description: Exact ANNOTATION match
@@ -403,6 +436,7 @@
           kind: Property
           name: Controller
           package: com.example.controller
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-17:
       description: CLASS asterisk match with annotated pattern
@@ -417,6 +451,7 @@
           kind: Class
           name: HomeController
           package: com.example.controller
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-18:
       description: METHOD asterisk match with annotated pattern
@@ -431,6 +466,7 @@
           kind: Method
           name: entityManagerFactory
           package: io.konveyor.demo.ordermanagement.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
         message: METHOD asterisk match with annotated pattern
         codeSnip: "\n32  final LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();\n33  em.setDataSource(dataSource());\n34  em.setPackagesToScan(\"io.konveyor.demo.ordermanagement.model\");\n35  em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());\n36  em.setJpaProperties(additionalProperties());\n37  \n38  return em;\n39  }\n40  \n41  @Bean\n42  public DataSource dataSource() {\n43  ApplicationConfiguration config = new ApplicationConfiguration();\n44  final DriverManagerDataSource dataSource = new DriverManagerDataSource();\n45  dataSource.setDriverClassName(config.getProperty(\"jdbc.driverClassName\"));\n46  dataSource.setUrl(config.getProperty(\"jdbc.url\"));\n47  dataSource.setUsername(config.getProperty(\"jdbc.user\"));\n48  dataSource.setPassword(config.getProperty(\"jdbc.password\"));\n49  \n50  return dataSource;\n51  }\n52  "
@@ -440,6 +476,7 @@
           kind: Method
           name: dataSource
           package: io.konveyor.demo.ordermanagement.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
         message: METHOD asterisk match with annotated pattern
         codeSnip: "\n44  final DriverManagerDataSource dataSource = new DriverManagerDataSource();\n45  dataSource.setDriverClassName(config.getProperty(\"jdbc.driverClassName\"));\n46  dataSource.setUrl(config.getProperty(\"jdbc.url\"));\n47  dataSource.setUsername(config.getProperty(\"jdbc.user\"));\n48  dataSource.setPassword(config.getProperty(\"jdbc.password\"));\n49  \n50  return dataSource;\n51  }\n52  \n53  @Bean\n54  public PlatformTransactionManager transactionManager() {\n55  final JpaTransactionManager transactionManager = new JpaTransactionManager();\n56  transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());\n57  return transactionManager;\n58  }\n59  \n60  @Bean\n61  public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {\n62  return new PersistenceExceptionTranslationPostProcessor();\n63  }\n64  "
@@ -449,6 +486,7 @@
           kind: Method
           name: transactionManager
           package: io.konveyor.demo.ordermanagement.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/customers-tomcat-legacy/src/main/java/io/konveyor/demo/ordermanagement/config/PersistenceConfig.java
         message: METHOD asterisk match with annotated pattern
         codeSnip: "\n51  }\n52  \n53  @Bean\n54  public PlatformTransactionManager transactionManager() {\n55  final JpaTransactionManager transactionManager = new JpaTransactionManager();\n56  transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());\n57  return transactionManager;\n58  }\n59  \n60  @Bean\n61  public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {\n62  return new PersistenceExceptionTranslationPostProcessor();\n63  }\n64  \n65  final Properties additionalProperties() {\n66  ApplicationConfiguration config = new ApplicationConfiguration();\n67  final Properties hibernateProperties = new Properties();\n68  hibernateProperties.setProperty(\"hibernate.hbm2ddl.auto\", config.getProperty(\"hibernate.hbm2ddl.auto\"));\n69  hibernateProperties.setProperty(\"hibernate.dialect\", config.getProperty(\"hibernate.dialect\"));\n70  hibernateProperties.setProperty(\"hibernate.cache.use_second_level_cache\", \"false\");\n71  "
@@ -458,6 +496,7 @@
           kind: Method
           name: exceptionTranslation
           package: io.konveyor.demo.ordermanagement.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: METHOD asterisk match with annotated pattern
         codeSnip: "\n 7  import org.springframework.web.servlet.ViewResolver;\n 8  \n 9  /**\n10  * Apache Tiles configuration for Spring MVC.\n11  * This class uses Spring 5's Tiles integration which has been removed in Spring 6.\n12  */\n13  @Configuration\n14  public class TilesConfig {\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {\n18  TilesConfigurer tilesConfigurer = new TilesConfigurer();\n19  tilesConfigurer.setDefinitions(\"/WEB-INF/tiles/tiles-definitions.xml\");\n20  tilesConfigurer.setCheckRefresh(true);\n21  return tilesConfigurer;\n22  }\n23  \n24  @Bean\n25  public ViewResolver tilesViewResolver() {\n26  TilesViewResolver viewResolver = new TilesViewResolver();\n27  viewResolver.setOrder(1);"
@@ -467,6 +506,7 @@
           kind: Method
           name: tilesConfigurer
           package: com.example.config
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/sample-tiles-app/src/main/java/com/example/config/TilesConfig.java
         message: METHOD asterisk match with annotated pattern
         codeSnip: "\n15  \n16  @Bean(name = \"nameForThisBean\")\n17  public TilesConfigurer tilesConfigurer() {\n18  TilesConfigurer tilesConfigurer = new TilesConfigurer();\n19  tilesConfigurer.setDefinitions(\"/WEB-INF/tiles/tiles-definitions.xml\");\n20  tilesConfigurer.setCheckRefresh(true);\n21  return tilesConfigurer;\n22  }\n23  \n24  @Bean\n25  public ViewResolver tilesViewResolver() {\n26  TilesViewResolver viewResolver = new TilesViewResolver();\n27  viewResolver.setOrder(1);\n28  return viewResolver;\n29  }\n30  }"
@@ -476,6 +516,7 @@
           kind: Method
           name: tilesViewResolver
           package: com.example.config
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-19:
       description: METHOD match with annotated pattern
@@ -490,6 +531,7 @@
           kind: Method
           name: tilesConfigurer
           package: com.example.config
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-20:
       description: METHOD match with annotated pattern
@@ -504,6 +546,7 @@
           kind: Method
           name: tilesConfigurer
           package: com.example.config
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-21:
       description: METHOD match with annotated pattern with boolean element
@@ -518,6 +561,7 @@
           kind: Method
           name: tilesConfigurer
           package: com.example.config
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-22:
       description: METHOD match with annotated pattern with boolean element
@@ -532,6 +576,7 @@
           kind: Class
           name: TypedEntity
           package: com.example.model
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-111:
       description: METHOD match with asterisk in package name
@@ -546,6 +591,7 @@
           kind: Method
           name: doThings
           package: com.example.service
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-151:
       description: FIELD match with asterisk for name and fq type
@@ -560,6 +606,7 @@
           kind: Field
           name: typedEntity
           package: com.example.service
+        isDependencyIncident: false
       effort: 1
     konveyor-java-pattern-test-211:
       description: ANNOTATION match with elements search and on-demand import of the annotation
@@ -574,6 +621,7 @@
           kind: Property
           name: GetMapping
           package: com.example.controller
+        isDependencyIncident: false
       effort: 1
     lang-ref-003:
       description: ""
@@ -588,6 +636,7 @@
           kind: Module
           name: io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition
           package: com.example.apps
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java
         message: java found apiextensions/v1/customresourcedefinitions found file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/App.java:14
         codeSnip: "\n 4  \n 5  public class App\n 6  {\n 7  \n 8  /**\n 9  * {@link CustomResourceDefinition}\n10  * @param args\n11  */\n12  public static void main( String[] args )\n13  {\n14  CustomResourceDefinition crd = new CustomResourceDefinition();\n15  System.out.println( crd );\n16  \n17  GenericClass<String> element = new GenericClass<String>(\"Hello world!\");\n18  element.get();\n19  }\n20  }"
@@ -597,6 +646,7 @@
           kind: Method
           name: main
           package: com.example.apps
+        isDependencyIncident: false
       effort: 1
     lang-ref-004:
       description: ""
@@ -612,6 +662,7 @@
           kind: Method
           name: main
           package: com.example.apps
+          isDependencyIncident: false
       effort: 1
     maven-javax-to-jakarta-00002:
       description: Move to Jakarta EE Maven Artifacts - replace groupId javax.activation
@@ -646,6 +697,7 @@
         variables:
           name: javax.activation.activation
           version: "1.1"
+        isDependencyIncident: false
       effort: 1
     singleton-sessionbean-00001:
       description: ""
@@ -660,6 +712,7 @@
           kind: Property
           name: Singleton
           package: com.example.apps
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/Bean.java
         message: condition entries should evaluate out of order
         codeSnip: "\n 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8  \n 9  }"
@@ -669,6 +722,7 @@
           kind: Class
           name: Bean
           package: com.example.apps
+        isDependencyIncident: false
       effort: 1
     singleton-sessionbean-00002:
       description: ""
@@ -683,6 +737,7 @@
           kind: Property
           name: Singleton
           package: com.example.apps
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/java/example/src/main/java/com/example/apps/Bean.java
         message: condition entries should evaluate in order
         codeSnip: "\n 1  package com.example.apps;\n 2  \n 3  import javax.ejb.SessionBean;\n 4  import javax.ejb.Singleton;\n 5  \n 6  @Singleton\n 7  public abstract class Bean implements SessionBean {\n 8  \n 9  }"
@@ -692,6 +747,7 @@
           kind: Class
           name: Bean
           package: com.example.apps
+        isDependencyIncident: false
       effort: 1
   insights:
     field-rule-00001:
@@ -829,4 +885,4 @@
           name: operator
           package: io.javaoperatorsdk.operator.sample
   unmatched:
-  - konveyor-java-pattern-test-5
+    - konveyor-java-pattern-test-5
