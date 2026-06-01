@@ -623,11 +623,12 @@ func (p ProviderCondition) Evaluate(ctx context.Context, log logr.Logger, condCt
 			continue
 		}
 		i := engine.IncidentContext{
-			FileURI:    inc.FileURI,
-			Effort:     inc.Effort,
-			LineNumber: inc.LineNumber,
-			Variables:  inc.Variables,
-			Links:      p.Rule.Perform.Message.Links,
+			FileURI:              inc.FileURI,
+			Effort:               inc.Effort,
+			LineNumber:           inc.LineNumber,
+			Variables:            inc.Variables,
+			Links:                p.Rule.Perform.Message.Links,
+			IsDependencyIncident: inc.IsDependencyIncident,
 		}
 
 		if inc.CodeLocation != nil {
