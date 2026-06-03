@@ -52,10 +52,11 @@ jobs:
 
   build-images:
     name: Build e2e Images
-    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@main
+    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@feature/262-refactor-generic-provider
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.ref }}
+      ci_ref: 'feature/262-refactor-generic-provider'
 
   provider-tests:
     needs: [detect-changes, build-images]
