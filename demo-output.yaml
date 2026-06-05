@@ -521,7 +521,7 @@
         lineNumber: 4
         variables:
           matchingText: React
-          isDependencyIncident: false
+        isDependencyIncident: false
       effort: 1
     test-regex-pattern-00010:
       description: Test regex pattern for CSS/SCSS files
