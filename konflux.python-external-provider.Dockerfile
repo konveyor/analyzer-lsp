@@ -4,7 +4,6 @@ COPY --chown=1001:0 . /workspace
 WORKDIR /workspace/external-providers/python-external-provider
 ENV GOEXPERIMENT strictfipsruntime
 RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && \
-    go mod tidy && \
     CGO_ENABLED=1 go build -mod=readonly -tags strictfipsruntime -a -o python-external-provider main.go
 
 FROM registry.redhat.io/ubi9/ubi:latest
