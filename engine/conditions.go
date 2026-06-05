@@ -49,12 +49,13 @@ type ConditionEntry struct {
 }
 
 type IncidentContext struct {
-	FileURI      uri.URI                `yaml:"fileURI"`
-	Effort       *int                   `yaml:"effort"`
-	LineNumber   *int                   `yaml:"lineNumber,omitempty"`
-	Variables    map[string]interface{} `yaml:"variables"`
-	Links        []konveyor.Link        `yaml:"externalLink"`
-	CodeLocation *Location              `yaml:"location,omitempty"`
+	FileURI              uri.URI                `yaml:"fileURI"`
+	Effort               *int                   `yaml:"effort"`
+	LineNumber           *int                   `yaml:"lineNumber,omitempty"`
+	Variables            map[string]interface{} `yaml:"variables"`
+	Links                []konveyor.Link        `yaml:"externalLink"`
+	CodeLocation         *Location              `yaml:"location,omitempty"`
+	IsDependencyIncident bool
 }
 
 type Location struct {
