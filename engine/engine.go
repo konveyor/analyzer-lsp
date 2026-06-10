@@ -644,7 +644,8 @@ func (r *ruleEngine) createViolation(ctx context.Context, conditionResponse Cond
 			LineNumber: m.LineNumber,
 			// This allows us to change m.Variables and it will be set
 			// because it is a pointer.
-			Variables: m.Variables,
+			Variables:            m.Variables,
+			IsDependencyIncident: m.IsDependencyIncident,
 		}
 		if m.LineNumber != nil {
 			lineNumber := *m.LineNumber

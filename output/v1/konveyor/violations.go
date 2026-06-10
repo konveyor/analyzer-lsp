@@ -131,6 +131,10 @@ type Incident struct {
 	// Extras json.RawMessage
 	LineNumber *int                   `yaml:"lineNumber,omitempty" json:"lineNumber,omitempty"`
 	Variables  map[string]interface{} `yaml:"variables,omitempty" json:"variables,omitempty"`
+
+	// IsDependencyIncident indicates whether this incident was found in a dependency
+	// (as opposed to the application's own source code)
+	IsDependencyIncident bool `yaml:"isDependencyIncident" json:"isDependencyIncident"`
 }
 
 // Lexicographically compares two Incidents

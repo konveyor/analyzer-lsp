@@ -1677,6 +1677,58 @@ func TestCreateViolation(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "dependency incident propagation",
+			setupFunc: func(t *testing.T) (*ruleEngine, ConditionResponse, Rule, func()) {
+				ruleEngine := CreateRuleEngine(ctx, 10, log).(*ruleEngine)
+				lineNum1, lineNum2 := 10, 20
+				msg := "Test violation"
+				conditionResponse := ConditionResponse{
+					Matched: true,
+					Incidents: []IncidentContext{
+						{
+							FileURI:              "file:///app/src/main/MyClass.java",
+							LineNumber:           &lineNum1,
+							Variables:            map[string]any{},
+							IsDependencyIncident: false, // application code
+						},
+						{
+							FileURI:              "konveyor-jdt://contents/org/springframework/core/SpringVersion.class?packageName=org.springframework.core.SpringVersion&source-range=true",
+							LineNumber:           &lineNum2,
+							Variables:            map[string]any{},
+							IsDependencyIncident: true, // dependency code
+						},
+					},
+				}
+				rule := Rule{
+					RuleMeta: RuleMeta{
+						RuleID: "test-rule",
+					},
+					Perform: Perform{
+						Message: Message{
+							Text: &msg,
+						},
+					},
+				}
+				return ruleEngine, conditionResponse, rule, func() { ruleEngine.Stop() }
+			},
+			checkFunc: func(t *testing.T, violation konveyor.Violation, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if len(violation.Incidents) != 2 {
+					t.Fatalf("Expected 2 incidents, got %d", len(violation.Incidents))
+				}
+				// First incident should NOT be marked as from dependency
+				if violation.Incidents[0].IsDependencyIncident {
+					t.Errorf("Expected first incident (app code) to have IsDependencyIncident=false, got true")
+				}
+				// Second incident SHOULD be marked as from dependency
+				if !violation.Incidents[1].IsDependencyIncident {
+					t.Errorf("Expected second incident (dependency code) to have IsDependencyIncident=true, got false")
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -10,6 +10,7 @@
         lineNumber: 11
         variables:
           file: file:///analyzer-lsp/examples/golang/main.go
+        isDependencyIncident: false
       effort: 1
     golang-gomod-dependencies:
       description: ""
@@ -21,16 +22,19 @@
         variables:
           name: golang.org/x/text
           version: v0.3.7
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: dependency k8s.io/apimachinery with v0.24.4 is bad and you should feel bad for using it
         lineNumber: 0
         variables:
           name: k8s.io/apimachinery
           version: v0.24.4
+        isDependencyIncident: false
       - uri: file:///analyzer-lsp/examples/golang/go.mod
         message: dependency sigs.k8s.io/structured-merge-diff/v4 with v4.2.1 is bad and you should feel bad for using it
         lineNumber: 0
         variables:
           name: sigs.k8s.io/structured-merge-diff/v4
           version: v4.2.1
+        isDependencyIncident: false
       effort: 1

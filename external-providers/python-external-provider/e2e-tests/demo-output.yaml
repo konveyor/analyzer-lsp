@@ -10,6 +10,7 @@
         lineNumber: 3
         variables:
           file: file:///analyzer-lsp/examples/python/file_a.py
+        isDependencyIncident: false
       effort: 1
     python-sample-rule-002:
       description: ""
@@ -21,6 +22,7 @@
         lineNumber: 6
         variables:
           file: file:///analyzer-lsp/examples/python/file_a.py
+        isDependencyIncident: false
       effort: 1
   unmatched:
   - python-sample-rule-003

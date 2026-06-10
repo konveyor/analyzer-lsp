@@ -4,7 +4,6 @@ go 1.25
 
 require (
 	github.com/go-logr/logr v1.4.3
-	github.com/konveyor/analyzer-lsp v0.9.0-alpha.1.0.20251211173054-36ef5519576d
 	github.com/swaggest/openapi-go v0.2.58
 	go.lsp.dev/uri v0.3.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -12,6 +11,7 @@ require (
 
 require (
 	github.com/hashicorp/go-version v1.6.0
+	github.com/konveyor/analyzer-lsp v0.9.2
 	github.com/nxadm/tail v1.4.11
 	github.com/sirupsen/logrus v1.9.3
 	github.com/vifraa/gopom v1.0.0
@@ -46,5 +46,3 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
-
-replace github.com/konveyor/analyzer-lsp => ../../

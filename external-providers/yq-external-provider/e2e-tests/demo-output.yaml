@@ -13,6 +13,7 @@
           kind: Deployment
           removed-in: v1.16.0
           replacement-API: apps/v1
+        isDependencyIncident: false
       effort: 2
     k8s-deprecated-api-002:
       description: Check for usage of deprecated Kubernetes API versions
@@ -27,4 +28,5 @@
           kind: ReplicaSet
           removed-in: v1.16.0
           replacement-API: apps/v1
+        isDependencyIncident: false
       effort: 2
