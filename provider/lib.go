@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"math"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -596,6 +597,10 @@ func NormalizePathForComparison(path string) string {
 	// Remove common URI schemes (some systems emit file: instead of file://)
 	path = strings.TrimPrefix(path, "file://")
 	path = strings.TrimPrefix(path, "file:")
+
+	if decoded, err := url.PathUnescape(path); err == nil {
+		path = decoded
+	}
 
 	if len(path) >= 3 && path[0] == '/' &&
 		((path[1] >= 'A' && path[1] <= 'Z') || (path[1] >= 'a' && path[1] <= 'z')) &&
