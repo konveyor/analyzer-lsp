@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -155,13 +156,17 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	// Get filepath constraints from rule scope (e.g., chained conditions)
 	includedFilepaths, excludedFilepaths := condCTX.GetScopedFilepaths()
 
-	// Determine which filepaths to pass to the language server query
-	// Provider-level includes take precedence over rule-scope includes
+	// Determine which filepaths to pass to the language server query.
+	// On Windows, rule-scope paths are NOT sent to the JDT LS because its
+	// search scope creation (SampleDelegateCommandHandler.java) has path
+	// handling issues: case-sensitive segment comparison in makeRelativeTo and
+	// a findElement fallback that silently discards results. On Linux/macOS
+	// these work correctly so we keep the optimization.
 	var lspIncludedPaths []string
 	if len(p.includedPaths) > 0 {
 		lspIncludedPaths = p.includedPaths
 		log.V(8).Info("setting LSP search scope by provider-level filepaths", "paths", p.includedPaths)
-	} else if len(includedFilepaths) > 0 {
+	} else if len(includedFilepaths) > 0 && runtime.GOOS != "windows" {
 		lspIncludedPaths = includedFilepaths
 		log.V(8).Info("setting LSP search scope by rule-scope filepaths", "paths", includedFilepaths)
 	}
@@ -171,13 +176,9 @@ func (p *javaServiceClient) GetAllSymbols(ctx context.Context, c javaCondition, 
 	}
 
 	// Check if we need file-level filtering beyond what the language server provides
-	// The language server filters at package-level, we need file-level precision for:
-	// 1. Excluded paths (language server only handles included paths)
-	// 2. Condition-level filepaths (pattern matching and normalization)
-	// 3. Rule-scope included paths when provider-level paths were used for LSP query
-	hasAdditionalConstraints := len(excludedFilepaths) > 0 ||
-		len(c.Referenced.Filepaths) > 0 ||
-		(len(p.includedPaths) > 0 && len(includedFilepaths) > 0)
+	hasAdditionalConstraints := len(includedFilepaths) > 0 ||
+		len(excludedFilepaths) > 0 ||
+		len(c.Referenced.Filepaths) > 0
 
 	// Start file search in parallel with language server query (if needed)
 	type fileSearchResult struct {
