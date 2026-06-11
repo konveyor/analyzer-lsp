@@ -11,7 +11,7 @@ require (
 
 require (
 	github.com/hashicorp/go-version v1.6.0
-	github.com/konveyor/analyzer-lsp v0.9.2
+	github.com/konveyor/analyzer-lsp v0.10.0-alpha.2.0.20260611082435-fa39c059f102
 	github.com/nxadm/tail v1.4.11
 	github.com/sirupsen/logrus v1.9.3
 	github.com/vifraa/gopom v1.0.0

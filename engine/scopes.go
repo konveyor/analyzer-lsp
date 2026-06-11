@@ -101,12 +101,22 @@ func (i *includedPathScope) FilterResponse(response IncidentContext) bool {
 	if len(i.paths) == 0 {
 		return false
 	}
+	normalizedResponse := normalizePathForComparison(response.FileURI.Filename())
 	for _, path := range i.paths {
-		if string(response.FileURI) != "" && response.FileURI.Filename() == path {
+		if string(response.FileURI) != "" && normalizedResponse == normalizePathForComparison(path) {
 			return false
 		}
 	}
 	return true
+}
+
+// normalizePathForComparison converts a file path to a canonical form for
+// comparison.
+func normalizePathForComparison(path string) string {
+	if runtime.GOOS == "windows" {
+		return strings.ToLower(filepath.ToSlash(path))
+	}
+	return path
 }
 
 func IncludedPathsScope(paths []string, log logr.Logger) Scope {
