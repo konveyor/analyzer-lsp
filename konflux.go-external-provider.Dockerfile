@@ -3,7 +3,7 @@ COPY --chown=1001:0 . /workspace
 
 WORKDIR /workspace/external-providers/go-external-provider
 ENV GOEXPERIMENT strictfipsruntime
-RUN go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && CGO_ENABLED=1 go build -tags strictfipsruntime -a -o go-external-provider main.go && \
+RUN CGO_ENABLED=1 go build -tags strictfipsruntime -a -o go-external-provider main.go && \
     GOBIN=/workspace/external-providers/go-external-provider CGO_ENABLED=1 go install -mod=readonly -tags strictfipsruntime golang.org/x/tools/gopls@v0.20.0
 
 FROM registry.redhat.io/ubi9/ubi:latest
