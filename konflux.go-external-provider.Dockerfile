@@ -9,7 +9,6 @@ RUN CGO_ENABLED=1 go build -tags strictfipsruntime -a -o go-external-provider ma
 FROM registry.redhat.io/ubi9/ubi:latest
 
 RUN dnf install -y openssl && \
-    dnf reinstall -y tzdata && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 

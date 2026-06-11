@@ -10,7 +10,6 @@ FROM registry.redhat.io/ubi9/ubi:latest
 ENV NODEJS_VERSION=18
 RUN echo -e "[nodejs]\nname=nodejs\nstream=${NODEJS_VERSION}\nprofiles=\nstate=enabled\n" > /etc/dnf/modules.d/nodejs.module
 RUN dnf install -y nodejs npm openssl && \
-    dnf reinstall -y tzdata && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 RUN npm install -g typescript-language-server typescript

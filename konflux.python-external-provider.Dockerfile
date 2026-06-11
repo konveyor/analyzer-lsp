@@ -8,7 +8,6 @@ RUN CGO_ENABLED=1 go build -tags strictfipsruntime -a -o python-external-provide
 FROM registry.redhat.io/ubi9/ubi:latest
 
 RUN dnf install -y python3 python3-pip openssl && \
-    dnf reinstall -y tzdata && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 RUN python3 -m pip install --no-cache-dir 'python-lsp-server>=1.8.2'
