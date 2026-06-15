@@ -19,7 +19,7 @@ func TestPythonServiceClientBuilderCapabilities(t *testing.T) {
 }
 
 func TestPythonProviderInitErrorPath(t *testing.T) {
-	p := pythonext.NewPythonProvider("python", logr.Discard(), nil)
+	p := pythonext.NewPythonProvider("python", logr.Discard(), 10, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()

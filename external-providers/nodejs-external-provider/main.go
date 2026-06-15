@@ -17,6 +17,7 @@ var (
 	socket        = flag.String("socket", "", "Socket to be used")
 	logLevel      = flag.Int("log-level", 5, "Level to log")
 	lspServerName = flag.String("name", "nodejs", "LSP server name advertised to the analyzer")
+	contextLines  = flag.Int("contxtLines", 10, "lines of context for the code snippet")
 	certFile      = flag.String("certFile", "", "Path to the cert file")
 	keyFile       = flag.String("keyFile", "", "Path to the key file")
 	secretKey     = flag.String("secretKey", "", "Secret Key value")
@@ -31,7 +32,7 @@ func main() {
 	logrusLog.SetLevel(logrus.Level(*logLevel))
 	log := logrusr.New(logrusLog).WithName("nodejs-external-provider")
 
-	client := nodejsprov.NewNodejsProvider(*lspServerName, log, nil)
+	client := nodejsprov.NewNodejsProvider(*lspServerName, log, *contextLines, nil)
 
 	if *socket == "" && *port == 0 {
 		log.Error(fmt.Errorf("no serving location"), "port or socket must be set.")

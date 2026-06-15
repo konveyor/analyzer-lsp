@@ -12,6 +12,7 @@ import (
 type pythonProvider struct {
 	capabilities []provider.Capability
 	progress     *progress.Progress
+	contextLines int
 }
 
 func (p *pythonProvider) SetProgress(progress *progress.Progress) {
@@ -20,10 +21,12 @@ func (p *pythonProvider) SetProgress(progress *progress.Progress) {
 
 // NewPythonProvider constructs the gRPC-facing BaseClient for python-external-provider.
 // lspServerName should match rule provider ids (typically "python").
-func NewPythonProvider(lspServerName string, log logr.Logger, progress *progress.Progress) provider.BaseClient {
+func NewPythonProvider(lspServerName string, log logr.Logger, contextLines int, progress *progress.Progress) provider.BaseClient {
 	_ = lspServerName
+	_ = log
 	p := &pythonProvider{
-		progress: progress,
+		progress:     progress,
+		contextLines: contextLines,
 	}
 
 	builder := &PythonServiceClientBuilder{}

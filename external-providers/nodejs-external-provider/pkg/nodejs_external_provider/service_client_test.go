@@ -19,7 +19,7 @@ func TestNodejsServiceClientBuilderCapabilities(t *testing.T) {
 }
 
 func TestNodejsProviderInitErrorPath(t *testing.T) {
-	p := nodejsext.NewNodejsProvider("nodejs", logr.Discard(), nil)
+	p := nodejsext.NewNodejsProvider("nodejs", logr.Discard(), 10, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
