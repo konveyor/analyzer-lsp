@@ -45,4 +45,10 @@ public class HomeService implements AttributeAccessor {
     public String[] attributeNames() {
         return new String[0];
     }
+
+    public class EmbeddedHomeServiceClass {
+        public String embeddedHomeServiceMethod(String str) {
+            return "Hello World!";
+        }
+    }
 }
