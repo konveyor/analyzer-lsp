@@ -525,6 +525,13 @@ func NormalizePathForComparison(path string) string {
 	path = strings.TrimPrefix(path, "file://")
 	path = strings.TrimPrefix(path, "file:")
 
+	// Strip leading slash from Windows drive letter paths: /c:/... → c:/...
+	if len(path) >= 3 && path[0] == '/' &&
+		((path[1] >= 'A' && path[1] <= 'Z') || (path[1] >= 'a' && path[1] <= 'z')) &&
+		path[2] == ':' {
+		path = path[1:]
+	}
+
 	// Clean the path to resolve . and .. elements
 	path = filepath.Clean(path)
 
