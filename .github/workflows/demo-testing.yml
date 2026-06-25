@@ -99,9 +99,13 @@ jobs:
             repo: konveyor/c-sharp-analyzer-provider
             checked_out: false
             cache-key-file: Cargo.lock
+            ref: ${{ github.base_ref || github.ref_name }}
     steps:
       - uses: actions/checkout@v3
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
+        with:
+          repository: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
+          ref: ${{ matrix.ref || github.ref }}
 
       - name: Build ${{ matrix.provider }} provider image
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
@@ -166,6 +170,7 @@ jobs:
             testing-rules: external-providers/yq-external-provider/e2e-tests/rule-example.yaml
           - provider: c-sharp
             repo: "konveyor/c-sharp-analyzer-provider"
+            ref: ${{ github.base_ref || github.ref_name }}
             artifact_pattern: "{konveyor-analyzer-lsp,c-sharp-provider}"
             test-data: testdata
             image_name: c-sharp-provider
@@ -176,6 +181,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
+          ref: ${{ matrix.ref || github.ref }}
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
 
       - name: Download provider image artifacts
