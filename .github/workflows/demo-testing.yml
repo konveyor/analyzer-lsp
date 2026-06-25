@@ -112,6 +112,7 @@ jobs:
         uses: konveyor/ci/build-image@main
         with:
           repo: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
+          ref: ${{ matrix.ref || github.ref }}
           checked_out: ${{ matrix.checked_out }}
           image_name: ${{ matrix.image_name }}
           image_tag: ${{ needs.detect-changes.outputs.image_tag }}
