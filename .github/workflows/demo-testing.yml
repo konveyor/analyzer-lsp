@@ -93,6 +93,7 @@ jobs:
             image_name: yq-provider
             dockerfile: external-providers/yq-external-provider/Dockerfile
             checked_out: true
+            ref: ${{ github.base_ref || github.ref_name }}
           - provider: c-sharp
             image_name: c-sharp-provider
             dockerfile: Dockerfile
