@@ -97,7 +97,7 @@ jobs:
             image_name: c-sharp-provider
             dockerfile: Dockerfile
             repo: konveyor/c-sharp-analyzer-provider
-            checked_out: false
+            checked_out: true
             cache-key-file: Cargo.lock
             ref: ${{ github.base_ref || github.ref_name }}
     steps:
