@@ -23,6 +23,9 @@ func (p *nodejsProvider) SetProgress(progress *progress.Progress) {
 // lspServerName should match rule provider ids (typically "nodejs").
 func NewNodejsProvider(lspServerName string, log logr.Logger, contextLines int, progress *progress.Progress) provider.BaseClient {
 	_ = lspServerName
+	if contextLines < 0 {
+		contextLines = 0
+	}
 	p := &nodejsProvider{
 		progress:     progress,
 		contextLines: contextLines,

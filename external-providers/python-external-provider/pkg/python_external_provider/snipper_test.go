@@ -49,4 +49,9 @@ func TestGetCodeSnipInvalidURI(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for non-file URI")
 	}
+
+	_, err = snipper.GetCodeSnip("filex://some/path", engine.Location{})
+	if err == nil {
+		t.Fatal("expected error for filex URI")
+	}
 }

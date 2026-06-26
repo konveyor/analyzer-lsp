@@ -14,7 +14,7 @@ import (
 var _ engine.CodeSnip = &nodejsProvider{}
 
 func (p *nodejsProvider) GetCodeSnip(u uri.URI, loc engine.Location) (string, error) {
-	if !strings.HasPrefix(string(u), uri.FileScheme) {
+	if !strings.HasPrefix(string(u), uri.FileScheme+"://") {
 		return "", fmt.Errorf("invalid file uri, must use %s scheme", uri.FileScheme)
 	}
 	return p.scanFile(u.Filename(), loc)

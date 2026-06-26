@@ -24,6 +24,9 @@ func (p *pythonProvider) SetProgress(progress *progress.Progress) {
 func NewPythonProvider(lspServerName string, log logr.Logger, contextLines int, progress *progress.Progress) provider.BaseClient {
 	_ = lspServerName
 	_ = log
+	if contextLines < 0 {
+		contextLines = 0
+	}
 	p := &pythonProvider{
 		progress:     progress,
 		contextLines: contextLines,

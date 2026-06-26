@@ -17,7 +17,7 @@ var (
 	socket        = flag.String("socket", "", "Socket to be used")
 	logLevel      = flag.Int("log-level", 5, "Level to log")
 	lspServerName = flag.String("name", "python", "LSP server name advertised to the analyzer")
-	contextLines  = flag.Int("contxtLines", 10, "lines of context for the code snippet")
+	contextLines  = flag.Int("contextLines", 10, "lines of context for the code snippet")
 	certFile      = flag.String("certFile", "", "Path to the cert file")
 	keyFile       = flag.String("keyFile", "", "Path to the key file")
 	secretKey     = flag.String("secretKey", "", "Secret Key value")
