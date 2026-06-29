@@ -103,16 +103,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
-        with:
-          repository: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
-          ref: ${{ matrix.ref || github.ref }}
 
       - name: Build ${{ matrix.provider }} provider image
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
         uses: konveyor/ci/build-image@main
         with:
           repo: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
-          ref: ${{ matrix.ref || github.ref }}
+          ref: ${{ matrix.ref || '' }}
           checked_out: ${{ matrix.checked_out }}
           image_name: ${{ matrix.image_name }}
           image_tag: ${{ needs.detect-changes.outputs.image_tag }}
@@ -179,11 +176,16 @@ jobs:
             provider_settings-path: e2e-tests/provider_settings.json
             testing-rules: rulesets
     steps:
+      # Checkout for providers with external repos (e.g., c-sharp)
       - uses: actions/checkout@v3
         with:
-          repository: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
-          ref: ${{ matrix.ref || github.ref }}
-        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+          repository: ${{ matrix.repo }}
+          ref: ${{ matrix.ref }}
+        if: needs.detect-changes.outputs[matrix.provider] == 'true' && matrix.repo
+
+      # Checkout for providers from this repo
+      - uses: actions/checkout@v3
+        if: needs.detect-changes.outputs[matrix.provider] == 'true' && !matrix.repo
 
       - name: Download provider image artifacts
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
