@@ -19,6 +19,8 @@ jobs:
       image_tag: ${{ steps.set-tag.outputs.image_tag }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set image tag
         id: set-tag
@@ -28,6 +30,7 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          base: ${{ github.base_ref || github.ref_name }}
           filters: |
             java:
               - '**'
@@ -97,7 +100,7 @@ jobs:
             image_name: c-sharp-provider
             dockerfile: Dockerfile
             repo: konveyor/c-sharp-analyzer-provider
-            checked_out: false
+            checked_out: true
             cache-key-file: Cargo.lock
             ref: ${{ github.base_ref || github.ref_name }}
     steps:
