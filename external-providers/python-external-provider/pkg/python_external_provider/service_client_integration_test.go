@@ -42,7 +42,7 @@ func TestPylspInitAndEvaluate(t *testing.T) {
 	logrusLog.SetLevel(logrus.Level(5))
 	log := logrusr.New(logrusLog)
 
-	prov := pythonext.NewPythonProvider("python", log, nil)
+	prov := pythonext.NewPythonProvider("python", log, 10, nil)
 
 	repoRoot := testRepoRoot(t)
 	pyDir := filepath.Join(repoRoot, "examples", "python")

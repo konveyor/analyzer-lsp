@@ -9,7 +9,7 @@ import (
 
 func TestNewPythonProviderCapabilities(t *testing.T) {
 	log := logr.Discard()
-	p := pythonext.NewPythonProvider("python", log, nil)
+	p := pythonext.NewPythonProvider("python", log, 10, nil)
 	caps := p.Capabilities()
 	if len(caps) == 0 {
 		t.Fatalf("expected non-empty capabilities, got %d", len(caps))

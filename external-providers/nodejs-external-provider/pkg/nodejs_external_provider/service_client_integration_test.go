@@ -42,7 +42,7 @@ func TestTypescriptLSInitAndEvaluate(t *testing.T) {
 	logrusLog.SetLevel(logrus.Level(5))
 	log := logrusr.New(logrusLog)
 
-	prov := nodejsext.NewNodejsProvider("nodejs", log, nil)
+	prov := nodejsext.NewNodejsProvider("nodejs", log, 10, nil)
 
 	repoRoot := testRepoRoot(t)
 	nodeDir := filepath.Join(repoRoot, "examples", "nodejs")

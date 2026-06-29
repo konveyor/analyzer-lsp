@@ -12,6 +12,7 @@ import (
 type nodejsProvider struct {
 	capabilities []provider.Capability
 	progress     *progress.Progress
+	contextLines int
 }
 
 func (p *nodejsProvider) SetProgress(progress *progress.Progress) {
@@ -20,10 +21,14 @@ func (p *nodejsProvider) SetProgress(progress *progress.Progress) {
 
 // NewNodejsProvider constructs the gRPC-facing BaseClient for nodejs-external-provider.
 // lspServerName should match rule provider ids (typically "nodejs").
-func NewNodejsProvider(lspServerName string, log logr.Logger, progress *progress.Progress) provider.BaseClient {
+func NewNodejsProvider(lspServerName string, log logr.Logger, contextLines int, progress *progress.Progress) provider.BaseClient {
 	_ = lspServerName
+	if contextLines < 0 {
+		contextLines = 0
+	}
 	p := &nodejsProvider{
-		progress: progress,
+		progress:     progress,
+		contextLines: contextLines,
 	}
 
 	builder := &NodeServiceClientBuilder{}
