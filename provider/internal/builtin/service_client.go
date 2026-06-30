@@ -523,13 +523,14 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 	// Process all files through worker pool to populate the incident cache.
 	if len(parsedConds) > 0 && len(files) > 0 {
 		fileChan := make(chan string, 10)
-		wg := sync.WaitGroup{}
+		wg, _ := errgroup.WithContext(ctx)
 
 		for range numWorkers {
-			wg.Go(func() {
+			wg.Go(func() error {
 				for file := range fileChan {
 					b.processFileForAllCaps(ctx, file)
 				}
+				return nil
 			})
 		}
 
