@@ -102,7 +102,7 @@ jobs:
             repo: konveyor/c-sharp-analyzer-provider
             checked_out: true
             cache-key-file: Cargo.lock
-            ref: ${{ github.base_ref || github.ref_name }}
+            ref: main
     steps:
       - uses: actions/checkout@v3
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
@@ -171,7 +171,7 @@ jobs:
             testing-rules: external-providers/yq-external-provider/e2e-tests/rule-example.yaml
           - provider: c-sharp
             repo: "konveyor/c-sharp-analyzer-provider"
-            ref: ${{ github.base_ref || github.ref_name }}
+            ref: main
             artifact_pattern: "{konveyor-analyzer-lsp,c-sharp-provider}"
             test-data: testdata
             image_name: c-sharp-provider
