@@ -19,6 +19,8 @@ jobs:
       image_tag: ${{ steps.set-tag.outputs.image_tag }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set image tag
         id: set-tag
@@ -28,6 +30,7 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          base: ${{ github.base_ref || github.ref_name }}
           filters: |
             java:
               - '**'
@@ -97,8 +100,9 @@ jobs:
             image_name: c-sharp-provider
             dockerfile: Dockerfile
             repo: konveyor/c-sharp-analyzer-provider
-            checked_out: false
+            checked_out: true
             cache-key-file: Cargo.lock
+            ref: main
     steps:
       - uses: actions/checkout@v3
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
@@ -108,6 +112,7 @@ jobs:
         uses: konveyor/ci/build-image@main
         with:
           repo: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
+          ref: ${{ matrix.ref || '' }}
           checked_out: ${{ matrix.checked_out }}
           image_name: ${{ matrix.image_name }}
           image_tag: ${{ needs.detect-changes.outputs.image_tag }}
@@ -166,6 +171,7 @@ jobs:
             testing-rules: external-providers/yq-external-provider/e2e-tests/rule-example.yaml
           - provider: c-sharp
             repo: "konveyor/c-sharp-analyzer-provider"
+            ref: main
             artifact_pattern: "{konveyor-analyzer-lsp,c-sharp-provider}"
             test-data: testdata
             image_name: c-sharp-provider
@@ -173,10 +179,16 @@ jobs:
             provider_settings-path: e2e-tests/provider_settings.json
             testing-rules: rulesets
     steps:
+      # Checkout for providers with external repos (e.g., c-sharp)
       - uses: actions/checkout@v3
         with:
-          repository: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
-        if: needs.detect-changes.outputs[matrix.provider] == 'true'
+          repository: ${{ matrix.repo }}
+          ref: ${{ matrix.ref }}
+        if: needs.detect-changes.outputs[matrix.provider] == 'true' && matrix.repo
+
+      # Checkout for providers from this repo
+      - uses: actions/checkout@v3
+        if: needs.detect-changes.outputs[matrix.provider] == 'true' && !matrix.repo
 
       - name: Download provider image artifacts
         if: needs.detect-changes.outputs[matrix.provider] == 'true'

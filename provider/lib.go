@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -48,8 +49,49 @@ type IncludeExcludeConstraints struct {
 // 2. Rule scope constraints
 // 3. Provider config level constraints
 func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
+	return f.search(s, newCachedWalkDir())
+}
+
+// isWithinBase returns true if targetPath is at or under basePath.
+// Uses filepath.Rel for correct boundary checks (avoids false positives
+// where e.g. "/repo/app2" would match prefix "/repo/app").
+func isWithinBase(basePath, targetPath string) bool {
+	rel, err := filepath.Rel(filepath.Clean(basePath), filepath.Clean(targetPath))
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)))
+}
+
+// SearchFromIndex applies the same filtering logic as Search but against
+// a pre-built file index instead of walking the filesystem. AdditionalPaths
+// are still walked on the real filesystem since they may contain files
+// outside the index (e.g., working copy temp directories).
+func (f *FileSearcher) SearchFromIndex(index []string, s SearchCriteria) ([]string, error) {
+	fsWalk := newCachedWalkDir()
+	walk := func(path string, excludedDirs []string, excludedPatterns []string) ([]string, error) {
+		if !isWithinBase(f.BasePath, path) {
+			// Additional paths (working copies) — walk real filesystem
+			return fsWalk(path, excludedDirs, excludedPatterns)
+		}
+		// Filter index in memory. Exclusions are applied later by search()
+		// via filterFilesByPathsOrPatterns, so we only need path containment here.
+		var files []string
+		for _, file := range index {
+			if isWithinBase(path, file) {
+				files = append(files, file)
+			}
+		}
+		return files, nil
+	}
+	return f.search(s, walk)
+}
+
+// search is the internal implementation shared by Search and SearchFromIndex.
+// The walkDirFunc parameter controls how files are discovered — either via
+// filesystem walk (Search) or by filtering a pre-built index (SearchFromIndex).
+func (f *FileSearcher) search(s SearchCriteria, walkDirFunc cachedWalkDir) ([]string, error) {
 	statFunc := newCachedOsStat()
-	walkDirFunc := newCachedWalkDir()
 	walkErrors := []error{}
 
 	f.Log.V(5).Info("searching for files", "criteria", s, "additionalPaths", f.AdditionalPaths,
@@ -181,6 +223,7 @@ func (f *FileSearcher) Search(s SearchCriteria) ([]string, error) {
 		finalSearchResult = append(finalSearchResult, files...)
 	}
 
+	finalSearchResult = dedupSlice(finalSearchResult...)
 	// apply baseline include patterns and any search patterns
 	finalSearchResult = f.filterFilesByPathsOrPatterns(statFunc, includedPatterns, finalSearchResult, false)
 	// apply patterns from search criteria
@@ -214,7 +257,7 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 				absPath = filepath.Join(f.BasePath, pattern)
 			}
 			if stat, statErr := statFunc(absPath); statErr == nil {
-				if stat.IsDir() && strings.HasPrefix(file, absPath) {
+				if stat.IsDir() && isWithinBase(absPath, file) {
 					patternMatched = true
 				} else if !stat.IsDir() {
 					if absPath == file {
@@ -227,21 +270,50 @@ func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patte
 			} else {
 				rPattern := pattern
 				// if the pattern doesn't contain a wildcard, do an exact match only
-				if regexp.QuoteMeta(pattern) == pattern {
+				if !strings.ContainsAny(pattern, "*?[]$^") {
 					rPattern = "^" + pattern + "$"
 				}
 				// try matching as go regex pattern
+				var relPath string
+				if isWithinBase(f.BasePath, file) {
+					// This is not in a working copy manager or some other additional path
+					// We want to just search for matches within the base path.
+					var err error
+					relPath, err = filepath.Rel(f.BasePath, file)
+					if err != nil {
+						f.Log.Error(fmt.Errorf("unable to get relative path for file from base path"),
+							"this should not happen, please file a bug", "basePath", f.BasePath, "filePath", file)
+						continue
+					}
+						// Normalize to forward slashes for pattern matching.
+					// Regex patterns use '/' as directory separator since
+					// '\' is the regex escape character on all platforms.
+					relPath = "/" + filepath.ToSlash(relPath)
+				} else if slices.Contains(f.AdditionalPaths, file) {
+					// When this comes from an addional path, we won't know
+					// where to search from, so fall back to the full file path.
+					relPath = file
+				} else {
+					f.Log.Error(fmt.Errorf("unable to get relative path for file from base path"),
+						"this should not happen, please file a bug", "basePath", f.BasePath, "filePath", file)
+					continue
+				}
+
+				f.Log.V(9).Info("using regex to search", "pattern", pattern, "relPath", relPath)
 				regex, regexErr := regexp.Compile(rPattern)
-				if regexErr == nil && (regex.MatchString(file) || regex.MatchString(filepath.Base(file))) {
+				if regexErr == nil && (regex.MatchString(relPath) || regex.MatchString(filepath.Base(file))) {
+					f.Log.V(9).Info("regex match", "pattern", pattern, "relPath", relPath)
 					patternMatched = true
 				} else if strings.Contains(pattern, "*") || strings.Contains(pattern, "?") {
 					// fallback to filepath.Match for simple patterns
-					m, err := filepath.Match(pattern, file)
+					m, err := filepath.Match(pattern, relPath)
 					if err == nil {
+						f.Log.V(9).Info("filepath match", "pattern", pattern, "relPath", relPath)
 						patternMatched = patternMatched || m
 					}
-					m, err = filepath.Match(pattern, filepath.Base(file))
+					m, err = filepath.Match(pattern, filepath.Base(relPath))
 					if err == nil {
+						f.Log.V(9).Info("file name match", "pattern", pattern, "relPath", relPath)
 						patternMatched = patternMatched || m
 					}
 				}
@@ -524,6 +596,13 @@ func NormalizePathForComparison(path string) string {
 	// Remove common URI schemes (some systems emit file: instead of file://)
 	path = strings.TrimPrefix(path, "file://")
 	path = strings.TrimPrefix(path, "file:")
+
+	// Strip leading slash from Windows drive letter paths: /c:/... → c:/...
+	if len(path) >= 3 && path[0] == '/' &&
+		((path[1] >= 'A' && path[1] <= 'Z') || (path[1] >= 'a' && path[1] <= 'z')) &&
+		path[2] == ':' {
+		path = path[1:]
+	}
 
 	// Clean the path to resolve . and .. elements
 	path = filepath.Clean(path)

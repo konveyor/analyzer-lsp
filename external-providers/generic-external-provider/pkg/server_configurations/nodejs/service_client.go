@@ -16,6 +16,18 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func fileURIToPath(rawPath string) string {
+	path := strings.TrimPrefix(rawPath, "file://")
+	path = strings.TrimPrefix(path, "file:")
+	// Strip leading slash from Windows drive letter paths: /c:/... → c:/...
+	if len(path) >= 3 && path[0] == '/' &&
+		((path[1] >= 'A' && path[1] <= 'Z') || (path[1] >= 'a' && path[1] <= 'z')) &&
+		path[2] == ':' {
+		path = path[1:]
+	}
+	return filepath.FromSlash(path)
+}
+
 type NodeServiceClientConfig struct {
 	base.LSPServiceClientConfig `yaml:",inline"`
 
@@ -190,9 +202,7 @@ func (sc *NodeServiceClient) EvaluateReferenced(ctx context.Context, cap string,
 	// Determine base path - use first workspace folder if available
 	basePath := ""
 	if len(sc.BaseConfig.WorkspaceFolders) > 0 {
-		basePath = sc.BaseConfig.WorkspaceFolders[0]
-		// Remove file:// prefix if present
-		basePath = strings.TrimPrefix(basePath, "file://")
+		basePath = fileURIToPath(sc.BaseConfig.WorkspaceFolders[0])
 	}
 
 	// Filter out empty strings from dependency folders to avoid excluding all files
@@ -288,7 +298,10 @@ func (sc *NodeServiceClient) EvaluateSymbols(ctx context.Context, symbols []prot
 		}
 		// Look for things that are in the location loaded,
 		// Note may need to filter out vendor at some point
-		if len(sc.BaseConfig.WorkspaceFolders) < 1 || !strings.Contains(baseLocation.URI, sc.BaseConfig.WorkspaceFolders[0]) {
+		if len(sc.BaseConfig.WorkspaceFolders) < 1 || !strings.HasPrefix(
+			provider.NormalizePathForComparison(baseLocation.URI),
+			provider.NormalizePathForComparison(sc.BaseConfig.WorkspaceFolders[0]),
+		) {
 			continue
 		}
 
