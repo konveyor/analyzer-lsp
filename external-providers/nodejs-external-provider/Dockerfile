@@ -37,7 +37,7 @@ RUN echo -e "[nodejs]\nname=nodejs\nstream=${NODEJS_VERSION}\nprofiles=\nstate=e
 RUN microdnf install nodejs npm -y && \
     microdnf clean all && \
     rm -rf /var/cache/dnf
-RUN npm install -g typescript-language-server typescript
+RUN npm install -g typescript-language-server typescript@6
 
 COPY --from=go-builder /opt/app-root/src/nodejs-provider/nodejs-external-provider /usr/local/bin/nodejs-external-provider
 WORKDIR /addon
