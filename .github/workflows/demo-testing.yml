@@ -1,3 +1,4 @@
+# TEMP(konveyor/ci#204): Pin konveyor/ci to branch feature/262-refactor-generic-provider — revert all @refs to @main before merging this PR.
 name: Demo Testing
 
 on:
@@ -49,154 +50,13 @@ jobs:
               - '**'
               - '!external-providers/**'
 
-  build-jdtls-base:
-    name: Build jdtls-server-base
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-          - arch: amd64
-            runner: ubuntu-latest
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - name: Checkout java-analyzer-bundle
-        uses: actions/checkout@v4
-        with:
-          repository: konveyor/java-analyzer-bundle
-          ref: ${{ github.base_ref || github.ref_name }}
-          path: java-analyzer-bundle
-
-      - name: Get Tag
-        id: get_tag
-        shell: bash
-        run: |
-          echo "tag=${{ github.run_id }}_${{ matrix.arch }}" >> $GITHUB_OUTPUT
-
-      - name: Build and save jdtls-server-base
-        id: build
-        working-directory: java-analyzer-bundle
-        shell: bash
-        run: |
-          IMAGE_NAME="quay.io/konveyor/jdtls-server-base"
-          IMAGE_TAG="${{ steps.get_tag.outputs.tag }}"
-          FILE_NAME="${IMAGE_NAME//\//_}--${IMAGE_TAG//\//_}"
-          podman build -t "${IMAGE_NAME}:${IMAGE_TAG}" -f Dockerfile .
-          mkdir -p image_artifact
-          podman save --format=docker-archive -m "${IMAGE_NAME}:${IMAGE_TAG}" -o "image_artifact/${FILE_NAME}.tar"
-          echo "file_name=${FILE_NAME}" >> "$GITHUB_OUTPUT"
-
-      - name: Upload jdtls-server-base artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.build.outputs.file_name }}
-          path: java-analyzer-bundle/image_artifact/${{ steps.build.outputs.file_name }}.tar
-          retention-days: 1
-          overwrite: true
-
-  build-java-provider:
-    name: Build java-external-provider
-    needs: build-jdtls-base
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-          - arch: amd64
-            runner: ubuntu-latest
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - name: Download jdtls-server-base image
-        uses: actions/download-artifact@v4
-        with:
-          name: quay.io_konveyor_jdtls-server-base--${{ github.run_id }}_${{ matrix.arch }}
-          path: /tmp/images
-
-      - name: Load jdtls-server-base into podman
-        run: |
-          for image in $(find /tmp/images -type f -name "*.tar"); do
-            echo "Loading ${image}"
-            podman load -i "${image}"
-          done
-
-      - name: Checkout analyzer-lsp
-        uses: actions/checkout@v4
-
-      - name: Build and save java-external-provider
-        id: build
-        shell: bash
-        run: |
-          IMAGE_NAME="quay.io/konveyor/java-external-provider"
-          IMAGE_TAG="${{ github.run_id }}_${{ matrix.arch }}"
-          FILE_NAME="${IMAGE_NAME//\//_}--${IMAGE_TAG//\//_}"
-          podman build \
-            -t "${IMAGE_NAME}:${IMAGE_TAG}" \
-            --build-arg "JAVA_BUDLE_IMAGE=quay.io/konveyor/jdtls-server-base:${{ github.run_id }}_${{ matrix.arch }}" \
-            -f external-providers/java-external-provider/Dockerfile .
-          mkdir -p image_artifact
-          podman save --format=docker-archive -m "${IMAGE_NAME}:${IMAGE_TAG}" -o "image_artifact/${FILE_NAME}.tar"
-          echo "file_name=${FILE_NAME}" >> "$GITHUB_OUTPUT"
-
-      - name: Upload java-external-provider artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.build.outputs.file_name }}
-          path: image_artifact/${{ steps.build.outputs.file_name }}.tar
-          retention-days: 1
-          overwrite: true
-
-  build-java-manifest:
-    name: Build java-external-provider manifest
-    needs: build-java-provider
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download arch-specific java provider images
-        uses: actions/download-artifact@v4
-        with:
-          pattern: quay.io_konveyor_java-external-provider--${{ github.run_id }}_{amd64,arm64}
-          path: /tmp/images
-          merge-multiple: true
-
-      - name: Build manifest and upload
-        id: build
-        shell: bash
-        run: |
-          IMAGE_NAME="quay.io/konveyor/java-external-provider"
-          IMAGE_TAG="${{ github.run_id }}"
-          FILE_NAME="${IMAGE_NAME//\//_}--${IMAGE_TAG}"
-          mkdir -p image_artifact
-          TAR_FILE="$PWD/image_artifact/${FILE_NAME}.tar"
-
-          podman manifest create "${IMAGE_NAME}:${IMAGE_TAG}"
-          for image in $(find /tmp/images -type f -name "*.tar"); do
-            echo "Loading ${image}"
-            podman load -i "${image}"
-            podman manifest add "${IMAGE_NAME}:${IMAGE_TAG}" "docker-archive:${image}"
-          done
-
-          podman manifest push --all "${IMAGE_NAME}:${IMAGE_TAG}" "oci-archive://${TAR_FILE}:${IMAGE_NAME}:${IMAGE_TAG}"
-          echo "file_name=${FILE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "tar_file=${TAR_FILE}" >> "$GITHUB_OUTPUT"
-
-      - name: Upload java-external-provider manifest artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.build.outputs.file_name }}
-          path: ${{ steps.build.outputs.tar_file }}
-          retention-days: 1
-          overwrite: true
-
   build-images:
     name: Build e2e Images
-    needs: [build-jdtls-base, build-java-manifest]
-    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@main
+    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@feature/262-refactor-generic-provider
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.ref }}
-      ci_ref: 'main'
-      tag: ${{ github.run_id }}
+      ci_ref: 'feature/262-refactor-generic-provider'
 
   provider-tests:
     needs: [detect-changes, build-images]
@@ -522,7 +382,7 @@ jobs:
           operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha}}:2h
           addon_analyzer: ttl.sh/konveyor-tackle2-addon-analyzer-${{ github.sha}}:2h
           tackle_hub: "quay.io/konveyor/tackle2-hub:${{ steps.extract-info.outputs.TACKLE2_HUB_TAG }}"
-          provider_go: ttl.sh/konveyor-go-external-provider-${{ github.sha }}:2h
+          provider_generic: ttl.sh/konveyor-go-external-provider-${{ github.sha }}:2h
           provider_java: ttl.sh/konveyor-java-external-provider-${{ github.sha }}:2h
       - name: push bundle image 
         run: |
@@ -548,7 +408,7 @@ jobs:
     steps:
       - name: Run Koncur Testing
         id: koncur-test
-        uses: konveyor/ci/koncur-kantra@main
+        uses: konveyor/ci/koncur-kantra@feature/262-refactor-generic-provider
         with:
           os: ${{ matrix.os.os }}
           image_pattern: |
@@ -561,7 +421,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Test Hub with Koncur
-        uses: konveyor/ci/koncur-tackle-hub@main
+        uses: konveyor/ci/koncur-tackle-hub@feature/262-refactor-generic-provider
         with:
           image_pattern: |
             *{tackle-keyloak-init,tackle2-*,provider}--${{ github.run_id }}
@@ -569,7 +429,7 @@ jobs:
   
   e2e:
     needs: test
-    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
+    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@feature/262-refactor-generic-provider
     with:
       operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
       tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"
