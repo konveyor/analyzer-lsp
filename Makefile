@@ -24,23 +24,23 @@ analyzer: build-dir
 	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer build/konveyor-analyzer.exe; fi
 
 external-go-provider: build-dir
-	(cd external-providers/go-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/go-external-provider main.go)
+	(cd external-providers/go-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25.12 && go build -o ../../build/go-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/go-external-provider build/go-external-provider.exe; fi
 
 external-python-provider: build-dir
-	(cd external-providers/python-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/python-external-provider main.go)
+	(cd external-providers/python-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25.12 && go build -o ../../build/python-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/python-external-provider build/python-external-provider.exe; fi
 
 external-nodejs-provider: build-dir
-	(cd external-providers/nodejs-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/nodejs-external-provider main.go)
+	(cd external-providers/nodejs-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25.12 && go build -o ../../build/nodejs-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/nodejs-external-provider build/nodejs-external-provider.exe; fi
 
 yq-external-provider: build-dir
-	(cd external-providers/yq-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/yq-external-provider main.go)
+	(cd external-providers/yq-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25.12 && go build -o ../../build/yq-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/yq-external-provider build/yq-external-provider.exe; fi
 
 java-external-provider: build-dir
-	(cd external-providers/java-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25 && go build -o ../../build/java-external-provider main.go)
+	(cd external-providers/java-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25.12 && go build -o ../../build/java-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/java-external-provider build/java-external-provider.exe; fi
 
 deps: build-dir

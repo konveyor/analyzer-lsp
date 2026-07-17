@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp/external-providers/yq-external-provider
 
-go 1.25
+go 1.25.12
 
 require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
@@ -34,9 +34,9 @@ require (
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
-	golang.org/x/mod v0.17.0
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/mod v0.37.0
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
