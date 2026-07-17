@@ -1,5 +1,6 @@
 # Node.js gRPC provider binary image with typescript-language-server runtime.
 FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as go-builder
+ENV GOTOOLCHAIN=auto
 
 USER 0
 
