@@ -141,20 +141,6 @@
         ]
     },
     {
-        "name": "c-sharp",
-        "address": "localhost:14656",
-        "initConfig": [
-            {
-                "analysisMode": "source-only",
-                "location": "/analyzer-lsp/examples/c-sharp-dummy-example",
-                "providerSpecificConfig": {
-                    "ilspy_cmd": "/usr/local/bin/ilspycmd",
-                    "paket_cmd": "/usr/local/bin/paket"
-                }
-            }
-        ]
-    },
-    {
         "name": "builtin",
         "initConfig": [
             {

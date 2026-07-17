@@ -1,4 +1,3 @@
-# TEMP(konveyor/ci#204): Pin konveyor/ci to branch feature/262-refactor-generic-provider — revert all @refs to @main before merging this PR.
 name: Demo Testing
 
 on:
@@ -18,7 +17,6 @@ jobs:
       python: ${{ steps.filter.outputs.python }}
       nodejs: ${{ steps.filter.outputs.nodejs }}
       yq: ${{ steps.filter.outputs.yq}}
-      c-sharp: ${{ steps.filter.outputs.c-sharp }}
     steps:
       - uses: actions/checkout@v3
 
@@ -46,17 +44,13 @@ jobs:
               - '**'
               - '!external-providers/**'
               - 'external-providers/yq-external-provider/**'
-            c-sharp:
-              - '**'
-              - '!external-providers/**'
 
   build-images:
     name: Build e2e Images
-    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@feature/262-refactor-generic-provider
+    uses: konveyor/ci/.github/workflows/e2e-image-build.yaml@main
     with:
       repo: ${{ github.repository }}
       ref: ${{ github.ref }}
-      ci_ref: 'feature/262-refactor-generic-provider'
 
   provider-tests:
     needs: [detect-changes, build-images]
@@ -105,19 +99,8 @@ jobs:
             demo-output-path: external-providers/yq-external-provider/e2e-tests/demo-output.yaml
             provider_settings-path: external-providers/yq-external-provider/e2e-tests/provider_settings.json
             testing-rules: external-providers/yq-external-provider/e2e-tests/rule-example.yaml
-          - provider: c-sharp
-            repo: "konveyor/c-sharp-analyzer-provider"
-            artifact_pattern: "*analyzer-lsp"
-            nightly_pattern: "*c-sharp-provider"
-            test-data: testdata
-            image_env: IMG_C_SHARP_PROVIDER 
-            demo-output-path: e2e-tests/demo-output.yaml
-            provider_settings-path: e2e-tests/provider_settings.json
-            testing-rules: rulesets
     steps:
       - uses: actions/checkout@v3
-        with:
-          repository: ${{ matrix.repo || 'konveyor/analyzer-lsp' }}
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
 
       - name: Download provider image artifacts
@@ -127,15 +110,6 @@ jobs:
           pattern: ${{ format('{0}--{1}', matrix.artifact_pattern, github.run_id) }}
           path: /tmp/images
           merge-multiple: true
-      
-      - name: Get nightly if needed
-        if: needs.detect-changes.outputs[matrix.provider] == 'true' && matrix.nightly_pattern
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          WORKFLOW_RUN=$(gh run list -R=konveyor/ci --workflow=nightly-koncur.yaml --branch=main --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
-          gh run download -R=konveyor/ci "$WORKFLOW_RUN" --pattern "${{ matrix.nightly_pattern }}--*_20[0-9][0-9].[0-9][0-9].[0-9][0-9]" --dir /tmp/images 
 
       - name: Load images into podman
         if: needs.detect-changes.outputs[matrix.provider] == 'true'
@@ -146,7 +120,6 @@ jobs:
           node_provider_image_regex=".*nodejs(-external)?-provider.*"
           yq_provider_image_regex=".*yq-external-provider.*"
           analyzer_regex=".*analyzer-lsp.*"
-          c_sharp_provider_image_regex=".*c-sharp-provider.*"
 
           for image in $(find /tmp/images -type f -name "*.tar"); do
             echo "Loading image: ${image}"
@@ -155,10 +128,6 @@ jobs:
             if [[ "$image" =~ $java_provider_image_regex ]]; then
               echo "Java Provider Image Found Set Env Var: JAVA_PROVIDER_IMG=$image"
               echo "IMG_JAVA_PROVIDER=$image" >> $GITHUB_ENV
-            fi
-            if [[ "$image" =~ $c_sharp_provider_image_regex ]]; then
-              echo "Java Provider Image Found Set Env Var: IMG_C_SHARP_PROVIDER=$image"
-              echo "IMG_C_SHARP_PROVIDER=$image" >> $GITHUB_ENV
             fi
             if [[ "$image" =~ $analyzer_regex ]]; then
               echo "Analyzer image  Found Set Env Var: IMG_ANALYZER=$image"
@@ -270,14 +239,6 @@ jobs:
           pattern: ${{ format('*--{0}', github.run_id) }}
           merge-multiple: true
 
-      - name: Get nightly c-sharp provider
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          WORKFLOW_RUN=$(gh run list -R=konveyor/ci --workflow=nightly-koncur.yaml --branch=main --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
-          gh run download -R=konveyor/ci "$WORKFLOW_RUN" --pattern "*c-sharp-provider--*_20[0-9][0-9].[0-9][0-9].[0-9][0-9]" --dir /tmp/images
-
       - name: Load images into podman
         run: |
           java_provider_image_regex=".*java(-external)?-provider.*"
@@ -286,7 +247,6 @@ jobs:
           node_provider_image_regex=".*nodejs(-external)?-provider.*"
           yq_provider_image_regex=".*yq-external-provider.*"
           analyzer_regex=".*analyzer-lsp.*"
-          c_sharp_provider_image_regex=".*c-sharp-provider.*"
 
           for image in $(find /tmp/images -type f -name "*.tar"); do
             echo "Loading image: ${image}"
@@ -295,10 +255,6 @@ jobs:
             if [[ "$image" =~ $java_provider_image_regex ]]; then
               echo "Java Provider Image Found Set Env Var: IMG_JAVA_PROVIDER=$image"
               echo "IMG_JAVA_PROVIDER=$image" >> $GITHUB_ENV
-            fi
-            if [[ "$image" =~ $c_sharp_provider_image_regex ]]; then
-              echo "C# Provider Image Found Set Env Var: IMG_C_SHARP_PROVIDER=$image"
-              echo "IMG_C_SHARP_PROVIDER=$image" >> $GITHUB_ENV
             fi
             if [[ "$image" =~ $analyzer_regex ]]; then
               echo "Analyzer image Found Set Env Var: IMG_ANALYZER=$image"
@@ -337,7 +293,6 @@ jobs:
           podman pod create --name=analyzer --userns=keep-id
           podman run --pod analyzer --name java-provider -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_JAVA_PROVIDER --port 14651
           podman run --pod analyzer --name yq -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_YQ_PROVIDER --port 14652
-          podman run --pod analyzer --name c-sharp -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_C_SHARP_PROVIDER --port 14656
           podman run --pod analyzer --name golang-provider -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_GO_PROVIDER --port 14653 --name go
           podman run --pod analyzer --name nodejs -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_NODE_PROVIDER --port 14654 --name nodejs
           podman run --pod analyzer --name python -d -v test-data:/analyzer-lsp/examples:U,Z $IMG_PYTHON_PROVIDER --port 14655 --name python
@@ -408,7 +363,7 @@ jobs:
     steps:
       - name: Run Koncur Testing
         id: koncur-test
-        uses: konveyor/ci/koncur-kantra@feature/262-refactor-generic-provider
+        uses: konveyor/ci/koncur-kantra@main
         with:
           os: ${{ matrix.os.os }}
           image_pattern: |
@@ -421,7 +376,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Test Hub with Koncur
-        uses: konveyor/ci/koncur-tackle-hub@feature/262-refactor-generic-provider
+        uses: konveyor/ci/koncur-tackle-hub@main
         with:
           image_pattern: |
             *{tackle-keyloak-init,tackle2-*,provider}--${{ github.run_id }}
@@ -429,7 +384,7 @@ jobs:
   
   e2e:
     needs: test
-    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@feature/262-refactor-generic-provider
+    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
     with:
       operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
       tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"

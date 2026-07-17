@@ -269,17 +269,21 @@ func (p *yqServiceClient) getLatestStableKubernetesVersion() (string, error) {
 	// Extract and filter version numbers
 	var versions []string
 	for _, release := range releases {
-		version := strings.TrimPrefix(release.Name, "v")
-		if !strings.Contains(version, "-") { // Exclude pre-releases
-			versions = append(versions, version)
+		version := release.Name
+		if strings.Contains(strings.TrimPrefix(version, "v"), "-") {
+			continue
 		}
+		if !semver.IsValid(version) {
+			continue
+		}
+		versions = append(versions, version)
 	}
 
 	// Sort versions in descending order
 	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
 
 	if len(versions) > 0 {
-		return strings.TrimSpace(strings.TrimPrefix(versions[0], "Kubernetes")), nil
+		return versions[0], nil
 	}
 
 	return "", fmt.Errorf("no stable Kubernetes versions found")
