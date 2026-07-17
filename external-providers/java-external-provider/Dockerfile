@@ -18,7 +18,7 @@ COPY external-providers/java-external-provider/go.sum java/go.sum
 COPY external-providers/java-external-provider/main.go java/main.go
 COPY external-providers/java-external-provider/pkg/ java/pkg/
 
-RUN mkdir -p /opt/app-root/src/go && \
+RUN mkdir -p /opt/app-root/src/go/pkg/sumdb && \
     chgrp -R 0 /opt/app-root/src/go && \
     chmod -R g=u /opt/app-root/src/go && \
     chgrp -R 0 java && \

@@ -13,7 +13,7 @@ COPY external-providers/nodejs-external-provider/go.sum nodejs-provider/go.sum
 COPY external-providers/nodejs-external-provider/main.go nodejs-provider/main.go
 COPY external-providers/nodejs-external-provider/pkg/ nodejs-provider/pkg/
 
-RUN mkdir -p /opt/app-root/src/go && \
+RUN mkdir -p /opt/app-root/src/go/pkg/sumdb && \
     chgrp -R 0 /opt/app-root/src/go && \
     chmod -R g=u /opt/app-root/src/go && \
     chgrp -R 0 nodejs-provider && \
