@@ -1,4 +1,5 @@
 FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as builder
+ENV GOTOOLCHAIN=auto
 
 USER 0
 WORKDIR /analyzer-lsp
@@ -18,7 +19,7 @@ COPY go.mod /analyzer-lsp/go.mod
 COPY go.sum /analyzer-lsp/go.sum
 COPY Makefile /analyzer-lsp/Makefile
 
-RUN mkdir -p build /opt/app-root/src/go && \
+RUN mkdir -p build /opt/app-root/src/go/pkg/sumdb && \
     chgrp -R 0 /analyzer-lsp /opt/app-root/src/go && \
     chmod -R g=u /analyzer-lsp /opt/app-root/src/go
 
