@@ -513,6 +513,43 @@ func TestSearchFromIndex_AdditionalPathsWalkedFromFilesystem(t *testing.T) {
 	}
 }
 
+// TestFileSearcher_ExcludeDefaultDoesNotMatchPathSubstring is a regression test for
+// https://github.com/konveyor/analyzer-lsp/issues/1083 - a default exclude like ".git"
+// must only exclude a literal ".git" directory, not any path that merely contains the
+// substring "git" (e.g. a repo checked out under a directory named
+// "test-dir-with-git-in-name").
+func TestFileSearcher_ExcludeDefaultDoesNotMatchPathSubstring(t *testing.T) {
+	tempDir := t.TempDir()
+	basePath := filepath.Join(tempDir, "test-dir-with-git-in-name")
+	if err := os.MkdirAll(basePath, 0755); err != nil {
+		t.Fatalf("failed to create base path: %v", err)
+	}
+	testFile := filepath.Join(basePath, "test.jsx")
+	if err := os.WriteFile(testFile, []byte("import { Page } from '@patternfly/react-core';\n"), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 10})
+	searcher := &FileSearcher{
+		BasePath: basePath,
+		ProviderConfigConstraints: IncludeExcludeConstraints{
+			ExcludePathsOrPatterns: GetExcludedDirsFromConfig(InitConfig{}),
+		},
+		Log: log,
+	}
+
+	got, err := searcher.Search(SearchCriteria{
+		Patterns: []string{`\.([jt])sx?$`},
+	})
+	if err != nil {
+		t.Fatalf("Search() unexpected error: %v", err)
+	}
+	if !slices.Contains(got, testFile) {
+		t.Errorf("Search() with default excludes should find %q even though the base path "+
+			"contains the substring %q, got: %v", testFile, "git", got)
+	}
+}
+
 func TestFileSearcher_Search(t *testing.T) {
 	testBasePath, err := filepath.Abs("./testdata/file-search")
 	if err != nil {
