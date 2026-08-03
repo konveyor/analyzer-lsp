@@ -36,3 +36,10 @@ coverage.out
 # Act secrets file
 .secrets
 ...
+graphify-out/
+.goose/
+__pycache__/
+node_modules/
+*.tmp
+*.swp
+*.bak
