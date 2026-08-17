@@ -511,8 +511,13 @@ type fileSearchResult struct {
 }
 
 func (b *builtinServiceClient) performFileContentSearch(pattern string, locations []string) ([]fileSearchResult, error) {
-	// Trim quotes around the pattern to keep backwards compatibility
-	trimmedPattern := strings.Trim(pattern, "\"")
+	// Trim quotes around the pattern to keep backwards compatibility.
+	// Skip stripping a trailing quote that is escaped (\"): stripping it would leave
+	// a dangling backslash that fails to compile as a regex.
+	trimmedPattern := strings.TrimPrefix(pattern, "\"")
+	if !strings.HasSuffix(trimmedPattern, `\"`) {
+		trimmedPattern = strings.TrimSuffix(trimmedPattern, `"`)
+	}
 
 	// Check if the pattern needs multiline support
 	// Patterns need multiline support if they:
