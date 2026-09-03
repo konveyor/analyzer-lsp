@@ -1,5 +1,5 @@
 ARG GOLANG_DEP_IMAGE=quay.io/konveyor/golang-dependency-provider:latest
-FROM registry.access.redhat.com/ubi9/go-toolset:1.23 as go-builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as go-builder
 
 USER 0
 
