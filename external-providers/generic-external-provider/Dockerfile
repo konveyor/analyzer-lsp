@@ -38,11 +38,10 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 ENV NODEJS_VERSION=18
 RUN echo -e "[nodejs]\nname=nodejs\nstream=${NODEJS_VERSION}\nprofiles=\nstate=enabled\n" > /etc/dnf/modules.d/nodejs.module
-RUN microdnf install gcc-c++ python-devel go-toolset python3-devel nodejs -y && \
+RUN microdnf install gcc-c++ go-toolset python3.11 python3.11-devel python3.11-pip nodejs -y && \
     microdnf clean all && \
     rm -rf /var/cache/dnf
-RUN python3 -m ensurepip --upgrade
-RUN python3 -m pip install 'python-lsp-server>=1.8.2'
+RUN python3.11 -m pip install --no-cache-dir 'python-lsp-server>=1.8.2' 'ujson>=5.12.1'
 RUN npm install -g typescript-language-server typescript@6
 
 RUN GOBIN=/usr/local/bin go install golang.org/x/tools/gopls@v0.20.0
