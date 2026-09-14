@@ -160,7 +160,7 @@ func (m *mavenBuildTool) getDependenciesForMaven(ctx context.Context) (map[uri.U
 		return nil, fmt.Errorf("maven dependency:tree command failed with error %w, maven output: %s", err, string(mvnOutput))
 	}
 
-	lines := strings.Split(string(mvnOutput), "\n")
+	lines := strings.Split(strings.ReplaceAll(string(mvnOutput), "\r\n", "\n"), "\n")
 	submoduleTrees := m.extractSubmoduleTrees(lines)
 
 	var pomDeps []provider.DepDAGItem
