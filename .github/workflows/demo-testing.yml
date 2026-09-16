@@ -369,6 +369,7 @@ jobs:
           image_pattern: |
             *{kantra,provider}--${{ github.run_id }}
           ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
+          koncur_ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
 
 
   koncur-tackle-hub:
@@ -381,12 +382,4 @@ jobs:
           image_pattern: |
             *{tackle-keyloak-init,tackle2-*,provider}--${{ github.run_id }}
           ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
-  
-  e2e:
-    needs: test
-    uses: konveyor/ci/.github/workflows/global-ci-bundle.yml@main
-    with:
-      operator_bundle: ttl.sh/konveyor-operator-bundle-${{ github.sha }}:2h
-      tackle_hub: "quay.io/konveyor/tackle2-hub:${{ needs.test.outputs.tackle2_hub_tag }}"
-      api_tests_ref: "${{ needs.test.outputs.api_tests_ref }}"
-      
+          koncur_ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
