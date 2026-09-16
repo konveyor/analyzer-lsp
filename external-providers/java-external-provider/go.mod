@@ -1,6 +1,6 @@
 module github.com/konveyor/analyzer-lsp/external-providers/java-external-provider
 
-go 1.25.12
+go 1.25.0
 
 require (
 	github.com/go-logr/logr v1.4.3
