@@ -1,4 +1,4 @@
-name: Demo Testing
+name: Demo Testing (individual steps)
 
 on:
   pull_request:
@@ -324,9 +324,41 @@ jobs:
           docker push ttl.sh/konveyor-operator-bundle-${GITHUB_SHA}:2h
 
   koncur-kantra:
-    uses: konveyor/ci/.github/workflows/e2e-kantra-koncur.yaml@main
-    secrets: inherit
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - os: "linux"
+            runner: "ubuntu-24.04-arm"
+          - os: "macos"
+            runner: "macos-26-large"
+          - os: "windows"
+            runner: "windows-latest"
+        exclude:
+          - os:
+              os: "macos"
+              runner: "macos-26-large"
+    runs-on: ${{ matrix.os.runner }}
+    steps:
+      - name: Run Koncur Testing
+        id: koncur-test
+        uses: konveyor/ci/koncur-kantra@main
+        with:
+          os: ${{ matrix.os.os }}
+          image_pattern: |
+            *{kantra,provider}--${{ github.run_id }}
+          ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
+
 
   koncur-tackle-hub:
-    uses: konveyor/ci/.github/workflows/e2e-hub-koncur.yaml@main
-    secrets: inherit
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Hub with Koncur
+        uses: konveyor/ci/koncur-tackle-hub@main
+        with:
+          image_pattern: |
+            *{tackle-keyloak-init,tackle2-*,provider}--${{ github.run_id }}
+          ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
+          koncur_ref: ${{ github.base_ref || inputs.ref || github.ref_name }}
