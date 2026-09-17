@@ -22,7 +22,7 @@ analyzer: build-dir
 	if [ "${GOOS}" == "windows" ]; then mv build/konveyor-analyzer build/konveyor-analyzer.exe; fi
 
 external-generic: build-dir
-	(cd external-providers/generic-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.23.9 && go build -o ../../build/generic-external-provider main.go)
+	(cd external-providers/generic-external-provider && go mod edit -replace=github.com/konveyor/analyzer-lsp=../../ && go mod tidy -go=1.25.0 && go build -o ../../build/generic-external-provider main.go)
 	if [ "${GOOS}" == "windows" ]; then mv build/generic-external-provider build/generic-external-provider.exe; fi
 
 golang-dependency-provider: build-dir
