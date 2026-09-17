@@ -8,6 +8,10 @@ on:
     - "release-*"
     - "v*"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
@@ -349,6 +353,7 @@ jobs:
           image_pattern: |
             *{kantra,provider}--${{ github.run_id }}
           ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
+          koncur_ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
 
 
   koncur-tackle-hub:
@@ -361,3 +366,4 @@ jobs:
           image_pattern: |
             *{tackle-keyloak-init,tackle2-*,provider}--${{ github.run_id }}
           ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
+          koncur_ref: ${{ github.base_ref || inputs.ref || github.ref_name}}
