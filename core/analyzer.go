@@ -148,7 +148,6 @@ func (a *analyzer) ProviderStart() error {
 		for {
 			select {
 			case config := <-abConfigChan:
-				waitGroup.Done()
 				additionalBuiltinConfigs = append(additionalBuiltinConfigs, config...)
 			case <-providerInitCtx.Done():
 				return
@@ -179,7 +178,11 @@ func (a *analyzer) ProviderStart() error {
 					Current: i + 1,
 					Total:   len(a.providers),
 				})
-				abConfigChan <- additionalBuiltins
+				select {
+				case abConfigChan <- additionalBuiltins:
+				case <-providerInitCtx.Done():
+				}
+				waitGroup.Done()
 			}()
 		}
 	}
@@ -202,12 +205,20 @@ func (a *analyzer) ProviderStart() error {
 	}
 
 	if noTimeout {
-		<-c
-		a.log.V(3).Info("started all non builtin providers")
+		select {
+		case <-c:
+			a.log.V(3).Info("started all non builtin providers")
+		case <-a.ctx.Done():
+			cancelFunc()
+			return fmt.Errorf("provider init cancelled: %w", a.ctx.Err())
+		}
 	} else {
 		select {
 		case <-c:
 			a.log.V(3).Info("started all non builtin providers")
+		case <-a.ctx.Done():
+			cancelFunc()
+			return fmt.Errorf("provider init cancelled: %w", a.ctx.Err())
 		case <-time.After(timeout):
 			cancelFunc()
 			return fmt.Errorf("timed out starting providers after %s", timeout)
