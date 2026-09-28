@@ -154,6 +154,9 @@ func (m *mavenBaseTool) getMavenLocalRepoPath(log logr.Logger) string {
 	if m.mvnSettingsFile != "" {
 		args = append(args, "-s", m.mvnSettingsFile)
 	}
+	if m.mvnInsecure {
+		args = dependency.AppendMavenInsecureArgs(args)
+	}
 	cmd := exec.Command("mvn", args...)
 	var outb bytes.Buffer
 	cmd.Stdout = &outb

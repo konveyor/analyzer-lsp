@@ -52,7 +52,7 @@ func (m *mavenDownloader) Download(ctx context.Context) (string, error) {
 		mvnOptions = append(mvnOptions, "-s", m.settingsFile)
 	}
 	if m.insecure {
-		mvnOptions = append(mvnOptions, "-Dmaven.wagon.http.ssl.insecure=true")
+		mvnOptions = dependency.AppendMavenInsecureArgs(mvnOptions)
 	}
 	m.log.Info("downloading maven artifact", "artifact", mvnCoordinates, "options", mvnOptions)
 	cmd := exec.CommandContext(ctx, "mvn", mvnOptions...)
