@@ -146,7 +146,7 @@ func (m *mavenBuildTool) getDependenciesForMaven(ctx context.Context) (map[uri.U
 	}
 
 	if m.mvnInsecure {
-		args = append(args, "-Dmaven.wagon.http.ssl.insecure=true")
+		args = dependency.AppendMavenInsecureArgs(args)
 	}
 
 	// get the graph output

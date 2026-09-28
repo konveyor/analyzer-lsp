@@ -127,6 +127,28 @@ type ResolverOptions struct {
 	MavenIndexPath string
 }
 
+// MavenInsecureArgs are the flags required to use a Maven repository whose TLS certificate
+// is not trusted (self-signed or signed by a private CA).
+//
+// maven.wagon.http.ssl.insecure only affects the legacy Wagon HTTP transport. Since Maven
+// 3.9.0 the default resolver transport is the native HTTP transport, which ignores that
+// property, so on its own the flag is a no-op and dependency resolution still fails PKIX.
+// We therefore also force the Wagon transport so the insecure flag actually takes effect.
+//
+// These are passed both to the provider's own mvn subprocess invocations (via
+// AppendMavenInsecureArgs) and, as JVM system properties, to the JDTLS process so its
+// embedded m2e resolver honors them during project import.
+// See konveyor/analyzer-lsp#1190.
+var MavenInsecureArgs = []string{
+	"-Dmaven.resolver.transport=wagon",
+	"-Dmaven.wagon.http.ssl.insecure=true",
+}
+
+// AppendMavenInsecureArgs appends MavenInsecureArgs to the given argument slice.
+func AppendMavenInsecureArgs(args []string) []string {
+	return append(args, MavenInsecureArgs...)
+}
+
 // contains checks if a JavaArtifact exists in a slice of artifacts.
 // Returns true if the artifact is found, false otherwise.
 func contains(artifacts []JavaArtifact, artifactToFind JavaArtifact) bool {

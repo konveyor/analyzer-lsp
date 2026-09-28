@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -390,5 +391,29 @@ func TestGradleResolver(t *testing.T) {
 				return nil
 			})
 		})
+	}
+}
+
+func TestAppendMavenInsecureArgs(t *testing.T) {
+	base := []string{"-B", "dependency:tree"}
+	got := AppendMavenInsecureArgs(base)
+
+	// maven.wagon.http.ssl.insecure is Wagon-only, so the Wagon transport must also be
+	// forced or Maven 3.9+'s default native transport ignores it (konveyor/analyzer-lsp#1190).
+	want := []string{
+		"-Dmaven.resolver.transport=wagon",
+		"-Dmaven.wagon.http.ssl.insecure=true",
+	}
+	for _, arg := range want {
+		if !slices.Contains(got, arg) {
+			t.Errorf("expected args to contain %q, got %v", arg, got)
+		}
+	}
+
+	// The original args must be preserved.
+	for _, arg := range base {
+		if !slices.Contains(got, arg) {
+			t.Errorf("expected original arg %q to be preserved, got %v", arg, got)
+		}
 	}
 }
