@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/progress"
@@ -204,7 +205,9 @@ func (g *grpcServiceClient) NotifyFileChanges(ctx context.Context, changes ...pr
 }
 
 func (g *grpcServiceClient) Stop() {
-	g.client.Stop(context.TODO(), &pb.ServiceRequest{Id: g.id})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	g.client.Stop(ctx, &pb.ServiceRequest{Id: g.id})
 }
 
 func (g *grpcServiceClient) Prepare(ctx context.Context, conditionsByCap []provider.ConditionsByCap) error {

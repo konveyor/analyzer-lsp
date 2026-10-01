@@ -169,19 +169,20 @@ func requiresConversion(value interface{}) bool {
 	}
 }
 
-func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.Progress) (provider.InternalProviderClient, error) {
+func NewGRPCClient(ctx context.Context, config provider.Config, log logr.Logger, progress *progress.Progress) (provider.InternalProviderClient, error) {
 	log = log.WithName(config.Name)
 	log = log.WithValues("provider", "grpc")
-	ctxCmd, cancelCmd := context.WithCancel(context.Background())
+	ctxCmd, cancelCmd := context.WithCancel(ctx)
 	conn, _, err := start(ctxCmd, config, log)
 	if err != nil {
+		cancelCmd()
 		return nil, err
 	}
-	refCltCtx, cancel := context.WithCancel(context.Background())
+	refCltCtx, cancel := context.WithCancel(ctx)
 	refClt := reflectClient.NewClientAuto(refCltCtx, conn)
 	defer cancel()
 
-	services, err := checkServicesRunning(refClt, log)
+	services, err := checkServicesRunning(ctx, refClt, log)
 	if err != nil {
 		log.Error(err, "failed to check if services are running")
 		return nil, err
@@ -262,9 +263,14 @@ func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.P
 	}
 }
 
-func checkServicesRunning(refClt *reflectClient.Client, log logr.Logger) ([]string, error) {
+func checkServicesRunning(ctx context.Context, refClt *reflectClient.Client, log logr.Logger) ([]string, error) {
+	deadline := time.After(30 * time.Second)
 	for {
 		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("service check cancelled: %w", ctx.Err())
+		case <-deadline:
+			return nil, fmt.Errorf("no services found within 30s")
 		default:
 			services, err := refClt.ListServices()
 			if err == nil && len(services) != 0 {
@@ -273,9 +279,12 @@ func checkServicesRunning(refClt *reflectClient.Client, log logr.Logger) ([]stri
 			if err != nil {
 				log.Error(err, "error for list services retrying")
 			}
-			time.Sleep(3 * time.Second)
-		case <-time.After(time.Second * 30):
-			return nil, fmt.Errorf("no services found")
+			// Sleep with context check so cancellation is prompt
+			select {
+			case <-ctx.Done():
+				return nil, fmt.Errorf("service check cancelled: %w", ctx.Err())
+			case <-time.After(3 * time.Second):
+			}
 		}
 	}
 }
