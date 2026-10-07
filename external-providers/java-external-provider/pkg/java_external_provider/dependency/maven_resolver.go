@@ -62,7 +62,7 @@ func (m *mavenDependencyResolver) ResolveSources(ctx context.Context) (string, s
 		args = append(args, "-gs", m.globalSettingsFile)
 	}
 	if m.insecure {
-		args = append(args, "-Dmaven.wagon.http.ssl.insecure=true")
+		args = AppendMavenInsecureArgs(args)
 	}
 	cmd := exec.CommandContext(ctx, "mvn", args...)
 	cmd.Dir = m.location
