@@ -29,6 +29,7 @@ import (
 //   - Common Maven settings and security options
 type mavenBaseTool struct {
 	mvnInsecure           bool           // Whether to allow insecure HTTPS connections
+	mvnTrustStore         string         // Path to a Java truststore trusting a custom CA (empty if none)
 	mvnSettingsFile       string         // Path to Maven settings.xml file
 	mvnGlobalSettingsFile string         // Path to the global Maven settings.xml file
 	mvnLocalRepo          string         // Path to local Maven repository (.m2/repository)
@@ -156,6 +157,9 @@ func (m *mavenBaseTool) getMavenLocalRepoPath(log logr.Logger) string {
 	}
 	if m.mvnInsecure {
 		args = dependency.AppendMavenInsecureArgs(args)
+	}
+	if m.mvnTrustStore != "" {
+		args = dependency.AppendMavenTrustStoreArgs(args, m.mvnTrustStore)
 	}
 	cmd := exec.Command("mvn", args...)
 	var outb bytes.Buffer

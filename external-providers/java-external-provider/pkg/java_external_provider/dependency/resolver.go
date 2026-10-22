@@ -106,6 +106,11 @@ type ResolverOptions struct {
 	// Should only be used in development/testing environments.
 	Insecure bool
 
+	// TrustStore is the path to a Java truststore that trusts a custom (internal/private)
+	// CA in addition to the JDK defaults. When set, its CA material is honored during
+	// dependency resolution, keeping TLS verification on. Empty when no custom CA is supplied.
+	TrustStore string
+
 	// Version is the build tool version detected from the project.
 	// Used by some resolvers to determine compatibility requirements.
 	Version version.Version
@@ -147,6 +152,33 @@ var MavenInsecureArgs = []string{
 // AppendMavenInsecureArgs appends MavenInsecureArgs to the given argument slice.
 func AppendMavenInsecureArgs(args []string) []string {
 	return append(args, MavenInsecureArgs...)
+}
+
+// TrustStorePassword is the password of the JDK default cacerts keystore and of the
+// per-analysis copy built from it (see bldtool.BuildTrustStore). Java uses it only to
+// verify keystore integrity; the store holds no private keys.
+const TrustStorePassword = "changeit"
+
+// MavenTrustStoreArgs are the JVM system properties that make Maven (and the JDTLS JVM)
+// trust the CAs contained in the given Java truststore. The truststore is built from an
+// admin-supplied CA bundle (the hub Identity.CaCert) by bldtool.BuildTrustStore, which
+// seeds it from the JDK cacerts so public CAs such as Maven Central stay trusted.
+//
+// Unlike MavenInsecureArgs this keeps full TLS verification on; it just adds trust for a
+// private/internal CA. The args are passed both to the provider's own mvn subprocess
+// invocations (via AppendMavenTrustStoreArgs) and, as JVM system properties, to the
+// JDTLS process so its embedded m2e resolver trusts the CA during project import.
+// See konveyor/analyzer-lsp#1190 and the hub Identity.CaCert field (tackle2-hub#1141).
+func MavenTrustStoreArgs(trustStorePath string) []string {
+	return []string{
+		fmt.Sprintf("-Djavax.net.ssl.trustStore=%s", trustStorePath),
+		fmt.Sprintf("-Djavax.net.ssl.trustStorePassword=%s", TrustStorePassword),
+	}
+}
+
+// AppendMavenTrustStoreArgs appends MavenTrustStoreArgs to the given argument slice.
+func AppendMavenTrustStoreArgs(args []string, trustStorePath string) []string {
+	return append(args, MavenTrustStoreArgs(trustStorePath)...)
 }
 
 // contains checks if a JavaArtifact exists in a slice of artifacts.

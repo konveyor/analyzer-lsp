@@ -136,6 +136,7 @@ type BuildToolOptions struct {
 	MvnSettingsFile       string              // Path to Maven settings.xml for custom repository configuration
 	MvnGlobalSettingsFile string              // Path to the global maven settings.xml file
 	MvnInsecure           bool                // Allow insecure HTTPS connections to Maven repositories
+	MvnTrustStore         string              // Path to a Java truststore trusting a custom CA (empty if none)
 	MavenIndexPath        string              // Path to Maven index for artifact metadata searches
 	Labeler               labels.Labeler      // Labeler for classifying dependencies as open source or internal
 	CleanBin              bool                // Whether to clean up temporary binary decompilation artifacts
