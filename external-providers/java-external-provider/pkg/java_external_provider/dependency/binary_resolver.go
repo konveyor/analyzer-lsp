@@ -24,6 +24,7 @@ type binaryDependencyResolver struct {
 	log            logr.Logger    // Logger for resolver operations
 	settingsFile   string         // Path to Maven settings file (currently unused for binary)
 	insecure       bool           // Allow insecure HTTPS (currently unused for binary)
+	trustStore     string         // Path to custom-CA truststore (currently unused for binary)
 	location       string         // Absolute path to the binary artifact file
 	cleanBin       bool           // Whether to clean up temporary binary files (currently unused)
 	mavenIndexPath string         // Path to Maven index for artifact lookups
@@ -38,6 +39,7 @@ func GetBinaryResolver(options ResolverOptions) Resolver {
 		localRepo:      options.LocalRepo,
 		settingsFile:   options.BuildFile,
 		insecure:       options.Insecure,
+		trustStore:     options.TrustStore,
 		location:       options.Location,
 		log:            log,
 		decompileTool:  options.DecompileTool,
