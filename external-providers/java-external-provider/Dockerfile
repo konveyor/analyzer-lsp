@@ -4,6 +4,7 @@ FROM ${JAVA_BUDLE_IMAGE} as base
 
 # Build the manager binary
 FROM registry.access.redhat.com/ubi9/go-toolset:1.25 as builder
+ENV GOTOOLCHAIN=auto
 
 USER 0
 
@@ -17,7 +18,7 @@ COPY external-providers/java-external-provider/go.sum java/go.sum
 COPY external-providers/java-external-provider/main.go java/main.go
 COPY external-providers/java-external-provider/pkg/ java/pkg/
 
-RUN mkdir -p /opt/app-root/src/go && \
+RUN mkdir -p /opt/app-root/src/go/pkg/sumdb && \
     chgrp -R 0 /opt/app-root/src/go && \
     chmod -R g=u /opt/app-root/src/go && \
     chgrp -R 0 java && \
