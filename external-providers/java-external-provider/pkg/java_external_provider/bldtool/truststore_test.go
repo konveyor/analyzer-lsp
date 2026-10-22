@@ -115,6 +115,27 @@ func TestBuildTrustStore(t *testing.T) {
 	}
 }
 
+func TestBuildTrustStoreMalformedTrailingBlock(t *testing.T) {
+	requireKeytool(t)
+	dir := t.TempDir()
+
+	// A valid CA followed by a truncated (END-less) certificate block must be rejected
+	// rather than silently importing only the first cert.
+	validPEM, err := os.ReadFile(writeSelfSignedCA(t, dir, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bundle := filepath.Join(dir, "bundle.pem")
+	content := append(validPEM, []byte("-----BEGIN CERTIFICATE-----\ndGhpcyBpcyB0cnVuY2F0ZWQ=\n")...)
+	if err := os.WriteFile(bundle, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := BuildTrustStore(bundle, filepath.Join(dir, "ts"), testr.New(t)); err == nil {
+		t.Error("expected error for a bundle with a malformed trailing certificate block, got nil")
+	}
+}
+
 func TestBuildTrustStoreNoCerts(t *testing.T) {
 	requireKeytool(t)
 	dir := t.TempDir()

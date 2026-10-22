@@ -1,12 +1,14 @@
 package bldtool
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency"
@@ -65,6 +67,13 @@ func BuildTrustStore(caCertPath string, destDir string, log logr.Logger) (string
 		}
 		imported++
 	}
+	// pem.Decode returns the whole remaining input when it cannot find a complete block,
+	// so a leftover BEGIN marker here means the bundle has a malformed/truncated certificate
+	// after a valid one. Fail rather than silently dropping that CA. Trailing comments or
+	// blank lines (no BEGIN marker) are fine.
+	if bytes.Contains(rest, []byte("-----BEGIN")) {
+		return "", fmt.Errorf("malformed certificate block in CA bundle %s", caCertPath)
+	}
 	if imported == 0 {
 		return "", fmt.Errorf("no PEM certificates found in CA bundle %s", caCertPath)
 	}
@@ -105,9 +114,9 @@ func importCert(trustStorePath string, certPEM []byte, index int, log logr.Logge
 // defaultCacertsPath returns the path to the JDK's default cacerts truststore, which the
 // custom truststore is seeded from so public CAs remain trusted.
 func defaultCacertsPath() (string, error) {
-	javaHome := os.Getenv("JAVA_HOME")
-	if javaHome == "" {
-		return "", fmt.Errorf("JAVA_HOME is not set; cannot locate JDK cacerts to build truststore")
+	javaHome, err := javaHomeDir()
+	if err != nil {
+		return "", err
 	}
 	cacerts := filepath.Join(javaHome, "lib", "security", "cacerts")
 	if _, err := os.Stat(cacerts); err != nil {
@@ -116,10 +125,34 @@ func defaultCacertsPath() (string, error) {
 	return cacerts, nil
 }
 
-// keytoolPath returns the keytool executable, preferring $JAVA_HOME/bin/keytool and
-// falling back to keytool on PATH.
-func keytoolPath() string {
+// javaHomeDir resolves the active Java installation directory. It prefers JAVA_HOME and,
+// when unset, falls back to querying the java executable on PATH (java.home system
+// property) so it matches the executable getJavaExecutable selects to launch JDTLS/Maven.
+func javaHomeDir() (string, error) {
 	if javaHome := os.Getenv("JAVA_HOME"); javaHome != "" {
+		return javaHome, nil
+	}
+	javaExec, err := exec.LookPath("java")
+	if err != nil {
+		return "", fmt.Errorf("JAVA_HOME is not set and java was not found on PATH: %w", err)
+	}
+	out, err := exec.Command(javaExec, "-XshowSettings:properties", "-version").CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to determine java.home from %s: %w", javaExec, err)
+	}
+	const marker = "java.home ="
+	for _, line := range strings.Split(string(out), "\n") {
+		if idx := strings.Index(line, marker); idx >= 0 {
+			return strings.TrimSpace(line[idx+len(marker):]), nil
+		}
+	}
+	return "", fmt.Errorf("could not determine java.home from %s", javaExec)
+}
+
+// keytoolPath returns the keytool executable, preferring the one under the active Java
+// installation and falling back to keytool on PATH.
+func keytoolPath() string {
+	if javaHome, err := javaHomeDir(); err == nil {
 		kt := filepath.Join(javaHome, "bin", "keytool")
 		if _, err := os.Stat(kt); err == nil {
 			return kt
