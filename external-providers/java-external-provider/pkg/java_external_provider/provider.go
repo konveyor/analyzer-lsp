@@ -361,10 +361,15 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// file is empty whenever the maven identity carries no CA, which is the common case. Treat
 	// a missing or empty file as "no custom CA" and skip, but still fail hard on a non-empty
 	// yet malformed bundle rather than continue: a broken CA silently yields empty analysis
-	// results (MTA-8101).
+	// results (MTA-8101). For the same reason a stat error other than "not found" (e.g. a
+	// permissions problem) fails hard rather than being misread as an absent CA.
 	var mavenTrustStore string
 	if caCertPath, ok := config.ProviderSpecificConfig[MVN_CA_CERT_SETTING].(string); ok && caCertPath != "" {
-		if info, statErr := os.Stat(caCertPath); statErr != nil || info.Size() == 0 {
+		info, statErr := os.Stat(caCertPath)
+		if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+			return nil, additionalBuiltinConfig, fmt.Errorf("failed inspecting CA bundle %s: %w", caCertPath, statErr)
+		}
+		if errors.Is(statErr, os.ErrNotExist) || info.Size() == 0 {
 			log.V(5).Info("no custom Maven CA bundle provided; skipping truststore build", "caCert", caCertPath)
 		} else {
 			log.Info("building Maven/JDTLS truststore from custom CA bundle", "caCert", caCertPath)
