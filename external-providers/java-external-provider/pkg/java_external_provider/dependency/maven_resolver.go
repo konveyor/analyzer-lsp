@@ -25,6 +25,7 @@ type mavenDependencyResolver struct {
 	globalSettingsFile string
 	settingsFile       string
 	insecure           bool
+	trustStore         string
 	location           string
 	mavenIndexPath     string
 }
@@ -35,6 +36,7 @@ func GetMavenResolver(options ResolverOptions) Resolver {
 		globalSettingsFile: options.GlobalBuildFile,
 		settingsFile:       options.BuildFile,
 		insecure:           options.Insecure,
+		trustStore:         options.TrustStore,
 		location:           options.Location,
 		log:                options.Log,
 		decompileTool:      options.DecompileTool,
@@ -63,6 +65,9 @@ func (m *mavenDependencyResolver) ResolveSources(ctx context.Context) (string, s
 	}
 	if m.insecure {
 		args = AppendMavenInsecureArgs(args)
+	}
+	if m.trustStore != "" {
+		args = AppendMavenTrustStoreArgs(args, m.trustStore)
 	}
 	cmd := exec.CommandContext(ctx, "mvn", args...)
 	cmd.Dir = m.location

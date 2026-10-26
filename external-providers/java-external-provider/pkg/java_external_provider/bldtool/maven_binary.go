@@ -52,6 +52,7 @@ func getMavenBinaryBuildTool(opts BuildToolOptions, log logr.Logger) BuildTool {
 	}
 	mavenBaseTool := mavenBaseTool{
 		mvnInsecure:           opts.MvnInsecure,
+		mvnTrustStore:         opts.MvnTrustStore,
 		mvnSettingsFile:       opts.MvnSettingsFile,
 		mvnGlobalSettingsFile: opts.MvnGlobalSettingsFile,
 		mavenIndexPath:        opts.MavenIndexPath,
@@ -84,6 +85,7 @@ func (m *mavenBinaryBuildTool) GetResolver(decompileTool string) (dependency.Res
 		BuildFile:      m.mvnSettingsFile,
 		LocalRepo:      m.mvnLocalRepo,
 		Insecure:       m.mvnInsecure,
+		TrustStore:     m.mvnTrustStore,
 		DecompileTool:  decompileTool,
 		Labeler:        m.labeler,
 		MavenIndexPath: m.mavenIndexPath,
@@ -105,6 +107,7 @@ func (m *mavenBinaryBuildTool) ResolveSources(ctx context.Context) (string, stri
 	m.mavenBldTool = &mavenBuildTool{
 		mavenBaseTool: mavenBaseTool{
 			mvnInsecure:           m.mvnInsecure,
+			mvnTrustStore:         m.mvnTrustStore,
 			mvnSettingsFile:       m.mvnSettingsFile,
 			mvnGlobalSettingsFile: m.mvnGlobalSettingsFile,
 			mvnLocalRepo:          m.mvnLocalRepo,

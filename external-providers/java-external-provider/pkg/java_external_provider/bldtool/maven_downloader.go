@@ -13,9 +13,9 @@ import (
 	"github.com/konveyor/analyzer-lsp/external-providers/java-external-provider/pkg/java_external_provider/dependency"
 )
 
-func GetDownloader(location, settingsFile string, insecure bool, log logr.Logger) (Downloader, bool) {
+func GetDownloader(location, settingsFile string, insecure bool, trustStore string, log logr.Logger) (Downloader, bool) {
 	if strings.HasPrefix(location, dependency.MvnURIPrefix) {
-		return &mavenDownloader{location: location, settingsFile: settingsFile, insecure: insecure, log: log}, true
+		return &mavenDownloader{location: location, settingsFile: settingsFile, insecure: insecure, trustStore: trustStore, log: log}, true
 	}
 	return nil, false
 }
@@ -24,6 +24,7 @@ type mavenDownloader struct {
 	location     string
 	settingsFile string
 	insecure     bool
+	trustStore   string
 	log          logr.Logger
 }
 
@@ -53,6 +54,9 @@ func (m *mavenDownloader) Download(ctx context.Context) (string, error) {
 	}
 	if m.insecure {
 		mvnOptions = dependency.AppendMavenInsecureArgs(mvnOptions)
+	}
+	if m.trustStore != "" {
+		mvnOptions = dependency.AppendMavenTrustStoreArgs(mvnOptions, m.trustStore)
 	}
 	m.log.Info("downloading maven artifact", "artifact", mvnCoordinates, "options", mvnOptions)
 	cmd := exec.CommandContext(ctx, "mvn", mvnOptions...)

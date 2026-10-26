@@ -417,3 +417,27 @@ func TestAppendMavenInsecureArgs(t *testing.T) {
 		}
 	}
 }
+
+func TestAppendMavenTrustStoreArgs(t *testing.T) {
+	base := []string{"-B", "dependency:tree"}
+	got := AppendMavenTrustStoreArgs(base, "/shared/creds/maven/truststore.jks")
+
+	// Both the truststore location and its password must be set so Maven (and the JDTLS
+	// JVM) trust the custom CA while keeping TLS verification on.
+	want := []string{
+		"-Djavax.net.ssl.trustStore=/shared/creds/maven/truststore.jks",
+		"-Djavax.net.ssl.trustStorePassword=" + TrustStorePassword,
+	}
+	for _, arg := range want {
+		if !slices.Contains(got, arg) {
+			t.Errorf("expected args to contain %q, got %v", arg, got)
+		}
+	}
+
+	// The original args must be preserved.
+	for _, arg := range base {
+		if !slices.Contains(got, arg) {
+			t.Errorf("expected original arg %q to be preserved, got %v", arg, got)
+		}
+	}
+}

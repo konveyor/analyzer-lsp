@@ -34,6 +34,7 @@ const (
 	MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
 	GLOBAL_SETTINGS_INIT_OPTION   = "mavenCacheDir"
 	MVN_INSECURE_SETTING          = "mavenInsecure"
+	MVN_CA_CERT_SETTING           = "mavenCaCert"
 	CLEAN_EXPLODED_BIN_OPTION     = "cleanExplodedBin"
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
@@ -350,6 +351,24 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		mavenInsecure = false
 	}
 
+	// When a custom CA bundle is supplied (via the hub Identity.CaCert field), build a
+	// truststore that trusts it in addition to the JDK defaults. Maven and JDTLS are then
+	// pointed at it so dependency resolution and project import against an internal Maven
+	// repository succeed without disabling TLS verification. Fail hard on error rather
+	// than continue: a missing CA silently yields empty analysis results (MTA-8101).
+	var mavenTrustStore string
+	if caCertPath, ok := config.ProviderSpecificConfig[MVN_CA_CERT_SETTING].(string); ok && caCertPath != "" {
+		log.Info("building Maven/JDTLS truststore from custom CA bundle", "caCert", caCertPath)
+		trustStoreDir, err := os.MkdirTemp("", "konveyor-truststore-")
+		if err != nil {
+			return nil, additionalBuiltinConfig, fmt.Errorf("failed creating truststore directory: %w", err)
+		}
+		mavenTrustStore, err = bldtool.BuildTrustStore(caCertPath, trustStoreDir, log)
+		if err != nil {
+			return nil, additionalBuiltinConfig, fmt.Errorf("failed building truststore from CA bundle %s: %w", caCertPath, err)
+		}
+	}
+
 	lspServerPath, _ := config.ProviderSpecificConfig[provider.LspServerPathConfigKey].(string)
 	fernflower, ok := config.ProviderSpecificConfig[FERN_FLOWER_INIT_OPTION].(string)
 	if !ok {
@@ -370,7 +389,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// each service client should have their own context
 	downloadCtx, cancelFunc := context.WithCancel(ctx)
 	// location can be a coordinate to a remote mvn artifact
-	if downloader, ok := bldtool.GetDownloader(config.Location, mavenSettingsFile, mavenInsecure, log); ok {
+	if downloader, ok := bldtool.GetDownloader(config.Location, mavenSettingsFile, mavenInsecure, mavenTrustStore, log); ok {
 		downloadPath, err := downloader.Download(downloadCtx)
 		if err != nil {
 			cancelFunc()
@@ -394,6 +413,7 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 		MvnSettingsFile:       mavenSettingsFile,
 		MvnGlobalSettingsFile: globalSettingsFile,
 		MvnInsecure:           mavenInsecure,
+		MvnTrustStore:         mavenTrustStore,
 		MavenIndexPath:        mavenSHASearchIndex,
 		Labeler:               openSourceLabeler,
 		GradleTaskFile:        gradleTaskFile,
@@ -512,6 +532,13 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// See konveyor/analyzer-lsp#1190.
 	if mavenInsecure {
 		jdtlsArgs = append(jdtlsArgs, dependency.MavenInsecureArgs...)
+	}
+
+	// Make JDTLS's embedded m2e resolver trust the custom CA during project import, the
+	// same way it is applied to the provider's own mvn calls. Without this the m2e import
+	// fails PKIX, the workspace never becomes ready, and analysis returns empty results.
+	if mavenTrustStore != "" {
+		jdtlsArgs = append(jdtlsArgs, dependency.MavenTrustStoreArgs(mavenTrustStore)...)
 	}
 
 	jdtlsArgs = append(jdtlsArgs,
