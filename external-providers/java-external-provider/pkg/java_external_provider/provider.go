@@ -34,7 +34,7 @@ const (
 	MVN_SETTINGS_FILE_INIT_OPTION = "mavenSettingsFile"
 	GLOBAL_SETTINGS_INIT_OPTION   = "mavenCacheDir"
 	MVN_INSECURE_SETTING          = "mavenInsecure"
-	MVN_CA_CERT_SETTING           = "mavenCaCert"
+	MVN_CA_CERT_SETTING           = "mavenCaFile"
 	CLEAN_EXPLODED_BIN_OPTION     = "cleanExplodedBin"
 	JVM_MAX_MEM_INIT_OPTION       = "jvmMaxMem"
 	FERN_FLOWER_INIT_OPTION       = "fernFlowerPath"
@@ -354,18 +354,28 @@ func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provide
 	// When a custom CA bundle is supplied (via the hub Identity.CaCert field), build a
 	// truststore that trusts it in addition to the JDK defaults. Maven and JDTLS are then
 	// pointed at it so dependency resolution and project import against an internal Maven
-	// repository succeed without disabling TLS verification. Fail hard on error rather
-	// than continue: a missing CA silently yields empty analysis results (MTA-8101).
+	// repository succeed without disabling TLS verification.
+	//
+	// The hub addon delivers the CA via mavenCaFile, a path to a file it always writes from
+	// Identity.CaCert (tackle2-operator#635). Because Identity.CaCert is not omitempty, that
+	// file is empty whenever the maven identity carries no CA, which is the common case. Treat
+	// a missing or empty file as "no custom CA" and skip, but still fail hard on a non-empty
+	// yet malformed bundle rather than continue: a broken CA silently yields empty analysis
+	// results (MTA-8101).
 	var mavenTrustStore string
 	if caCertPath, ok := config.ProviderSpecificConfig[MVN_CA_CERT_SETTING].(string); ok && caCertPath != "" {
-		log.Info("building Maven/JDTLS truststore from custom CA bundle", "caCert", caCertPath)
-		trustStoreDir, err := os.MkdirTemp("", "konveyor-truststore-")
-		if err != nil {
-			return nil, additionalBuiltinConfig, fmt.Errorf("failed creating truststore directory: %w", err)
-		}
-		mavenTrustStore, err = bldtool.BuildTrustStore(caCertPath, trustStoreDir, log)
-		if err != nil {
-			return nil, additionalBuiltinConfig, fmt.Errorf("failed building truststore from CA bundle %s: %w", caCertPath, err)
+		if info, statErr := os.Stat(caCertPath); statErr != nil || info.Size() == 0 {
+			log.V(5).Info("no custom Maven CA bundle provided; skipping truststore build", "caCert", caCertPath)
+		} else {
+			log.Info("building Maven/JDTLS truststore from custom CA bundle", "caCert", caCertPath)
+			trustStoreDir, err := os.MkdirTemp("", "konveyor-truststore-")
+			if err != nil {
+				return nil, additionalBuiltinConfig, fmt.Errorf("failed creating truststore directory: %w", err)
+			}
+			mavenTrustStore, err = bldtool.BuildTrustStore(caCertPath, trustStoreDir, log)
+			if err != nil {
+				return nil, additionalBuiltinConfig, fmt.Errorf("failed building truststore from CA bundle %s: %w", caCertPath, err)
+			}
 		}
 	}
 
