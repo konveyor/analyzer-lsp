@@ -11,7 +11,7 @@ require (
 
 require (
 	github.com/hashicorp/go-version v1.6.0
-	github.com/konveyor/analyzer-lsp v0.10.0-alpha.2.0.20260611082435-fa39c059f102
+	github.com/konveyor/analyzer-lsp v0.0.0-00010101000000-000000000000
 	github.com/nxadm/tail v1.4.11
 	github.com/sirupsen/logrus v1.9.3
 	github.com/vifraa/gopom v1.0.0
@@ -24,6 +24,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/swaggest/jsonschema-go v0.3.74 // indirect
 	github.com/swaggest/refl v1.3.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
