@@ -1,9 +1,12 @@
 package grpc
 
 import (
+	"errors"
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -513,4 +516,61 @@ func TestConversionOptimization(t *testing.T) {
 	if originalPtr2 == resultPtr2 {
 		t.Error("convertValue() should have allocated a new slice when conversion was needed")
 	}
+}
+
+func TestWaitForServices(t *testing.T) {
+	log := logr.Discard()
+
+	t.Run("gives up when the provider never lists a service", func(t *testing.T) {
+		calls := 0
+		list := func() ([]string, error) {
+			calls++
+			return nil, errors.New("connection refused")
+		}
+		done := make(chan error, 1)
+		go func() {
+			_, err := waitForServices(list, 50*time.Millisecond, 5*time.Millisecond, log)
+			done <- err
+		}()
+		select {
+		case err := <-done:
+			if err == nil {
+				t.Fatal("expected an error after the timeout, got nil")
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("waitForServices did not return after its timeout")
+		}
+		if calls < 2 {
+			t.Fatalf("expected the listing to be retried, got %d calls", calls)
+		}
+	})
+
+	t.Run("gives up when the provider lists no services", func(t *testing.T) {
+		list := func() ([]string, error) { return nil, nil }
+		_, err := waitForServices(list, 50*time.Millisecond, 5*time.Millisecond, log)
+		if err == nil {
+			t.Fatal("expected an error after the timeout, got nil")
+		}
+	})
+
+	t.Run("returns the services once the provider is up", func(t *testing.T) {
+		calls := 0
+		list := func() ([]string, error) {
+			calls++
+			switch calls {
+			case 1:
+				return nil, errors.New("connection refused")
+			case 2:
+				return nil, nil
+			}
+			return []string{"provider.ProviderService"}, nil
+		}
+		got, err := waitForServices(list, 5*time.Second, 5*time.Millisecond, log)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !reflect.DeepEqual(got, []string{"provider.ProviderService"}) {
+			t.Fatalf("unexpected services: %v", got)
+		}
+	})
 }

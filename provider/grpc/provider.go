@@ -175,6 +175,7 @@ func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.P
 	ctxCmd, cancelCmd := context.WithCancel(context.Background())
 	conn, _, err := start(ctxCmd, config, log)
 	if err != nil {
+		cancelCmd()
 		return nil, err
 	}
 	refCltCtx, cancel := context.WithCancel(context.Background())
@@ -184,6 +185,7 @@ func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.P
 	services, err := checkServicesRunning(refClt, log)
 	if err != nil {
 		log.Error(err, "failed to check if services are running")
+		cancelCmd()
 		return nil, err
 	}
 	foundCodeSnip := false
@@ -262,20 +264,36 @@ func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.P
 	}
 }
 
+// How long NewGRPCClient waits for a provider to list its services, and how
+// long it pauses between attempts.
+var (
+	servicesCheckTimeout  = 30 * time.Second
+	servicesCheckInterval = 3 * time.Second
+)
+
 func checkServicesRunning(refClt *reflectClient.Client, log logr.Logger) ([]string, error) {
+	return waitForServices(refClt.ListServices, servicesCheckTimeout, servicesCheckInterval, log)
+}
+
+// waitForServices calls list until it returns at least one service, and gives
+// up once timeout has passed.
+func waitForServices(list func() ([]string, error), timeout, interval time.Duration, log logr.Logger) ([]string, error) {
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
 	for {
+		services, err := list()
+		if err == nil && len(services) != 0 {
+			return services, nil
+		}
+		if err != nil {
+			log.Error(err, "error for list services retrying")
+		}
+		wait := time.NewTimer(interval)
 		select {
-		default:
-			services, err := refClt.ListServices()
-			if err == nil && len(services) != 0 {
-				return services, nil
-			}
-			if err != nil {
-				log.Error(err, "error for list services retrying")
-			}
-			time.Sleep(3 * time.Second)
-		case <-time.After(time.Second * 30):
+		case <-deadline.C:
+			wait.Stop()
 			return nil, fmt.Errorf("no services found")
+		case <-wait.C:
 		}
 	}
 }
