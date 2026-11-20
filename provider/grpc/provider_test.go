@@ -2,12 +2,15 @@ package grpc
 
 import (
 	"errors"
+	"net"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/konveyor/analyzer-lsp/provider"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -573,4 +576,42 @@ func TestWaitForServices(t *testing.T) {
 			t.Fatalf("unexpected services: %v", got)
 		}
 	})
+}
+
+func TestCheckServicesRunningGivesUpOnSilentProvider(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Accept every stream, including the reflection one, and never answer.
+	srv := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
+		<-stream.Context().Done()
+		return stream.Context().Err()
+	}))
+	go func() { _ = srv.Serve(lis) }()
+	defer srv.Stop()
+
+	conn, err := grpc.NewClient(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	oldTimeout, oldInterval := servicesCheckTimeout, servicesCheckInterval
+	servicesCheckTimeout, servicesCheckInterval = 200*time.Millisecond, 10*time.Millisecond
+	defer func() { servicesCheckTimeout, servicesCheckInterval = oldTimeout, oldInterval }()
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := checkServicesRunning(conn, logr.Discard())
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected an error from a provider that never answers, got nil")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("checkServicesRunning did not return after its timeout")
+	}
 }

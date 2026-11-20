@@ -179,12 +179,14 @@ func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.P
 		return nil, err
 	}
 	refCltCtx, cancel := context.WithCancel(context.Background())
-	refClt := reflectClient.NewClientAuto(refCltCtx, conn)
 	defer cancel()
 
-	services, err := checkServicesRunning(refClt, log)
+	services, err := checkServicesRunning(conn, log)
 	if err != nil {
 		log.Error(err, "failed to check if services are running")
+		if conn != nil {
+			conn.Close()
+		}
 		cancelCmd()
 		return nil, err
 	}
@@ -271,7 +273,14 @@ var (
 	servicesCheckInterval = 3 * time.Second
 )
 
-func checkServicesRunning(refClt *reflectClient.Client, log logr.Logger) ([]string, error) {
+// checkServicesRunning lists the services the provider serves through gRPC
+// reflection. The reflection client shares the overall timeout, so a provider
+// that accepts the stream but never answers cannot block the wait.
+func checkServicesRunning(conn grpc.ClientConnInterface, log logr.Logger) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), servicesCheckTimeout)
+	defer cancel()
+	refClt := reflectClient.NewClientAuto(ctx, conn)
+	defer refClt.Reset()
 	return waitForServices(refClt.ListServices, servicesCheckTimeout, servicesCheckInterval, log)
 }
 
