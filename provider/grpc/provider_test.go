@@ -11,6 +11,7 @@ import (
 	"github.com/konveyor/analyzer-lsp/provider"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	reflectionpb "google.golang.org/grpc/reflection/grpc_reflection_v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -613,5 +614,57 @@ func TestCheckServicesRunningGivesUpOnSilentProvider(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("checkServicesRunning did not return after its timeout")
+	}
+}
+
+func TestCheckServicesRunningReturnsOnceServicesAreListed(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Answer every reflection request with one service, then keep the stream
+	// open after the client closes its side instead of ending it.
+	srv := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
+		for {
+			var req reflectionpb.ServerReflectionRequest
+			if err := stream.RecvMsg(&req); err != nil {
+				<-stream.Context().Done()
+				return stream.Context().Err()
+			}
+			resp := &reflectionpb.ServerReflectionResponse{
+				MessageResponse: &reflectionpb.ServerReflectionResponse_ListServicesResponse{
+					ListServicesResponse: &reflectionpb.ListServiceResponse{
+						Service: []*reflectionpb.ServiceResponse{{Name: "provider.ProviderService"}},
+					},
+				},
+			}
+			if err := stream.SendMsg(resp); err != nil {
+				return err
+			}
+		}
+	}))
+	go func() { _ = srv.Serve(lis) }()
+	defer srv.Stop()
+
+	conn, err := grpc.NewClient(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	oldTimeout, oldInterval := servicesCheckTimeout, servicesCheckInterval
+	servicesCheckTimeout, servicesCheckInterval = 3*time.Second, 10*time.Millisecond
+	defer func() { servicesCheckTimeout, servicesCheckInterval = oldTimeout, oldInterval }()
+
+	start := time.Now()
+	services, err := checkServicesRunning(conn, logr.Discard())
+	if err != nil {
+		t.Fatalf("checkServicesRunning() error = %v", err)
+	}
+	if !reflect.DeepEqual(services, []string{"provider.ProviderService"}) {
+		t.Fatalf("checkServicesRunning() = %v", services)
+	}
+	if elapsed := time.Since(start); elapsed > time.Second {
+		t.Fatalf("checkServicesRunning took %v after the services were listed, want it to return right away", elapsed)
 	}
 }

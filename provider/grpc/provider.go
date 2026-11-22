@@ -278,9 +278,14 @@ var (
 // that accepts the stream but never answers cannot block the wait.
 func checkServicesRunning(conn grpc.ClientConnInterface, log logr.Logger) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), servicesCheckTimeout)
-	defer cancel()
 	refClt := reflectClient.NewClientAuto(ctx, conn)
-	defer refClt.Reset()
+	// Reset drains the stream before it cancels it, so cancel first. Otherwise a
+	// provider that keeps the stream open after answering holds us until the
+	// timeout even though the services were already found.
+	defer func() {
+		cancel()
+		refClt.Reset()
+	}()
 	return waitForServices(refClt.ListServices, servicesCheckTimeout, servicesCheckInterval, log)
 }
 
