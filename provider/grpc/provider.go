@@ -175,15 +175,19 @@ func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.P
 	ctxCmd, cancelCmd := context.WithCancel(context.Background())
 	conn, _, err := start(ctxCmd, config, log)
 	if err != nil {
+		cancelCmd()
 		return nil, err
 	}
 	refCltCtx, cancel := context.WithCancel(context.Background())
-	refClt := reflectClient.NewClientAuto(refCltCtx, conn)
 	defer cancel()
 
-	services, err := checkServicesRunning(refClt, log)
+	services, err := checkServicesRunning(conn, log)
 	if err != nil {
 		log.Error(err, "failed to check if services are running")
+		if conn != nil {
+			conn.Close()
+		}
+		cancelCmd()
 		return nil, err
 	}
 	foundCodeSnip := false
@@ -262,20 +266,48 @@ func NewGRPCClient(config provider.Config, log logr.Logger, progress *progress.P
 	}
 }
 
-func checkServicesRunning(refClt *reflectClient.Client, log logr.Logger) ([]string, error) {
+// How long NewGRPCClient waits for a provider to list its services, and how
+// long it pauses between attempts.
+var (
+	servicesCheckTimeout  = 30 * time.Second
+	servicesCheckInterval = 3 * time.Second
+)
+
+// checkServicesRunning lists the services the provider serves through gRPC
+// reflection. The reflection client shares the overall timeout, so a provider
+// that accepts the stream but never answers cannot block the wait.
+func checkServicesRunning(conn grpc.ClientConnInterface, log logr.Logger) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), servicesCheckTimeout)
+	refClt := reflectClient.NewClientAuto(ctx, conn)
+	// Reset drains the stream before it cancels it, so cancel first. Otherwise a
+	// provider that keeps the stream open after answering holds us until the
+	// timeout even though the services were already found.
+	defer func() {
+		cancel()
+		refClt.Reset()
+	}()
+	return waitForServices(refClt.ListServices, servicesCheckTimeout, servicesCheckInterval, log)
+}
+
+// waitForServices calls list until it returns at least one service, and gives
+// up once timeout has passed.
+func waitForServices(list func() ([]string, error), timeout, interval time.Duration, log logr.Logger) ([]string, error) {
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
 	for {
+		services, err := list()
+		if err == nil && len(services) != 0 {
+			return services, nil
+		}
+		if err != nil {
+			log.Error(err, "error for list services retrying")
+		}
+		wait := time.NewTimer(interval)
 		select {
-		default:
-			services, err := refClt.ListServices()
-			if err == nil && len(services) != 0 {
-				return services, nil
-			}
-			if err != nil {
-				log.Error(err, "error for list services retrying")
-			}
-			time.Sleep(3 * time.Second)
-		case <-time.After(time.Second * 30):
+		case <-deadline.C:
+			wait.Stop()
 			return nil, fmt.Errorf("no services found")
+		case <-wait.C:
 		}
 	}
 }
