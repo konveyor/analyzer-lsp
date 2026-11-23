@@ -947,3 +947,180 @@ func TestFileSearcher_Search(t *testing.T) {
 		})
 	}
 }
+
+func TestNewNameMatcher(t *testing.T) {
+	tests := []struct {
+		name    string
+		pattern string
+		file    string
+		want    bool
+	}{
+		{name: "literal name equals", pattern: "pom.xml", file: "pom.xml", want: true},
+		{name: "literal name is not a substring match", pattern: "pom.xml", file: "my-pom.xml", want: false},
+		{name: "literal name is not a prefix match", pattern: "pom.xml", file: "pom.xml.bak", want: false},
+		{name: "regex prefix", pattern: "Dockerfile.*", file: "Dockerfile.prod", want: true},
+		{name: "regex unanchored finds substring", pattern: `hibernate.*\.jar$`, file: "hibernate-core-6.jar", want: true},
+		{name: "regex alternation with anchor", pattern: `^application(-[a-zA-Z0-9]+)?\.(properties|yaml|yml)$`, file: "application-dev.yml", want: true},
+		{name: "regex anchored rejects other names", pattern: `^application(-[a-zA-Z0-9]+)?\.(properties|yaml|yml)$`, file: "my-application.yml", want: false},
+		{name: "glob falls back when not a regex", pattern: "*.txt", file: "a.txt", want: true},
+		{name: "glob does not match other extension", pattern: "*.txt", file: "a.xml", want: false},
+		{name: "invalid regex without wildcard never matches", pattern: "a[", file: "a[", want: false},
+		{name: "separator in pattern cannot match a base name", pattern: `dir_b/.*\.txt`, file: "ab.txt", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewNameMatcher(tt.pattern)(tt.file); got != tt.want {
+				t.Errorf("NewNameMatcher(%q)(%q) = %v, want %v", tt.pattern, tt.file, got, tt.want)
+			}
+		})
+	}
+}
+
+// writeTree creates the given relative files (empty) under a fresh base dir
+// whose own name is baseName, and returns the base dir.
+func writeTree(t *testing.T, baseName string, files ...string) string {
+	t.Helper()
+	base := filepath.Join(t.TempDir(), baseName)
+	for _, f := range files {
+		p := filepath.Join(base, filepath.FromSlash(f))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return base
+}
+
+func relFiles(t *testing.T, base string, files []string) []string {
+	t.Helper()
+	rel := []string{}
+	for _, f := range files {
+		r, err := filepath.Rel(base, f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rel = append(rel, filepath.ToSlash(r))
+	}
+	slices.Sort(rel)
+	return rel
+}
+
+func TestFileSearcher_NamePattern(t *testing.T) {
+	// The directory names are chosen to trip up a full path match: one
+	// contains the word from the name pattern, and the base dir contains "test".
+	base := writeTree(t, "test-project",
+		"hibernate-rules/unrelated.txt",
+		"hibernate-rules/hibernate-core.jar",
+		"lib/hibernate-orm.jar",
+		"src/Main.java",
+		"src/test/App.java",
+		"conf/application.yml",
+		"conf/application-dev.yml",
+		"conf/old/my-application.yml",
+	)
+
+	tests := []struct {
+		name     string
+		criteria SearchCriteria
+		want     []string
+	}{
+		{
+			name:     "full path pattern still matches directory names",
+			criteria: SearchCriteria{Patterns: []string{`hibernate.*\.jar$`}},
+			want:     []string{"hibernate-rules/hibernate-core.jar", "lib/hibernate-orm.jar"},
+		},
+		{
+			name:     "full path pattern keeps matching directory names",
+			criteria: SearchCriteria{Patterns: []string{`hibernate.*`}},
+			want: []string{
+				"hibernate-rules/hibernate-core.jar", "hibernate-rules/unrelated.txt", "lib/hibernate-orm.jar",
+			},
+		},
+		{
+			name:     "name pattern ignores directory names",
+			criteria: SearchCriteria{NamePattern: `^hibernate.*`},
+			want:     []string{"hibernate-rules/hibernate-core.jar", "lib/hibernate-orm.jar"},
+		},
+		{
+			name:     "name pattern does not see the search base",
+			criteria: SearchCriteria{NamePattern: `test`},
+			want:     []string{},
+		},
+		{
+			name:     "name pattern never matches a directory component",
+			criteria: SearchCriteria{NamePattern: `^src$`},
+			want:     []string{},
+		},
+		{
+			name:     "name pattern with anchored alternation",
+			criteria: SearchCriteria{NamePattern: `^application(-[a-zA-Z0-9]+)?\.(yaml|yml)$`},
+			want:     []string{"conf/application-dev.yml", "conf/application.yml"},
+		},
+		{
+			name:     "name pattern glob",
+			criteria: SearchCriteria{NamePattern: "*.java"},
+			want:     []string{"src/Main.java", "src/test/App.java"},
+		},
+		{
+			name: "both fields have to match",
+			criteria: SearchCriteria{
+				Patterns:    []string{`^/lib/`},
+				NamePattern: `\.jar$`,
+			},
+			want: []string{"lib/hibernate-orm.jar"},
+		},
+		{
+			name: "both fields with no overlap match nothing",
+			criteria: SearchCriteria{
+				Patterns:    []string{`^/src/`},
+				NamePattern: `\.jar$`,
+			},
+			want: []string{},
+		},
+		{
+			name: "name pattern narrows condition filepaths",
+			criteria: SearchCriteria{
+				ConditionFilepaths: []string{filepath.Join(base, "conf", "application.yml") + " " + filepath.Join(base, "src", "Main.java")},
+				NamePattern:        `\.yml$`,
+			},
+			want: []string{"conf/application.yml"},
+		},
+		{
+			name:     "empty name pattern changes nothing",
+			criteria: SearchCriteria{Patterns: []string{`^/src/`}},
+			want:     []string{"src/Main.java", "src/test/App.java"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			searcher := FileSearcher{BasePath: base, FailFast: true, Log: testr.New(t)}
+
+			got, err := searcher.Search(tt.criteria)
+			if err != nil {
+				t.Fatalf("Search() error = %v", err)
+			}
+			if rel := relFiles(t, base, got); !slices.Equal(rel, tt.want) {
+				t.Errorf("Search() = %v, want %v", rel, tt.want)
+			}
+
+			// The cached index path has to agree with the filesystem walk.
+			index := []string{}
+			_ = filepath.WalkDir(base, func(p string, d fs.DirEntry, err error) error {
+				if err == nil && !d.IsDir() {
+					index = append(index, p)
+				}
+				return nil
+			})
+			got, err = searcher.SearchFromIndex(index, tt.criteria)
+			if err != nil {
+				t.Fatalf("SearchFromIndex() error = %v", err)
+			}
+			if rel := relFiles(t, base, got); !slices.Equal(rel, tt.want) {
+				t.Errorf("SearchFromIndex() = %v, want %v", rel, tt.want)
+			}
+		})
+	}
+}

@@ -464,6 +464,9 @@ func (b *builtinServiceClient) Prepare(ctx context.Context, conditionsByCap []pr
 						pc.compiledFilePattern = compiled
 					}
 				}
+				if cond.Filecontent.FilenamePattern != "" {
+					pc.matchesFilename = provider.NewNameMatcher(cond.Filecontent.FilenamePattern)
+				}
 			case "xml":
 				compiled, err := xpath.CompileWithNS(cond.XML.XPath, cond.XML.Namespaces)
 				if err != nil || compiled == nil {
@@ -679,12 +682,14 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 	switch cap {
 	case "file":
 		c := cond.File
-		if c.Pattern == "" {
+		if c.Pattern == "" && c.NamePattern == "" {
 			return response, fmt.Errorf("could not parse provided file pattern as string: %v", conditionInfo)
 		}
-		matchingFiles, err := searchFiles(provider.SearchCriteria{
-			Patterns: []string{c.Pattern},
-		})
+		criteria := provider.SearchCriteria{NamePattern: c.NamePattern}
+		if c.Pattern != "" {
+			criteria.Patterns = []string{c.Pattern}
+		}
+		matchingFiles, err := searchFiles(criteria)
 		if err != nil {
 			return response, fmt.Errorf("failed to search for files - %w", err)
 		}
@@ -716,7 +721,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		if c.FilePattern != "" {
 			patterns = append(patterns, c.FilePattern)
 		}
-		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, patterns); err != nil {
+		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, patterns, c.FilenamePattern); err != nil {
 			return response, fmt.Errorf("failed to filter cached files - %w", err)
 		} else if ok {
 			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
@@ -729,6 +734,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		// template-expanded Filepaths that aren't in the cached index.
 		filePaths, err := searchFilesFromFS(provider.SearchCriteria{
 			Patterns:           patterns,
+			NamePattern:        c.FilenamePattern,
 			ConditionFilepaths: c.Filepaths,
 		})
 		if err != nil {
@@ -751,7 +757,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, []string{"*.xml", "*.xhtml"}); err != nil {
+		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, []string{"*.xml", "*.xhtml"}, ""); err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		} else if ok {
 			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
@@ -797,7 +803,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, []string{"*.xml", "*.xhtml"}); err != nil {
+		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, []string{"*.xml", "*.xhtml"}, ""); err != nil {
 			return response, fmt.Errorf("unable to find XML files: %v", err)
 		} else if ok {
 			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)
@@ -846,7 +852,7 @@ func (p *builtinServiceClient) Evaluate(ctx context.Context, cap string, conditi
 		}
 
 		// Try incident cache lookup
-		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, []string{"*.json"}); err != nil {
+		if incidents, ok, err := p.tryIncidentCache(ctx, cap, cond, []string{"*.json"}, ""); err != nil {
 			return response, fmt.Errorf("unable to find JSON files: %v", err)
 		} else if ok {
 			response.Incidents = p.workingCopyMgr.reformatIncidents(incidents...)

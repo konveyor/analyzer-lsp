@@ -3,6 +3,7 @@ package builtin
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -2362,5 +2363,206 @@ func Test_incidentCaching_filePatternWithDirComponent(t *testing.T) {
 	}
 	if !matchedFiles["b.txt"] {
 		t.Error("expected incident from b.txt (dir_b/b.txt)")
+	}
+}
+
+// newNamePatternClient builds a client over a small tree whose directory
+// names are chosen to confuse a full path match (see issues 1083 and 1092).
+func newNamePatternClient(t *testing.T) (*builtinServiceClient, string) {
+	t.Helper()
+	base := filepath.Join(t.TempDir(), "test-project")
+	files := map[string]string{
+		"hibernate-rules/unrelated.txt":      "needle",
+		"hibernate-rules/hibernate-core.jar": "needle",
+		"lib/hibernate-orm.jar":              "needle",
+		"src/Main.java":                      "needle",
+		"src/test/App.java":                  "needle",
+		"conf/application.yml":               "needle",
+		"conf/application-dev.yml":           "needle",
+		"conf/old/my-application.yml":        "needle",
+		"docker/Dockerfile":                  "needle",
+		"docker/Dockerfile.prod":             "needle",
+		"Dockerfile-docs/README.md":          "needle",
+	}
+	for name, content := range files {
+		p := filepath.Join(base, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	log := testr.NewWithOptions(t, testr.Options{Verbosity: 5})
+	sc := &builtinServiceClient{
+		config:         provider.InitConfig{Location: base},
+		log:            log,
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(log),
+	}
+	sc.workingCopyMgr.init()
+	t.Cleanup(sc.workingCopyMgr.stop)
+	return sc, base
+}
+
+func Test_builtinServiceClient_Evaluate_NamePatterns(t *testing.T) {
+	tests := []struct {
+		name       string
+		capability string
+		condition  builtinCondition
+		want       []string
+		wantErr    bool
+	}{
+		{
+			name:       "file pattern matches the directory name (unchanged behaviour)",
+			capability: "file",
+			condition:  builtinCondition{File: fileCondition{Pattern: `hibernate.*`}},
+			want: []string{
+				"hibernate-rules/hibernate-core.jar", "hibernate-rules/unrelated.txt", "lib/hibernate-orm.jar",
+			},
+		},
+		{
+			name:       "file namePattern skips files that only have a matching directory",
+			capability: "file",
+			condition:  builtinCondition{File: fileCondition{NamePattern: `^hibernate.*\.jar$`}},
+			want:       []string{"hibernate-rules/hibernate-core.jar", "lib/hibernate-orm.jar"},
+		},
+		{
+			name:       "file namePattern is not fooled by the repository path",
+			capability: "file",
+			condition:  builtinCondition{File: fileCondition{NamePattern: `test`}},
+			want:       []string{},
+		},
+		{
+			name:       "file namePattern for Dockerfiles ignores a Dockerfile-docs directory",
+			capability: "file",
+			condition:  builtinCondition{File: fileCondition{NamePattern: `^Dockerfile.*`}},
+			want:       []string{"docker/Dockerfile", "docker/Dockerfile.prod"},
+		},
+		{
+			name:       "file pattern and namePattern are ANDed",
+			capability: "file",
+			condition:  builtinCondition{File: fileCondition{Pattern: `^/lib/`, NamePattern: `\.jar$`}},
+			want:       []string{"lib/hibernate-orm.jar"},
+		},
+		{
+			name:       "file needs pattern or namePattern",
+			capability: "file",
+			condition:  builtinCondition{File: fileCondition{}},
+			wantErr:    true,
+		},
+		{
+			name:       "filecontent filePattern exclusion by repository path is unchanged",
+			capability: "filecontent",
+			condition:  builtinCondition{Filecontent: fileContentCondition{Pattern: "needle", FilePattern: `test-project/.*\.java$`}},
+			want:       []string{},
+		},
+		{
+			name:       "filecontent filenamePattern is not fooled by the repository path",
+			capability: "filecontent",
+			condition:  builtinCondition{Filecontent: fileContentCondition{Pattern: "needle", FilenamePattern: `\.java$`}},
+			want:       []string{"src/Main.java", "src/test/App.java"},
+		},
+		{
+			name:       "filecontent filenamePattern ignores matching directories",
+			capability: "filecontent",
+			condition:  builtinCondition{Filecontent: fileContentCondition{Pattern: "needle", FilenamePattern: `^hibernate.*`}},
+			want:       []string{"hibernate-rules/hibernate-core.jar", "lib/hibernate-orm.jar"},
+		},
+		{
+			name:       "filecontent filenamePattern anchored application files",
+			capability: "filecontent",
+			condition: builtinCondition{Filecontent: fileContentCondition{
+				Pattern: "needle", FilenamePattern: `^application(-[a-zA-Z0-9]+)?\.(properties|yaml|yml)$`,
+			}},
+			want: []string{"conf/application-dev.yml", "conf/application.yml"},
+		},
+		{
+			name:       "filecontent filePattern and filenamePattern are ANDed",
+			capability: "filecontent",
+			condition: builtinCondition{Filecontent: fileContentCondition{
+				Pattern: "needle", FilePattern: `^/conf/`, FilenamePattern: `^application\.yml$`,
+			}},
+			want: []string{"conf/application.yml"},
+		},
+		{
+			name:       "filecontent filenamePattern with a glob",
+			capability: "filecontent",
+			condition:  builtinCondition{Filecontent: fileContentCondition{Pattern: "needle", FilenamePattern: "*.jar"}},
+			want:       []string{"hibernate-rules/hibernate-core.jar", "lib/hibernate-orm.jar"},
+		},
+		{
+			name:       "filecontent filenamePattern is part of the content match",
+			capability: "filecontent",
+			condition:  builtinCondition{Filecontent: fileContentCondition{Pattern: "absent", FilenamePattern: `\.java$`}},
+			want:       []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		for _, prepared := range []bool{false, true} {
+			mode := "walk"
+			if prepared {
+				mode = "prepared"
+			}
+			t.Run(tt.name+"/"+mode, func(t *testing.T) {
+				sc, base := newNamePatternClient(t)
+				condBytes, err := yaml.Marshal(&tt.condition)
+				if err != nil {
+					t.Fatalf("failed to marshal condition: %v", err)
+				}
+				if prepared && !tt.wantErr {
+					err := sc.Prepare(context.TODO(), []provider.ConditionsByCap{
+						{Cap: tt.capability, Conditions: [][]byte{condBytes}},
+					})
+					if err != nil {
+						t.Fatalf("Prepare() failed: %v", err)
+					}
+				}
+
+				res, err := sc.Evaluate(context.TODO(), tt.capability, condBytes)
+				if tt.wantErr {
+					if err == nil {
+						t.Fatal("expected an error")
+					}
+					return
+				}
+				if err != nil {
+					t.Fatalf("Evaluate() failed: %v", err)
+				}
+
+				got := map[string]bool{}
+				for _, inc := range res.Incidents {
+					rel, err := filepath.Rel(base, inc.FileURI.Filename())
+					if err != nil {
+						t.Fatal(err)
+					}
+					got[filepath.ToSlash(rel)] = true
+				}
+				gotList := make([]string, 0, len(got))
+				for f := range got {
+					gotList = append(gotList, f)
+				}
+				sort.Strings(gotList)
+				if !reflect.DeepEqual(gotList, tt.want) && !(len(gotList) == 0 && len(tt.want) == 0) {
+					t.Errorf("matched files = %v, want %v", gotList, tt.want)
+				}
+			})
+		}
+	}
+}
+
+// Two filecontent conditions that differ only in filenamePattern must not
+// share an incident cache entry.
+func Test_makeIncidentCacheKey_FilenamePattern(t *testing.T) {
+	a := builtinCondition{Filecontent: fileContentCondition{Pattern: "x", FilenamePattern: `\.java$`}}
+	b := builtinCondition{Filecontent: fileContentCondition{Pattern: "x", FilenamePattern: `\.xml$`}}
+	c := builtinCondition{Filecontent: fileContentCondition{Pattern: "x"}}
+	if makeIncidentCacheKey("filecontent", a) == makeIncidentCacheKey("filecontent", b) {
+		t.Error("conditions with different filenamePattern share a cache key")
+	}
+	if makeIncidentCacheKey("filecontent", a) == makeIncidentCacheKey("filecontent", c) {
+		t.Error("filenamePattern is missing from the cache key")
 	}
 }
