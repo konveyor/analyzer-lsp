@@ -198,7 +198,7 @@ func (g *gradleBuildTool) GetDependencies(ctx context.Context) (map[uri.URI][]pr
 		return nil, fmt.Errorf("error trying to get Gradle dependencies: %w - Gradle output: %s", err, string(output))
 	}
 
-	lines := strings.Split(string(output), "\n")
+	lines := strings.Split(strings.ReplaceAll(string(output), "\r\n", "\n"), "\n")
 	deps := g.parseGradleDependencyOutput(lines)
 
 	file := uri.File(g.hashFile)
@@ -241,7 +241,7 @@ func (g *gradleBuildTool) getGradleSubprojects(ctx context.Context) ([]string, e
 	subprojects := []string{}
 
 	gather := false
-	lines := strings.Split(string(output), "\n")
+	lines := strings.Split(strings.ReplaceAll(string(output), "\r\n", "\n"), "\n")
 	for _, line := range lines {
 		if npRegex.Find([]byte(line)) != nil {
 			return []string{}, nil
