@@ -67,6 +67,8 @@ type k8skey struct {
 }
 
 func (p *yqProvider) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
+	c = provider.WithProviderSpecificDefaults(c, defaultProviderSpecificConfig())
+
 	if c.AnalysisMode != provider.FullAnalysisMode {
 		return nil, provider.InitConfig{}, fmt.Errorf("only full analysis is supported")
 	}

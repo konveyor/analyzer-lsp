@@ -407,6 +407,16 @@ EOF
 
 Adjust `binaryPath`, `lspServerName`, and `--name` to match your module and rule provider identifiers.
 
+### Defaulting provider specific config
+
+Providers should not make callers spell out `providerSpecificConfig` when the provider image already knows the answer. Put the values your image ships with in a small `defaultProviderSpecificConfig()` function and apply them at the top of `Init`:
+
+```go
+c = provider.WithProviderSpecificDefaults(c, defaultProviderSpecificConfig())
+```
+
+A key the caller left out (missing, `nil` or an empty string) gets the default, anything the caller set wins, and a nil config is fine. The input map is not modified. See `external-providers/go-external-provider/pkg/go_external_provider/defaults.go` for an example.
+
 ## Testing Your Provider
 
 ### Unit Tests
