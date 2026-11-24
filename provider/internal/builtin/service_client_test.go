@@ -2566,3 +2566,86 @@ func Test_makeIncidentCacheKey_FilenamePattern(t *testing.T) {
 		t.Error("filenamePattern is missing from the cache key")
 	}
 }
+
+// The old key joined the three filecontent fields with "-", so these two
+// conditions both became "needle-.*dir-sub-file.txt".
+func Test_makeIncidentCacheKey_SeparatorInPatterns(t *testing.T) {
+	a := builtinCondition{Filecontent: fileContentCondition{Pattern: "needle", FilePattern: ".*dir", FilenamePattern: "sub-file.txt"}}
+	b := builtinCondition{Filecontent: fileContentCondition{Pattern: "needle", FilePattern: ".*dir-sub", FilenamePattern: "file.txt"}}
+	if makeIncidentCacheKey("filecontent", a) == makeIncidentCacheKey("filecontent", b) {
+		t.Error("conditions that only move a dash between fields share a cache key")
+	}
+	// the older pattern/filePattern pair had the same problem
+	c := builtinCondition{Filecontent: fileContentCondition{Pattern: "a-b", FilePattern: "c"}}
+	d := builtinCondition{Filecontent: fileContentCondition{Pattern: "a", FilePattern: "b-c"}}
+	if makeIncidentCacheKey("filecontent", c) == makeIncidentCacheKey("filecontent", d) {
+		t.Error("pattern and filePattern are not kept apart in the cache key")
+	}
+	a2 := a
+	if makeIncidentCacheKey("filecontent", a) != makeIncidentCacheKey("filecontent", a2) {
+		t.Error("identical conditions should share a cache key")
+	}
+}
+
+// Prepare must keep both conditions whose joined key used to be identical, and
+// each Evaluate must only return its own files.
+func Test_builtinServiceClient_Prepare_DashCollidingConditions(t *testing.T) {
+	dir := t.TempDir()
+	for _, f := range []string{"xdir/sub-file.txt", "xdir-sub/file.txt"} {
+		full := filepath.Join(dir, f)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte("a needle here\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	condA := builtinCondition{Filecontent: fileContentCondition{Pattern: "needle", FilePattern: ".*dir", FilenamePattern: "sub-file.txt"}}
+	condB := builtinCondition{Filecontent: fileContentCondition{Pattern: "needle", FilePattern: ".*dir-sub", FilenamePattern: "file.txt"}}
+	bytesA, err := yaml.Marshal(&condA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bytesB, err := yaml.Marshal(&condB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sc := &builtinServiceClient{
+		config:         provider.InitConfig{Location: dir},
+		log:            testr.NewWithOptions(t, testr.Options{Verbosity: 5}),
+		locationCache:  map[string]float64{},
+		cacheMutex:     sync.RWMutex{},
+		workingCopyMgr: NewTempFileWorkingCopyManger(testr.New(t)),
+	}
+	sc.workingCopyMgr.init()
+	defer sc.workingCopyMgr.stop()
+
+	conds := []provider.ConditionsByCap{{Cap: "filecontent", Conditions: [][]byte{bytesA, bytesB, bytesA}}}
+	if err := sc.Prepare(context.TODO(), conds); err != nil {
+		t.Fatalf("Prepare() failed: %v", err)
+	}
+	if len(sc.allParsedConditions) != 2 {
+		t.Fatalf("expected 2 parsed conditions (duplicate dropped, colliding pair kept), got %d", len(sc.allParsedConditions))
+	}
+
+	for name, tc := range map[string]struct {
+		cond []byte
+		want string
+	}{
+		"A": {bytesA, "xdir/sub-file.txt"},
+		"B": {bytesB, "xdir-sub/file.txt"},
+	} {
+		res, err := sc.Evaluate(context.TODO(), "filecontent", tc.cond)
+		if err != nil {
+			t.Fatalf("Evaluate(%s) failed: %v", name, err)
+		}
+		if len(res.Incidents) != 1 {
+			t.Fatalf("Evaluate(%s) returned %d incidents, want 1", name, len(res.Incidents))
+		}
+		got := res.Incidents[0].FileURI.Filename()
+		if !strings.HasSuffix(filepath.ToSlash(got), tc.want) {
+			t.Errorf("Evaluate(%s) matched %s, want %s", name, got, tc.want)
+		}
+	}
+}

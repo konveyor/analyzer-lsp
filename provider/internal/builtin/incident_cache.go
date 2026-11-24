@@ -3,7 +3,6 @@ package builtin
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -38,9 +37,14 @@ type cacheRefreshRequest struct {
 }
 
 // incidentCacheKey uniquely identifies a (capability, search params) pair.
+// The search params live in separate fields instead of one joined string, so
+// values that contain the separator cannot make two conditions collide.
 type incidentCacheKey struct {
-	cap    string
-	params string
+	cap             string
+	pattern         string // filecontent pattern, xml/json xpath, xmlPublicID regex
+	filePattern     string
+	filenamePattern string
+	namespaces      string
 }
 
 // parsedCondition holds a pre-parsed, pre-compiled condition ready for execution
@@ -76,24 +80,25 @@ func makeIncidentCacheKey(cap string, cond builtinCondition) incidentCacheKey {
 	switch cap {
 	case "filecontent":
 		return incidentCacheKey{
-			cap:    cap,
-			params: fmt.Sprintf("%v-%v-%v", cond.Filecontent.Pattern, cond.Filecontent.FilePattern, cond.Filecontent.FilenamePattern),
+			cap:             cap,
+			pattern:         cond.Filecontent.Pattern,
+			filePattern:     cond.Filecontent.FilePattern,
+			filenamePattern: cond.Filecontent.FilenamePattern,
 		}
 	case "xml":
 		return incidentCacheKey{
-			cap:    cap,
-			params: fmt.Sprintf("%v-%v", cond.XML.XPath, sortedNamespaces(cond.XML.Namespaces)),
+			cap:        cap,
+			pattern:    cond.XML.XPath,
+			namespaces: sortedNamespaces(cond.XML.Namespaces),
 		}
 	case "xmlPublicID":
 		return incidentCacheKey{
-			cap:    cap,
-			params: fmt.Sprintf("%v-%v", cond.XMLPublicID.Regex, sortedNamespaces(cond.XMLPublicID.Namespaces)),
+			cap:        cap,
+			pattern:    cond.XMLPublicID.Regex,
+			namespaces: sortedNamespaces(cond.XMLPublicID.Namespaces),
 		}
 	case "json":
-		return incidentCacheKey{
-			cap:    cap,
-			params: cond.JSON.XPath,
-		}
+		return incidentCacheKey{cap: cap, pattern: cond.JSON.XPath}
 	default:
 		return incidentCacheKey{cap: cap}
 	}
