@@ -103,6 +103,50 @@ jobs:
             demo-output-path: external-providers/yq-external-provider/e2e-tests/demo-output.yaml
             provider_settings-path: external-providers/yq-external-provider/e2e-tests/provider_settings.json
             testing-rules: external-providers/yq-external-provider/e2e-tests/rule-example.yaml
+            # Same providers and rules as above, but with no providerSpecificConfig for
+            # the keys the provider image defaults (lspServerPath and friends), the way a
+            # caller that only knows the stock image would configure them. The expected
+            # output is the one used by the full config run.
+          - provider: java
+            variant: defaults
+            artifact_pattern: "*{analyzer-lsp,java-external-provider}"
+            test-data: external-providers/java-external-provider/examples
+            image_env: IMG_JAVA_PROVIDER
+            demo-output-path: external-providers/java-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/java-external-provider/e2e-tests/provider_settings_defaults.json
+            testing-rules: external-providers/java-external-provider/e2e-tests/rule-example.yaml
+          - provider: go
+            variant: defaults
+            artifact_pattern: "*{analyzer-lsp,go-external-provider}"
+            test-data: examples
+            image_env: IMG_GO_PROVIDER
+            demo-output-path: external-providers/go-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/go-external-provider/e2e-tests/provider_settings_defaults.json
+            testing-rules: external-providers/go-external-provider/e2e-tests/rule-example.yaml
+          - provider: python
+            variant: defaults
+            artifact_pattern: "*{analyzer-lsp,python-external-provider}"
+            test-data: examples
+            image_env: IMG_PYTHON_PROVIDER
+            demo-output-path: external-providers/python-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/python-external-provider/e2e-tests/provider_settings_defaults.json
+            testing-rules: external-providers/python-external-provider/e2e-tests/rule-example.yaml
+          - provider: nodejs
+            variant: defaults
+            artifact_pattern: "*{analyzer-lsp,nodejs-external-provider}"
+            test-data: examples
+            image_env: IMG_NODE_PROVIDER
+            demo-output-path: external-providers/nodejs-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/nodejs-external-provider/e2e-tests/provider_settings_defaults.json
+            testing-rules: external-providers/nodejs-external-provider/e2e-tests/rule-example.yaml
+          - provider: yq
+            variant: defaults
+            artifact_pattern: "*{analyzer-lsp,yq-external-provider}"
+            test-data: examples
+            image_env: IMG_YQ_PROVIDER
+            demo-output-path: external-providers/yq-external-provider/e2e-tests/demo-output.yaml
+            provider_settings-path: external-providers/yq-external-provider/e2e-tests/provider_settings_defaults.json
+            testing-rules: external-providers/yq-external-provider/e2e-tests/rule-example.yaml
     steps:
       - uses: actions/checkout@v3
         if: needs.detect-changes.outputs[matrix.provider] == 'true'

@@ -1,0 +1,12 @@
+[
+    {
+        "name": "python",
+        "address": "localhost:14651",
+        "initConfig": [
+            {
+                "analysisMode": "full",
+                "location": "/analyzer-lsp/examples/python"
+            }
+        ]
+    }
+]

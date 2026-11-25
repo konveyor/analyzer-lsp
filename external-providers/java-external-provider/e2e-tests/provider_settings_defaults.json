@@ -1,0 +1,86 @@
+[
+    {
+        "name": "java",
+        "logLevel": 99,
+        "address": "localhost:14651",
+        "initConfig": [
+            {
+                "location": "/analyzer-lsp/examples/java",
+                "providerSpecificConfig": {
+                    "mavenIndexPath": "/usr/local/etc",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-java"
+                },
+                "analysisMode": "source-only"
+            },
+            {
+                "location": "/analyzer-lsp/examples/inclusion-tests",
+                "providerSpecificConfig": {
+                    "mavenIndexPath": "/usr/local/etc",
+                    "includedPaths": [
+                        "src/main/java/io/konveyor/util/FileReader.java"
+                    ],
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-inclusion"
+                },
+                "analysisMode": "source-only"
+            },
+            {
+                "location": "/analyzer-lsp/examples/customers-tomcat-legacy",
+                "providerSpecificConfig": {
+                    "mavenIndexPath": "/usr/local/etc",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-customers"
+                },
+                "analysisMode": "source-only"
+            },
+            {
+                "location": "/analyzer-lsp/examples/gradle-multi-project-example",
+                "providerSpecificConfig": {
+                    "mavenIndexPath": "/usr/local/etc",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-gradle"
+                },
+                "analysisMode": "source-only"
+            },
+            {
+                "location": "mvn://io.javaoperatorsdk:quarkus:1.6.2:jar@/analyzer-lsp/examples/",
+                "providerSpecificConfig": {
+                    "mavenIndexPath": "/usr/local/etc",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-binary"
+                },
+                "analysisMode": "full"
+            },
+            {
+                "location": "/analyzer-lsp/examples/sample-tiles-app",
+                "providerSpecificConfig": {
+                    "mavenIndexPath": "/usr/local/etc",
+                    "jvmMaxMem": "3G",
+                    "workspace": "/tmp/jdtls-workspace-binary"
+                },
+                "analysisMode": "source-only"
+            }
+        ]
+    },
+    {
+        "name": "builtin",
+        "logLevel": 99,
+        "initConfig": [
+            {
+                "location": "examples/java/"
+            },
+            {
+                "location": "examples/customers-tomcat-legacy/"
+            },
+            {
+                "location": "examples/builtin/",
+                "providerSpecificConfig": {
+                    "includedPaths": [
+                        "inclusion_tests/dir-0"
+                    ]
+                }
+            }
+        ]
+    }
+]
