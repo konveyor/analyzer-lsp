@@ -24,6 +24,20 @@ Provider configuration fields are:
 
 In-tree and first-party external providers include `builtin`, `java`, `go`, `python`, `nodejs`, and `yaml` (via `yq-external-provider`). Any binary that implements the analyzer gRPC provider interface can be referenced from `binaryPath`.
 
+### Defaults for provider specific config
+
+The go, python, nodejs, yaml and java providers fill in `providerSpecificConfig` values you leave out, using the layout of their own container image. A provider entry can therefore leave `providerSpecificConfig` out entirely when it runs from the stock image, and only needs to set the keys it wants to change. A key counts as left out when it is missing, `null` or an empty string. Anything you set is used as is.
+
+| Provider | Defaults |
+| --- | --- |
+| `go` | `lspServerName: go`, `lspServerPath: /usr/local/bin/gopls` |
+| `python` | `lspServerName: python`, `lspServerPath: /usr/local/bin/pylsp` |
+| `nodejs` | `lspServerName: nodejs`, `lspServerPath: /usr/local/bin/typescript-language-server`, `lspServerArgs: ["--stdio"]` |
+| `yaml` | `name: yq`, `lspServerPath: /usr/local/bin/yq` |
+| `java` | `lspServerName: java`, `lspServerPath: /jdtls/bin/jdtls`, `bundles: /jdtls/java-analyzer-bundle/java-analyzer-bundle.core/target/java-analyzer-bundle.core-1.0.0-SNAPSHOT.jar`, `depOpenSourceLabelsFile: /usr/local/etc/maven.default.index` |
+
+These paths only exist inside the provider images. When you run a provider from a local install, keep setting `lspServerPath` (and the other keys that differ) yourself.
+
 If an explicit `proxyConfig` is not specified for a provider, system-wide proxy settings configured via environment variables `http_proxy`, `https_proxy` & `no_proxy` are used by default. An explicit `proxyConfig` is typically needed for providers that run externally and are not part of the same process as the rule engine. For the rule engine and the builtin providers, system-wide proxy settings are sufficient.
 
 ```Note For Java: full analysis mode will search all the dependency and source, source-only will only search the source code. for a Jar/Ear/War, this is the code that is compiled in that archive and nothing else.

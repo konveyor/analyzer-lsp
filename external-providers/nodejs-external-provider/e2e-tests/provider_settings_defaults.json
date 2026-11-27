@@ -1,0 +1,20 @@
+[
+    {
+        "name": "nodejs",
+        "address": "localhost:14651",
+        "initConfig": [
+            {
+                "analysisMode": "full",
+                "location": "/analyzer-lsp/examples/nodejs"
+            }
+        ]
+    },
+    {
+        "name": "builtin",
+        "initConfig": [
+            {
+                "location": "examples/nodejs/"
+            }
+        ]
+    }
+]

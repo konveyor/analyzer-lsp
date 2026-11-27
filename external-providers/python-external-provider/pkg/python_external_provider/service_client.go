@@ -37,6 +37,8 @@ type PythonServiceClientBuilder struct {
 }
 
 func (p *PythonServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
+	c = provider.WithProviderSpecificDefaults(c, defaultProviderSpecificConfig())
+
 	sc := &PythonServiceClient{}
 
 	b, _ := yaml.Marshal(c.ProviderSpecificConfig)

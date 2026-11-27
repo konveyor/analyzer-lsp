@@ -1,0 +1,20 @@
+[
+    {
+        "name": "go",
+        "address": "localhost:14651",
+        "initConfig": [
+            {
+                "analysisMode": "full",
+                "location": "/analyzer-lsp/examples/golang"
+            }
+        ]
+    },
+    {
+        "name": "builtin",
+        "initConfig": [
+            {
+                "location": "examples/golang/"
+            }
+        ]
+    }
+]

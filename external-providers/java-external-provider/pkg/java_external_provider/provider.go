@@ -292,6 +292,8 @@ func symbolKindToString(symbolKind protocol.SymbolKind) string {
 }
 
 func (p *javaProvider) Init(ctx context.Context, log logr.Logger, config provider.InitConfig) (provider.ServiceClient, provider.InitConfig, error) {
+	config = provider.WithProviderSpecificDefaults(config, defaultProviderSpecificConfig())
+
 	// By default, if nothing is set for analysis mode in the config, we should default to full for external providers
 	var mode provider.AnalysisMode = provider.AnalysisMode(config.AnalysisMode)
 	// in case of a binary, provider decompiles it and returns

@@ -37,6 +37,8 @@ type GoServiceClientBuilder struct {
 }
 
 func (g *GoServiceClientBuilder) Init(ctx context.Context, log logr.Logger, c provider.InitConfig) (provider.ServiceClient, error) {
+	c = provider.WithProviderSpecificDefaults(c, defaultProviderSpecificConfig())
+
 	sc := &GoServiceClient{}
 
 	b, _ := yaml.Marshal(c.ProviderSpecificConfig)
