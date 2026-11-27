@@ -187,7 +187,9 @@ Depending on the _provider_ and the _capability_, there will be different `<fiel
 |          |             | filepaths   | No       | Optional list of files to scope down search                                                   |
 |          | filecontent | pattern     | Yes      | Regex pattern to match in content                                                             |
 |          |             | filePattern | No       | Only search in files with names matching this pattern                                         |
-|          | file        | pattern     | Yes      | Find files with names matching this pattern                                                   |
+|          |             | filenamePattern | No   | Only search in files whose base name (no directory) matches this pattern                      |
+|          | file        | pattern     | No\*     | Find files with names matching this pattern                                                   |
+|          |             | namePattern | No\*     | Find files whose base name (no directory) matches this pattern                                |
 |          | hasTags     |             |          | This is an inline list of string tags. See [Tag Action](#tag-action)                          |
 | go       | referenced  | pattern     | Yes      | Regex pattern                                                                                 |
 |          | dependency  | name        | Yes      | Name of the dependency                                                                        |
@@ -362,6 +364,32 @@ java.referenced:
 ```
 
 
+
+##### Matching on the file name only
+
+`builtin.file` `pattern` and `builtin.filecontent` `filePattern` are tested against the path of the file relative to the analysed location (with a leading `/`), and also against the file name. Because the directories are part of that string, a directory called `hibernate-rules` makes `hibernate.*\.jar` match `hibernate-rules/other-lib.jar`, and a `filePattern` such as `test` also matches every file below a `test` directory. These fields keep that behavior, since existing rules rely on it.
+
+To match the file name only, use `namePattern` for `builtin.file` and `filenamePattern` for `builtin.filecontent`. They are tested against the base name of the file and never see the directories, including the ones above the analysed location.
+
+```yaml
+# only files named like a Dockerfile, not files inside a directory called Dockerfile-docs
+when:
+  builtin.file:
+    namePattern: "^Dockerfile.*"
+```
+
+```yaml
+when:
+  builtin.filecontent:
+    pattern: "spring.datasource.url"
+    filenamePattern: '^application(-[a-zA-Z0-9]+)?\.(properties|yaml|yml)$'
+```
+
+The new fields use the same pattern rules as the old ones: a pattern without wildcards or anchors has to equal the whole name, anything else is a regular expression (unanchored unless you add `^` or `$`), and simple globs such as `*.jar` also work.
+
+If both the old and the new field are set, a file has to satisfy both.
+
+\* `builtin.file` needs at least one of `pattern` and `namePattern`.
 
 ##### Custom Variables
 

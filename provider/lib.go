@@ -36,6 +36,10 @@ type FileSearcher struct {
 type SearchCriteria struct {
 	Patterns           []string
 	ConditionFilepaths []string
+	// NamePattern, when set, keeps only files whose base name matches.
+	// Unlike Patterns it never looks at the directory part of the path.
+	// It is applied on top of Patterns, so a file has to satisfy both.
+	NamePattern string
 }
 
 type IncludeExcludeConstraints struct {
@@ -229,6 +233,7 @@ func (f *FileSearcher) search(s SearchCriteria, walkDirFunc cachedWalkDir) ([]st
 	finalSearchResult = f.filterFilesByPathsOrPatterns(statFunc, includedPatterns, finalSearchResult, false)
 	// apply patterns from search criteria
 	finalSearchResult = f.filterFilesByPathsOrPatterns(statFunc, s.Patterns, finalSearchResult, false)
+	finalSearchResult = f.filterFilesByName(s.NamePattern, finalSearchResult)
 	finalSearchResult = f.filterFilesByPathsOrPatterns(statFunc, searchCriteriaPaths, finalSearchResult, false)
 
 	// finally, apply exclusion, rule scope takes priority over provider config
@@ -242,6 +247,49 @@ func (f *FileSearcher) search(s SearchCriteria, walkDirFunc cachedWalkDir) ([]st
 
 	f.Log.V(7).Info("returning file search result", "files", finalSearchResult)
 	return finalSearchResult, errors.Join(walkErrors...)
+}
+
+// filterFilesByName keeps the files whose base name matches pattern.
+// An empty pattern keeps everything.
+func (f *FileSearcher) filterFilesByName(pattern string, files []string) []string {
+	if pattern == "" {
+		return files
+	}
+	matches := NewNameMatcher(pattern)
+	filtered := []string{}
+	for _, file := range files {
+		if matches(filepath.Base(file)) {
+			filtered = append(filtered, file)
+		}
+	}
+	return filtered
+}
+
+// NewNameMatcher returns a function reporting whether a file base name
+// matches pattern. The pattern is treated like the other file patterns:
+// a pattern without wildcards or anchors has to equal the name, otherwise it
+// is a regex, with a filepath.Match glob as the fallback for things like
+// "*.txt" that are not valid regexes. Only the base name is ever tested,
+// so directory names (including the ones above the search base) cannot
+// influence the result.
+func NewNameMatcher(pattern string) func(name string) bool {
+	rPattern := pattern
+	if !strings.ContainsAny(pattern, "*?[]$^") {
+		rPattern = "^" + pattern + "$"
+	}
+	regex, regexErr := regexp.Compile(rPattern)
+	isGlob := strings.ContainsAny(pattern, "*?")
+	return func(name string) bool {
+		if regexErr == nil && regex.MatchString(name) {
+			return true
+		}
+		if isGlob {
+			if m, err := filepath.Match(pattern, name); err == nil && m {
+				return true
+			}
+		}
+		return false
+	}
 }
 
 func (f *FileSearcher) filterFilesByPathsOrPatterns(statFunc cachedOsStat, patterns []string, files []string, filterOut bool) []string {

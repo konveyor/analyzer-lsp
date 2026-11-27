@@ -3,7 +3,6 @@ package builtin
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -38,9 +37,14 @@ type cacheRefreshRequest struct {
 }
 
 // incidentCacheKey uniquely identifies a (capability, search params) pair.
+// The search params live in separate fields instead of one joined string, so
+// values that contain the separator cannot make two conditions collide.
 type incidentCacheKey struct {
-	cap    string
-	params string
+	cap             string
+	pattern         string // filecontent pattern, xml/json xpath, xmlPublicID regex
+	filePattern     string
+	filenamePattern string
+	namespaces      string
 }
 
 // parsedCondition holds a pre-parsed, pre-compiled condition ready for execution
@@ -50,10 +54,24 @@ type parsedCondition struct {
 	cacheKey            incidentCacheKey
 	cap                 string
 	condition           builtinCondition
-	compiledXPath       *xpath.Expr    // xml, xmlPublicID
-	compiledRegex       *regexp.Regexp // xmlPublicID
-	compiledFilePattern *regexp.Regexp // filecontent FilePattern, nil if empty or invalid regex
-	jsonXPath           string         // json
+	compiledXPath       *xpath.Expr       // xml, xmlPublicID
+	compiledRegex       *regexp.Regexp    // xmlPublicID
+	compiledFilePattern *regexp.Regexp    // filecontent FilePattern, nil if empty or invalid regex
+	matchesFilename     func(string) bool // filecontent FilenamePattern, nil if empty
+	jsonXPath           string            // json
+}
+
+// matchesFile reports whether a file passes the filecontent file filters of
+// the condition. filePattern and filenamePattern are ANDed when both are set.
+func (pc *parsedCondition) matchesFile(relPath, baseName string) bool {
+	fc := pc.condition.Filecontent
+	if fc.FilePattern != "" && !matchesFilePattern(pc.compiledFilePattern, fc.FilePattern, relPath, baseName) {
+		return false
+	}
+	if pc.matchesFilename != nil && !pc.matchesFilename(baseName) {
+		return false
+	}
+	return true
 }
 
 // makeIncidentCacheKey builds a canonical cache key from a condition's
@@ -62,24 +80,25 @@ func makeIncidentCacheKey(cap string, cond builtinCondition) incidentCacheKey {
 	switch cap {
 	case "filecontent":
 		return incidentCacheKey{
-			cap:    cap,
-			params: fmt.Sprintf("%v-%v", cond.Filecontent.Pattern, cond.Filecontent.FilePattern),
+			cap:             cap,
+			pattern:         cond.Filecontent.Pattern,
+			filePattern:     cond.Filecontent.FilePattern,
+			filenamePattern: cond.Filecontent.FilenamePattern,
 		}
 	case "xml":
 		return incidentCacheKey{
-			cap:    cap,
-			params: fmt.Sprintf("%v-%v", cond.XML.XPath, sortedNamespaces(cond.XML.Namespaces)),
+			cap:        cap,
+			pattern:    cond.XML.XPath,
+			namespaces: sortedNamespaces(cond.XML.Namespaces),
 		}
 	case "xmlPublicID":
 		return incidentCacheKey{
-			cap:    cap,
-			params: fmt.Sprintf("%v-%v", cond.XMLPublicID.Regex, sortedNamespaces(cond.XMLPublicID.Namespaces)),
+			cap:        cap,
+			pattern:    cond.XMLPublicID.Regex,
+			namespaces: sortedNamespaces(cond.XMLPublicID.Namespaces),
 		}
 	case "json":
-		return incidentCacheKey{
-			cap:    cap,
-			params: cond.JSON.XPath,
-		}
+		return incidentCacheKey{cap: cap, pattern: cond.JSON.XPath}
 	default:
 		return incidentCacheKey{cap: cap}
 	}
@@ -127,13 +146,14 @@ func isChainedCondition(cap string, cond builtinCondition) bool {
 // If any scoped file has a pending cache refresh, it waits for the refresh
 // to complete before returning results. Returns the incidents, whether a
 // cache hit occurred, and any error.
-func (b *builtinServiceClient) tryIncidentCache(ctx context.Context, cap string, cond builtinCondition, patterns []string) ([]provider.IncidentContext, bool, error) {
+func (b *builtinServiceClient) tryIncidentCache(ctx context.Context, cap string, cond builtinCondition, patterns []string, namePattern string) ([]provider.IncidentContext, bool, error) {
 	if !b.prepared || len(b.allParsedConditions) == 0 || isChainedCondition(cap, cond) {
 		return nil, false, nil
 	}
 	key := makeIncidentCacheKey(cap, cond)
 	scopedFiles, err := b.filterCachedFiles(cond, provider.SearchCriteria{
-		Patterns: patterns,
+		Patterns:    patterns,
+		NamePattern: namePattern,
 	})
 	if err != nil {
 		return nil, false, err
@@ -264,10 +284,8 @@ func (b *builtinServiceClient) fileNeedsProcessing(relPath, baseName string, isX
 		pc := &b.allParsedConditions[i]
 		switch pc.cap {
 		case "filecontent":
-			if pc.condition.Filecontent.FilePattern != "" {
-				if !matchesFilePattern(pc.compiledFilePattern, pc.condition.Filecontent.FilePattern, relPath, baseName) {
-					continue
-				}
+			if !pc.matchesFile(relPath, baseName) {
+				continue
 			}
 			needsContent = true
 		case "xml", "xmlPublicID":
@@ -414,10 +432,8 @@ func (b *builtinServiceClient) processFilecontentForFile(filePath string, conten
 			continue
 		}
 
-		if pc.condition.Filecontent.FilePattern != "" {
-			if !matchesFilePattern(pc.compiledFilePattern, pc.condition.Filecontent.FilePattern, relPath, baseName) {
-				continue
-			}
+		if !pc.matchesFile(relPath, baseName) {
+			continue
 		}
 
 		pattern := pc.condition.Filecontent.Pattern

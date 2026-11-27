@@ -26,13 +26,15 @@ type builtinCondition struct {
 }
 
 type fileContentCondition struct {
-	FilePattern string   `yaml:"filePattern" json:"filePattern,omitempty" title:"FilePattern" description:"Only search in files with names matching this pattern"`
-	Pattern     string   `yaml:"pattern" json:"pattern" title:"Pattern" description:"Regex pattern to match in content"`
-	Filepaths   []string `yaml:"filepaths" json:"filepaths,omitempty" title:"Filepaths" description:"Optional list of files to scope down search"`
+	FilePattern     string   `yaml:"filePattern" json:"filePattern,omitempty" title:"FilePattern" description:"Only search in files with names matching this pattern"`
+	FilenamePattern string   `yaml:"filenamePattern" json:"filenamePattern,omitempty" title:"FilenamePattern" description:"Only search in files whose base name (without the directory) matches this pattern"`
+	Pattern         string   `yaml:"pattern" json:"pattern" title:"Pattern" description:"Regex pattern to match in content"`
+	Filepaths       []string `yaml:"filepaths" json:"filepaths,omitempty" title:"Filepaths" description:"Optional list of files to scope down search"`
 }
 
 type fileCondition struct {
-	Pattern string `yaml:"pattern" json:"pattern" title:"Pattern" description:"Find files with names matching this pattern"`
+	Pattern     string `yaml:"pattern" json:"pattern,omitempty" title:"Pattern" description:"Find files with names matching this pattern"`
+	NamePattern string `yaml:"namePattern" json:"namePattern,omitempty" title:"NamePattern" description:"Find files whose base name (without the directory) matches this pattern"`
 }
 
 var _ provider.InternalProviderClient = &builtinProvider{}
